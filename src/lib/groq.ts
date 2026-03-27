@@ -1,8 +1,6 @@
 import Groq from "groq-sdk";
 import { AnalyzeRequestBody } from "@/types";
-
-const SYSTEM_PROMPT =
-  "You are a geospatial analysis expert. When given coordinates, elevation data, land classification results, and proximity data, provide actionable insights about land use potential, resource availability, environmental constraints, and site viability. Be specific, data-driven, and explicit about uncertainty.";
+import { buildGeoSightSystemPrompt } from "@/lib/geosight-assistant";
 
 export async function runGroqAnalysis(payload: AnalyzeRequestBody) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -15,12 +13,13 @@ export async function runGroqAnalysis(payload: AnalyzeRequestBody) {
     };
   }
 
+  const { prompt } = buildGeoSightSystemPrompt(payload.question);
   const groq = new Groq({ apiKey });
   const completion = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     temperature: 0.2,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: prompt },
       {
         role: "user",
         content: JSON.stringify(payload, null, 2),

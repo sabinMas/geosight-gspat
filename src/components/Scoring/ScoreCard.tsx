@@ -23,7 +23,7 @@ export function ScoreCard({ score }: ScoreCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Site viability score</CardTitle>
+        <CardTitle>Cooling demo score</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-[180px_1fr]">
         <div className="h-44">
@@ -48,6 +48,9 @@ export function ScoreCard({ score }: ScoreCardProps) {
         </div>
         <div className="space-y-3">
           <p className="text-sm leading-6 text-slate-300">{score.recommendation}</p>
+          <p className="text-xs leading-5 text-slate-400">
+            This fixed scorecard is the featured data center cooling workflow. Use the chat panel for other GeoSight use cases like hiking, housing, retail, or logistics.
+          </p>
           <div className="rounded-2xl border border-amber-300/20 bg-amber-400/8 p-3 text-sm text-amber-50">
             Deterministic weighted model: water 30%, power 20%, terrain 15%, climate 15%, roads 10%, land cover 10%.
           </div>

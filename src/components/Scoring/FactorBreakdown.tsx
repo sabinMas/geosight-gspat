@@ -23,7 +23,7 @@ export function FactorBreakdown({ score }: FactorBreakdownProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Factor breakdown</CardTitle>
+        <CardTitle>Cooling factor breakdown</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="h-72">

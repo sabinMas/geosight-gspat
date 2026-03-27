@@ -4,37 +4,44 @@ import { useMemo, useState } from "react";
 import { buildRectangle, toBoundingBox } from "@/lib/geospatial";
 import { Coordinates, RegionSelection } from "@/types";
 
-function buildRegion(center: Coordinates): RegionSelection {
+function buildRegion(center: Coordinates, label?: string): RegionSelection {
   const polygon = buildRectangle(center);
   return {
-    id: `${center.lat.toFixed(4)}-${center.lng.toFixed(4)}`,
-    name: `Analysis region ${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`,
+    id: `${label ?? "region"}-${center.lat.toFixed(4)}-${center.lng.toFixed(4)}`,
+    name: label ?? `Analysis region ${center.lat.toFixed(2)}, ${center.lng.toFixed(2)}`,
     center,
     polygon,
     bbox: toBoundingBox(center),
   };
 }
 
-export function useGlobeInteraction(initialCoordinates: Coordinates) {
+export function useGlobeInteraction(initialCoordinates: Coordinates, initialLocationName?: string) {
   const [selectedPoint, setSelectedPoint] = useState<Coordinates>(initialCoordinates);
-  const [selectedRegion, setSelectedRegion] = useState<RegionSelection>(buildRegion(initialCoordinates));
+  const [selectedLocationName, setSelectedLocationName] = useState(
+    initialLocationName ?? `Location ${initialCoordinates.lat.toFixed(2)}, ${initialCoordinates.lng.toFixed(2)}`,
+  );
+  const [selectedRegion, setSelectedRegion] = useState<RegionSelection>(
+    buildRegion(initialCoordinates, initialLocationName),
+  );
 
-  const selectPoint = (coords: Coordinates) => {
+  const selectPoint = (coords: Coordinates, label?: string) => {
     setSelectedPoint(coords);
-    setSelectedRegion(buildRegion(coords));
+    setSelectedLocationName(label ?? `Location ${coords.lat.toFixed(2)}, ${coords.lng.toFixed(2)}`);
+    setSelectedRegion(buildRegion(coords, label));
   };
 
   const quickRegions = useMemo(
     () => [
-      buildRegion({ lat: 45.5946, lng: -121.1787 }),
-      buildRegion({ lat: 45.8399, lng: -119.7069 }),
-      buildRegion({ lat: 47.4235, lng: -120.3103 }),
+      buildRegion({ lat: 45.5946, lng: -121.1787 }, "The Dalles corridor"),
+      buildRegion({ lat: 45.8399, lng: -119.7069 }, "Boardman corridor"),
+      buildRegion({ lat: 47.4235, lng: -120.3103 }, "Wenatchee corridor"),
     ],
     [],
   );
 
   return {
     selectedPoint,
+    selectedLocationName,
     selectedRegion,
     selectPoint,
     setSelectedRegion,

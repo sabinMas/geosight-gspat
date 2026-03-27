@@ -6,6 +6,14 @@ export type SiteFactorKey =
   | "transportation"
   | "landClassification";
 
+export type UseCaseType =
+  | "data_center_cooling"
+  | "outdoor_recreation"
+  | "residential_development"
+  | "retail_commercial"
+  | "warehouse_logistics"
+  | "general_exploration";
+
 export interface Coordinates {
   lat: number;
   lng: number;
@@ -56,6 +64,13 @@ export interface GeodataResult {
   sourceNotes: string[];
 }
 
+export interface LocationSearchResult {
+  name: string;
+  coordinates: Coordinates;
+  kind?: string;
+  countryCode?: string;
+}
+
 export interface SiteFactorScore {
   key: SiteFactorKey;
   label: string;
@@ -97,6 +112,7 @@ export interface ChatMessage {
 export interface AnalyzeRequestBody {
   question: string;
   location?: Coordinates;
+  locationName?: string;
   geodata?: GeodataResult;
   imageSummary?: string;
   classification?: LandCoverBucket[];

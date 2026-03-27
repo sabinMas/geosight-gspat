@@ -34,8 +34,17 @@ const CesiumGlobe = dynamic(
 );
 
 export default function HomePage() {
-  const { selectedPoint, selectedRegion, selectPoint, setSelectedRegion, quickRegions } =
-    useGlobeInteraction({ lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng });
+  const {
+    selectedPoint,
+    selectedLocationName,
+    selectedRegion,
+    selectPoint,
+    setSelectedRegion,
+    quickRegions,
+  } = useGlobeInteraction(
+    { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
+    "Columbia River Gorge",
+  );
   const { geodata, score, loading, error } = useSiteAnalysis(selectedPoint);
   const { sites, addSite } = useSavedSites();
 
@@ -76,16 +85,19 @@ export default function HomePage() {
     <main className="min-h-screen overflow-hidden p-4">
       <div className="relative flex min-h-[calc(100vh-2rem)] flex-col gap-4 lg:flex-row">
         <Sidebar
+          selectedLocationName={selectedLocationName}
           selectedRegion={selectedRegion}
           onSelectRegion={(region) => {
             setSelectedRegion(region);
-            selectPoint(region.center);
+            selectPoint(region.center, region.name);
           }}
           quickRegions={quickRegions}
         />
 
         <section className="relative min-h-[420px] flex-1 overflow-hidden rounded-[2rem] border border-cyan-400/15 bg-slate-950/60">
-          <SearchBar onLocate={selectPoint} />
+          <SearchBar
+            onLocate={(result) => selectPoint(result.coordinates, result.name)}
+          />
           <CesiumGlobe
             selectedPoint={selectedPoint}
             selectedRegion={selectedRegion}
@@ -95,7 +107,15 @@ export default function HomePage() {
             terrainExaggeration={terrainExaggeration}
           />
           <DataLayers layers={layers} onChange={setLayers} />
-          <RegionSelector region={selectedRegion} onReset={() => selectPoint({ lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng })} />
+          <RegionSelector
+            region={selectedRegion}
+            onReset={() =>
+              selectPoint(
+                { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
+                "Columbia River Gorge",
+              )
+            }
+          />
         </section>
 
         <aside className="flex w-full max-w-[420px] flex-col gap-4">
@@ -103,6 +123,7 @@ export default function HomePage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.24em] text-cyan-200">Live analysis</div>
+                <div className="mt-1 text-sm font-medium text-white">{selectedLocationName}</div>
                 <div className="mt-1 font-mono text-sm text-white">
                   {selectedPoint.lat.toFixed(4)}, {selectedPoint.lng.toFixed(4)}
                 </div>
@@ -154,6 +175,7 @@ export default function HomePage() {
         <div className="space-y-4">
           <ChatPanel
             location={selectedPoint}
+            locationName={selectedLocationName}
             geodata={geodata}
             imageSummary={imageSummary}
             classification={effectiveClassification}

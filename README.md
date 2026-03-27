@@ -1,19 +1,20 @@
 # GeoSight
 
-GeoSight is an intelligent geospatial analysis platform built for fast site evaluation on top of a 3D globe. The MVP centers on a Pacific Northwest data cooling-center scenario, but the product shape is general-purpose: click anywhere, inspect terrain and infrastructure context, upload imagery, ask geospatial questions, and compare candidate sites transparently.
+GeoSight is an intelligent geospatial analysis platform built for asking open-ended questions about places on top of a 3D globe. The featured MVP story centers on Pacific Northwest data center cooling, but the platform is intentionally broader: click anywhere, search for cities or landmarks, inspect terrain and infrastructure context, upload imagery, and ask location-based questions across many use cases.
 
 ## Vision
 
 - Explore terrain, water access, infrastructure, and climate from a living 3D globe.
 - Blend deterministic geospatial scoring with natural-language analysis.
+- Support multiple evaluation modes on the same geography: cooling infrastructure, outdoor recreation, residential development, retail, logistics, and general exploration.
 - Keep the stack deployable on free tiers: Cesium Ion, Groq, Open-Meteo, USGS, and OpenStreetMap.
 
-## What’s in the MVP
+## What's in the MVP
 
 - Cesium globe with Pacific Northwest default fly-to
-- Click-to-analyze coordinate workflow
+- Search and click-to-analyze workflow for coordinates and named places
 - Region selection rectangle and overlay toggles
-- Groq-powered geospatial Q&A endpoint with local fallback
+- Groq-powered geospatial Q&A endpoint with use-case-aware reasoning and local fallback
 - Deterministic site viability scoring and comparison table
 - Satellite image upload with client-side MVP land cover estimation
 - Terrain exaggeration control and elevation profile panel

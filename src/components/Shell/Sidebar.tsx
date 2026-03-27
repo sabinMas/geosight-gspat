@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RegionSelection } from "@/types";
 
 interface SidebarProps {
+  selectedLocationName: string;
   selectedRegion: RegionSelection;
   onSelectRegion: (region: RegionSelection) => void;
   quickRegions: RegionSelection[];
 }
 
 export function Sidebar({
+  selectedLocationName,
   selectedRegion,
   onSelectRegion,
   quickRegions,
@@ -20,16 +22,19 @@ export function Sidebar({
         <Badge>GeoSight</Badge>
         <h1 className="text-3xl font-semibold text-white">Intelligent geospatial analysis</h1>
         <p className="text-sm leading-6 text-slate-300">
-          Explore terrain, infrastructure, and climate on a live globe with a Pacific Northwest cooling-center demo.
+          Ask open-ended questions about any place on Earth, from parcels and neighborhoods to cities, regions, and countries.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Mission profile</CardTitle>
+          <CardTitle>Platform focus</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-slate-300">
-          <p>Default scenario: optimal locations for data center cooling facilities in the Pacific Northwest.</p>
+          <p>
+            GeoSight is general-purpose by design. The featured story today is Pacific Northwest data center cooling, but the same location engine also supports hiking, housing, retail, logistics, and general exploration questions.
+          </p>
+          <p className="text-cyan-100">Current focus: {selectedLocationName}</p>
           <p className="font-mono text-xs text-cyan-100">
             {selectedRegion.center.lat.toFixed(4)} / {selectedRegion.center.lng.toFixed(4)}
           </p>
@@ -38,7 +43,7 @@ export function Sidebar({
 
       <Card className="flex-1">
         <CardHeader>
-          <CardTitle>Demo jump points</CardTitle>
+          <CardTitle>Featured demo regions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {quickRegions.map((region) => (
@@ -62,7 +67,7 @@ export function Sidebar({
       </Card>
 
       <Button variant="secondary" className="justify-start rounded-2xl">
-        Cesium + Groq + public geodata
+        Multi-use GeoSight with cooling demo
       </Button>
     </aside>
   );

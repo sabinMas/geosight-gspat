@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { Send } from "lucide-react";
+import { STARTER_PROMPTS } from "@/lib/geosight-assistant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +10,7 @@ import { ChatMessage, Coordinates, GeodataResult, LandCoverBucket } from "@/type
 
 interface ChatPanelProps {
   location: Coordinates;
+  locationName: string;
   geodata: GeodataResult | null;
   imageSummary: string;
   classification: LandCoverBucket[];
@@ -16,6 +18,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({
   location,
+  locationName,
   geodata,
   imageSummary,
   classification,
@@ -25,10 +28,10 @@ export function ChatPanel({
       id: "assistant-intro",
       role: "assistant",
       content:
-        "Ask about land use, cooling-center viability, water access, or what your uploaded imagery suggests.",
+        "Ask about this place in whatever way is useful: cooling infrastructure, hiking, housing, retail, warehouse access, or general location intelligence.",
     },
   ]);
-  const [draft, setDraft] = useState("Would this region work for a cooling facility?");
+  const [draft, setDraft] = useState("Would this location work for a data center cooling facility?");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -53,6 +56,7 @@ export function ChatPanel({
         body: JSON.stringify({
           question,
           location,
+          locationName,
           geodata,
           imageSummary,
           classification,
@@ -83,6 +87,19 @@ export function ChatPanel({
         <CardTitle>AI geospatial Q&A</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          {STARTER_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => setDraft(prompt)}
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/10"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+
         <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto pr-1">
           {messages.map((message) => (
             <div
@@ -102,7 +119,7 @@ export function ChatPanel({
           <Textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="What type of land cover is this? Is water visible? How viable is this site?"
+            placeholder="Ask about hiking, housing, retail, warehouse access, cooling, land cover, or another place-based question."
           />
           <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
             <Send className="mr-2 h-4 w-4" />

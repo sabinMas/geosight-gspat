@@ -9,7 +9,7 @@ export function CompareTable({ sites }: CompareTableProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Saved site comparison</CardTitle>
+        <CardTitle>Cooling demo site comparison</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-hidden rounded-2xl border border-white/10">
