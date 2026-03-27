@@ -18,7 +18,7 @@ export function RegionSelector({ region, onReset }: RegionSelectorProps) {
         <div>N {region.bbox.north.toFixed(3)}</div>
       </div>
       <Button variant="secondary" className="mt-4 w-full rounded-2xl" onClick={onReset}>
-        Reset to demo region
+        Reset to default region
       </Button>
     </div>
   );

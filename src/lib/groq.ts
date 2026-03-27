@@ -13,7 +13,7 @@ export async function runGroqAnalysis(payload: AnalyzeRequestBody) {
     };
   }
 
-  const { prompt } = buildGeoSightSystemPrompt(payload.question);
+  const { prompt } = buildGeoSightSystemPrompt(payload);
   const groq = new Groq({ apiKey });
   const completion = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",

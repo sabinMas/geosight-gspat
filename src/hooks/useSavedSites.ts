@@ -7,22 +7,20 @@ import { SavedSite } from "@/types";
 const STORAGE_KEY = "geosight.saved-sites";
 
 export function useSavedSites() {
-  const [sites, setSites] = useState<SavedSite[]>(PRELOADED_SITES);
+  const [sites, setSites] = useState<SavedSite[]>([]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(PRELOADED_SITES));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
       return;
     }
 
     try {
       const parsed = JSON.parse(stored) as SavedSite[];
-      if (parsed.length) {
-        setSites(parsed);
-      }
+      setSites(parsed);
     } catch {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(PRELOADED_SITES));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     }
   }, []);
 
@@ -35,10 +33,14 @@ export function useSavedSites() {
     saveSites([site, ...sites.filter((existing) => existing.id !== site.id)]);
   };
 
+  const loadDemoSites = () => {
+    saveSites(PRELOADED_SITES);
+  };
+
   const sortedSites = useMemo(
     () => [...sites].sort((a, b) => b.score.total - a.score.total),
     [sites],
   );
 
-  return { sites: sortedSites, addSite, setSites: saveSites };
+  return { sites: sortedSites, addSite, setSites: saveSites, loadDemoSites };
 }

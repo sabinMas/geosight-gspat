@@ -9,10 +9,15 @@ export type SiteFactorKey =
 export type UseCaseType =
   | "data_center_cooling"
   | "outdoor_recreation"
+  | "places_discovery"
   | "residential_development"
   | "retail_commercial"
   | "warehouse_logistics"
   | "general_exploration";
+
+export type ResultsMode = "analysis" | "nearby_places";
+
+export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 
 export interface Coordinates {
   lat: number;
@@ -71,6 +76,26 @@ export interface LocationSearchResult {
   countryCode?: string;
 }
 
+export interface NearbyPlace {
+  id: string;
+  name: string;
+  category: NearbyPlaceCategory;
+  distanceKm: number | null;
+  relativeLocation: string;
+  summary: string;
+  attributes: string[];
+  source: "placeholder" | "live";
+}
+
+export interface DataTrend {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  direction: "positive" | "neutral" | "watch";
+  source: "derived" | "live";
+}
+
 export interface SiteFactorScore {
   key: SiteFactorKey;
   label: string;
@@ -113,7 +138,10 @@ export interface AnalyzeRequestBody {
   question: string;
   location?: Coordinates;
   locationName?: string;
+  resultsMode?: ResultsMode;
   geodata?: GeodataResult;
+  nearbyPlaces?: NearbyPlace[];
+  dataTrends?: DataTrend[];
   imageSummary?: string;
   classification?: LandCoverBucket[];
 }

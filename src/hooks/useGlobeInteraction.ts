@@ -32,9 +32,9 @@ export function useGlobeInteraction(initialCoordinates: Coordinates, initialLoca
 
   const quickRegions = useMemo(
     () => [
-      buildRegion({ lat: 45.5946, lng: -121.1787 }, "The Dalles corridor"),
-      buildRegion({ lat: 45.8399, lng: -119.7069 }, "Boardman corridor"),
-      buildRegion({ lat: 47.4235, lng: -120.3103 }, "Wenatchee corridor"),
+      buildRegion({ lat: 45.7004, lng: -121.5215 }, "Columbia River Gorge"),
+      buildRegion({ lat: 47.6062, lng: -122.3321 }, "Seattle, Washington"),
+      buildRegion({ lat: 47.8021, lng: -123.6044 }, "Olympic National Park"),
     ],
     [],
   );

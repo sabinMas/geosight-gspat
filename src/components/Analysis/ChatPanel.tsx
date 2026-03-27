@@ -6,12 +6,23 @@ import { STARTER_PROMPTS } from "@/lib/geosight-assistant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ChatMessage, Coordinates, GeodataResult, LandCoverBucket } from "@/types";
+import {
+  ChatMessage,
+  Coordinates,
+  DataTrend,
+  GeodataResult,
+  LandCoverBucket,
+  NearbyPlace,
+  ResultsMode,
+} from "@/types";
 
 interface ChatPanelProps {
   location: Coordinates;
   locationName: string;
+  resultsMode: ResultsMode;
   geodata: GeodataResult | null;
+  nearbyPlaces: NearbyPlace[];
+  dataTrends: DataTrend[];
   imageSummary: string;
   classification: LandCoverBucket[];
 }
@@ -19,7 +30,10 @@ interface ChatPanelProps {
 export function ChatPanel({
   location,
   locationName,
+  resultsMode,
   geodata,
+  nearbyPlaces,
+  dataTrends,
   imageSummary,
   classification,
 }: ChatPanelProps) {
@@ -28,10 +42,10 @@ export function ChatPanel({
       id: "assistant-intro",
       role: "assistant",
       content:
-        "Ask about this place in whatever way is useful: cooling infrastructure, hiking, housing, retail, warehouse access, or general location intelligence.",
+        "Ask about this place in whatever way is useful: trails, neighborhoods, restaurants, hazards, land use, infrastructure, or something more open-ended.",
     },
   ]);
-  const [draft, setDraft] = useState("Would this location work for a data center cooling facility?");
+  const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -57,7 +71,10 @@ export function ChatPanel({
           question,
           location,
           locationName,
+          resultsMode,
           geodata,
+          nearbyPlaces,
+          dataTrends,
           imageSummary,
           classification,
         }),
@@ -82,9 +99,15 @@ export function ChatPanel({
   };
 
   return (
-    <Card className="flex min-h-[360px] flex-col">
+    <Card className="flex min-h-[420px] flex-col">
       <CardHeader>
-        <CardTitle>AI geospatial Q&A</CardTitle>
+        <CardTitle>Ask a question about this place</CardTitle>
+        <p className="text-sm leading-6 text-slate-300">
+          Active location: <span className="font-medium text-white">{locationName}</span>
+        </p>
+        <p className="text-xs uppercase tracking-[0.18em] text-cyan-200">
+          Current result mode: {resultsMode === "analysis" ? "Analysis" : "Nearby places"}
+        </p>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <div className="flex flex-wrap gap-2">
@@ -119,7 +142,7 @@ export function ChatPanel({
           <Textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask about hiking, housing, retail, warehouse access, cooling, land cover, or another place-based question."
+            placeholder="Ask a question about this location (trails, neighborhoods, restaurants, hazards, access, land use, and more)..."
           />
           <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
             <Send className="mr-2 h-4 w-4" />

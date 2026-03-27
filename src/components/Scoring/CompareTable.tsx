@@ -12,6 +12,13 @@ export function CompareTable({ sites }: CompareTableProps) {
         <CardTitle>Cooling demo site comparison</CardTitle>
       </CardHeader>
       <CardContent>
+        {sites.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-300">
+            Load the demo showcase or save a current site to compare cooling candidates here.
+          </div>
+        ) : null}
+
+        {sites.length > 0 ? (
         <div className="overflow-hidden rounded-2xl border border-white/10">
           <table className="w-full border-collapse text-left text-sm">
             <thead className="bg-white/6 text-slate-300">
@@ -39,6 +46,7 @@ export function CompareTable({ sites }: CompareTableProps) {
             </tbody>
           </table>
         </div>
+        ) : null}
       </CardContent>
     </Card>
   );
