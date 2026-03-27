@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Cartesian3,
   Cartographic,
@@ -42,7 +42,31 @@ export function CesiumGlobe({
   terrainExaggeration,
 }: CesiumGlobeProps) {
   const viewerRef = useRef<CesiumViewer | null>(null);
+  const lastFlyTargetRef = useRef<string | null>(null);
+  const [viewerReady, setViewerReady] = useState(false);
   const terrainProvider = useMemo(() => createWorldTerrainAsync(), []);
+
+  useEffect(() => {
+    if (!viewerRef.current || !viewerReady) {
+      return;
+    }
+
+    const nextTarget = `${selectedPoint.lat.toFixed(6)}:${selectedPoint.lng.toFixed(6)}`;
+    if (lastFlyTargetRef.current === null) {
+      lastFlyTargetRef.current = nextTarget;
+      return;
+    }
+
+    if (lastFlyTargetRef.current === nextTarget) {
+      return;
+    }
+
+    lastFlyTargetRef.current = nextTarget;
+    viewerRef.current.camera.flyTo({
+      destination: Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 16000),
+      duration: 1.8,
+    });
+  }, [selectedPoint, viewerReady]);
 
   useEffect(() => {
     if (!viewerRef.current) {
@@ -62,6 +86,7 @@ export function CesiumGlobe({
       full
       ref={(node) => {
         viewerRef.current = node?.cesiumElement ?? null;
+        setViewerReady(Boolean(node?.cesiumElement));
       }}
       terrainProvider={terrainProvider}
       animation={false}
@@ -94,15 +119,6 @@ export function CesiumGlobe({
             onPointSelect({
               lat: CesiumMath.toDegrees(cartographic.latitude),
               lng: CesiumMath.toDegrees(cartographic.longitude),
-            });
-
-            viewer.camera.flyTo({
-              destination: Cartesian3.fromDegrees(
-                CesiumMath.toDegrees(cartographic.longitude),
-                CesiumMath.toDegrees(cartographic.latitude),
-                16000,
-              ),
-              duration: 1.8,
             });
           }}
           type={ScreenSpaceEventType.LEFT_CLICK}
