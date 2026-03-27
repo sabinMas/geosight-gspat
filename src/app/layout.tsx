@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import "cesium/Build/Cesium/Widgets/widgets.css";
 import "./globals.css";
 
 const dmSans = DM_Sans({

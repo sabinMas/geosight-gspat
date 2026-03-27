@@ -16,6 +16,10 @@ import { DEFAULT_VIEW } from "@/lib/demo-data";
 import { Coordinates, RegionSelection, SavedSite } from "@/types";
 import { LayerState } from "./DataLayers";
 
+if (typeof window !== "undefined") {
+  window.CESIUM_BASE_URL = "/cesium";
+}
+
 Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "";
 
 interface CesiumGlobeProps {
