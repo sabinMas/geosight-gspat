@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCountyDemographics } from "@/lib/census";
 import { toBoundingBox } from "@/lib/geospatial";
 import { calculateDistanceKm } from "@/lib/nearby-places";
-import { fetchNearbyInfrastructure, getElementCoordinates, OverpassElement } from "@/lib/overpass";
+import { fetchClimateSnapshot } from "@/lib/open-meteo";
+import {
+  buildAmenitySignals,
+  fetchNearbyInfrastructure,
+  getElementCoordinates,
+  OverpassElement,
+} from "@/lib/overpass";
+import { buildSourceMeta } from "@/lib/source-metadata";
 import {
   applyRateLimit,
   createRateLimitResponse,
   getCoordinatesFromSearchParams,
   rateLimitHeaders,
 } from "@/lib/request-guards";
+import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { GeodataResult } from "@/types";
 
@@ -29,7 +37,10 @@ function buildNearestFeature(
         distanceKm: Number(calculateDistanceKm(center, coordinates).toFixed(1)),
       };
     })
-    .filter((candidate): candidate is { element: OverpassElement; distanceKm: number } => candidate !== null)
+    .filter(
+      (candidate): candidate is { element: OverpassElement; distanceKm: number } =>
+        candidate !== null,
+    )
     .sort((a, b) => a.distanceKm - b.distanceKm)[0];
 
   return {
@@ -57,12 +68,7 @@ function buildLandCoverBuckets(elements: OverpassElement[]): GeodataResult["land
     const landuse = tags.landuse ?? "";
     const leisure = tags.leisure ?? "";
 
-    if (
-      natural === "water" ||
-      tags.waterway ||
-      landuse === "reservoir" ||
-      landuse === "basin"
-    ) {
+    if (natural === "water" || tags.waterway || landuse === "reservoir" || landuse === "basin") {
       counts.water += 1;
       continue;
     }
@@ -144,19 +150,16 @@ export async function GET(request: NextRequest) {
   }
 
   const { lat, lng } = coordinates;
-
   const bbox = toBoundingBox({ lat, lng }, 8);
 
-  const [elevationResult, infrastructureResult, climateResult, demographicsResult] =
+  const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult] =
     await Promise.allSettled([
-    fetchElevation({ lat, lng }),
-    fetchNearbyInfrastructure(bbox),
-    fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m&daily=temperature_2m_mean,precipitation_sum&timezone=auto&forecast_days=3`,
-      { next: { revalidate: 60 * 60 * 6 } },
-    ).then((response) => response.json()),
-    fetchCountyDemographics({ lat, lng }),
-  ]);
+      fetchElevation({ lat, lng }),
+      fetchNearbyInfrastructure(bbox),
+      fetchClimateSnapshot({ lat, lng }),
+      fetchCountyDemographics({ lat, lng }),
+      fetchEarthquakeSummary({ lat, lng }),
+    ]);
 
   const infrastructure =
     infrastructureResult.status === "fulfilled" ? infrastructureResult.value.elements ?? [] : [];
@@ -165,26 +168,35 @@ export async function GET(request: NextRequest) {
   const waterways = infrastructure.filter(
     (item) => item.tags?.waterway || item.tags?.natural === "water",
   );
+  const amenitySignals = buildAmenitySignals(infrastructure);
+  const now = new Date().toISOString();
 
   const geodata: GeodataResult = {
     elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
     nearestWaterBody: buildNearestFeature({ lat, lng }, waterways, "Nearby mapped waterway"),
     nearestRoad: buildNearestFeature({ lat, lng }, roads, "Road network"),
     nearestPower: buildNearestFeature({ lat, lng }, power, "Transmission infrastructure"),
-    climate: {
-      averageTempC:
-        climateResult.status === "fulfilled"
-          ? climateResult.value?.daily?.temperature_2m_mean?.[0] ?? null
-          : null,
-      coolingDegreeDays:
-        climateResult.status === "fulfilled"
-          ? Math.max((climateResult.value?.daily?.temperature_2m_mean?.[0] ?? 12) * 18, 0)
-          : null,
-      precipitationMm:
-        climateResult.status === "fulfilled"
-          ? climateResult.value?.daily?.precipitation_sum?.[0] ?? null
-          : null,
-    },
+    climate:
+      climateResult.status === "fulfilled"
+        ? climateResult.value
+        : {
+            currentTempC: null,
+            averageTempC: null,
+            dailyHighTempC: null,
+            dailyLowTempC: null,
+            coolingDegreeDays: null,
+            precipitationMm: null,
+            windSpeedKph: null,
+            airQualityIndex: null,
+          },
+    hazards:
+      hazardResult.status === "fulfilled"
+        ? hazardResult.value
+        : {
+            earthquakeCount30d: null,
+            strongestEarthquakeMagnitude30d: null,
+            nearestEarthquakeKm: null,
+          },
     demographics:
       demographicsResult.status === "fulfilled"
         ? demographicsResult.value
@@ -195,11 +207,132 @@ export async function GET(request: NextRequest) {
             medianHouseholdIncome: null,
             medianHomeValue: null,
           },
+    amenities:
+      infrastructureResult.status === "fulfilled"
+        ? amenitySignals
+        : {
+            schoolCount: null,
+            healthcareCount: null,
+            foodAndDrinkCount: null,
+            transitStopCount: null,
+            parkCount: null,
+            trailheadCount: null,
+            commercialCount: null,
+          },
     landClassification: buildLandCoverBuckets(infrastructure),
+    sources: {
+      elevation: buildSourceMeta({
+        id: "elevation",
+        label: "Elevation",
+        provider: "USGS National Map EPQS",
+        status:
+          elevationResult.status === "fulfilled" && elevationResult.value !== null
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "On-demand request",
+        coverage: "Best for US locations",
+        confidence:
+          elevationResult.status === "fulfilled" && elevationResult.value !== null
+            ? "Direct point elevation lookup."
+            : "No elevation response was returned for this point.",
+      }),
+      infrastructure: buildSourceMeta({
+        id: "infrastructure",
+        label: "Infrastructure and access",
+        provider: "OpenStreetMap via Overpass",
+        status: infrastructureResult.status === "fulfilled" ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global, map completeness varies by region",
+        confidence:
+          infrastructure.length > 0
+            ? "Direct mapped roads, power, waterways, and land-use features."
+            : "Coverage depends on OpenStreetMap completeness near the selected point.",
+      }),
+      climate: buildSourceMeta({
+        id: "climate",
+        label: "Weather and air quality",
+        provider: "Open-Meteo",
+        status:
+          climateResult.status === "fulfilled" &&
+          (climateResult.value.currentTempC !== null || climateResult.value.airQualityIndex !== null)
+            ? climateResult.value.airQualityIndex === null
+              ? "limited"
+              : "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global forecast coverage, AQI coverage varies",
+        confidence:
+          climateResult.status === "fulfilled"
+            ? "Direct forecast and current-condition snapshot from Open-Meteo."
+            : "Weather or AQI data could not be retrieved for this point.",
+      }),
+      hazards: buildSourceMeta({
+        id: "hazards",
+        label: "Hazard context",
+        provider: "USGS Earthquake Catalog",
+        status: hazardResult.status === "fulfilled" ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global earthquakes, current implementation summarizes recent seismic context",
+        confidence:
+          hazardResult.status === "fulfilled"
+            ? "Recent seismic activity is direct; this is not a full hazard-risk model."
+            : "No recent seismic context was returned for this point.",
+      }),
+      demographics: buildSourceMeta({
+        id: "demographics",
+        label: "Demographics",
+        provider: "FCC + US Census ACS 5-year",
+        status:
+          demographicsResult.status === "fulfilled" &&
+          demographicsResult.value.population !== null
+            ? "live"
+            : demographicsResult.status === "fulfilled"
+              ? "limited"
+              : "unavailable",
+        lastUpdated: now,
+        freshness: "ACS 5-year estimates, cached 24 hours",
+        coverage: "US counties only",
+        confidence:
+          demographicsResult.status === "fulfilled"
+            ? "County-level demographics, not parcel- or neighborhood-level."
+            : "Demographic coverage is unavailable outside the current US pipeline.",
+      }),
+      amenities: buildSourceMeta({
+        id: "amenities",
+        label: "Amenities and activity",
+        provider: "OpenStreetMap via Overpass",
+        status: infrastructureResult.status === "fulfilled" ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global, depends on local OpenStreetMap completeness",
+        confidence:
+          infrastructureResult.status === "fulfilled"
+            ? "Counts are based on mapped schools, healthcare, transit, parks, trailheads, and commercial POIs within the active analysis box."
+            : "Amenity counts could not be derived from the current Overpass response.",
+      }),
+      landClassification: buildSourceMeta({
+        id: "land-classification",
+        label: "Land cover estimate",
+        provider: "Derived from OpenStreetMap land-use and natural features",
+        status: infrastructure.length > 0 ? "derived" : "limited",
+        lastUpdated: now,
+        freshness: "Derived from the current Overpass fetch",
+        coverage: "Global where OSM land-use tagging exists",
+        confidence:
+          infrastructure.length > 0
+            ? "Approximate land-cover mix inferred from mapped land-use and natural tags."
+            : "No mapped land-use context was available to derive land-cover buckets.",
+      }),
+    },
     sourceNotes: [
       "USGS elevation via The National Map EPQS.",
       "Overpass OSM features for roads, power lines, waterways, and land-use context.",
-      "Open-Meteo current and daily climate snapshots.",
+      "Open-Meteo current weather, forecast, and air-quality snapshots.",
+      "USGS earthquake event feed summarized within 250 km over the last 30 days.",
       "FCC county lookup with ACS 5-year Census demographics.",
     ],
   };

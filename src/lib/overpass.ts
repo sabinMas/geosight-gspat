@@ -187,6 +187,13 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
   const query = `
     [out:json][timeout:20];
     (
+      node["amenity"~"school|college|university|hospital|clinic|doctors|restaurant|cafe|bar|pub|fast_food|bus_station"]( ${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["amenity"~"school|college|university|hospital|clinic|doctors|restaurant|cafe|bar|pub|fast_food|bus_station"]( ${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["public_transport"]( ${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["public_transport"]( ${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["railway"="station"]( ${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["tourism"="trailhead"]( ${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["leisure"="park"]( ${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["highway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["power"~"line|minor_line"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["power"~"line|minor_line"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
@@ -214,6 +221,34 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
 
   return (await response.json()) as {
     elements?: OverpassElement[];
+  };
+}
+
+export function buildAmenitySignals(elements: OverpassElement[]) {
+  const countWhere = (matcher: (tags: Record<string, string>) => boolean) =>
+    elements.filter((element) => matcher(element.tags ?? {})).length;
+
+  return {
+    schoolCount: countWhere((tags) =>
+      ["school", "college", "university"].includes(tags.amenity ?? ""),
+    ),
+    healthcareCount: countWhere((tags) =>
+      ["hospital", "clinic", "doctors"].includes(tags.amenity ?? ""),
+    ),
+    foodAndDrinkCount: countWhere((tags) =>
+      ["restaurant", "cafe", "bar", "pub", "fast_food"].includes(tags.amenity ?? ""),
+    ),
+    transitStopCount: countWhere(
+      (tags) =>
+        Boolean(tags.public_transport) ||
+        tags.amenity === "bus_station" ||
+        tags.railway === "station",
+    ),
+    parkCount: countWhere((tags) => tags.leisure === "park"),
+    trailheadCount: countWhere((tags) => tags.tourism === "trailhead"),
+    commercialCount: countWhere((tags) =>
+      ["commercial", "retail"].includes(tags.landuse ?? "") || tags.shop !== undefined,
+    ),
   };
 }
 

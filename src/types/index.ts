@@ -12,9 +12,54 @@ export type UseCaseType =
 export type ResultsMode = "analysis" | "nearby_places";
 export type ExploreEntrySource = "landing" | "demo" | "direct";
 export type DemoOverlayLayerKey = "water" | "power" | "roads";
+export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable" | "demo";
+export type WorkspaceCardCategory =
+  | "context"
+  | "analysis"
+  | "planning"
+  | "terrain"
+  | "media"
+  | "comparison";
+export type WorkspaceCardZone = "primary" | "workspace";
+export type WorkspaceDataRequirement =
+  | "geodata"
+  | "score"
+  | "saved-sites"
+  | "classification"
+  | "image"
+  | "source-metadata";
+export type WorkspaceCardId =
+  | "active-location"
+  | "chat"
+  | "results"
+  | "score"
+  | "factor-breakdown"
+  | "compare"
+  | "terrain-viewer"
+  | "elevation-profile"
+  | "image-upload"
+  | "land-classifier"
+  | "source-awareness";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 export type NearbyPlacesSource = "live" | "unavailable";
+
+export interface WorkspaceCardDefinition {
+  id: WorkspaceCardId;
+  title: string;
+  category: WorkspaceCardCategory;
+  zone: WorkspaceCardZone;
+  defaultVisibility: boolean;
+  defaultOrder: number;
+  requiredData: WorkspaceDataRequirement[];
+  supportedProfiles: string[];
+  emptyState: string;
+}
+
+export interface WorkspaceCardPreference {
+  cardId: WorkspaceCardId;
+  visible: boolean;
+}
 
 export interface ScoringFactor {
   key: string;
@@ -115,6 +160,18 @@ export interface LandCoverBucket {
   color: string;
 }
 
+export interface DataSourceMeta {
+  id: string;
+  label: string;
+  provider: string;
+  status: DataSourceStatus;
+  lastUpdated: string | null;
+  freshness: string;
+  coverage: string;
+  confidence: string;
+  note?: string;
+}
+
 export interface GeodataResult {
   elevationMeters: number | null;
   nearestWaterBody: {
@@ -130,9 +187,19 @@ export interface GeodataResult {
     distanceKm: number | null;
   };
   climate: {
+    currentTempC: number | null;
     averageTempC: number | null;
+    dailyHighTempC: number | null;
+    dailyLowTempC: number | null;
     coolingDegreeDays: number | null;
     precipitationMm: number | null;
+    windSpeedKph: number | null;
+    airQualityIndex: number | null;
+  };
+  hazards: {
+    earthquakeCount30d: number | null;
+    strongestEarthquakeMagnitude30d: number | null;
+    nearestEarthquakeKm: number | null;
   };
   demographics: {
     countyName: string | null;
@@ -141,7 +208,25 @@ export interface GeodataResult {
     medianHouseholdIncome: number | null;
     medianHomeValue: number | null;
   };
+  amenities: {
+    schoolCount: number | null;
+    healthcareCount: number | null;
+    foodAndDrinkCount: number | null;
+    transitStopCount: number | null;
+    parkCount: number | null;
+    trailheadCount: number | null;
+    commercialCount: number | null;
+  };
   landClassification: LandCoverBucket[];
+  sources: {
+    elevation: DataSourceMeta;
+    infrastructure: DataSourceMeta;
+    climate: DataSourceMeta;
+    hazards: DataSourceMeta;
+    demographics: DataSourceMeta;
+    amenities: DataSourceMeta;
+    landClassification: DataSourceMeta;
+  };
   sourceNotes: string[];
 }
 
@@ -169,7 +254,7 @@ export interface DataTrend {
   value: string;
   detail: string;
   direction: "positive" | "neutral" | "watch";
-  source: "derived" | "live";
+  source: DataSourceMeta;
 }
 
 export interface ElevationProfilePoint {

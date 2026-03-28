@@ -31,8 +31,8 @@ export function Sidebar({
         <Badge>GeoSight</Badge>
         <h1 className="text-3xl font-semibold text-white">Multi-profile geospatial intelligence</h1>
         <p className="text-sm leading-6 text-slate-300">
-          Search any place, switch mission profiles, and evaluate the same geography through
-          different operational lenses.
+          Search any place, switch mission profiles, and keep the workspace focused on only the
+          cards you need.
         </p>
       </div>
 
@@ -59,10 +59,9 @@ export function Sidebar({
 
       <Card>
         <CardHeader>
-          <CardTitle>Mission profile</CardTitle>
+          <CardTitle>Current lens</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-6 text-slate-300">
-          <p>{activeProfile.description}</p>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
             <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Current focus</div>
             <div className="mt-2 text-sm font-medium text-white">{selectedLocationName}</div>
@@ -70,36 +69,44 @@ export function Sidebar({
               {selectedRegion.center.lat.toFixed(4)} / {selectedRegion.center.lng.toFixed(4)}
             </div>
           </div>
+          <p>{activeProfile.description}</p>
         </CardContent>
       </Card>
 
       <Card className="flex-1">
         <CardHeader>
-          <CardTitle>{activeProfile.name} demo locations</CardTitle>
+          <CardTitle>Demo jump points</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {quickRegions.map((region) => (
-            <button
-              key={region.id}
-              type="button"
-              onClick={() => onSelectRegion(region)}
-              className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                selectedRegion.id === region.id
-                  ? "bg-white/10"
-                  : "border-white/8 bg-white/5 hover:bg-white/10"
-              }`}
-              style={
-                selectedRegion.id === region.id
-                  ? { borderColor: activeProfile.accentColor }
-                  : undefined
-              }
-            >
-              <div className="text-sm font-medium text-white">{region.name}</div>
-              <div className="mt-1 text-xs text-slate-400">
-                {region.center.lat.toFixed(3)}, {region.center.lng.toFixed(3)}
-              </div>
-            </button>
-          ))}
+          <details className="group rounded-2xl border border-white/10 bg-white/5 p-3" open>
+            <summary className="cursor-pointer list-none text-sm font-medium text-white">
+              {activeProfile.name} starter places
+            </summary>
+            <div className="mt-3 space-y-3">
+              {quickRegions.map((region) => (
+                <button
+                  key={region.id}
+                  type="button"
+                  onClick={() => onSelectRegion(region)}
+                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                    selectedRegion.id === region.id
+                      ? "bg-white/10"
+                      : "border-white/8 bg-slate-950/40 hover:bg-white/10"
+                  }`}
+                  style={
+                    selectedRegion.id === region.id
+                      ? { borderColor: activeProfile.accentColor }
+                      : undefined
+                  }
+                >
+                  <div className="text-sm font-medium text-white">{region.name}</div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    {region.center.lat.toFixed(3)}, {region.center.lng.toFixed(3)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </details>
         </CardContent>
       </Card>
 

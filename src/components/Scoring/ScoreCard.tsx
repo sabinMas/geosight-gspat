@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MissionProfile, SiteScore } from "@/types";
 
@@ -9,6 +11,7 @@ interface ScoreCardProps {
   score: SiteScore | null;
   title?: string;
   profile?: MissionProfile;
+  onOpenDetails?: () => void;
 }
 
 function getBandLabel(score: number, profile?: MissionProfile) {
@@ -19,7 +22,7 @@ function getBandLabel(score: number, profile?: MissionProfile) {
   return profile.recommendationBands.find((band) => score >= band.min)?.text ?? null;
 }
 
-export function ScoreCard({ score, title = "Site score", profile }: ScoreCardProps) {
+export function ScoreCard({ score, title = "Site score", profile, onOpenDetails }: ScoreCardProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -36,8 +39,14 @@ export function ScoreCard({ score, title = "Site score", profile }: ScoreCardPro
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
         <CardTitle>{title}</CardTitle>
+        {onOpenDetails ? (
+          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenDetails}>
+            Open breakdown
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-[180px_1fr]">
         <div className="h-44">

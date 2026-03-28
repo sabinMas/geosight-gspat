@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NearbyPlace, NearbyPlaceCategory, NearbyPlacesSource } from "@/types";
@@ -10,6 +11,7 @@ interface NearbyPlacesListProps {
   error?: string | null;
   source?: NearbyPlacesSource;
   onCategoryChange: (category: NearbyPlaceCategory) => void;
+  headerContent?: ReactNode;
 }
 
 export function NearbyPlacesList({
@@ -20,11 +22,13 @@ export function NearbyPlacesList({
   error,
   source = "unavailable",
   onCategoryChange,
+  headerContent,
 }: NearbyPlacesListProps) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <CardTitle>Nearby places</CardTitle>
+        {headerContent}
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm leading-6 text-slate-300">
