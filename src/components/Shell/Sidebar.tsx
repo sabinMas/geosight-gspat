@@ -26,11 +26,13 @@ export function Sidebar({
   quickRegions,
 }: SidebarProps) {
   return (
-    <aside className="glass-panel data-grid z-20 flex w-full max-w-[360px] flex-col gap-4 rounded-[2rem] p-4 lg:h-[calc(100vh-2rem)]">
+    <aside className="glass-panel data-grid z-20 flex w-full max-w-[360px] flex-col gap-4 rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] lg:h-[calc(100vh-2rem)]">
       <div className="space-y-3">
         <Badge>GeoSight</Badge>
-        <h1 className="text-3xl font-semibold text-white">Multi-profile geospatial intelligence</h1>
-        <p className="text-sm leading-6 text-slate-300">
+        <h1 className="text-3xl font-semibold text-[var(--foreground)]">
+          Multi-profile geospatial intelligence
+        </h1>
+        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
           Search any place, switch mission profiles, and keep the workspace focused on only the
           cards you need.
         </p>
@@ -46,9 +48,9 @@ export function Sidebar({
             profiles={profiles}
             onSelectProfile={onSelectProfile}
           />
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-300">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Active lens</div>
-            <div className="mt-2 text-base font-semibold text-white">{activeProfile.name}</div>
+          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
+            <div className="eyebrow">Active lens</div>
+            <div className="mt-2 text-base font-semibold text-[var(--foreground)]">{activeProfile.name}</div>
             <div className="mt-1 text-sm" style={{ color: activeProfile.accentColor }}>
               {activeProfile.tagline}
             </div>
@@ -61,11 +63,11 @@ export function Sidebar({
         <CardHeader>
           <CardTitle>Current lens</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm leading-6 text-slate-300">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Current focus</div>
-            <div className="mt-2 text-sm font-medium text-white">{selectedLocationName}</div>
-            <div className="mt-1 font-mono text-xs text-slate-400">
+        <CardContent className="space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
+          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <div className="eyebrow">Current focus</div>
+            <div className="mt-2 text-sm font-medium text-[var(--foreground)]">{selectedLocationName}</div>
+            <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
               {selectedRegion.center.lat.toFixed(4)} / {selectedRegion.center.lng.toFixed(4)}
             </div>
           </div>
@@ -90,8 +92,8 @@ export function Sidebar({
                   onClick={() => onSelectRegion(region)}
                   className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                     selectedRegion.id === region.id
-                      ? "bg-white/10"
-                      : "border-white/8 bg-slate-950/40 hover:bg-white/10"
+                      ? "bg-[var(--surface-soft)]"
+                      : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] hover:bg-[var(--surface-soft)]"
                   }`}
                   style={
                     selectedRegion.id === region.id
@@ -99,8 +101,8 @@ export function Sidebar({
                       : undefined
                   }
                 >
-                  <div className="text-sm font-medium text-white">{region.name}</div>
-                  <div className="mt-1 text-xs text-slate-400">
+                  <div className="text-sm font-medium text-[var(--foreground)]">{region.name}</div>
+                  <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                     {region.center.lat.toFixed(3)}, {region.center.lng.toFixed(3)}
                   </div>
                 </button>
@@ -114,7 +116,7 @@ export function Sidebar({
         <CardHeader>
           <CardTitle>Demos</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm leading-6 text-slate-300">
+        <CardContent className="space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
           <p>
             Open the original Columbia River cooling walkthrough any time you want to compare the
             prebuilt Pacific Northwest benchmark sites.

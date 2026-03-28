@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/Theme/ThemeProvider";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import "./globals.css";
 
@@ -24,8 +25,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${dmSans.variable} ${jetBrainsMono.variable}`}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${dmSans.variable} ${jetBrainsMono.variable}`}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

@@ -16,20 +16,21 @@ export function CompareTable({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-3">
+        <div className="eyebrow">Comparison board</div>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {sites.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-300">
+          <div className="rounded-[1.5rem] border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-6 text-sm leading-6 text-[var(--muted-foreground)]">
             {emptyMessage}
           </div>
         ) : null}
 
         {sites.length > 0 ? (
-          <div className="overflow-hidden rounded-2xl border border-white/10">
+          <div className="overflow-hidden rounded-[1.5rem] border border-[color:var(--border-soft)]">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-white/6 text-slate-300">
+              <thead className="bg-[var(--surface-soft)] text-[var(--muted-foreground)]">
                 <tr>
                   <th className="px-4 py-3">Site</th>
                   <th className="px-4 py-3">Score</th>
@@ -42,10 +43,10 @@ export function CompareTable({
               </thead>
               <tbody>
                 {sites.map((site) => (
-                  <tr key={site.id} className="border-t border-white/6 bg-slate-950/20 text-slate-200">
+                  <tr key={site.id} className="border-t border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--foreground-soft)]">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-white">{site.name}</div>
-                      <div className="text-xs text-slate-400">{site.regionName}</div>
+                      <div className="font-medium text-[var(--foreground)]">{site.name}</div>
+                      <div className="text-xs text-[var(--muted-foreground)]">{site.regionName}</div>
                     </td>
                     <td className="px-4 py-3 font-semibold">{site.score.total}</td>
                     {factorColumns.map((factor) => {

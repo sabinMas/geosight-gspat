@@ -108,34 +108,33 @@ export function ChatPanel({
 
   return (
     <Card className="flex min-h-[420px] flex-col">
-      <CardHeader>
+      <CardHeader className="space-y-3">
+        <div className="eyebrow">Reasoning board</div>
         <CardTitle>Ask a question about this place</CardTitle>
-        <p className="text-sm leading-6 text-slate-300">
-          Active location: <span className="font-medium text-white">{locationName}</span>
+        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+          Active location: <span className="font-medium text-[var(--foreground)]">{locationName}</span>
         </p>
-        <p className="text-xs uppercase tracking-[0.18em] text-cyan-200">
+        <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           {profile.name} profile / {resultsMode === "analysis" ? "Analysis" : "Nearby places"}
         </p>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
           <button
             type="button"
             onClick={() => setShowSuggestions((current) => !current)}
             className="flex w-full items-center justify-between gap-3 text-left"
           >
             <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                Suggested questions
-              </div>
-              <div className="mt-1 text-sm text-slate-300">
+              <div className="eyebrow">Suggested questions</div>
+              <div className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Use these to start fast, or ask anything in your own words.
               </div>
             </div>
             {showSuggestions ? (
-              <ChevronUp className="h-4 w-4 text-slate-400" />
+              <ChevronUp className="h-4 w-4 text-[var(--muted-foreground)]" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-slate-400" />
+              <ChevronDown className="h-4 w-4 text-[var(--muted-foreground)]" />
             )}
           </button>
 
@@ -146,7 +145,7 @@ export function ChatPanel({
                   key={prompt}
                   type="button"
                   onClick={() => setDraft(prompt)}
-                  className="rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/10"
+                  className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1.5 text-xs text-[var(--foreground-soft)] transition hover:bg-[var(--surface-soft)]"
                 >
                   {prompt}
                 </button>
@@ -159,10 +158,10 @@ export function ChatPanel({
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`rounded-2xl px-4 py-3 text-sm leading-6 ${
+              className={`rounded-[1.5rem] px-4 py-3 text-sm leading-6 ${
                 message.role === "user"
-                  ? "ml-6 bg-cyan-400/12 text-cyan-50"
-                  : "mr-6 bg-white/6 text-slate-200"
+                  ? "ml-6 border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "mr-6 border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground-soft)]"
               }`}
             >
               {message.content}

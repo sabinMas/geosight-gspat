@@ -23,11 +23,12 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
   return (
     <Card>
       <CardHeader className="space-y-4">
+        <div className="eyebrow">Analysis board</div>
         <CardTitle>Area analysis</CardTitle>
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm leading-6 text-slate-300">
+        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
           Use this mode for terrain, access, weather, hazards, land-cover, and demographic context
           tied to the active place.
         </p>
@@ -36,14 +37,12 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
           {trends.map((trend) => (
             <div
               key={trend.id}
-              className={`rounded-2xl border p-4 ${TONE_CLASSES[trend.direction]}`}
+              className={`rounded-[1.5rem] border p-4 shadow-[var(--shadow-soft)] ${TONE_CLASSES[trend.direction]}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-current/70">
-                    {trend.label}
-                  </div>
-                  <div className="mt-2 text-xl font-semibold text-white">{trend.value}</div>
+                  <div className="eyebrow text-current/70">{trend.label}</div>
+                  <div className="mt-3 text-2xl font-semibold text-white">{trend.value}</div>
                 </div>
                 <div
                   className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getSourceStatusTone(
@@ -54,13 +53,13 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-current/85">{trend.detail}</p>
-              <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/35 px-3 py-2 text-xs leading-5 text-slate-300">
+              <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/15 px-3 py-2 text-xs leading-5 text-slate-100/85">
                 <div className="font-medium text-white">{trend.source.label}</div>
                 <div className="mt-1">{summarizeSourceMeta(trend.source)}</div>
-                <div className="mt-1 text-slate-400">
+                <div className="mt-1 text-slate-300/80">
                   {formatSourceTimestamp(trend.source.lastUpdated)}
                 </div>
-                <div className="mt-1 text-slate-400">{trend.source.confidence}</div>
+                <div className="mt-1 text-slate-300/80">{trend.source.confidence}</div>
               </div>
             </div>
           ))}

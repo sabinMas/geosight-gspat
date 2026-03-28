@@ -13,6 +13,8 @@ export type ResultsMode = "analysis" | "nearby_places";
 export type ExploreEntrySource = "landing" | "demo" | "direct";
 export type DemoOverlayLayerKey = "water" | "power" | "roads";
 export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable" | "demo";
+export type ThemeMode = "dark" | "light" | "system";
+export type WorkspaceViewMode = "board" | "library";
 export type WorkspaceCardCategory =
   | "context"
   | "analysis"
@@ -21,6 +23,8 @@ export type WorkspaceCardCategory =
   | "media"
   | "comparison";
 export type WorkspaceCardZone = "primary" | "workspace";
+export type WorkspaceCardEmphasis = "primary" | "secondary" | "optional";
+export type WorkspaceCardSize = "wide" | "standard";
 export type WorkspaceDataRequirement =
   | "geodata"
   | "score"
@@ -54,8 +58,12 @@ export type NearbyPlacesSource = "live" | "unavailable";
 export interface WorkspaceCardDefinition {
   id: WorkspaceCardId;
   title: string;
+  summary: string;
+  icon: string;
   category: WorkspaceCardCategory;
   zone: WorkspaceCardZone;
+  emphasis: WorkspaceCardEmphasis;
+  defaultSize: WorkspaceCardSize;
   defaultVisibility: boolean;
   defaultOrder: number;
   requiredData: WorkspaceDataRequirement[];

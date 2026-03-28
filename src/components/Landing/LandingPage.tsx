@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
 import { DEMO_REGISTRY } from "@/lib/demos/registry";
 import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
@@ -104,56 +104,97 @@ export function LandingPage() {
   };
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-7xl flex-col gap-6">
-        <section className="glass-panel relative overflow-hidden rounded-[2rem] p-6 sm:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,229,255,0.18),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(167,139,250,0.14),transparent_24%)]" />
-          <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-5">
-              <Badge>Universal location intelligence</Badge>
+    <main className="min-h-screen px-4 py-4 md:px-6">
+      <div className="mx-auto max-w-[1600px] space-y-6">
+        <section className="glass-panel relative overflow-hidden rounded-[2.5rem] p-5 md:p-7 lg:p-8">
+          <div className="hero-orbit right-[-4rem] top-[-3rem]" />
+          <div className="hero-orbit bottom-[-6rem] left-[-5rem]" />
+
+          <div className="relative flex items-center justify-between gap-4">
+            <Badge>Universal location intelligence</Badge>
+            <ThemeToggle compact />
+          </div>
+
+          <div className="relative mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] xl:gap-10">
+            <div className="space-y-7">
               <div className="space-y-4">
-                <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                  Ask questions about any place on Earth
+                <div className="eyebrow text-[var(--accent)]">GeoSight</div>
+                <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-6xl xl:text-[4.3rem]">
+                  Ask grounded questions about any place on Earth
                 </h1>
-                <p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-                  Search a city, ZIP code, address, country, or coordinates, then let GeoSight
-                  combine geospatial data, deterministic scoring, and AI reasoning for the mission
-                  that matters to you.
+                <p className="max-w-2xl text-base leading-8 text-[var(--muted-foreground)] sm:text-lg">
+                  Search a city, ZIP code, address, country, or coordinates, then move through a
+                  quieter geospatial workspace built for deep reasoning, live data, and mission-led
+                  exploration.
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  "3D globe and terrain context",
-                  "Mission-based AI reasoning",
-                  "Compare locations in one workspace",
+                  "3D globe and terrain",
+                  "Mission-aware AI reasoning",
+                  "Live-source cards and dashboards",
                 ].map((item) => (
-                  <div
+                  <span
                     key={item}
-                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"
+                    className="metric-chip px-4 py-2 text-sm text-[var(--foreground-soft)]"
                   >
                     {item}
+                  </span>
+                ))}
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  {
+                    title: "Choose a mission",
+                    text: "Home search, hiking, infrastructure, development, or open exploration.",
+                  },
+                  {
+                    title: "Ground the place",
+                    text: "Start with a city, ZIP, address, current location, or exact coordinates.",
+                  },
+                  {
+                    title: "Open the board",
+                    text: "See only the cards and data views that matter to the question you are asking.",
+                  },
+                ].map((step, index) => (
+                  <div
+                    key={step.title}
+                    className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-5 shadow-[var(--shadow-soft)]"
+                  >
+                    <div className="eyebrow text-[var(--accent)]">Step {index + 1}</div>
+                    <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
+                      {step.title}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                      {step.text}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <Card className="border-white/10 bg-slate-950/55">
-              <CardHeader>
-                <CardTitle className="text-2xl text-white">Start a location analysis</CardTitle>
-                <p className="text-sm leading-6 text-slate-300">
-                  Pick a use case, choose a place, and jump straight into the explore workspace.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-5">
+            <div className="glass-panel relative rounded-[2rem] border border-[color:var(--border-soft)] p-5 shadow-[var(--shadow-panel)]">
+              <div className="space-y-6">
                 <div className="space-y-3">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                    Step 1 · Choose a lens
-                  </div>
+                  <div className="eyebrow">Enter the workspace</div>
+                  <h2 className="text-2xl font-semibold text-[var(--foreground)]">
+                    Choose a lens, then focus a place
+                  </h2>
+                  <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                    GeoSight keeps the first step editorial and calm, while the actual app stays
+                    powerful once you enter it.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="eyebrow">Step 1</div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {LANDING_USE_CASES.map((useCase) => {
                       const Icon = getIcon(useCase.icon);
                       const active = useCase.id === selectedUseCaseId;
+
                       return (
                         <button
                           key={useCase.id}
@@ -162,34 +203,39 @@ export function LandingPage() {
                             setSelectedUseCaseId(useCase.id);
                             setLocationQuery((current) => current || useCase.suggestedQuery);
                           }}
-                          className="rounded-[1.5rem] border p-4 text-left transition hover:bg-white/8"
+                          className="rounded-[1.5rem] border p-4 text-left transition duration-300"
                           style={{
-                            borderColor: active ? useCase.accentColor : "rgba(255,255,255,0.1)",
+                            borderColor: active
+                              ? `${useCase.accentColor}55`
+                              : "var(--border-soft)",
                             background: active
-                              ? `${useCase.accentColor}12`
-                              : "rgba(255,255,255,0.04)",
-                            boxShadow: active
-                              ? `0 0 0 1px ${useCase.accentColor}55`
-                              : undefined,
+                              ? `${useCase.accentColor}16`
+                              : "var(--surface-soft)",
+                            boxShadow: active ? `0 16px 34px ${useCase.accentColor}18` : "none",
                           }}
                         >
                           <div className="flex items-start gap-3">
                             <div
-                              className="flex h-10 w-10 items-center justify-center rounded-2xl"
+                              className="flex h-11 w-11 items-center justify-center rounded-2xl border"
                               style={{
-                                background: `${useCase.accentColor}18`,
+                                borderColor: active
+                                  ? `${useCase.accentColor}40`
+                                  : "var(--border-soft)",
+                                background: active
+                                  ? `${useCase.accentColor}18`
+                                  : "var(--surface-raised)",
                                 color: useCase.accentColor,
                               }}
                             >
                               <Icon className="h-5 w-5" />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-white">
+                              <div className="text-sm font-semibold text-[var(--foreground)]">
                                 {useCase.title}
                               </div>
-                              <div className="mt-1 text-xs leading-5 text-slate-400">
+                              <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
                                 {useCase.description}
-                              </div>
+                              </p>
                             </div>
                           </div>
                         </button>
@@ -199,19 +245,18 @@ export function LandingPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-3">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                    Step 2 · Choose a place
-                  </div>
+                  <div className="eyebrow">Step 2</div>
                   <Input
                     value={locationQuery}
                     onChange={(event) => setLocationQuery(event.target.value)}
                     placeholder={selectedUseCase.suggestedQuery}
-                    className="h-12 border-white/10 bg-slate-950/50"
+                    className="h-12 rounded-[1.5rem]"
                   />
+
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <Button
                       type="submit"
-                      className="h-12 flex-1 rounded-2xl"
+                      className="h-12 flex-1 rounded-full"
                       disabled={submitting}
                     >
                       {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -220,7 +265,7 @@ export function LandingPage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      className="h-12 rounded-2xl"
+                      className="h-12 rounded-full"
                       onClick={handleUseCurrentLocation}
                       disabled={locating}
                     >
@@ -230,110 +275,185 @@ export function LandingPage() {
                   </div>
                 </form>
 
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                    Selected route
-                  </div>
-                  <div className="mt-2 text-base font-semibold text-white">
+                <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+                  <div className="eyebrow">Selected route</div>
+                  <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
                     {selectedUseCase.title}
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-slate-300">
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
                     {selectedUseCase.description}
                   </p>
                 </div>
 
-                {error ? <div className="text-sm text-rose-300">{error}</div> : null}
-              </CardContent>
-            </Card>
+                {error ? (
+                  <div className="rounded-[1.5rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
+                    {error}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="border-white/10 bg-slate-950/50">
-            <CardHeader>
-              <CardTitle>How GeoSight works</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-3">
-              {[
-                {
-                  title: "Choose a mission",
-                  text: "Home search, hiking, market analysis, infrastructure, or general exploration.",
-                },
-                {
-                  title: "Focus the map",
-                  text: "Enter any place or use your current location to ground the workspace instantly.",
-                },
-                {
-                  title: "Ask and compare",
-                  text: "Use mission-aware scoring, AI reasoning, and layered map context to compare sites.",
-                },
-              ].map((step, index) => (
-                <div
-                  key={step.title}
-                  className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
-                >
-                  <div className="text-xs uppercase tracking-[0.2em] text-cyan-200">
-                    Step {index + 1}
-                  </div>
-                  <div className="mt-2 text-lg font-semibold text-white">{step.title}</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">{step.text}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+        <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="glass-panel rounded-[2rem] p-5 md:p-6">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <div className="eyebrow">Mission gallery</div>
+                <h2 className="text-3xl font-semibold text-[var(--foreground)]">
+                  A lens for planners, travelers, researchers, and everyday users
+                </h2>
+                <p className="max-w-2xl text-sm leading-7 text-[var(--muted-foreground)]">
+                  GeoSight should feel serious without feeling heavy. These mission routes are only
+                  the first layer; the board inside the app is built to become more personal and
+                  composable over time.
+                </p>
+              </div>
 
-          <Card className="border-white/10 bg-slate-950/50">
-            <CardHeader>
-              <CardTitle>Guided demos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm leading-6 text-slate-300">
-              <p>
-                Need a faster starting point? These guided demos route into preconfigured missions
-                and regions so you can see GeoSight behaving like a platform, not just a single
-                scenario.
-              </p>
-              <div className="grid gap-3">
-                {DEMO_REGISTRY.map((demo) => {
-                  const Icon = getDemoIcon(demo.icon);
+              <div className="grid gap-4 md:grid-cols-2">
+                {LANDING_USE_CASES.map((useCase) => {
+                  const Icon = getIcon(useCase.icon);
                   return (
                     <button
-                      key={demo.id}
+                      key={useCase.id}
                       type="button"
-                      onClick={() => handleOpenDemo(demo)}
-                      className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition hover:bg-white/10"
+                      onClick={() => {
+                        setSelectedUseCaseId(useCase.id);
+                        setLocationQuery(useCase.suggestedQuery);
+                      }}
+                      className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-5 text-left transition duration-300 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)]"
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-4">
                         <div
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl"
-                          style={{ background: `${demo.accentColor}18`, color: demo.accentColor }}
+                          className="flex h-11 w-11 items-center justify-center rounded-2xl border"
+                          style={{
+                            borderColor: `${useCase.accentColor}33`,
+                            color: useCase.accentColor,
+                            background: `${useCase.accentColor}14`,
+                          }}
                         >
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-sm font-semibold text-white">{demo.name}</div>
-                            <span
-                              className="rounded-full border px-2 py-0.5 text-[11px]"
-                              style={{
-                                borderColor: `${demo.accentColor}44`,
-                                color: demo.accentColor,
-                              }}
-                            >
-                              {demo.entryMode === "overlay" ? "Overlay demo" : "Workspace demo"}
-                            </span>
+                          <div className="text-base font-semibold text-[var(--foreground)]">
+                            {useCase.title}
                           </div>
-                          <div className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">
-                            {demo.locationName}
+                          <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                            {useCase.description}
+                          </p>
+                          <div className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
+                            Try {useCase.suggestedQuery}
                           </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{demo.tagline}</p>
                         </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="glass-panel rounded-[2rem] p-5 md:p-6">
+              <div className="space-y-4">
+                <div className="eyebrow">Guided demos</div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-semibold text-[var(--foreground)]">
+                    Start with a composed story when you need one
+                  </h2>
+                  <p className="text-sm leading-7 text-[var(--muted-foreground)]">
+                    Demos should help someone understand GeoSight fast, but never lock the product
+                    into one narrow use case.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {DEMO_REGISTRY.map((demo) => {
+                    const Icon = getDemoIcon(demo.icon);
+                    return (
+                      <button
+                        key={demo.id}
+                        type="button"
+                        onClick={() => handleOpenDemo(demo)}
+                        className="w-full rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-left transition duration-300 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)]"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div
+                            className="flex h-11 w-11 items-center justify-center rounded-2xl border"
+                            style={{
+                              borderColor: `${demo.accentColor}33`,
+                              color: demo.accentColor,
+                              background: `${demo.accentColor}14`,
+                            }}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-semibold text-[var(--foreground)]">
+                                {demo.name}
+                              </div>
+                              <span
+                                className="rounded-full border px-2 py-0.5 text-[11px]"
+                                style={{
+                                  borderColor: `${demo.accentColor}44`,
+                                  color: demo.accentColor,
+                                }}
+                              >
+                                {demo.entryMode === "overlay" ? "Overlay demo" : "Workspace demo"}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+                              {demo.locationName}
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                              {demo.tagline}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[2rem] p-5 md:p-6">
+              <div className="space-y-4">
+                <div className="eyebrow">What makes this different</div>
+                <h2 className="text-2xl font-semibold text-[var(--foreground)]">
+                  Not another map. Not another chatbot.
+                </h2>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    {
+                      title: "Grounded",
+                      text: "GeoSight ties AI answers back to source-aware spatial context.",
+                    },
+                    {
+                      title: "Modular",
+                      text: "The board model lets the app evolve into a true card-driven dashboard.",
+                    },
+                    {
+                      title: "Global-minded",
+                      text: "Search any place first, then ask mission-specific questions second.",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.title}
+                      className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4"
+                    >
+                      <div className="text-base font-semibold text-[var(--foreground)]">
+                        {item.title}
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                        {item.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>

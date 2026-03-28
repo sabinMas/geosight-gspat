@@ -90,10 +90,10 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="space-y-3 pb-2">
         <Badge>Start with a place</Badge>
         <CardTitle className="text-2xl sm:text-3xl">Ask questions about any place on Earth</CardTitle>
-        <p className="text-sm leading-6 text-slate-300">
+        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
           Search by city, state, ZIP, country, address, or coordinates, then let GeoSight analyze
           that location through the currently selected mission profile.
         </p>
@@ -134,20 +134,20 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
           </div>
         </form>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-          <span className="uppercase tracking-[0.18em] text-cyan-200">Active location</span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-200">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]">
+          <span className="eyebrow text-[var(--accent)]">Active location</span>
+          <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--foreground)]">
             {activeLocationName}
           </span>
         </div>
 
         {resolvedLocationName ? (
-          <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-4 py-3 text-sm text-cyan-50">
+          <div className="rounded-[1.5rem] border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-foreground)]">
             Resolved location: {resolvedLocationName}
           </div>
         ) : null}
 
-        {error ? <div className="text-sm text-rose-300">{error}</div> : null}
+        {error ? <div className="text-sm text-[var(--danger-foreground)]">{error}</div> : null}
       </CardContent>
     </Card>
   );

@@ -3,17 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-full border text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-full border text-sm font-medium transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "border-cyan-400/40 bg-cyan-400/15 text-cyan-50 hover:bg-cyan-400/20",
+          "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)] shadow-[var(--shadow-soft)] hover:border-[var(--accent)] hover:bg-[var(--accent-hover)]",
         secondary:
-          "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10",
-        ghost: "border-transparent bg-transparent text-slate-100 hover:bg-white/8",
+          "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)] hover:bg-[var(--surface-raised)]",
+        ghost:
+          "border-transparent bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-soft)]",
         amber:
-          "border-amber-400/40 bg-amber-400/15 text-amber-50 hover:bg-amber-400/20",
+          "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)] hover:bg-[var(--warning-hover)]",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -40,7 +40,10 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <CardTitle>{title}</CardTitle>
+        <div className="space-y-2">
+          <div className="eyebrow">Planning board</div>
+          <CardTitle>{title}</CardTitle>
+        </div>
         {onOpenDetails ? (
           <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenDetails}>
             Open breakdown
@@ -70,11 +73,11 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
           </div>
         </div>
         <div className="space-y-3">
-          <p className="text-sm leading-6 text-slate-300">{score.recommendation}</p>
-          {bandLabel ? <p className="text-xs leading-5 text-slate-400">{bandLabel}</p> : null}
+          <p className="text-sm leading-6 text-[var(--muted-foreground)]">{score.recommendation}</p>
+          {bandLabel ? <p className="text-xs leading-5 text-[var(--muted-foreground)]">{bandLabel}</p> : null}
           {profile ? (
             <div
-              className="rounded-2xl border p-3 text-sm text-slate-100"
+              className="rounded-[1.5rem] border p-4 text-sm text-[var(--foreground)]"
               style={{
                 borderColor: `${accent}33`,
                 background: `${accent}12`,

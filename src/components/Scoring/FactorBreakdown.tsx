@@ -23,7 +23,8 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-3">
+        <div className="eyebrow">Planning board</div>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -52,12 +53,15 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
         </div>
         <div className="space-y-2">
           {score.factors.map((factor) => (
-            <div key={factor.key} className="rounded-2xl border border-white/8 bg-white/5 p-3">
-              <div className="flex items-center justify-between text-sm text-white">
+            <div
+              key={factor.key}
+              className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3"
+            >
+              <div className="flex items-center justify-between text-sm text-[var(--foreground)]">
                 <span>{factor.label}</span>
                 <span>{factor.score}</span>
               </div>
-              <p className="mt-1 text-xs leading-5 text-slate-400">{factor.detail}</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">{factor.detail}</p>
             </div>
           ))}
         </div>
