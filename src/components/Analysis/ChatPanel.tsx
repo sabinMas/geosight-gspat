@@ -12,11 +12,13 @@ import {
   DataTrend,
   GeodataResult,
   LandCoverBucket,
+  MissionProfile,
   NearbyPlace,
   ResultsMode,
 } from "@/types";
 
 interface ChatPanelProps {
+  profile: MissionProfile;
   location: Coordinates;
   locationName: string;
   resultsMode: ResultsMode;
@@ -28,6 +30,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({
+  profile,
   location,
   locationName,
   resultsMode,
@@ -42,11 +45,14 @@ export function ChatPanel({
       id: "assistant-intro",
       role: "assistant",
       content:
-        "Ask about this place in whatever way is useful: trails, neighborhoods, restaurants, hazards, land use, infrastructure, or something more open-ended.",
+        "Ask about this place in whatever way is useful: site selection, trails, neighborhoods, restaurants, hazards, land use, or infrastructure.",
     },
   ]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const suggestionPrompts = profile.exampleQuestions.length
+    ? profile.exampleQuestions
+    : [...STARTER_PROMPTS];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,6 +74,7 @@ export function ChatPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          profileId: profile.id,
           question,
           location,
           locationName,
@@ -106,12 +113,12 @@ export function ChatPanel({
           Active location: <span className="font-medium text-white">{locationName}</span>
         </p>
         <p className="text-xs uppercase tracking-[0.18em] text-cyan-200">
-          Current result mode: {resultsMode === "analysis" ? "Analysis" : "Nearby places"}
+          {profile.name} profile / {resultsMode === "analysis" ? "Analysis" : "Nearby places"}
         </p>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          {STARTER_PROMPTS.map((prompt) => (
+          {suggestionPrompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
@@ -142,7 +149,7 @@ export function ChatPanel({
           <Textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask a question about this location (trails, neighborhoods, restaurants, hazards, access, land use, and more)..."
+            placeholder="Ask a question about this location (trails, grid access, neighborhoods, freight, hazards, and more)..."
           />
           <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
             <Send className="mr-2 h-4 w-4" />

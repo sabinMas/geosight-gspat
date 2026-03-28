@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChatPanel } from "@/components/Analysis/ChatPanel";
 import { ImageUpload } from "@/components/Analysis/ImageUpload";
 import { LandClassifier } from "@/components/Analysis/LandClassifier";
@@ -11,6 +11,9 @@ import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { AnalysisTrendsPanel } from "@/components/Results/AnalysisTrendsPanel";
 import { NearbyPlacesList } from "@/components/Results/NearbyPlacesList";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
+import { CompareTable } from "@/components/Scoring/CompareTable";
+import { FactorBreakdown } from "@/components/Scoring/FactorBreakdown";
+import { ScoreCard } from "@/components/Scoring/ScoreCard";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
 import { ElevationProfile } from "@/components/Terrain/ElevationProfile";
@@ -22,8 +25,9 @@ import { useSavedSites } from "@/hooks/useSavedSites";
 import { useSiteAnalysis } from "@/hooks/useSiteAnalysis";
 import { DEFAULT_VIEW, PRELOADED_SITES } from "@/lib/demo-data";
 import { buildLocationTrends } from "@/lib/data-trends";
-import { calculateSiteScore } from "@/lib/scoring";
-import { ResultsMode } from "@/types";
+import { DEFAULT_PROFILE, PROFILES } from "@/lib/profiles";
+import { calculateProfileScore } from "@/lib/scoring";
+import { MissionProfile, ResultsMode } from "@/types";
 
 const CesiumGlobe = dynamic(
   () => import("@/components/Globe/CesiumGlobe").then((mod) => mod.CesiumGlobe),
@@ -38,6 +42,7 @@ const CesiumGlobe = dynamic(
 );
 
 export default function HomePage() {
+  const [activeProfile, setActiveProfile] = useState<MissionProfile>(DEFAULT_PROFILE);
   const {
     selectedPoint,
     selectedLocationName,
@@ -48,20 +53,16 @@ export default function HomePage() {
   } = useGlobeInteraction(
     { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
     "Columbia River Gorge",
+    activeProfile.demoSites ?? [],
   );
-  const { geodata, score, loading, error } = useSiteAnalysis(selectedPoint);
-  const { sites, addSite, loadDemoSites } = useSavedSites();
+  const { geodata, score, loading, error } = useSiteAnalysis(selectedPoint, activeProfile);
+  const { sites, addSite, loadDemoSites } = useSavedSites(activeProfile.id);
   const { category, setCategory, categories, places } = useNearbyPlaces(
     selectedPoint,
     selectedLocationName,
   );
 
-  const [layers, setLayers] = useState<LayerState>({
-    water: true,
-    power: true,
-    roads: true,
-    heatmap: false,
-  });
+  const [layers, setLayers] = useState<LayerState>(activeProfile.defaultLayers);
   const [terrainExaggeration, setTerrainExaggeration] = useState(1.8);
   const [imageSummary, setImageSummary] = useState(
     "No image uploaded yet. Use the upload panel to run client-side land cover estimation.",
@@ -73,8 +74,15 @@ export default function HomePage() {
   const [resultsMode, setResultsMode] = useState<ResultsMode>("analysis");
   const [demoOpen, setDemoOpen] = useState(false);
 
+  useEffect(() => {
+    setLayers(activeProfile.defaultLayers);
+  }, [activeProfile]);
+
   const effectiveClassification = useMemo(
-    () => (uploadedClassification.length ? uploadedClassification : geodata?.landClassification ?? []),
+    () =>
+      uploadedClassification.length
+        ? uploadedClassification
+        : geodata?.landClassification ?? [],
     [geodata?.landClassification, uploadedClassification],
   );
 
@@ -87,16 +95,18 @@ export default function HomePage() {
 
     addSite({
       id: crypto.randomUUID(),
-      name: `Custom Demo Site ${sites.length + 1}`,
+      name: `${activeProfile.name} Site ${sites.length + 1}`,
       regionName: selectedLocationName,
+      profileId: activeProfile.id,
       coordinates: selectedPoint,
       geodata,
-      score: score ?? calculateSiteScore(geodata),
+      score: score ?? calculateProfileScore(geodata, activeProfile),
     });
   };
 
   const handleLoadShowcase = () => {
-    loadDemoSites();
+    loadDemoSites(PRELOADED_SITES);
+    setActiveProfile(DEFAULT_PROFILE);
     const firstSite = PRELOADED_SITES[0];
     if (firstSite) {
       selectPoint(firstSite.coordinates, `${firstSite.name} cooling demo`);
@@ -104,7 +114,8 @@ export default function HomePage() {
   };
 
   const handleFocusDemoSite = (siteId: string) => {
-    loadDemoSites();
+    loadDemoSites(PRELOADED_SITES);
+    setActiveProfile(DEFAULT_PROFILE);
     const site = PRELOADED_SITES.find((candidate) => candidate.id === siteId);
     if (!site) {
       return;
@@ -117,9 +128,12 @@ export default function HomePage() {
     <main className="min-h-screen overflow-hidden p-4">
       <div className="grid gap-4 xl:grid-cols-[360px_1.1fr_420px]">
         <Sidebar
+          activeProfile={activeProfile}
+          profiles={PROFILES}
           selectedLocationName={selectedLocationName}
           selectedRegion={selectedRegion}
           onOpenDemo={() => setDemoOpen(true)}
+          onSelectProfile={setActiveProfile}
           onSelectRegion={(region) => {
             setSelectedRegion(region);
             selectPoint(region.center, region.name);
@@ -138,7 +152,7 @@ export default function HomePage() {
               selectedPoint={selectedPoint}
               selectedRegion={selectedRegion}
               onPointSelect={selectPoint}
-              savedSites={demoOpen ? sites : []}
+              savedSites={sites}
               layers={layers}
               terrainExaggeration={terrainExaggeration}
             />
@@ -187,15 +201,18 @@ export default function HomePage() {
               </div>
 
               <p className="text-sm leading-6 text-slate-300">
-                Search a new place, use your current location, or click the globe to reposition the
-                active analysis.
+                Active mission profile:{" "}
+                <span style={{ color: activeProfile.accentColor }}>{activeProfile.name}</span>
               </p>
               {loading ? <p className="text-sm text-slate-400">Fetching geospatial context...</p> : null}
               {error ? <p className="text-sm text-rose-300">{error}</p> : null}
             </CardContent>
           </Card>
 
+          <ScoreCard score={score} title={`${activeProfile.name} score`} profile={activeProfile} />
+
           <ChatPanel
+            profile={activeProfile}
             location={selectedPoint}
             locationName={selectedLocationName}
             resultsMode={resultsMode}
@@ -205,7 +222,11 @@ export default function HomePage() {
             imageSummary={imageSummary}
             classification={effectiveClassification}
           />
+        </aside>
+      </div>
 
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Results mode</CardTitle>
@@ -229,10 +250,20 @@ export default function HomePage() {
               onCategoryChange={setCategory}
             />
           )}
-        </aside>
-      </div>
+        </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="space-y-4">
+          <FactorBreakdown
+            score={score}
+            title={`${activeProfile.name} factor breakdown`}
+          />
+          <CompareTable
+            sites={sites}
+            title={`${activeProfile.name} comparison`}
+            emptyMessage={`Save ${activeProfile.name.toLowerCase()} candidates to compare them here.`}
+          />
+        </div>
+
         <div className="space-y-4">
           <ImageUpload
             previewUrl={previewUrl}
@@ -243,8 +274,6 @@ export default function HomePage() {
             }}
           />
           <LandClassifier results={effectiveClassification} />
-        </div>
-        <div className="space-y-4">
           <TerrainViewer
             exaggeration={terrainExaggeration}
             onExaggerationChange={setTerrainExaggeration}

@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import {
+  Cartographic,
+  Ion,
+  IonGeocoderService,
+  Math as CesiumMath,
+  Rectangle,
+} from "cesium";
 import { Crosshair, Loader2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +18,10 @@ import { Coordinates, LocationSearchResult } from "@/types";
 interface SearchBarProps {
   activeLocationName: string;
   onLocate: (result: LocationSearchResult) => void;
+}
+
+if (typeof window !== "undefined") {
+  Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "";
 }
 
 function parseCoordinates(value: string): Coordinates | null {
@@ -48,25 +59,54 @@ function getCurrentCoordinates() {
   });
 }
 
+function createGeocoderSceneStub() {
+  return {
+    frameState: {
+      creditDisplay: {
+        addStaticCredit: () => undefined,
+      },
+    },
+  } as never;
+}
+
+function toCoordinates(destination: Cartographic) {
+  return {
+    lat: CesiumMath.toDegrees(destination.latitude),
+    lng: CesiumMath.toDegrees(destination.longitude),
+  };
+}
+
 export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [resolvedLocationName, setResolvedLocationName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const geocoder = useMemo(
+    () =>
+      new IonGeocoderService({
+        scene: createGeocoderSceneStub(),
+        accessToken: process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "",
+      }),
+    [],
+  );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
 
     if (!value.trim()) {
-      setError("Enter a place, ZIP code, landmark, or coordinates to begin.");
+      setError("Enter a place, ZIP code, address, country, or coordinates to begin.");
       return;
     }
 
     const coordinates = parseCoordinates(value);
     if (coordinates) {
+      const name = `${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}`;
+      setResolvedLocationName(name);
       onLocate({
-        name: `${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}`,
+        name,
         coordinates,
         kind: "coordinates",
       });
@@ -75,15 +115,26 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/geocode?q=${encodeURIComponent(value)}`);
-      if (!response.ok) {
-        const body = (await response.json()) as { error?: string };
-        throw new Error(body.error ?? "Search failed.");
+      const results = await geocoder.geocode(value);
+      const match = results[0];
+
+      if (!match) {
+        throw new Error("No results found for that search.");
       }
 
-      const result = (await response.json()) as LocationSearchResult;
-      setValue(result.name);
-      onLocate(result);
+      const cartographic =
+        match.destination instanceof Rectangle
+          ? Rectangle.center(match.destination)
+          : Cartographic.fromCartesian(match.destination);
+      const resolved = {
+        name: match.displayName,
+        coordinates: toCoordinates(cartographic),
+        kind: "ion-geocoder",
+      } satisfies LocationSearchResult;
+
+      setResolvedLocationName(resolved.name);
+      setValue(resolved.name);
+      onLocate(resolved);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to search this place.");
     } finally {
@@ -114,6 +165,7 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
         // Fall back to the plain current-location label if reverse geocoding fails.
       }
 
+      setResolvedLocationName(result.name);
       setValue(result.name);
       onLocate(result);
     } catch (err) {
@@ -129,8 +181,8 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
         <Badge>Start with a place</Badge>
         <CardTitle className="text-2xl sm:text-3xl">Ask questions about any place on Earth</CardTitle>
         <p className="text-sm leading-6 text-slate-300">
-          Search a city, ZIP, country, landmark, or coordinates, then ask GeoSight anything about
-          that location.
+          Search by city, state, ZIP, country, address, or coordinates, then let GeoSight analyze
+          that location through the currently selected mission profile.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -139,7 +191,7 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
             <Input
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              placeholder="Seattle, WA · 98101 · Japan · Columbia River Gorge · 45.523,-122.676"
+              placeholder="Seattle, WA, 98101, 123 Main St Portland OR, United States, 45.523,-122.676"
               className="h-12 border-white/10 bg-slate-950/50 text-sm"
             />
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -175,6 +227,12 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
             {activeLocationName}
           </span>
         </div>
+
+        {resolvedLocationName ? (
+          <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-4 py-3 text-sm text-cyan-50">
+            Resolved location: {resolvedLocationName}
+          </div>
+        ) : null}
 
         {error ? <div className="text-sm text-rose-300">{error}</div> : null}
       </CardContent>

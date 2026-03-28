@@ -117,6 +117,7 @@ export const PRELOADED_SITES: SavedSite[] = DEMO_SITE_SEEDS.map((site) => {
     id: site.id,
     name: site.name,
     regionName: site.summary,
+    profileId: "data-center",
     coordinates: site.coordinates,
     geodata: buildDemoGeodata(site.name),
     score,

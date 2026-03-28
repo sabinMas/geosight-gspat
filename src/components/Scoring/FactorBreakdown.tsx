@@ -7,9 +7,10 @@ import { SiteScore } from "@/types";
 
 interface FactorBreakdownProps {
   score: SiteScore | null;
+  title?: string;
 }
 
-export function FactorBreakdown({ score }: FactorBreakdownProps) {
+export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBreakdownProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export function FactorBreakdown({ score }: FactorBreakdownProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Cooling factor breakdown</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="h-72">

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { calculateSiteScore } from "@/lib/scoring";
-import { Coordinates, GeodataResult, SiteScore } from "@/types";
+import { calculateProfileScore } from "@/lib/scoring";
+import { Coordinates, GeodataResult, MissionProfile, SiteScore } from "@/types";
 
-export function useSiteAnalysis(coords: Coordinates) {
+export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile) {
   const [geodata, setGeodata] = useState<GeodataResult | null>(null);
   const [score, setScore] = useState<SiteScore | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export function useSiteAnalysis(coords: Coordinates) {
         const data = (await response.json()) as GeodataResult;
         if (!cancelled) {
           setGeodata(data);
-          setScore(calculateSiteScore(data));
+          setScore(calculateProfileScore(data, profile));
         }
       } catch (err) {
         if (!cancelled) {
@@ -44,7 +44,7 @@ export function useSiteAnalysis(coords: Coordinates) {
     return () => {
       cancelled = true;
     };
-  }, [coords.lat, coords.lng]);
+  }, [coords.lat, coords.lng, profile]);
 
   return { geodata, score, loading, error };
 }

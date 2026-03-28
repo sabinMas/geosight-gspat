@@ -1,8 +1,13 @@
 import Groq from "groq-sdk";
+import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { AnalyzeRequestBody } from "@/types";
 import { buildGeoSightSystemPrompt } from "@/lib/geosight-assistant";
+import { MissionProfile } from "@/types";
 
-export async function runGroqAnalysis(payload: AnalyzeRequestBody) {
+export async function runGroqAnalysis(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+) {
   const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
@@ -13,7 +18,7 @@ export async function runGroqAnalysis(payload: AnalyzeRequestBody) {
     };
   }
 
-  const { prompt } = buildGeoSightSystemPrompt(payload);
+  const { prompt } = buildGeoSightSystemPrompt(payload, profile);
   const groq = new Groq({ apiKey });
   const completion = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
@@ -22,7 +27,15 @@ export async function runGroqAnalysis(payload: AnalyzeRequestBody) {
       { role: "system", content: prompt },
       {
         role: "user",
-        content: JSON.stringify(payload, null, 2),
+        content: JSON.stringify(
+          {
+            missionProfile: profile.name,
+            missionProfileId: profile.id,
+            ...payload,
+          },
+          null,
+          2,
+        ),
       },
     ],
   });

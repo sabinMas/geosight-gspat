@@ -1,9 +1,37 @@
+import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { clamp } from "@/lib/utils";
-import { GeodataResult, LandCoverBucket, SiteFactorScore, SiteScore } from "@/types";
+import {
+  GeodataResult,
+  LandCoverBucket,
+  MissionProfile,
+  ScoringFactor,
+  SiteFactorScore,
+  SiteScore,
+} from "@/types";
 
-function scoreFromDistance(distanceKm: number | null, idealKm: number, cutoffKm: number) {
+type DistanceSource = "water" | "power" | "road";
+
+function scoreFromDistance(
+  distanceKm: number | null,
+  idealKm: number,
+  cutoffKm: number,
+  direction: "near" | "far" = "near",
+) {
   if (distanceKm === null) {
     return 50;
+  }
+
+  if (direction === "far") {
+    if (distanceKm >= idealKm) {
+      return 100;
+    }
+
+    if (distanceKm <= cutoffKm) {
+      return 15;
+    }
+
+    const ratio = (distanceKm - cutoffKm) / (idealKm - cutoffKm);
+    return clamp(Math.round(ratio * 100), 15, 100);
   }
 
   if (distanceKm <= idealKm) {
@@ -18,8 +46,37 @@ function scoreFromDistance(distanceKm: number | null, idealKm: number, cutoffKm:
   return clamp(Math.round(ratio * 100), 15, 100);
 }
 
-function scoreTerrain(elevation: number | null) {
+function scoreTerrain(elevation: number | null, mode: string = "cooling") {
   if (elevation === null) {
+    return 55;
+  }
+
+  if (mode === "buildability") {
+    if (elevation < 140) {
+      return 88;
+    }
+    if (elevation < 320) {
+      return 72;
+    }
+    if (elevation < 550) {
+      return 50;
+    }
+    return 30;
+  }
+
+  if (mode === "terrainVariety") {
+    if (elevation < 80) {
+      return 42;
+    }
+    if (elevation < 220) {
+      return 70;
+    }
+    if (elevation < 550) {
+      return 88;
+    }
+    if (elevation < 900) {
+      return 76;
+    }
     return 55;
   }
 
@@ -38,9 +95,21 @@ function scoreTerrain(elevation: number | null) {
   return 30;
 }
 
-function scoreClimate(tempC: number | null, coolingDegreeDays: number | null) {
+function scoreClimate(
+  tempC: number | null,
+  coolingDegreeDays: number | null,
+  precipitationMm: number | null,
+  mode: string = "cooling",
+) {
   if (tempC === null || coolingDegreeDays === null) {
     return 60;
+  }
+
+  if (mode === "outdoor") {
+    const tempScore = clamp(100 - Math.abs(tempC - 15) * 7, 30, 100);
+    const precipitationScore =
+      precipitationMm === null ? 65 : clamp(100 - precipitationMm / 12, 25, 100);
+    return Math.round(tempScore * 0.6 + precipitationScore * 0.4);
   }
 
   const tempScore = clamp(100 - Math.abs(tempC - 12) * 8, 25, 100);
@@ -48,14 +117,55 @@ function scoreClimate(tempC: number | null, coolingDegreeDays: number | null) {
   return Math.round(tempScore * 0.55 + cddScore * 0.45);
 }
 
-function scoreLandCover(classification: LandCoverBucket[]) {
+function landCoverLookup(classification: LandCoverBucket[]) {
+  return Object.fromEntries(
+    classification.map((bucket) => [bucket.label.toLowerCase(), bucket.value]),
+  );
+}
+
+function scoreLandCover(classification: LandCoverBucket[], mode: string = "developed") {
   if (!classification.length) {
     return 50;
   }
 
-  const lookup = Object.fromEntries(
-    classification.map((bucket) => [bucket.label.toLowerCase(), bucket.value]),
-  );
+  const lookup = landCoverLookup(classification);
+
+  if (mode === "vegetation") {
+    const vegetation =
+      (lookup["vegetation"] ?? 0) +
+      (lookup["forest"] ?? 0) +
+      (lookup["agricultural"] ?? 0) * 0.3;
+    const constrained =
+      (lookup["urban"] ?? 0) * 0.8 +
+      (lookup["barren"] ?? 0) * 0.4 +
+      (lookup["barren/industrial"] ?? 0) * 0.5;
+    return clamp(Math.round(38 + vegetation * 0.9 - constrained * 0.35), 15, 100);
+  }
+
+  if (mode === "residential") {
+    const favorable =
+      (lookup["urban"] ?? 0) * 0.65 +
+      (lookup["vegetation"] ?? 0) * 0.4 +
+      (lookup["barren"] ?? 0) * 0.3;
+    const constrained =
+      (lookup["water"] ?? 0) +
+      (lookup["forest"] ?? 0) * 0.55 +
+      (lookup["barren/industrial"] ?? 0) * 0.35;
+    return clamp(Math.round(52 + favorable * 0.6 - constrained * 0.45), 15, 100);
+  }
+
+  if (mode === "commercial") {
+    const favorable =
+      (lookup["urban"] ?? 0) +
+      (lookup["barren/industrial"] ?? 0) * 0.9 +
+      (lookup["barren"] ?? 0) * 0.5;
+    const constrained =
+      (lookup["water"] ?? 0) +
+      (lookup["forest"] ?? 0) * 0.6 +
+      (lookup["agricultural"] ?? 0) * 0.4;
+    return clamp(Math.round(50 + favorable * 0.7 - constrained * 0.5), 15, 100);
+  }
+
   const preferred =
     (lookup["barren"] ?? 0) +
     (lookup["barren/industrial"] ?? 0) +
@@ -69,75 +179,169 @@ function scoreLandCover(classification: LandCoverBucket[]) {
   return clamp(Math.round(60 + preferred * 0.8 - constrained * 0.45), 10, 100);
 }
 
-export function buildFactorScores(geodata: GeodataResult): SiteFactorScore[] {
-  return [
-    {
-      key: "waterProximity",
-      label: "Water source proximity",
-      score: scoreFromDistance(geodata.nearestWaterBody.distanceKm, 1, 15),
-      weight: 0.3,
-      detail: `${geodata.nearestWaterBody.name} at ${
-        geodata.nearestWaterBody.distanceKm === null
-          ? "unknown distance"
-          : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
-      }.`,
-    },
-    {
-      key: "terrain",
-      label: "Elevation & flatness",
-      score: scoreTerrain(geodata.elevationMeters),
-      weight: 0.15,
-      detail: geodata.elevationMeters === null ? "Elevation unavailable." : `Elevation ${geodata.elevationMeters} m.`,
-    },
-    {
-      key: "powerInfrastructure",
-      label: "Power infrastructure",
-      score: scoreFromDistance(geodata.nearestPower.distanceKm, 2, 20),
-      weight: 0.2,
-      detail: `${geodata.nearestPower.name} at ${
-        geodata.nearestPower.distanceKm === null ? "unknown distance" : `${geodata.nearestPower.distanceKm.toFixed(1)} km`
-      }.`,
-    },
-    {
-      key: "climate",
-      label: "Climate suitability",
-      score: scoreClimate(geodata.climate.averageTempC, geodata.climate.coolingDegreeDays),
-      weight: 0.15,
-      detail: `Avg ${geodata.climate.averageTempC ?? "?"} C, CDD ${geodata.climate.coolingDegreeDays ?? "?"}.`,
-    },
-    {
-      key: "transportation",
-      label: "Road transportation",
-      score: scoreFromDistance(geodata.nearestRoad.distanceKm, 2, 18),
-      weight: 0.1,
-      detail: `${geodata.nearestRoad.name} at ${
-        geodata.nearestRoad.distanceKm === null ? "unknown distance" : `${geodata.nearestRoad.distanceKm.toFixed(1)} km`
-      }.`,
-    },
-    {
-      key: "landClassification",
-      label: "Land classification",
-      score: scoreLandCover(geodata.landClassification),
-      weight: 0.1,
-      detail: "Higher scores favor barren, industrial, and already-developed parcels.",
-    },
-  ];
+function getDistanceReading(geodata: GeodataResult, source: DistanceSource) {
+  if (source === "water") {
+    return geodata.nearestWaterBody;
+  }
+  if (source === "power") {
+    return geodata.nearestPower;
+  }
+  return geodata.nearestRoad;
 }
 
-export function calculateSiteScore(geodata: GeodataResult): SiteScore {
-  const factors = buildFactorScores(geodata);
+function dominantLandCover(classification: LandCoverBucket[]) {
+  if (!classification.length) {
+    return null;
+  }
+
+  return [...classification].sort((a, b) => b.value - a.value)[0];
+}
+
+function scoreCustomMetric(geodata: GeodataResult, metric: string) {
+  const roadDistance = geodata.nearestRoad.distanceKm;
+  const waterDistance = geodata.nearestWaterBody.distanceKm;
+  const powerDistance = geodata.nearestPower.distanceKm;
+  const topLandCover = dominantLandCover(geodata.landClassification);
+  const urbanScore = scoreLandCover(geodata.landClassification, "commercial");
+  const vegetationScore = scoreLandCover(geodata.landClassification, "vegetation");
+
+  switch (metric) {
+    case "terrainVariety":
+      return scoreTerrain(geodata.elevationMeters, "terrainVariety");
+    case "remoteness":
+      return scoreFromDistance(roadDistance, 6, 0.7, "far");
+    case "schoolAccess":
+      return Math.round(
+        scoreFromDistance(roadDistance, 1.8, 14) * 0.55 +
+          scoreLandCover(geodata.landClassification, "residential") * 0.45,
+      );
+    case "hazardRisk": {
+      const elevationScore = geodata.elevationMeters === null ? 60 : clamp(geodata.elevationMeters / 3, 25, 100);
+      const waterPenalty =
+        waterDistance === null ? 0 : clamp(28 - waterDistance * 8, 0, 28);
+      return clamp(Math.round(elevationScore - waterPenalty), 15, 100);
+    }
+    case "amenities":
+      return Math.round(
+        scoreFromDistance(roadDistance, 1.5, 12) * 0.55 +
+          urbanScore * 0.45,
+      );
+    case "commercialDemand":
+      return Math.round(
+        scoreFromDistance(roadDistance, 1.2, 12) * 0.5 +
+          urbanScore * 0.5,
+      );
+    case "commercialDensity":
+      return Math.round(
+        urbanScore * 0.6 +
+          scoreFromDistance(powerDistance, 2, 18) * 0.4,
+      );
+    case "landCost":
+      return Math.round(
+        scoreFromDistance(roadDistance, 2.5, 16) * 0.45 +
+          scoreLandCover(geodata.landClassification, "commercial") * 0.25 +
+          scoreFromDistance(powerDistance, 3.5, 20) * 0.3,
+      );
+    default:
+      return topLandCover?.label.toLowerCase().includes("water") ? 40 : vegetationScore;
+  }
+}
+
+function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
+  if (factor.scoreFn === "distance") {
+    const reading = getDistanceReading(geodata, factor.params.source as DistanceSource);
+    return `${reading.name} at ${
+      reading.distanceKm === null ? "unknown distance" : `${reading.distanceKm.toFixed(1)} km`
+    }.`;
+  }
+
+  if (factor.scoreFn === "elevation") {
+    return geodata.elevationMeters === null
+      ? "Elevation unavailable."
+      : `Elevation ${geodata.elevationMeters} m.`;
+  }
+
+  if (factor.scoreFn === "climate") {
+    return `Avg ${geodata.climate.averageTempC ?? "?"} C, CDD ${geodata.climate.coolingDegreeDays ?? "?"}, precipitation ${geodata.climate.precipitationMm ?? "?"} mm.`;
+  }
+
+  if (factor.scoreFn === "landcover") {
+    const dominant = dominantLandCover(geodata.landClassification);
+    return dominant
+      ? `Dominant cover: ${dominant.label} (${dominant.value}%).`
+      : "Land cover unavailable.";
+  }
+
+  return factor.description;
+}
+
+function runFactorScore(geodata: GeodataResult, factor: ScoringFactor) {
+  switch (factor.scoreFn) {
+    case "distance":
+      return scoreFromDistance(
+        getDistanceReading(geodata, factor.params.source as DistanceSource).distanceKm,
+        Number(factor.params.idealKm),
+        Number(factor.params.cutoffKm),
+        (factor.params.direction as "near" | "far" | undefined) ?? "near",
+      );
+    case "elevation":
+      return scoreTerrain(geodata.elevationMeters, String(factor.params.mode ?? "cooling"));
+    case "climate":
+      return scoreClimate(
+        geodata.climate.averageTempC,
+        geodata.climate.coolingDegreeDays,
+        geodata.climate.precipitationMm,
+        String(factor.params.mode ?? "cooling"),
+      );
+    case "landcover":
+      return scoreLandCover(
+        geodata.landClassification,
+        String(factor.params.mode ?? "developed"),
+      );
+    case "custom":
+      return scoreCustomMetric(geodata, String(factor.params.metric ?? ""));
+    default:
+      return 50;
+  }
+}
+
+function buildRecommendation(total: number, profile: MissionProfile) {
+  return (
+    profile.recommendationBands.find((band) => total >= band.min)?.text ??
+    profile.recommendationBands[profile.recommendationBands.length - 1]?.text ??
+    "Useful first-pass site candidate with more validation required."
+  );
+}
+
+export function buildFactorScores(
+  geodata: GeodataResult,
+  profile: MissionProfile = DEFAULT_PROFILE,
+): SiteFactorScore[] {
+  return profile.factors.map((factor) => ({
+    key: factor.key,
+    label: factor.label,
+    score: runFactorScore(geodata, factor),
+    weight: factor.weight,
+    detail: buildFactorDetail(geodata, factor),
+  }));
+}
+
+export function calculateProfileScore(
+  geodata: GeodataResult,
+  profile: MissionProfile,
+): SiteScore {
+  const factors = buildFactorScores(geodata, profile);
   const total = Math.round(
     factors.reduce((acc, factor) => acc + factor.score * factor.weight, 0),
   );
 
-  const recommendation =
-    total >= 85
-      ? "Excellent cooling-center candidate with low-friction infrastructure alignment."
-      : total >= 70
-        ? "Promising site with a few constraints to validate in due diligence."
-        : total >= 55
-          ? "Viable only if specific permitting, grading, or utility issues are solved."
-          : "Weak cooling-center fit compared with the preloaded Pacific Northwest benchmarks.";
+  return {
+    total,
+    recommendation: buildRecommendation(total, profile),
+    factors,
+  };
+}
 
-  return { total, recommendation, factors };
+export function calculateSiteScore(geodata: GeodataResult): SiteScore {
+  return calculateProfileScore(geodata, DEFAULT_PROFILE);
 }

@@ -1,10 +1,4 @@
-export type SiteFactorKey =
-  | "waterProximity"
-  | "terrain"
-  | "powerInfrastructure"
-  | "climate"
-  | "transportation"
-  | "landClassification";
+export type SiteFactorKey = string;
 
 export type UseCaseType =
   | "data_center_cooling"
@@ -18,6 +12,38 @@ export type UseCaseType =
 export type ResultsMode = "analysis" | "nearby_places";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
+
+export interface ScoringFactor {
+  key: string;
+  label: string;
+  weight: number;
+  scoreFn: string;
+  params: Record<string, number | string>;
+  description: string;
+}
+
+export interface MissionProfile {
+  id: string;
+  name: string;
+  icon: string;
+  tagline: string;
+  description: string;
+  accentColor: string;
+  factors: ScoringFactor[];
+  systemPrompt: string;
+  defaultLayers: {
+    water: boolean;
+    power: boolean;
+    roads: boolean;
+    heatmap: boolean;
+  };
+  exampleQuestions: string[];
+  demoSites?: DemoSiteSeed[];
+  recommendationBands: Array<{
+    min: number;
+    text: string;
+  }>;
+}
 
 export interface Coordinates {
   lat: number;
@@ -114,6 +140,7 @@ export interface SavedSite {
   id: string;
   name: string;
   regionName: string;
+  profileId: string;
   coordinates: Coordinates;
   score: SiteScore;
   geodata: GeodataResult;
@@ -135,6 +162,7 @@ export interface ChatMessage {
 }
 
 export interface AnalyzeRequestBody {
+  profileId: string;
   question: string;
   location?: Coordinates;
   locationName?: string;
