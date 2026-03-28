@@ -197,29 +197,41 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
   const query = `
     [out:json][timeout:20];
     (
+      node["highway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["highway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["power"~"line|minor_line"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["power"~"line|minor_line"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["waterway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["waterway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["waterway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["natural"~"water|wood|scrub|wetland|grassland|heath|bare_rock|beach|sand"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["natural"~"water|wood|scrub|wetland|grassland|heath|bare_rock|beach|sand"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["natural"~"water|wood|scrub|wetland|grassland|heath|bare_rock|beach|sand"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["landuse"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["landuse"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["landuse"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       node["amenity"~"school|college|university|kindergarten|hospital|clinic|doctors|pharmacy|restaurant|cafe|fast_food|bar|pub|bus_station|ferry_terminal"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["amenity"~"school|college|university|kindergarten|hospital|clinic|doctors|pharmacy|restaurant|cafe|fast_food|bar|pub|bus_station|ferry_terminal"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["amenity"~"school|college|university|kindergarten|hospital|clinic|doctors|pharmacy|restaurant|cafe|fast_food|bar|pub|bus_station|ferry_terminal"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       node["shop"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["shop"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["shop"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["office"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["office"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["office"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       node["public_transport"~"platform|station|stop_position"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["public_transport"~"platform|station"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["public_transport"~"platform|station"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       node["railway"~"station|halt|tram_stop|subway_entrance"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       node["highway"="bus_stop"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       node["highway"="trailhead"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       node["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["tourism"~"museum|gallery|attraction"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["tourism"~"museum|gallery|attraction"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
     );
-    out tags center 20;
+    out tags center;
   `;
 
   const response = await fetch(OVERPASS_ENDPOINT, {
@@ -360,8 +372,10 @@ export function buildAmenitySignals(elements: OverpassElement[]): AmenitySignals
 
     if (
       shop ||
+      tags.office ||
       ["commercial", "retail"].includes(tags.landuse ?? "") ||
-      ["marketplace", "mall"].includes(tags.shop ?? "")
+      ["marketplace", "mall"].includes(tags.shop ?? "") ||
+      ["attraction", "museum", "gallery"].includes(tags.tourism ?? "")
     ) {
       counts.commercialCount += 1;
     }
