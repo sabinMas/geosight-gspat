@@ -1,4 +1,10 @@
-import { DataSourceMeta, DataSourceStatus } from "@/types";
+import {
+  DataSourceMeta,
+  DataSourceStatus,
+  SourceDomain,
+  SourceRegistryContext,
+} from "@/types";
+import { getSourceProviderGuidance } from "@/lib/source-registry";
 
 export function buildSourceMeta(input: {
   id: string;
@@ -10,6 +16,10 @@ export function buildSourceMeta(input: {
   confidence: string;
   note?: string;
   lastUpdated?: string | null;
+  domain?: SourceDomain;
+  accessType?: DataSourceMeta["accessType"];
+  regionScopes?: DataSourceMeta["regionScopes"];
+  fallbackProviders?: string[];
 }): DataSourceMeta {
   return {
     id: input.id,
@@ -21,7 +31,35 @@ export function buildSourceMeta(input: {
     confidence: input.confidence,
     note: input.note,
     lastUpdated: input.lastUpdated ?? new Date().toISOString(),
+    domain: input.domain,
+    accessType: input.accessType,
+    regionScopes: input.regionScopes,
+    fallbackProviders: input.fallbackProviders,
   };
+}
+
+export function buildRegistryAwareSourceMeta(
+  input: Parameters<typeof buildSourceMeta>[0] & {
+    domain: SourceDomain;
+    context: SourceRegistryContext;
+  },
+) {
+  const guidance = getSourceProviderGuidance(input.domain, input.context);
+  const activeProvider =
+    guidance.primary?.name === input.provider
+      ? guidance.primary
+      : guidance.primary && input.provider.includes(guidance.primary.name)
+        ? guidance.primary
+        : null;
+
+  return buildSourceMeta({
+    ...input,
+    accessType: input.accessType ?? activeProvider?.accessType,
+    regionScopes: input.regionScopes ?? guidance.context.scopes,
+    fallbackProviders:
+      input.fallbackProviders ??
+      guidance.fallbacks.slice(0, 3).map((provider) => provider.name),
+  });
 }
 
 export function summarizeSourceMeta(meta: DataSourceMeta) {

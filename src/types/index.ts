@@ -13,6 +13,32 @@ export type ResultsMode = "analysis" | "nearby_places";
 export type ExploreEntrySource = "landing" | "demo" | "direct";
 export type DemoOverlayLayerKey = "water" | "power" | "roads";
 export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable" | "demo";
+export type SourceDomain =
+  | "weather"
+  | "nearby_places"
+  | "demographics"
+  | "hazards"
+  | "schools"
+  | "broadband"
+  | "terrain"
+  | "imagery";
+export type SourceAccessType =
+  | "api"
+  | "dataset"
+  | "catalog"
+  | "tile_service"
+  | "derived";
+export type SourceRegionScope =
+  | "global"
+  | "us"
+  | "us-wa"
+  | "europe"
+  | "uk"
+  | "japan"
+  | "india"
+  | "australia-nz"
+  | "latin-america"
+  | "africa";
 export type ThemeMode = "dark" | "light" | "system";
 export type WorkspaceViewMode = "board" | "library";
 export type WorkspaceCardCategory =
@@ -185,6 +211,37 @@ export interface DataSourceMeta {
   coverage: string;
   confidence: string;
   note?: string;
+  domain?: SourceDomain;
+  accessType?: SourceAccessType;
+  regionScopes?: SourceRegionScope[];
+  fallbackProviders?: string[];
+}
+
+export interface SourceRegistryContext {
+  countryCode?: string | null;
+  stateCode?: string | null;
+  scopes: SourceRegionScope[];
+}
+
+export interface SourceProviderDefinition {
+  id: string;
+  name: string;
+  domains: SourceDomain[];
+  accessType: SourceAccessType;
+  coverage: SourceRegionScope[];
+  priority: number;
+  freshness: string;
+  reliability: string;
+  rateLimit: string;
+  notes: string;
+  integrated: boolean;
+}
+
+export interface SourceProviderGuidance {
+  domain: SourceDomain;
+  context: SourceRegistryContext;
+  primary: SourceProviderDefinition | null;
+  fallbacks: SourceProviderDefinition[];
 }
 
 export interface SchoolOfficialMetrics {

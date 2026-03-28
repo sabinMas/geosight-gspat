@@ -16,7 +16,8 @@ import {
   rateLimitHeaders,
 } from "@/lib/request-guards";
 import { fetchSchoolContext, summarizeSchoolContext } from "@/lib/schools";
-import { buildSourceMeta } from "@/lib/source-metadata";
+import { resolveSourceRegistryContext } from "@/lib/source-registry";
+import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
 import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { GeodataResult } from "@/types";
@@ -172,6 +173,13 @@ export async function GET(request: NextRequest) {
   );
   const amenitySignals = buildAmenitySignals(infrastructure);
   const now = new Date().toISOString();
+  const derivedStateCode =
+    (demographicsResult.status === "fulfilled" ? demographicsResult.value.stateCode : null) ??
+    (schoolResult.status === "fulfilled" &&
+    schoolResult.value.coverageStatus === "state_accountability_supported"
+      ? "WA"
+      : null);
+  const registryContext = resolveSourceRegistryContext({ stateCode: derivedStateCode });
 
   const geodata: GeodataResult = {
     elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
@@ -227,10 +235,12 @@ export async function GET(request: NextRequest) {
         : null,
     landClassification: buildLandCoverBuckets(infrastructure),
     sources: {
-      elevation: buildSourceMeta({
+      elevation: buildRegistryAwareSourceMeta({
         id: "elevation",
         label: "Elevation",
         provider: "USGS National Map EPQS",
+        domain: "terrain",
+        context: registryContext,
         status:
           elevationResult.status === "fulfilled" && elevationResult.value !== null
             ? "live"
@@ -243,10 +253,12 @@ export async function GET(request: NextRequest) {
             ? "Direct point elevation lookup."
             : "No elevation response was returned for this point.",
       }),
-      infrastructure: buildSourceMeta({
+      infrastructure: buildRegistryAwareSourceMeta({
         id: "infrastructure",
         label: "Infrastructure and access",
         provider: "OpenStreetMap via Overpass",
+        domain: "nearby_places",
+        context: registryContext,
         status: infrastructureResult.status === "fulfilled" ? "live" : "limited",
         lastUpdated: now,
         freshness: "Cached up to 6 hours",
@@ -256,10 +268,12 @@ export async function GET(request: NextRequest) {
             ? "Direct mapped roads, power, waterways, and land-use features."
             : "Coverage depends on OpenStreetMap completeness near the selected point.",
       }),
-      climate: buildSourceMeta({
+      climate: buildRegistryAwareSourceMeta({
         id: "climate",
         label: "Weather and air quality",
         provider: "Open-Meteo",
+        domain: "weather",
+        context: registryContext,
         status:
           climateResult.status === "fulfilled" &&
           (climateResult.value.currentTempC !== null || climateResult.value.airQualityIndex !== null)
@@ -275,10 +289,12 @@ export async function GET(request: NextRequest) {
             ? "Direct forecast and current-condition snapshot from Open-Meteo."
             : "Weather or AQI data could not be retrieved for this point.",
       }),
-      hazards: buildSourceMeta({
+      hazards: buildRegistryAwareSourceMeta({
         id: "hazards",
         label: "Hazard context",
         provider: "USGS Earthquake Catalog",
+        domain: "hazards",
+        context: registryContext,
         status: hazardResult.status === "fulfilled" ? "live" : "limited",
         lastUpdated: now,
         freshness: "Cached up to 6 hours",
@@ -288,10 +304,12 @@ export async function GET(request: NextRequest) {
             ? "Recent seismic activity is direct; this is not a full hazard-risk model."
             : "No recent seismic context was returned for this point.",
       }),
-      demographics: buildSourceMeta({
+      demographics: buildRegistryAwareSourceMeta({
         id: "demographics",
         label: "Demographics",
         provider: "FCC + US Census ACS 5-year",
+        domain: "demographics",
+        context: registryContext,
         status:
           demographicsResult.status === "fulfilled" &&
           demographicsResult.value.population !== null
@@ -307,10 +325,12 @@ export async function GET(request: NextRequest) {
             ? "County-level demographics, not parcel- or neighborhood-level."
             : "Demographic coverage is unavailable outside the current US pipeline.",
       }),
-      amenities: buildSourceMeta({
+      amenities: buildRegistryAwareSourceMeta({
         id: "amenities",
         label: "Amenities and activity",
         provider: "OpenStreetMap via Overpass",
+        domain: "nearby_places",
+        context: registryContext,
         status: infrastructureResult.status === "fulfilled" ? "live" : "limited",
         lastUpdated: now,
         freshness: "Cached up to 6 hours",
@@ -322,13 +342,15 @@ export async function GET(request: NextRequest) {
       }),
       school:
         schoolResult.status === "fulfilled"
-          ? buildSourceMeta({
+          ? buildRegistryAwareSourceMeta({
               id: "school",
               label: "School context",
               provider:
                 schoolResult.value.coverageStatus === "state_accountability_supported"
                   ? "NCES + Washington OSPI + GeoSight"
                   : "NCES + GeoSight",
+              domain: "schools",
+              context: registryContext,
               status:
                 schoolResult.value.score === null
                   ? schoolResult.value.coverageStatus === "outside_us"
@@ -353,21 +375,26 @@ export async function GET(request: NextRequest) {
                     : "US public K-12 only; Washington official data when available",
               confidence: schoolResult.value.explanation,
             })
-          : buildSourceMeta({
+          : buildRegistryAwareSourceMeta({
               id: "school",
               label: "School context",
               provider: "NCES + GeoSight",
+              domain: "schools",
+              context: registryContext,
               status: "limited",
               lastUpdated: now,
               freshness: "On-demand request",
               coverage: "US public K-12 only",
               confidence: "School context could not be assembled for this point.",
             }),
-      landClassification: buildSourceMeta({
+      landClassification: buildRegistryAwareSourceMeta({
         id: "land-classification",
         label: "Land cover estimate",
         provider: "Derived from OpenStreetMap land-use and natural features",
+        domain: "imagery",
+        context: registryContext,
         status: infrastructure.length > 0 ? "derived" : "limited",
+        accessType: "derived",
         lastUpdated: now,
         freshness: "Derived from the current Overpass fetch",
         coverage: "Global where OSM land-use tagging exists",
