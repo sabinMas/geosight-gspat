@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Send } from "lucide-react";
+import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import { STARTER_PROMPTS } from "@/lib/geosight-assistant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +50,7 @@ export function ChatPanel({
   ]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionPrompts = profile.exampleQuestions.length
     ? profile.exampleQuestions
     : [...STARTER_PROMPTS];
@@ -117,17 +118,41 @@ export function ChatPanel({
         </p>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
-          {suggestionPrompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              onClick={() => setDraft(prompt)}
-              className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/10"
-            >
-              {prompt}
-            </button>
-          ))}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <button
+            type="button"
+            onClick={() => setShowSuggestions((current) => !current)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+          >
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                Suggested questions
+              </div>
+              <div className="mt-1 text-sm text-slate-300">
+                Use these to start fast, or ask anything in your own words.
+              </div>
+            </div>
+            {showSuggestions ? (
+              <ChevronUp className="h-4 w-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-slate-400" />
+            )}
+          </button>
+
+          {showSuggestions ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {suggestionPrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => setDraft(prompt)}
+                  className="rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/10"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto pr-1">

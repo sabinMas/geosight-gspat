@@ -24,7 +24,8 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
         id: "trend-pending",
         label: "Location context",
         value: "Loading geodata",
-        detail: "GeoSight is still assembling terrain, access, climate, and land-cover context for this place.",
+        detail:
+          "GeoSight is still assembling terrain, access, climate, and land-cover context for this place.",
         direction: "neutral",
         source: buildSourceMeta({
           id: "pending",
@@ -94,13 +95,19 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
     {
       id: "trend-climate",
       label: "Weather snapshot",
-      value:
-        currentTemp === null ? "Unavailable" : `${currentTemp.toFixed(1)} C now`,
+      value: currentTemp === null ? "Unavailable" : `${currentTemp.toFixed(1)} C now`,
       detail:
         averageTemp === null
           ? "Current and forecast weather details are unavailable."
-          : `Daily mean ${averageTemp.toFixed(1)} C, range ${formatSignedNumber(lowTemp, " C")} to ${formatSignedNumber(highTemp, " C")}, wind ${formatSignedNumber(windSpeed, " km/h")}, precipitation ${geodata.climate.precipitationMm ?? "unknown"} mm.`,
-      direction: currentTemp !== null && currentTemp >= 8 && currentTemp <= 24 ? "positive" : "neutral",
+          : `Daily mean ${averageTemp.toFixed(1)} C, range ${formatSignedNumber(
+              lowTemp,
+              " C",
+            )} to ${formatSignedNumber(highTemp, " C")}, wind ${formatSignedNumber(
+              windSpeed,
+              " km/h",
+            )}, precipitation ${geodata.climate.precipitationMm ?? "unknown"} mm.`,
+      direction:
+        currentTemp !== null && currentTemp >= 8 && currentTemp <= 24 ? "positive" : "neutral",
       source: geodata.sources.climate,
     },
     {
@@ -112,7 +119,13 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           ? "Open-Meteo air-quality data is not available for this point."
           : "Current US AQI snapshot from Open-Meteo for the active point.",
       direction:
-        airQualityIndex === null ? "watch" : airQualityIndex <= 50 ? "positive" : airQualityIndex <= 100 ? "neutral" : "watch",
+        airQualityIndex === null
+          ? "watch"
+          : airQualityIndex <= 50
+            ? "positive"
+            : airQualityIndex <= 100
+              ? "neutral"
+              : "watch",
       source: geodata.sources.climate,
     },
     {
@@ -137,14 +150,15 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
     {
       id: "trend-seismic",
       label: "Seismic activity",
-      value:
-        earthquakes === null ? "Unavailable" : `${earthquakes} events / 30d`,
+      value: earthquakes === null ? "Unavailable" : `${earthquakes} events / 30d`,
       detail:
         earthquakes === null
           ? "Recent earthquake context is unavailable for this point."
           : earthquakes === 0
             ? "No mapped USGS earthquake events were recorded within 250 km over the last 30 days."
-            : `Recent earthquakes within 250 km over the last 30 days. Strongest event M${strongestEarthquake?.toFixed(1) ?? "?"}; nearest event ${nearestEarthquake ?? "unknown"} km away.`,
+            : `Recent earthquakes within 250 km over the last 30 days. Strongest event M${
+                strongestEarthquake?.toFixed(1) ?? "?"
+              }; nearest event ${nearestEarthquake ?? "unknown"} km away.`,
       direction:
         strongestEarthquake !== null && strongestEarthquake >= 4.5
           ? "watch"
@@ -171,17 +185,15 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       id: "trend-services",
       label: "Community services",
       value:
-        amenities.schoolCount === null
-          ? "Unavailable"
-          : `${serviceCount} key services`,
+        amenities.schoolCount === null ? "Unavailable" : `${serviceCount} key services`,
       detail:
         amenities.schoolCount === null
           ? "Mapped school and healthcare coverage is unavailable for this point."
-          : `${amenities.schoolCount} schools, ${amenities.healthcareCount} healthcare sites, ${amenities.transitStopCount} transit stops, and ${amenities.parkCount} parks in the active analysis area.`,
+          : `${amenities.schoolCount} schools, ${amenities.healthcareCount} healthcare sites, ${
+              amenities.transitStopCount
+            } transit stops, and ${amenities.parkCount} parks in the active analysis area.`,
       direction:
-        amenities.schoolCount !== null && serviceCount >= 8
-          ? "positive"
-          : "neutral",
+        amenities.schoolCount !== null && serviceCount >= 8 ? "positive" : "neutral",
       source: geodata.sources.amenities,
     },
     {
@@ -202,17 +214,17 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       id: "trend-activity",
       label: "Mapped activity",
       value:
-        amenities.commercialCount === null
-          ? "Unavailable"
-          : `${activityCount} venues`,
+        amenities.commercialCount === null ? "Unavailable" : `${activityCount} venues`,
       detail:
         amenities.commercialCount === null
           ? "Mapped commercial and food activity is unavailable for this point."
-          : `${amenities.commercialCount} commercial venues, ${amenities.foodAndDrinkCount} food/drink venues, and ${amenities.trailheadCount} trailheads or recreation access points in the active area.`,
+          : `${amenities.commercialCount} commercial venues, ${
+              amenities.foodAndDrinkCount
+            } food/drink venues, and ${
+              amenities.trailheadCount
+            } trailheads or recreation access points in the active area.`,
       direction:
-        amenities.commercialCount !== null && activityCount >= 12
-          ? "positive"
-          : "neutral",
+        amenities.commercialCount !== null && activityCount >= 12 ? "positive" : "neutral",
       source: geodata.sources.amenities,
     },
   ];

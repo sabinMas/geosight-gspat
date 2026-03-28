@@ -13,9 +13,53 @@ export type ResultsMode = "analysis" | "nearby_places";
 export type ExploreEntrySource = "landing" | "demo" | "direct";
 export type DemoOverlayLayerKey = "water" | "power" | "roads";
 export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable" | "demo";
+export type WorkspaceCardCategory =
+  | "context"
+  | "analysis"
+  | "planning"
+  | "terrain"
+  | "media"
+  | "comparison";
+export type WorkspaceCardZone = "primary" | "workspace";
+export type WorkspaceDataRequirement =
+  | "geodata"
+  | "score"
+  | "saved-sites"
+  | "classification"
+  | "image"
+  | "source-metadata";
+export type WorkspaceCardId =
+  | "active-location"
+  | "chat"
+  | "results"
+  | "score"
+  | "factor-breakdown"
+  | "compare"
+  | "terrain-viewer"
+  | "elevation-profile"
+  | "image-upload"
+  | "land-classifier"
+  | "source-awareness";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 export type NearbyPlacesSource = "live" | "unavailable";
+
+export interface WorkspaceCardDefinition {
+  id: WorkspaceCardId;
+  title: string;
+  category: WorkspaceCardCategory;
+  zone: WorkspaceCardZone;
+  defaultVisibility: boolean;
+  defaultOrder: number;
+  requiredData: WorkspaceDataRequirement[];
+  supportedProfiles: string[];
+  emptyState: string;
+}
+
+export interface WorkspaceCardPreference {
+  cardId: WorkspaceCardId;
+  visible: boolean;
+}
 
 export interface ScoringFactor {
   key: string;

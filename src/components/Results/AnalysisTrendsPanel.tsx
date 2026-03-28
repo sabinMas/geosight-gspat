@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   formatSourceTimestamp,
@@ -9,6 +10,7 @@ import { DataTrend } from "@/types";
 
 interface AnalysisTrendsPanelProps {
   trends: DataTrend[];
+  headerContent?: ReactNode;
 }
 
 const TONE_CLASSES: Record<DataTrend["direction"], string> = {
@@ -17,11 +19,12 @@ const TONE_CLASSES: Record<DataTrend["direction"], string> = {
   watch: "border-amber-300/20 bg-amber-400/8 text-amber-50",
 };
 
-export function AnalysisTrendsPanel({ trends }: AnalysisTrendsPanelProps) {
+export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPanelProps) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <CardTitle>Area analysis</CardTitle>
+        {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm leading-6 text-slate-300">
@@ -54,7 +57,9 @@ export function AnalysisTrendsPanel({ trends }: AnalysisTrendsPanelProps) {
               <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/35 px-3 py-2 text-xs leading-5 text-slate-300">
                 <div className="font-medium text-white">{trend.source.label}</div>
                 <div className="mt-1">{summarizeSourceMeta(trend.source)}</div>
-                <div className="mt-1 text-slate-400">{formatSourceTimestamp(trend.source.lastUpdated)}</div>
+                <div className="mt-1 text-slate-400">
+                  {formatSourceTimestamp(trend.source.lastUpdated)}
+                </div>
                 <div className="mt-1 text-slate-400">{trend.source.confidence}</div>
               </div>
             </div>

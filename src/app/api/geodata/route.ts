@@ -37,7 +37,10 @@ function buildNearestFeature(
         distanceKm: Number(calculateDistanceKm(center, coordinates).toFixed(1)),
       };
     })
-    .filter((candidate): candidate is { element: OverpassElement; distanceKm: number } => candidate !== null)
+    .filter(
+      (candidate): candidate is { element: OverpassElement; distanceKm: number } =>
+        candidate !== null,
+    )
     .sort((a, b) => a.distanceKm - b.distanceKm)[0];
 
   return {
@@ -65,12 +68,7 @@ function buildLandCoverBuckets(elements: OverpassElement[]): GeodataResult["land
     const landuse = tags.landuse ?? "";
     const leisure = tags.leisure ?? "";
 
-    if (
-      natural === "water" ||
-      tags.waterway ||
-      landuse === "reservoir" ||
-      landuse === "basin"
-    ) {
+    if (natural === "water" || tags.waterway || landuse === "reservoir" || landuse === "basin") {
       counts.water += 1;
       continue;
     }
@@ -152,7 +150,6 @@ export async function GET(request: NextRequest) {
   }
 
   const { lat, lng } = coordinates;
-
   const bbox = toBoundingBox({ lat, lng }, 8);
 
   const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult] =
@@ -179,24 +176,19 @@ export async function GET(request: NextRequest) {
     nearestWaterBody: buildNearestFeature({ lat, lng }, waterways, "Nearby mapped waterway"),
     nearestRoad: buildNearestFeature({ lat, lng }, roads, "Road network"),
     nearestPower: buildNearestFeature({ lat, lng }, power, "Transmission infrastructure"),
-    climate: {
-      currentTempC:
-        climateResult.status === "fulfilled" ? climateResult.value.currentTempC : null,
-      averageTempC:
-        climateResult.status === "fulfilled" ? climateResult.value.averageTempC : null,
-      dailyHighTempC:
-        climateResult.status === "fulfilled" ? climateResult.value.dailyHighTempC : null,
-      dailyLowTempC:
-        climateResult.status === "fulfilled" ? climateResult.value.dailyLowTempC : null,
-      coolingDegreeDays:
-        climateResult.status === "fulfilled" ? climateResult.value.coolingDegreeDays : null,
-      precipitationMm:
-        climateResult.status === "fulfilled" ? climateResult.value.precipitationMm : null,
-      windSpeedKph:
-        climateResult.status === "fulfilled" ? climateResult.value.windSpeedKph : null,
-      airQualityIndex:
-        climateResult.status === "fulfilled" ? climateResult.value.airQualityIndex : null,
-    },
+    climate:
+      climateResult.status === "fulfilled"
+        ? climateResult.value
+        : {
+            currentTempC: null,
+            averageTempC: null,
+            dailyHighTempC: null,
+            dailyLowTempC: null,
+            coolingDegreeDays: null,
+            precipitationMm: null,
+            windSpeedKph: null,
+            airQualityIndex: null,
+          },
     hazards:
       hazardResult.status === "fulfilled"
         ? hazardResult.value
@@ -264,9 +256,10 @@ export async function GET(request: NextRequest) {
         provider: "Open-Meteo",
         status:
           climateResult.status === "fulfilled" &&
-          (climateResult.value.currentTempC !== null ||
-            climateResult.value.airQualityIndex !== null)
-            ? climateResult.value.airQualityIndex === null ? "limited" : "live"
+          (climateResult.value.currentTempC !== null || climateResult.value.airQualityIndex !== null)
+            ? climateResult.value.airQualityIndex === null
+              ? "limited"
+              : "live"
             : "unavailable",
         lastUpdated: now,
         freshness: "Cached up to 6 hours",
