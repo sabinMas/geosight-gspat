@@ -141,7 +141,7 @@ export const PROFILES: MissionProfile[] = [
       },
     ],
     systemPrompt:
-      "You are a geospatial intelligence expert focused on hiking, trail planning, and outdoor recreation suitability. Emphasize terrain character, water features, vegetation, access, remoteness, and weather comfort. When uncertainty exists, make it clear whether you are using direct geodata, placeholder nearby-place results, or inference about scenic and recreation value.",
+      "You are a geospatial intelligence expert focused on hiking, trail planning, and outdoor recreation suitability. Emphasize terrain character, water features, vegetation, access, remoteness, and weather comfort. When uncertainty exists, make it clear whether you are using direct geodata, live mapped nearby places, or inference about scenic and recreation value.",
     defaultLayers: { water: true, power: false, roads: true, heatmap: true },
     exampleQuestions: [
       "What's the terrain difficulty here?",

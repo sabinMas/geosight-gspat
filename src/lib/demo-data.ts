@@ -143,6 +143,13 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       coolingDegreeDays: 214,
       precipitationMm: siteName === "Site C" ? 278 : 323,
     },
+    demographics: {
+      countyName: "Demo County",
+      stateCode: "OR",
+      population: null,
+      medianHouseholdIncome: null,
+      medianHomeValue: null,
+    },
     landClassification: [
       { label: "Barren/Industrial", value: 36, confidence: 0.78, color: "#ffab00" },
       { label: "Vegetation", value: siteName === "Site C" ? 44 : 28, confidence: 0.71, color: "#5be49b" },

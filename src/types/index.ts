@@ -14,6 +14,7 @@ export type ExploreEntrySource = "landing" | "demo" | "direct";
 export type DemoOverlayLayerKey = "water" | "power" | "roads";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
+export type NearbyPlacesSource = "live" | "unavailable";
 
 export interface ScoringFactor {
   key: string;
@@ -133,6 +134,13 @@ export interface GeodataResult {
     coolingDegreeDays: number | null;
     precipitationMm: number | null;
   };
+  demographics: {
+    countyName: string | null;
+    stateCode: string | null;
+    population: number | null;
+    medianHouseholdIncome: number | null;
+    medianHomeValue: number | null;
+  };
   landClassification: LandCoverBucket[];
   sourceNotes: string[];
 }
@@ -152,7 +160,7 @@ export interface NearbyPlace {
   relativeLocation: string;
   summary: string;
   attributes: string[];
-  source: "placeholder" | "live";
+  source: "live";
 }
 
 export interface DataTrend {

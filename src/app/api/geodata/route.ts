@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchCountyDemographics } from "@/lib/census";
 import { toBoundingBox } from "@/lib/geospatial";
-import { fetchNearbyInfrastructure } from "@/lib/overpass";
+import { calculateDistanceKm } from "@/lib/nearby-places";
+import { fetchNearbyInfrastructure, getElementCoordinates, OverpassElement } from "@/lib/overpass";
 import {
   applyRateLimit,
   createRateLimitResponse,
@@ -10,22 +12,121 @@ import {
 import { fetchElevation } from "@/lib/usgs";
 import { GeodataResult } from "@/types";
 
-function estimateLandClassification(lat: number): GeodataResult["landClassification"] {
-  if (lat > 46.5) {
-    return [
-      { label: "Vegetation", value: 48, confidence: 0.75, color: "#5be49b" },
-      { label: "Water", value: 12, confidence: 0.66, color: "#00e5ff" },
-      { label: "Urban", value: 16, confidence: 0.61, color: "#a8b8c8" },
-      { label: "Barren/Industrial", value: 24, confidence: 0.72, color: "#ffab00" },
-    ];
+function buildNearestFeature(
+  center: { lat: number; lng: number },
+  elements: OverpassElement[],
+  fallbackName: string,
+) {
+  const nearest = elements
+    .map((element) => {
+      const coordinates = getElementCoordinates(element);
+      if (!coordinates) {
+        return null;
+      }
+
+      return {
+        element,
+        distanceKm: Number(calculateDistanceKm(center, coordinates).toFixed(1)),
+      };
+    })
+    .filter((candidate): candidate is { element: OverpassElement; distanceKm: number } => candidate !== null)
+    .sort((a, b) => a.distanceKm - b.distanceKm)[0];
+
+  return {
+    name:
+      nearest?.element.tags?.name ??
+      nearest?.element.tags?.ref ??
+      nearest?.element.tags?.highway ??
+      nearest?.element.tags?.power ??
+      fallbackName,
+    distanceKm: nearest?.distanceKm ?? null,
+  };
+}
+
+function buildLandCoverBuckets(elements: OverpassElement[]): GeodataResult["landClassification"] {
+  const counts = {
+    vegetation: 0,
+    water: 0,
+    urban: 0,
+    barrenIndustrial: 0,
+  };
+
+  for (const element of elements) {
+    const tags = element.tags ?? {};
+    const natural = tags.natural ?? "";
+    const landuse = tags.landuse ?? "";
+    const leisure = tags.leisure ?? "";
+
+    if (
+      natural === "water" ||
+      tags.waterway ||
+      landuse === "reservoir" ||
+      landuse === "basin"
+    ) {
+      counts.water += 1;
+      continue;
+    }
+
+    if (
+      natural === "wood" ||
+      natural === "scrub" ||
+      natural === "wetland" ||
+      natural === "grassland" ||
+      natural === "heath" ||
+      landuse === "forest" ||
+      landuse === "meadow" ||
+      landuse === "farmland" ||
+      landuse === "orchard" ||
+      landuse === "vineyard" ||
+      leisure === "park"
+    ) {
+      counts.vegetation += 1;
+      continue;
+    }
+
+    if (
+      landuse === "residential" ||
+      landuse === "commercial" ||
+      landuse === "retail" ||
+      landuse === "education" ||
+      landuse === "railway"
+    ) {
+      counts.urban += 1;
+      continue;
+    }
+
+    if (
+      landuse === "industrial" ||
+      landuse === "quarry" ||
+      landuse === "construction" ||
+      landuse === "brownfield" ||
+      natural === "bare_rock" ||
+      natural === "beach" ||
+      natural === "sand"
+    ) {
+      counts.barrenIndustrial += 1;
+    }
+  }
+
+  const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+  if (!total) {
+    return [];
   }
 
   return [
-    { label: "Vegetation", value: 31, confidence: 0.72, color: "#5be49b" },
-    { label: "Water", value: 14, confidence: 0.65, color: "#00e5ff" },
-    { label: "Urban", value: 19, confidence: 0.58, color: "#a8b8c8" },
-    { label: "Barren/Industrial", value: 36, confidence: 0.78, color: "#ffab00" },
-  ];
+    { label: "Vegetation", count: counts.vegetation, color: "#5be49b" },
+    { label: "Water", count: counts.water, color: "#00e5ff" },
+    { label: "Urban", count: counts.urban, color: "#a8b8c8" },
+    { label: "Barren/Industrial", count: counts.barrenIndustrial, color: "#ffab00" },
+  ]
+    .filter((bucket) => bucket.count > 0)
+    .map((bucket) => ({
+      label: bucket.label,
+      value: Math.round((bucket.count / total) * 100),
+      confidence: Number(Math.min(0.92, 0.45 + bucket.count / total).toFixed(2)),
+      color: bucket.color,
+    }))
+    .sort((a, b) => b.value - a.value);
 }
 
 export async function GET(request: NextRequest) {
@@ -46,35 +147,30 @@ export async function GET(request: NextRequest) {
 
   const bbox = toBoundingBox({ lat, lng }, 8);
 
-  const [elevationResult, infrastructureResult, climateResult] = await Promise.allSettled([
+  const [elevationResult, infrastructureResult, climateResult, demographicsResult] =
+    await Promise.allSettled([
     fetchElevation({ lat, lng }),
     fetchNearbyInfrastructure(bbox),
     fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m&daily=temperature_2m_mean,precipitation_sum&timezone=auto&forecast_days=3`,
       { next: { revalidate: 60 * 60 * 6 } },
     ).then((response) => response.json()),
+    fetchCountyDemographics({ lat, lng }),
   ]);
 
   const infrastructure =
     infrastructureResult.status === "fulfilled" ? infrastructureResult.value.elements ?? [] : [];
   const roads = infrastructure.filter((item) => item.tags?.highway);
   const power = infrastructure.filter((item) => item.tags?.power);
-  const waterways = infrastructure.filter((item) => item.tags?.waterway || item.tags?.natural === "water");
+  const waterways = infrastructure.filter(
+    (item) => item.tags?.waterway || item.tags?.natural === "water",
+  );
 
   const geodata: GeodataResult = {
     elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
-    nearestWaterBody: {
-      name: waterways[0]?.tags?.name ?? "Nearby mapped waterway",
-      distanceKm: waterways.length ? 1.2 : null,
-    },
-    nearestRoad: {
-      name: roads[0]?.tags?.name ?? roads[0]?.tags?.highway ?? "Road network",
-      distanceKm: roads.length ? 2.4 : null,
-    },
-    nearestPower: {
-      name: power[0]?.tags?.name ?? "Transmission infrastructure",
-      distanceKm: power.length ? 3.8 : null,
-    },
+    nearestWaterBody: buildNearestFeature({ lat, lng }, waterways, "Nearby mapped waterway"),
+    nearestRoad: buildNearestFeature({ lat, lng }, roads, "Road network"),
+    nearestPower: buildNearestFeature({ lat, lng }, power, "Transmission infrastructure"),
     climate: {
       averageTempC:
         climateResult.status === "fulfilled"
@@ -89,11 +185,22 @@ export async function GET(request: NextRequest) {
           ? climateResult.value?.daily?.precipitation_sum?.[0] ?? null
           : null,
     },
-    landClassification: estimateLandClassification(lat),
+    demographics:
+      demographicsResult.status === "fulfilled"
+        ? demographicsResult.value
+        : {
+            countyName: null,
+            stateCode: null,
+            population: null,
+            medianHouseholdIncome: null,
+            medianHomeValue: null,
+          },
+    landClassification: buildLandCoverBuckets(infrastructure),
     sourceNotes: [
       "USGS elevation via The National Map EPQS.",
-      "Overpass OSM features for roads, power lines, and waterways.",
+      "Overpass OSM features for roads, power lines, waterways, and land-use context.",
       "Open-Meteo current and daily climate snapshots.",
+      "FCC county lookup with ACS 5-year Census demographics.",
     ],
   };
 

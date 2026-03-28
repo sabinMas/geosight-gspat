@@ -1,6 +1,5 @@
 import { BoundingBox, Coordinates, NearbyPlace, NearbyPlaceCategory } from "@/types";
 import {
-  buildPlaceholderNearbyPlaces,
   calculateDistanceKm,
   describeRelativeLocation,
   shortLocationLabel,
@@ -8,7 +7,7 @@ import {
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
-type OverpassElement = {
+export type OverpassElement = {
   id: number;
   type: string;
   lat?: number;
@@ -87,7 +86,7 @@ function buildNearbyQuery(category: NearbyPlaceCategory, center: Coordinates) {
   `;
 }
 
-function getElementCoordinates(element: OverpassElement) {
+export function getElementCoordinates(element: OverpassElement) {
   if (typeof element.lat === "number" && typeof element.lon === "number") {
     return {
       lat: element.lat,
@@ -190,7 +189,15 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
     (
       way["highway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["power"~"line|minor_line"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["power"~"line|minor_line"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["waterway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["waterway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["natural"~"water|wood|scrub|wetland|grassland|heath|bare_rock|beach|sand"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["natural"~"water|wood|scrub|wetland|grassland|heath|bare_rock|beach|sand"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["landuse"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["landuse"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
     );
     out tags center 20;
   `;
@@ -265,5 +272,5 @@ export async function fetchNearbyPlaces(
     return livePlaces;
   }
 
-  return buildPlaceholderNearbyPlaces(locationName, coords, category);
+  return [];
 }

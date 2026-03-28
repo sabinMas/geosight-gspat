@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
-import { Coordinates, NearbyPlace, NearbyPlaceCategory } from "@/types";
+import {
+  Coordinates,
+  NearbyPlace,
+  NearbyPlaceCategory,
+  NearbyPlacesSource,
+} from "@/types";
 
 const DEFAULT_CATEGORY: NearbyPlaceCategory = "trail";
 
@@ -11,7 +16,7 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
   const [places, setPlaces] = useState<NearbyPlace[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [source, setSource] = useState<"live" | "placeholder">("placeholder");
+  const [source, setSource] = useState<NearbyPlacesSource>("unavailable");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -33,7 +38,7 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
 
         const payload = (await response.json()) as {
           places?: NearbyPlace[];
-          source?: "live" | "placeholder";
+          source?: NearbyPlacesSource;
           error?: string;
         };
 
@@ -42,7 +47,7 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
         }
 
         setPlaces(payload.places ?? []);
-        setSource(payload.source ?? "placeholder");
+        setSource(payload.source ?? "unavailable");
         setError(payload.error ?? null);
       } catch (err) {
         if (controller.signal.aborted) {
@@ -50,7 +55,7 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
         }
 
         setPlaces([]);
-        setSource("placeholder");
+        setSource("unavailable");
         setError(err instanceof Error ? err.message : "Unable to load nearby places.");
       } finally {
         if (!controller.signal.aborted) {
