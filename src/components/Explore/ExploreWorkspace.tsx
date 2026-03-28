@@ -80,7 +80,7 @@ export function ExploreWorkspace() {
   );
   const { geodata, score, loading, error } = useSiteAnalysis(selectedPoint, activeProfile);
   const { sites, addSite, loadDemoSites } = useSavedSites(activeProfile.id);
-  const { category, setCategory, categories, places } = useNearbyPlaces(
+  const { category, setCategory, categories, places, loading: nearbyLoading, error: nearbyError, source: nearbySource } = useNearbyPlaces(
     selectedPoint,
     selectedLocationName,
   );
@@ -353,6 +353,9 @@ export function ExploreWorkspace() {
               category={category}
               categories={categories}
               places={places}
+              loading={nearbyLoading}
+              error={nearbyError}
+              source={nearbySource}
               onCategoryChange={setCategory}
             />
           )}

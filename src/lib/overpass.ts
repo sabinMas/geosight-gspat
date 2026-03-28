@@ -1,14 +1,196 @@
-import { BoundingBox } from "@/types";
+import { BoundingBox, Coordinates, NearbyPlace, NearbyPlaceCategory } from "@/types";
+import {
+  buildPlaceholderNearbyPlaces,
+  calculateDistanceKm,
+  describeRelativeLocation,
+  shortLocationLabel,
+} from "@/lib/nearby-places";
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
+type OverpassElement = {
+  id: number;
+  type: string;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+};
+
+const CATEGORY_QUERIES: Record<NearbyPlaceCategory, { radiusMeters: number; body: string }> = {
+  trail: {
+    radiusMeters: 18000,
+    body: `
+      node["highway"="trailhead"](around:RADIUS,LAT,LNG);
+      way["highway"="path"]["name"](around:RADIUS,LAT,LNG);
+      way["route"="hiking"]["name"](around:RADIUS,LAT,LNG);
+      relation["route"="hiking"]["name"](around:RADIUS,LAT,LNG);
+    `,
+  },
+  hike: {
+    radiusMeters: 22000,
+    body: `
+      relation["route"="hiking"]["name"](around:RADIUS,LAT,LNG);
+      way["route"="hiking"]["name"](around:RADIUS,LAT,LNG);
+      node["tourism"="viewpoint"]["name"](around:RADIUS,LAT,LNG);
+      node["natural"="peak"]["name"](around:RADIUS,LAT,LNG);
+      node["waterway"="waterfall"]["name"](around:RADIUS,LAT,LNG);
+    `,
+  },
+  restaurant: {
+    radiusMeters: 8000,
+    body: `
+      node["amenity"~"restaurant|cafe|fast_food|bar|pub"]["name"](around:RADIUS,LAT,LNG);
+      way["amenity"~"restaurant|cafe|fast_food|bar|pub"]["name"](around:RADIUS,LAT,LNG);
+    `,
+  },
+  landmark: {
+    radiusMeters: 16000,
+    body: `
+      node["tourism"~"attraction|viewpoint|museum"]["name"](around:RADIUS,LAT,LNG);
+      way["tourism"~"attraction|museum"]["name"](around:RADIUS,LAT,LNG);
+      node["historic"]["name"](around:RADIUS,LAT,LNG);
+      node["leisure"="park"]["name"](around:RADIUS,LAT,LNG);
+      way["leisure"="park"]["name"](around:RADIUS,LAT,LNG);
+    `,
+  },
+};
+
+function clampCoordinate(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function isValidCoordinatePair(lat: number, lng: number) {
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+}
+
+function sanitizeBoundingBox(bbox: BoundingBox) {
+  return {
+    south: clampCoordinate(bbox.south, -90, 90),
+    north: clampCoordinate(bbox.north, -90, 90),
+    west: clampCoordinate(bbox.west, -180, 180),
+    east: clampCoordinate(bbox.east, -180, 180),
+  };
+}
+
+function buildNearbyQuery(category: NearbyPlaceCategory, center: Coordinates) {
+  const template = CATEGORY_QUERIES[category];
+  return `
+    [out:json][timeout:20];
+    (
+      ${template.body
+        .replaceAll("RADIUS", String(template.radiusMeters))
+        .replaceAll("LAT", center.lat.toFixed(6))
+        .replaceAll("LNG", center.lng.toFixed(6))}
+    );
+    out tags center 30;
+  `;
+}
+
+function getElementCoordinates(element: OverpassElement) {
+  if (typeof element.lat === "number" && typeof element.lon === "number") {
+    return {
+      lat: element.lat,
+      lng: element.lon,
+    };
+  }
+
+  if (element.center) {
+    return {
+      lat: element.center.lat,
+      lng: element.center.lon,
+    };
+  }
+
+  return null;
+}
+
+function buildAttributes(category: NearbyPlaceCategory, tags: Record<string, string>) {
+  const attributes: string[] = [];
+
+  if (category === "restaurant") {
+    if (tags.cuisine) {
+      attributes.push(tags.cuisine.replaceAll(";", ", "));
+    }
+    if (tags.amenity) {
+      attributes.push(tags.amenity.replaceAll("_", " "));
+    }
+    if (tags.outdoor_seating === "yes") {
+      attributes.push("Outdoor seating");
+    }
+  } else if (category === "trail" || category === "hike") {
+    if (tags.route) {
+      attributes.push(tags.route.replaceAll("_", " "));
+    }
+    if (tags.highway) {
+      attributes.push(tags.highway.replaceAll("_", " "));
+    }
+    if (tags.surface) {
+      attributes.push(tags.surface.replaceAll("_", " "));
+    }
+    if (tags.sac_scale) {
+      attributes.push(`SAC ${tags.sac_scale}`);
+    }
+  } else {
+    if (tags.tourism) {
+      attributes.push(tags.tourism.replaceAll("_", " "));
+    }
+    if (tags.leisure) {
+      attributes.push(tags.leisure.replaceAll("_", " "));
+    }
+    if (tags.historic) {
+      attributes.push(tags.historic.replaceAll("_", " "));
+    }
+  }
+
+  if (tags.website) {
+    attributes.push("Has website");
+  }
+
+  return attributes.slice(0, 3);
+}
+
+function buildSummary(
+  category: NearbyPlaceCategory,
+  tags: Record<string, string>,
+  locationName: string,
+) {
+  const locationLabel = shortLocationLabel(locationName);
+  const nameParts: string[] = [];
+
+  if (category === "restaurant") {
+    nameParts.push("Nearby dining option");
+  } else if (category === "trail") {
+    nameParts.push("Mapped trail or trailhead");
+  } else if (category === "hike") {
+    nameParts.push("Outdoor destination with hike-oriented appeal");
+  } else {
+    nameParts.push("Local landmark or attraction");
+  }
+
+  if (tags.cuisine) {
+    nameParts.push(`Cuisine: ${tags.cuisine.replaceAll(";", ", ")}`);
+  }
+  if (tags.description) {
+    nameParts.push(tags.description);
+  } else if (tags.tourism) {
+    nameParts.push(`Tagged in OSM as ${tags.tourism.replaceAll("_", " ")}`);
+  } else if (tags.amenity) {
+    nameParts.push(`Tagged in OSM as ${tags.amenity.replaceAll("_", " ")}`);
+  }
+
+  nameParts.push(`Anchored to ${locationLabel}.`);
+  return nameParts.join(". ");
+}
+
 export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
+  const safeBox = sanitizeBoundingBox(bbox);
   const query = `
     [out:json][timeout:20];
     (
-      way["highway"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
-      way["power"~"line|minor_line"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
-      relation["waterway"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
+      way["highway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["power"~"line|minor_line"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      relation["waterway"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
     );
     out tags center 20;
   `;
@@ -24,10 +206,64 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
   }
 
   return (await response.json()) as {
-    elements?: Array<{
-      type: string;
-      tags?: Record<string, string>;
-      center?: { lat: number; lon: number };
-    }>;
+    elements?: OverpassElement[];
   };
+}
+
+export async function fetchNearbyPlaces(
+  coords: Coordinates,
+  locationName: string,
+  category: NearbyPlaceCategory,
+) {
+  const query = buildNearbyQuery(category, coords);
+  const response = await fetch(OVERPASS_ENDPOINT, {
+    method: "POST",
+    body: query,
+    next: { revalidate: 60 * 30 },
+  });
+
+  if (!response.ok) {
+    throw new Error("Nearby places request failed.");
+  }
+
+  const json = (await response.json()) as { elements?: OverpassElement[] };
+  const elements = json.elements ?? [];
+
+  const mappedPlaces: Array<NearbyPlace | null> = elements
+    .map((element) => {
+      const elementCoords = getElementCoordinates(element);
+      const tags = element.tags ?? {};
+
+      if (!elementCoords || !tags.name) {
+        return null;
+      }
+
+      const distanceKm = Number(calculateDistanceKm(coords, elementCoords).toFixed(1));
+      return {
+        id: `${category}-${element.type}-${element.id}`,
+        name: tags.name,
+        category,
+        distanceKm,
+        relativeLocation: describeRelativeLocation(coords, elementCoords),
+        summary: buildSummary(category, tags, locationName),
+        attributes: buildAttributes(category, tags),
+        source: "live" as const,
+      };
+    })
+    ;
+
+  const livePlaces = mappedPlaces
+    .filter((place): place is NearbyPlace => place !== null)
+    .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
+    .filter(
+      (place, index, all) =>
+        all.findIndex((candidate) => candidate.name === place.name) === index,
+    )
+    .slice(0, 8);
+
+  if (livePlaces.length > 0) {
+    return livePlaces;
+  }
+
+  return buildPlaceholderNearbyPlaces(locationName, coords, category);
 }

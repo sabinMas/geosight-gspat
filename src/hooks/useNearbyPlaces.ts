@@ -1,18 +1,68 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { buildNearbyPlaces, NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
-import { Coordinates, NearbyPlaceCategory } from "@/types";
+import { useEffect, useState } from "react";
+import { NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
+import { Coordinates, NearbyPlace, NearbyPlaceCategory } from "@/types";
 
 const DEFAULT_CATEGORY: NearbyPlaceCategory = "trail";
 
 export function useNearbyPlaces(coords: Coordinates, locationName: string) {
   const [category, setCategory] = useState<NearbyPlaceCategory>(DEFAULT_CATEGORY);
+  const [places, setPlaces] = useState<NearbyPlace[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<"live" | "placeholder">("placeholder");
 
-  const places = useMemo(
-    () => buildNearbyPlaces(locationName, coords, category),
-    [category, coords, locationName],
-  );
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          lat: String(coords.lat),
+          lng: String(coords.lng),
+          category,
+          locationName,
+        });
+        const response = await fetch(`/api/nearby-places?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        const payload = (await response.json()) as {
+          places?: NearbyPlace[];
+          source?: "live" | "placeholder";
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Unable to load nearby places.");
+        }
+
+        setPlaces(payload.places ?? []);
+        setSource(payload.source ?? "placeholder");
+        setError(payload.error ?? null);
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setPlaces([]);
+        setSource("placeholder");
+        setError(err instanceof Error ? err.message : "Unable to load nearby places.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => controller.abort();
+  }, [category, coords.lat, coords.lng, locationName]);
 
   return {
     category,
@@ -22,6 +72,8 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
       label,
     })),
     places,
-    loading: false,
+    loading,
+    error,
+    source,
   };
 }

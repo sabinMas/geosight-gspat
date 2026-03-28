@@ -6,6 +6,9 @@ interface NearbyPlacesListProps {
   category: NearbyPlaceCategory;
   categories: Array<{ value: NearbyPlaceCategory; label: string }>;
   places: NearbyPlace[];
+  loading?: boolean;
+  error?: string | null;
+  source?: "live" | "placeholder";
   onCategoryChange: (category: NearbyPlaceCategory) => void;
 }
 
@@ -13,6 +16,9 @@ export function NearbyPlacesList({
   category,
   categories,
   places,
+  loading = false,
+  error,
+  source = "placeholder",
   onCategoryChange,
 }: NearbyPlacesListProps) {
   return (
@@ -22,8 +28,9 @@ export function NearbyPlacesList({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm leading-6 text-slate-300">
-          This placeholder list view is ready for real POI and trail APIs later. For now, it shows
-          the UI and structured shape GeoSight will use.
+          Browse mapped places around the active location. GeoSight now pulls nearby results from
+          OpenStreetMap via Overpass and falls back to structured placeholders only if live data is
+          temporarily unavailable.
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -41,7 +48,32 @@ export function NearbyPlacesList({
           ))}
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+          <span className="uppercase tracking-[0.18em] text-cyan-100">Source</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-200">
+            {source === "live" ? "Live OSM data" : "Structured fallback"}
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/8 p-4 text-sm text-cyan-50">
+            Loading nearby places...
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-4 text-sm text-amber-50">
+            {error}
+          </div>
+        ) : null}
+
         <div className="space-y-3">
+          {!loading && places.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-300">
+              No nearby places matched this category around the selected location.
+            </div>
+          ) : null}
+
           {places.map((place) => (
             <div key={place.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -68,6 +100,9 @@ export function NearbyPlacesList({
                     {attribute}
                   </span>
                 ))}
+                <span className="rounded-full border border-white/10 bg-slate-950/40 px-2.5 py-1 text-[11px] text-slate-300">
+                  {place.source === "live" ? "OSM live" : "Fallback"}
+                </span>
               </div>
             </div>
           ))}
