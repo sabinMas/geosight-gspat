@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { NearbyPlace, NearbyPlaceCategory } from "@/types";
+import { NearbyPlace, NearbyPlaceCategory, NearbyPlacesSource } from "@/types";
 
 interface NearbyPlacesListProps {
   category: NearbyPlaceCategory;
@@ -8,7 +8,7 @@ interface NearbyPlacesListProps {
   places: NearbyPlace[];
   loading?: boolean;
   error?: string | null;
-  source?: "live" | "placeholder";
+  source?: NearbyPlacesSource;
   onCategoryChange: (category: NearbyPlaceCategory) => void;
 }
 
@@ -18,7 +18,7 @@ export function NearbyPlacesList({
   places,
   loading = false,
   error,
-  source = "placeholder",
+  source = "unavailable",
   onCategoryChange,
 }: NearbyPlacesListProps) {
   return (
@@ -29,8 +29,8 @@ export function NearbyPlacesList({
       <CardContent className="space-y-4">
         <p className="text-sm leading-6 text-slate-300">
           Browse mapped places around the active location. GeoSight now pulls nearby results from
-          OpenStreetMap via Overpass and falls back to structured placeholders only if live data is
-          temporarily unavailable.
+          OpenStreetMap via Overpass and leaves the panel empty when live results are unavailable
+          instead of fabricating sample places.
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -51,7 +51,7 @@ export function NearbyPlacesList({
         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
           <span className="uppercase tracking-[0.18em] text-cyan-100">Source</span>
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-200">
-            {source === "live" ? "Live OSM data" : "Structured fallback"}
+            {source === "live" ? "Live OSM data" : "Live data unavailable"}
           </span>
         </div>
 
@@ -101,7 +101,7 @@ export function NearbyPlacesList({
                   </span>
                 ))}
                 <span className="rounded-full border border-white/10 bg-slate-950/40 px-2.5 py-1 text-[11px] text-slate-300">
-                  {place.source === "live" ? "OSM live" : "Fallback"}
+                  OSM live
                 </span>
               </div>
             </div>

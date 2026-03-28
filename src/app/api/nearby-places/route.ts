@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildPlaceholderNearbyPlaces, NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
+import { NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
 import { fetchNearbyPlaces } from "@/lib/overpass";
 import {
   applyRateLimit,
@@ -50,7 +50,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         places,
-        source: places[0]?.source === "live" ? "live" : "placeholder",
+        source: places.length ? "live" : "unavailable",
+        error: places.length
+          ? null
+          : "No live OpenStreetMap results matched this category near the selected location.",
       },
       {
         headers: {
@@ -60,13 +63,11 @@ export async function GET(request: NextRequest) {
       },
     );
   } catch {
-    const places = buildPlaceholderNearbyPlaces(locationName, coordinates, category);
-
     return NextResponse.json(
       {
-        places,
-        source: "placeholder",
-        error: "Live nearby places are temporarily unavailable. Showing structured fallback results.",
+        places: [],
+        source: "unavailable",
+        error: "Live nearby places are temporarily unavailable.",
       },
       {
         headers: {

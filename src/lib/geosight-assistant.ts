@@ -57,7 +57,7 @@ function buildResponseGuidance(mode: ReturnType<typeof inferResponseMode>) {
 Response format guidance:
 - Favor a list-first answer with the most relevant nearby places near the top.
 - For each item, include name, category, relative distance or direction, and why it is relevant.
-- If the structured nearby places are placeholders, say so explicitly.
+- If live nearby-place data is unavailable, say so explicitly instead of inventing places.
 - End with a short summary and 1-2 next questions.
 `;
   }
@@ -232,18 +232,18 @@ export function buildFallbackAssessment(
       ...(nearbyPlaceLines.length
         ? nearbyPlaceLines
         : [
-            "- Nearby-place results are not populated yet. GeoSight's list UI is ready, but it still needs a live trail or POI data source for real results.",
+            "- Live nearby-place results are unavailable for this category or location right now.",
           ]),
       "",
       "Why these fit:",
       `- ${buildProfileAssessmentLine(profile.id, payload.geodata)}`,
-      "- Use these results as a shortlist rather than as verified live inventory if the source is marked as placeholder.",
+      "- Treat these as mapped nearby candidates, then zoom in or cross-check local details before making a final decision.",
       "",
       "Supported observations:",
       ...supportedFacts.map((fact) => `- ${fact}`),
       "",
       "Risks and unknowns:",
-      "- Nearby-place ranking is currently scaffolded for future live APIs, so category details may be approximate.",
+      "- Nearby-place ranking still depends on OpenStreetMap completeness for the selected area.",
       "- Fine-grained hours, reviews, fees, or closures are not available yet unless a real places data source is connected.",
       "",
       "Next questions / next zoom levels:",
