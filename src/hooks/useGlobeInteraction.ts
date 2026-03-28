@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { buildRectangle, toBoundingBox } from "@/lib/geospatial";
 import { Coordinates, DemoSiteSeed, RegionSelection } from "@/types";
 
@@ -28,11 +28,11 @@ export function useGlobeInteraction(
     buildRegion(initialCoordinates, initialLocationName),
   );
 
-  const selectPoint = (coords: Coordinates, label?: string) => {
+  const selectPoint = useCallback((coords: Coordinates, label?: string) => {
     setSelectedPoint(coords);
     setSelectedLocationName(label ?? `Location ${coords.lat.toFixed(2)}, ${coords.lng.toFixed(2)}`);
     setSelectedRegion(buildRegion(coords, label));
-  };
+  }, []);
 
   const quickRegions = useMemo(
     () => {

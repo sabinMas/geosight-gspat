@@ -1,79 +1,17 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import {
-  Cartographic,
-  Ion,
-  IonGeocoderService,
-  Math as CesiumMath,
-  Rectangle,
-} from "cesium";
+import { FormEvent, useState } from "react";
 import { Crosshair, Loader2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Coordinates, LocationSearchResult } from "@/types";
+import { getCurrentCoordinates, parseCoordinates, resolveLocationQuery } from "@/lib/cesium-search";
+import { LocationSearchResult } from "@/types";
 
 interface SearchBarProps {
   activeLocationName: string;
   onLocate: (result: LocationSearchResult) => void;
-}
-
-if (typeof window !== "undefined") {
-  Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "";
-}
-
-function parseCoordinates(value: string): Coordinates | null {
-  const match = value.match(/(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)/);
-  if (!match) {
-    return null;
-  }
-
-  return {
-    lat: Number(match[1]),
-    lng: Number(match[3]),
-  };
-}
-
-function getCurrentCoordinates() {
-  return new Promise<Coordinates>((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not supported in this browser."));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        }),
-      () => reject(new Error("Unable to read your current location.")),
-      {
-        enableHighAccuracy: true,
-        maximumAge: 60_000,
-        timeout: 10_000,
-      },
-    );
-  });
-}
-
-function createGeocoderSceneStub() {
-  return {
-    frameState: {
-      creditDisplay: {
-        addStaticCredit: () => undefined,
-      },
-    },
-  } as never;
-}
-
-function toCoordinates(destination: Cartographic) {
-  return {
-    lat: CesiumMath.toDegrees(destination.latitude),
-    lng: CesiumMath.toDegrees(destination.longitude),
-  };
 }
 
 export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
@@ -82,15 +20,6 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
   const [locating, setLocating] = useState(false);
   const [resolvedLocationName, setResolvedLocationName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const geocoder = useMemo(
-    () =>
-      new IonGeocoderService({
-        scene: createGeocoderSceneStub(),
-        accessToken: process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "",
-      }),
-    [],
-  );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -115,23 +44,7 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
 
     setLoading(true);
     try {
-      const results = await geocoder.geocode(value);
-      const match = results[0];
-
-      if (!match) {
-        throw new Error("No results found for that search.");
-      }
-
-      const cartographic =
-        match.destination instanceof Rectangle
-          ? Rectangle.center(match.destination)
-          : Cartographic.fromCartesian(match.destination);
-      const resolved = {
-        name: match.displayName,
-        coordinates: toCoordinates(cartographic),
-        kind: "ion-geocoder",
-      } satisfies LocationSearchResult;
-
+      const resolved = await resolveLocationQuery(value);
       setResolvedLocationName(resolved.name);
       setValue(resolved.name);
       onLocate(resolved);

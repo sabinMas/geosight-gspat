@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PRELOADED_SITES } from "@/lib/demo-data";
 import { SavedSite } from "@/types";
 
@@ -24,23 +24,23 @@ export function useSavedSites(activeProfileId: string) {
     }
   }, []);
 
-  const saveSites = (nextSites: SavedSite[]) => {
+  const saveSites = useCallback((nextSites: SavedSite[]) => {
     setAllSites(nextSites);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSites));
-  };
+  }, []);
 
-  const addSite = (site: SavedSite) => {
+  const addSite = useCallback((site: SavedSite) => {
     saveSites([site, ...allSites.filter((existing) => existing.id !== site.id)]);
-  };
+  }, [allSites, saveSites]);
 
-  const setSitesForProfile = (nextProfileSites: SavedSite[]) => {
+  const setSitesForProfile = useCallback((nextProfileSites: SavedSite[]) => {
     const remainingSites = allSites.filter((site) => site.profileId !== activeProfileId);
     saveSites([...nextProfileSites, ...remainingSites]);
-  };
+  }, [activeProfileId, allSites, saveSites]);
 
-  const loadDemoSites = (demoSites: SavedSite[] = PRELOADED_SITES) => {
+  const loadDemoSites = useCallback((demoSites: SavedSite[] = PRELOADED_SITES) => {
     setSitesForProfile(demoSites.filter((site) => site.profileId === activeProfileId));
-  };
+  }, [activeProfileId, setSitesForProfile]);
 
   const sites = useMemo(
     () =>

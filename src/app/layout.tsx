@@ -15,7 +15,7 @@ const jetBrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "GeoSight",
-  description: "Intelligent geospatial analysis for terrain, infrastructure, and site viability.",
+  description: "Ask questions about any place on Earth with geospatial data, AI reasoning, and interactive 3D map context.",
 };
 
 export default function RootLayout({

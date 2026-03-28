@@ -10,6 +10,7 @@ export type UseCaseType =
   | "general_exploration";
 
 export type ResultsMode = "analysis" | "nearby_places";
+export type ExploreEntrySource = "landing" | "demo" | "direct";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 
@@ -43,6 +44,23 @@ export interface MissionProfile {
     min: number;
     text: string;
   }>;
+}
+
+export interface ExploreInitState {
+  profileId?: string;
+  locationQuery?: string;
+  demoId?: string;
+  entrySource?: ExploreEntrySource;
+}
+
+export interface LandingUseCase {
+  id: string;
+  title: string;
+  description: string;
+  profileId?: string;
+  accentColor: string;
+  icon: string;
+  suggestedQuery: string;
 }
 
 export interface Coordinates {
