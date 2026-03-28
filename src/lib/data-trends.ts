@@ -12,6 +12,10 @@ function formatNumber(value: number | null, suffix: string) {
   return value === null ? "Unavailable" : `${value}${suffix}`;
 }
 
+function formatSignedNumber(value: number | null, suffix: string) {
+  return value === null ? "Unavailable" : `${value.toFixed(1)}${suffix}`;
+}
+
 export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] {
   if (!geodata) {
     return [
@@ -31,7 +35,15 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
   const roadDistance = geodata.nearestRoad.distanceKm;
   const powerDistance = geodata.nearestPower.distanceKm;
   const averageTemp = geodata.climate.averageTempC;
+  const currentTemp = geodata.climate.currentTempC;
+  const highTemp = geodata.climate.dailyHighTempC;
+  const lowTemp = geodata.climate.dailyLowTempC;
+  const windSpeed = geodata.climate.windSpeedKph;
+  const airQualityIndex = geodata.climate.airQualityIndex;
   const demographics = geodata.demographics;
+  const earthquakes = geodata.hazards.earthquakeCount30d;
+  const strongestEarthquake = geodata.hazards.strongestEarthquakeMagnitude30d;
+  const nearestEarthquake = geodata.hazards.nearestEarthquakeKm;
 
   return [
     {
@@ -64,13 +76,26 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
     },
     {
       id: "trend-climate",
-      label: "Climate signal",
-      value: averageTemp === null ? "Unavailable" : `${averageTemp.toFixed(1)} C avg`,
+      label: "Weather snapshot",
+      value:
+        currentTemp === null ? "Unavailable" : `${currentTemp.toFixed(1)} C now`,
       detail:
-        geodata.climate.coolingDegreeDays === null
-          ? "Cooling degree days are unavailable."
-          : `${geodata.climate.coolingDegreeDays} cooling degree days with ${geodata.climate.precipitationMm ?? "unknown"} mm precipitation.`,
-      direction: averageTemp !== null && averageTemp < 18 ? "positive" : "neutral",
+        averageTemp === null
+          ? "Current and forecast weather details are unavailable."
+          : `Daily mean ${averageTemp.toFixed(1)} C, range ${formatSignedNumber(lowTemp, " C")} to ${formatSignedNumber(highTemp, " C")}, wind ${formatSignedNumber(windSpeed, " km/h")}, precipitation ${geodata.climate.precipitationMm ?? "unknown"} mm.`,
+      direction: currentTemp !== null && currentTemp >= 8 && currentTemp <= 24 ? "positive" : "neutral",
+      source: "live",
+    },
+    {
+      id: "trend-air",
+      label: "Air quality",
+      value: airQualityIndex === null ? "Unavailable" : `AQI ${airQualityIndex}`,
+      detail:
+        airQualityIndex === null
+          ? "Open-Meteo air-quality data is not available for this point."
+          : "Current US AQI snapshot from Open-Meteo for the active point.",
+      direction:
+        airQualityIndex === null ? "watch" : airQualityIndex <= 50 ? "positive" : airQualityIndex <= 100 ? "neutral" : "watch",
       source: "live",
     },
     {
@@ -90,6 +115,25 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       value: formatNumber(powerDistance, " km"),
       detail: `Nearest mapped power infrastructure: ${geodata.nearestPower.name}.`,
       direction: powerDistance !== null && powerDistance < 5 ? "positive" : "neutral",
+      source: "live",
+    },
+    {
+      id: "trend-seismic",
+      label: "Seismic activity",
+      value:
+        earthquakes === null ? "Unavailable" : `${earthquakes} events / 30d`,
+      detail:
+        earthquakes === null
+          ? "Recent earthquake context is unavailable for this point."
+          : earthquakes === 0
+            ? "No mapped USGS earthquake events were recorded within 250 km over the last 30 days."
+            : `Recent earthquakes within 250 km over the last 30 days. Strongest event M${strongestEarthquake?.toFixed(1) ?? "?"}; nearest event ${nearestEarthquake ?? "unknown"} km away.`,
+      direction:
+        strongestEarthquake !== null && strongestEarthquake >= 4.5
+          ? "watch"
+          : earthquakes !== null && earthquakes > 12
+            ? "watch"
+            : "neutral",
       source: "live",
     },
     {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCountyDemographics } from "@/lib/census";
 import { toBoundingBox } from "@/lib/geospatial";
 import { calculateDistanceKm } from "@/lib/nearby-places";
+import { fetchClimateSnapshot } from "@/lib/open-meteo";
 import { fetchNearbyInfrastructure, getElementCoordinates, OverpassElement } from "@/lib/overpass";
 import {
   applyRateLimit,
@@ -9,6 +10,7 @@ import {
   getCoordinatesFromSearchParams,
   rateLimitHeaders,
 } from "@/lib/request-guards";
+import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { GeodataResult } from "@/types";
 
@@ -147,16 +149,14 @@ export async function GET(request: NextRequest) {
 
   const bbox = toBoundingBox({ lat, lng }, 8);
 
-  const [elevationResult, infrastructureResult, climateResult, demographicsResult] =
+  const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult] =
     await Promise.allSettled([
-    fetchElevation({ lat, lng }),
-    fetchNearbyInfrastructure(bbox),
-    fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m&daily=temperature_2m_mean,precipitation_sum&timezone=auto&forecast_days=3`,
-      { next: { revalidate: 60 * 60 * 6 } },
-    ).then((response) => response.json()),
-    fetchCountyDemographics({ lat, lng }),
-  ]);
+      fetchElevation({ lat, lng }),
+      fetchNearbyInfrastructure(bbox),
+      fetchClimateSnapshot({ lat, lng }),
+      fetchCountyDemographics({ lat, lng }),
+      fetchEarthquakeSummary({ lat, lng }),
+    ]);
 
   const infrastructure =
     infrastructureResult.status === "fulfilled" ? infrastructureResult.value.elements ?? [] : [];
@@ -172,19 +172,31 @@ export async function GET(request: NextRequest) {
     nearestRoad: buildNearestFeature({ lat, lng }, roads, "Road network"),
     nearestPower: buildNearestFeature({ lat, lng }, power, "Transmission infrastructure"),
     climate: {
+      currentTempC:
+        climateResult.status === "fulfilled" ? climateResult.value.currentTempC : null,
       averageTempC:
-        climateResult.status === "fulfilled"
-          ? climateResult.value?.daily?.temperature_2m_mean?.[0] ?? null
-          : null,
+        climateResult.status === "fulfilled" ? climateResult.value.averageTempC : null,
+      dailyHighTempC:
+        climateResult.status === "fulfilled" ? climateResult.value.dailyHighTempC : null,
+      dailyLowTempC:
+        climateResult.status === "fulfilled" ? climateResult.value.dailyLowTempC : null,
       coolingDegreeDays:
-        climateResult.status === "fulfilled"
-          ? Math.max((climateResult.value?.daily?.temperature_2m_mean?.[0] ?? 12) * 18, 0)
-          : null,
+        climateResult.status === "fulfilled" ? climateResult.value.coolingDegreeDays : null,
       precipitationMm:
-        climateResult.status === "fulfilled"
-          ? climateResult.value?.daily?.precipitation_sum?.[0] ?? null
-          : null,
+        climateResult.status === "fulfilled" ? climateResult.value.precipitationMm : null,
+      windSpeedKph:
+        climateResult.status === "fulfilled" ? climateResult.value.windSpeedKph : null,
+      airQualityIndex:
+        climateResult.status === "fulfilled" ? climateResult.value.airQualityIndex : null,
     },
+    hazards:
+      hazardResult.status === "fulfilled"
+        ? hazardResult.value
+        : {
+            earthquakeCount30d: null,
+            strongestEarthquakeMagnitude30d: null,
+            nearestEarthquakeKm: null,
+          },
     demographics:
       demographicsResult.status === "fulfilled"
         ? demographicsResult.value
@@ -199,7 +211,8 @@ export async function GET(request: NextRequest) {
     sourceNotes: [
       "USGS elevation via The National Map EPQS.",
       "Overpass OSM features for roads, power lines, waterways, and land-use context.",
-      "Open-Meteo current and daily climate snapshots.",
+      "Open-Meteo current weather, forecast, and air-quality snapshots.",
+      "USGS earthquake event feed summarized within 250 km over the last 30 days.",
       "FCC county lookup with ACS 5-year Census demographics.",
     ],
   };

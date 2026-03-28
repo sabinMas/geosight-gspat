@@ -19,8 +19,8 @@ export function AnalysisTrendsPanel({ trends }: AnalysisTrendsPanelProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm leading-6 text-slate-300">
-          Use this mode for terrain, access, land-cover, and climate context tied to the active
-          place.
+          Use this mode for terrain, access, weather, hazards, land-cover, and demographic context
+          tied to the active place.
         </p>
 
         <div className="grid gap-3">

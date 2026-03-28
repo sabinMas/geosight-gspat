@@ -330,6 +330,33 @@ export function ExploreWorkspace() {
                     {geodata?.nearestWaterBody.distanceKm?.toFixed(1) ?? "--"} km
                   </div>
                 </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Weather</div>
+                  <div className="mt-2 text-sm font-semibold text-white">
+                    {geodata?.climate.currentTempC?.toFixed(1) ?? "--"} C now
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Wind {geodata?.climate.windSpeedKph?.toFixed(1) ?? "--"} km/h
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Air quality</div>
+                  <div className="mt-2 text-sm font-semibold text-white">
+                    AQI {geodata?.climate.airQualityIndex ?? "--"}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Current Open-Meteo snapshot
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Seismic</div>
+                  <div className="mt-2 text-sm font-semibold text-white">
+                    {geodata?.hazards.earthquakeCount30d ?? "--"} events / 30d
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Strongest M{geodata?.hazards.strongestEarthquakeMagnitude30d?.toFixed(1) ?? "--"}
+                  </div>
+                </div>
               </div>
 
               <p className="text-sm leading-6 text-slate-300">

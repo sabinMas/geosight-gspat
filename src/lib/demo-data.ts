@@ -139,9 +139,19 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       distanceKm: siteName === "Site B" ? 4.2 : 2.1,
     },
     climate: {
+      currentTempC: 12.4,
       averageTempC: 11.8,
+      dailyHighTempC: 16.1,
+      dailyLowTempC: 8.3,
       coolingDegreeDays: 214,
       precipitationMm: siteName === "Site C" ? 278 : 323,
+      windSpeedKph: siteName === "Site B" ? 18.4 : 11.6,
+      airQualityIndex: 34,
+    },
+    hazards: {
+      earthquakeCount30d: siteName === "Site C" ? 4 : 2,
+      strongestEarthquakeMagnitude30d: siteName === "Site C" ? 3.1 : 2.4,
+      nearestEarthquakeKm: siteName === "Site C" ? 82.6 : 138.2,
     },
     demographics: {
       countyName: "Demo County",

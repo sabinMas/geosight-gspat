@@ -130,9 +130,19 @@ export interface GeodataResult {
     distanceKm: number | null;
   };
   climate: {
+    currentTempC: number | null;
     averageTempC: number | null;
+    dailyHighTempC: number | null;
+    dailyLowTempC: number | null;
     coolingDegreeDays: number | null;
     precipitationMm: number | null;
+    windSpeedKph: number | null;
+    airQualityIndex: number | null;
+  };
+  hazards: {
+    earthquakeCount30d: number | null;
+    strongestEarthquakeMagnitude30d: number | null;
+    nearestEarthquakeKm: number | null;
   };
   demographics: {
     countyName: string | null;

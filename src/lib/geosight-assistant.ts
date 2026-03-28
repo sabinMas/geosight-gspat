@@ -200,6 +200,10 @@ export function buildFallbackAssessment(
     payload.geodata?.elevationMeters !== null && payload.geodata?.elevationMeters !== undefined
       ? `Elevation is about ${payload.geodata.elevationMeters} m.`
       : "Elevation is currently unavailable.",
+    payload.geodata?.climate?.currentTempC !== null &&
+    payload.geodata?.climate?.currentTempC !== undefined
+      ? `Current weather snapshot: ${payload.geodata.climate.currentTempC.toFixed(1)} C now, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h, AQI ${payload.geodata.climate.airQualityIndex ?? "unknown"}.`
+      : "Current weather snapshot is currently unavailable.",
     payload.geodata?.nearestWaterBody
       ? `Nearest mapped water feature: ${payload.geodata.nearestWaterBody.name} (${payload.geodata.nearestWaterBody.distanceKm ?? "unknown"} km).`
       : "Water proximity is currently unavailable.",
@@ -209,6 +213,10 @@ export function buildFallbackAssessment(
     payload.geodata?.nearestPower
       ? `Nearest mapped power infrastructure: ${payload.geodata.nearestPower.name} (${payload.geodata.nearestPower.distanceKm ?? "unknown"} km).`
       : "Power access is currently unavailable.",
+    payload.geodata?.hazards?.earthquakeCount30d !== null &&
+    payload.geodata?.hazards?.earthquakeCount30d !== undefined
+      ? `Recent seismic context: ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
+      : "Recent seismic context is currently unavailable.",
     topLandCover
       ? `Dominant land cover signal: ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",
