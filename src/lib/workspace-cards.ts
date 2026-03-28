@@ -126,6 +126,17 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
     supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
     emptyState: "Review source freshness, coverage, and confidence here.",
   },
+  {
+    id: "school-context",
+    title: "School context",
+    category: "planning",
+    zone: "workspace",
+    defaultVisibility: false,
+    defaultOrder: 115,
+    requiredData: ["school-context"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
+    emptyState: "Open this to inspect nearby public-school context and Washington official metrics.",
+  },
 ] as const;
 
 export const WORKSPACE_CARD_GROUPS = [
@@ -144,7 +155,7 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
   "data-center": ["active-location", "chat", "results", "score", "factor-breakdown"],
   hiking: ["active-location", "chat", "results", "score", "terrain-viewer"],
-  residential: ["active-location", "chat", "results", "score", "source-awareness"],
+  residential: ["active-location", "chat", "results", "score", "school-context", "source-awareness"],
   commercial: ["active-location", "chat", "results", "score"],
 };
 

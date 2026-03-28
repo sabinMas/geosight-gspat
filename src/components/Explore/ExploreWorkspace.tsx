@@ -7,6 +7,7 @@ import { ImageUpload } from "@/components/Analysis/ImageUpload";
 import { LandClassifier } from "@/components/Analysis/LandClassifier";
 import { CoolingDemoOverlay } from "@/components/Demo/CoolingDemoOverlay";
 import { ActiveLocationCard } from "@/components/Explore/ActiveLocationCard";
+import { SchoolContextCard } from "@/components/Explore/SchoolContextCard";
 import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
 import { WorkspaceCustomizer } from "@/components/Explore/WorkspaceCustomizer";
 import { DataLayers, LayerState } from "@/components/Globe/DataLayers";
@@ -26,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useSavedSites } from "@/hooks/useSavedSites";
+import { useSchoolContext } from "@/hooks/useSchoolContext";
 import { useSiteAnalysis } from "@/hooks/useSiteAnalysis";
 import { useWorkspaceCards } from "@/hooks/useWorkspaceCards";
 import { resolveLocationQuery } from "@/lib/cesium-search";
@@ -119,6 +121,11 @@ export function ExploreWorkspace() {
     error: nearbyError,
     source: nearbySource,
   } = useNearbyPlaces(selectedPoint, selectedLocationName);
+  const {
+    schoolContext,
+    loading: schoolLoading,
+    error: schoolError,
+  } = useSchoolContext(selectedPoint);
   const {
     cards,
     visibility,
@@ -395,6 +402,15 @@ export function ExploreWorkspace() {
         return <LandClassifier key={cardId} results={effectiveClassification} />;
       case "source-awareness":
         return <SourceAwarenessCard key={cardId} geodata={geodata} />;
+      case "school-context":
+        return (
+          <SchoolContextCard
+            key={cardId}
+            schoolContext={schoolContext}
+            loading={schoolLoading}
+            error={schoolError}
+          />
+        );
       default:
         return null;
     }

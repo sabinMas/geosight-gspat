@@ -1,68 +1,71 @@
-import { Coordinates } from "@/types";
 import { calculateDistanceKm } from "@/lib/nearby-places";
+import { Coordinates, GeodataResult } from "@/types";
 
-interface EarthquakeFeature {
-  geometry?: {
-    coordinates?: [number, number, number?];
-  };
-  properties?: {
-    mag?: number | null;
-  };
+type UsgsEarthquakeResponse = {
+  features?: Array<{
+    properties?: {
+      mag?: number | null;
+    };
+    geometry?: {
+      coordinates?: [number, number, number?];
+    };
+  }>;
+};
+
+function toIsoDate(date: Date) {
+  return date.toISOString();
 }
 
-interface EarthquakeResponse {
-  features?: EarthquakeFeature[];
+function parseNullableNumber(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-export async function fetchEarthquakeSummary({ lat, lng }: Coordinates) {
+export async function fetchEarthquakeSummary(
+  coords: Coordinates,
+): Promise<GeodataResult["hazards"]> {
   const end = new Date();
-  const start = new Date(end);
-  start.setDate(end.getDate() - 30);
-
-  const params = new URLSearchParams({
-    format: "geojson",
-    starttime: start.toISOString().slice(0, 10),
-    endtime: end.toISOString().slice(0, 10),
-    latitude: lat.toFixed(4),
-    longitude: lng.toFixed(4),
-    maxradiuskm: "250",
-    orderby: "time",
-  });
+  const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const response = await fetch(
-    `https://earthquake.usgs.gov/fdsnws/event/1/query?${params.toString()}`,
-    { next: { revalidate: 60 * 60 * 6 } },
+    `https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?format=geojson&latitude=${coords.lat}&longitude=${coords.lng}&maxradiuskm=250&starttime=${toIsoDate(start)}&endtime=${toIsoDate(end)}&orderby=time`,
+    {
+      next: { revalidate: 60 * 60 * 6 },
+    },
   );
 
   if (!response.ok) {
-    throw new Error("USGS earthquake request failed.");
+    throw new Error("USGS earthquake lookup failed.");
   }
 
-  const data = (await response.json()) as EarthquakeResponse;
-  const features = data.features ?? [];
+  const payload = (await response.json()) as UsgsEarthquakeResponse;
+  const earthquakes = payload.features ?? [];
 
-  const nearestDistance = features
-    .map((feature) => {
-      const coords = feature.geometry?.coordinates;
-      if (!coords) {
-        return null;
-      }
+  const strongestMagnitude = earthquakes.reduce<number | null>((strongest, feature) => {
+    const magnitude = parseNullableNumber(feature.properties?.mag);
+    if (magnitude === null) {
+      return strongest;
+    }
 
-      return calculateDistanceKm({ lat, lng }, { lat: coords[1], lng: coords[0] });
-    })
-    .filter((distance): distance is number => distance !== null)
-    .sort((a, b) => a - b)[0];
+    return strongest === null ? magnitude : Math.max(strongest, magnitude);
+  }, null);
 
-  const strongestMagnitude = features
-    .map((feature) => feature.properties?.mag ?? null)
-    .filter((magnitude): magnitude is number => magnitude !== null)
-    .sort((a, b) => b - a)[0];
+  const nearestEarthquakeKm = earthquakes.reduce<number | null>((nearest, feature) => {
+    const coordinates = feature.geometry?.coordinates;
+    if (!coordinates) {
+      return nearest;
+    }
+
+    const distanceKm = calculateDistanceKm(coords, {
+      lat: coordinates[1],
+      lng: coordinates[0],
+    });
+    return nearest === null ? distanceKm : Math.min(nearest, distanceKm);
+  }, null);
 
   return {
-    earthquakeCount30d: features.length,
-    strongestEarthquakeMagnitude30d:
-      strongestMagnitude === undefined ? null : Number(strongestMagnitude.toFixed(2)),
+    earthquakeCount30d: earthquakes.length,
+    strongestEarthquakeMagnitude30d: strongestMagnitude,
     nearestEarthquakeKm:
-      nearestDistance === undefined ? null : Number(nearestDistance.toFixed(1)),
+      nearestEarthquakeKm === null ? null : Number(nearestEarthquakeKm.toFixed(1)),
   };
 }

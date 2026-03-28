@@ -101,6 +101,8 @@ Behavior rules:
 - Restate the active location clearly.
 - Separate supported observations from approximations or inference.
 - Use any structured nearby-place results or trend objects included in the input JSON.
+- If school context is present, distinguish official government accountability fields from GeoSight-derived normalization.
+- If school coverage is outside the current US-first pipeline or unavailable, say that clearly instead of inferring school quality.
 - Be concise, practical, and grounded in the active mission profile.
 
 ${buildResponseGuidance(responseMode)}
@@ -200,6 +202,10 @@ export function buildFallbackAssessment(
     payload.geodata?.elevationMeters !== null && payload.geodata?.elevationMeters !== undefined
       ? `Elevation is about ${payload.geodata.elevationMeters} m.`
       : "Elevation is currently unavailable.",
+    payload.geodata?.climate?.currentTempC !== null &&
+    payload.geodata?.climate?.currentTempC !== undefined
+      ? `Current weather snapshot: ${payload.geodata.climate.currentTempC.toFixed(1)} C now, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h, AQI ${payload.geodata.climate.airQualityIndex ?? "unknown"}.`
+      : "Current weather snapshot is currently unavailable.",
     payload.geodata?.nearestWaterBody
       ? `Nearest mapped water feature: ${payload.geodata.nearestWaterBody.name} (${payload.geodata.nearestWaterBody.distanceKm ?? "unknown"} km).`
       : "Water proximity is currently unavailable.",
@@ -209,6 +215,19 @@ export function buildFallbackAssessment(
     payload.geodata?.nearestPower
       ? `Nearest mapped power infrastructure: ${payload.geodata.nearestPower.name} (${payload.geodata.nearestPower.distanceKm ?? "unknown"} km).`
       : "Power access is currently unavailable.",
+    payload.geodata?.hazards?.earthquakeCount30d !== null &&
+    payload.geodata?.hazards?.earthquakeCount30d !== undefined
+      ? `Recent seismic context: ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
+      : "Recent seismic context is currently unavailable.",
+    payload.geodata?.amenities?.schoolCount !== null &&
+    payload.geodata?.amenities?.schoolCount !== undefined
+      ? `Mapped amenities: ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, and ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues in the active analysis area.`
+      : "Mapped amenity counts are currently unavailable.",
+    payload.geodata?.schoolContext
+      ? payload.geodata.schoolContext.score === null
+        ? `School context: ${payload.geodata.schoolContext.explanation}`
+        : `GeoSight school context score: ${payload.geodata.schoolContext.score}/100 (${payload.geodata.schoolContext.band}). ${payload.geodata.schoolContext.explanation}`
+      : "School context is currently unavailable.",
     topLandCover
       ? `Dominant land cover signal: ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",

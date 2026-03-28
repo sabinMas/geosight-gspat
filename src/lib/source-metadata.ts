@@ -25,7 +25,9 @@ export function buildSourceMeta(input: {
 }
 
 export function summarizeSourceMeta(meta: DataSourceMeta) {
-  return [meta.provider, meta.freshness, meta.coverage].filter(Boolean).join(" / ");
+  const parts = [meta.provider, meta.freshness, meta.coverage];
+
+  return parts.filter(Boolean).join(" / ");
 }
 
 export function formatSourceTimestamp(lastUpdated: string | null) {

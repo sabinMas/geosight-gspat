@@ -9,13 +9,14 @@ import {
   getElementCoordinates,
   OverpassElement,
 } from "@/lib/overpass";
-import { buildSourceMeta } from "@/lib/source-metadata";
 import {
   applyRateLimit,
   createRateLimitResponse,
   getCoordinatesFromSearchParams,
   rateLimitHeaders,
 } from "@/lib/request-guards";
+import { fetchSchoolContext, summarizeSchoolContext } from "@/lib/schools";
+import { buildSourceMeta } from "@/lib/source-metadata";
 import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { GeodataResult } from "@/types";
@@ -152,13 +153,14 @@ export async function GET(request: NextRequest) {
   const { lat, lng } = coordinates;
   const bbox = toBoundingBox({ lat, lng }, 8);
 
-  const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult] =
+  const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult, schoolResult] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
       fetchNearbyInfrastructure(bbox),
       fetchClimateSnapshot({ lat, lng }),
       fetchCountyDemographics({ lat, lng }),
       fetchEarthquakeSummary({ lat, lng }),
+      fetchSchoolContext({ lat, lng }),
     ]);
 
   const infrastructure =
@@ -219,6 +221,10 @@ export async function GET(request: NextRequest) {
             trailheadCount: null,
             commercialCount: null,
           },
+    schoolContext:
+      schoolResult.status === "fulfilled"
+        ? summarizeSchoolContext(schoolResult.value)
+        : null,
     landClassification: buildLandCoverBuckets(infrastructure),
     sources: {
       elevation: buildSourceMeta({
@@ -314,6 +320,49 @@ export async function GET(request: NextRequest) {
             ? "Counts are based on mapped schools, healthcare, transit, parks, trailheads, and commercial POIs within the active analysis box."
             : "Amenity counts could not be derived from the current Overpass response.",
       }),
+      school:
+        schoolResult.status === "fulfilled"
+          ? buildSourceMeta({
+              id: "school",
+              label: "School context",
+              provider:
+                schoolResult.value.coverageStatus === "state_accountability_supported"
+                  ? "NCES + Washington OSPI + GeoSight"
+                  : "NCES + GeoSight",
+              status:
+                schoolResult.value.score === null
+                  ? schoolResult.value.coverageStatus === "outside_us"
+                    ? "unavailable"
+                    : "limited"
+                  : schoolResult.value.coverageStatus === "state_accountability_supported"
+                    ? "live"
+                    : "derived",
+              lastUpdated:
+                schoolResult.value.sources.stateAccountability.lastUpdated ??
+                schoolResult.value.sources.baseline.lastUpdated ??
+                now,
+              freshness:
+                schoolResult.value.coverageStatus === "state_accountability_supported"
+                  ? "Mixed live baseline + 2023-24 Washington accountability"
+                  : "2024-25 NCES baseline plus GeoSight normalization",
+              coverage:
+                schoolResult.value.coverageStatus === "outside_us"
+                  ? "US public K-12 only"
+                  : schoolResult.value.coverageStatus === "state_accountability_supported"
+                    ? "US baseline with Washington official accountability"
+                    : "US public K-12 only; Washington official data when available",
+              confidence: schoolResult.value.explanation,
+            })
+          : buildSourceMeta({
+              id: "school",
+              label: "School context",
+              provider: "NCES + GeoSight",
+              status: "limited",
+              lastUpdated: now,
+              freshness: "On-demand request",
+              coverage: "US public K-12 only",
+              confidence: "School context could not be assembled for this point.",
+            }),
       landClassification: buildSourceMeta({
         id: "land-classification",
         label: "Land cover estimate",
@@ -330,10 +379,11 @@ export async function GET(request: NextRequest) {
     },
     sourceNotes: [
       "USGS elevation via The National Map EPQS.",
-      "Overpass OSM features for roads, power lines, waterways, and land-use context.",
+      "Overpass OSM features for roads, power lines, waterways, amenities, and land-use context.",
       "Open-Meteo current weather, forecast, and air-quality snapshots.",
       "USGS earthquake event feed summarized within 250 km over the last 30 days.",
       "FCC county lookup with ACS 5-year Census demographics.",
+      "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
     ],
   };
 
