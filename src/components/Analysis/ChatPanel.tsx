@@ -45,7 +45,7 @@ export function ChatPanel({
       id: "assistant-intro",
       role: "assistant",
       content:
-        "Ask about this place in whatever way is useful: site selection, trails, neighborhoods, restaurants, hazards, land use, or infrastructure.",
+        "Ask about this place in whatever way is useful: site selection, schools, trails, neighborhoods, restaurants, hazards, land use, or infrastructure.",
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -174,7 +174,7 @@ export function ChatPanel({
           <Textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask a question about this location (trails, grid access, neighborhoods, freight, hazards, and more)..."
+            placeholder="Ask a question about this location (schools, trails, neighborhoods, freight, hazards, and more)..."
           />
           <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
             <Send className="mr-2 h-4 w-4" />

@@ -101,6 +101,8 @@ Behavior rules:
 - Restate the active location clearly.
 - Separate supported observations from approximations or inference.
 - Use any structured nearby-place results or trend objects included in the input JSON.
+- If school context is present, distinguish official government accountability fields from GeoSight-derived normalization.
+- If school coverage is outside the current US-first pipeline or unavailable, say that clearly instead of inferring school quality.
 - Be concise, practical, and grounded in the active mission profile.
 
 ${buildResponseGuidance(responseMode)}
@@ -221,6 +223,11 @@ export function buildFallbackAssessment(
     payload.geodata?.amenities?.schoolCount !== undefined
       ? `Mapped amenities: ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, and ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues in the active analysis area.`
       : "Mapped amenity counts are currently unavailable.",
+    payload.geodata?.schoolContext
+      ? payload.geodata.schoolContext.score === null
+        ? `School context: ${payload.geodata.schoolContext.explanation}`
+        : `GeoSight school context score: ${payload.geodata.schoolContext.score}/100 (${payload.geodata.schoolContext.band}). ${payload.geodata.schoolContext.explanation}`
+      : "School context is currently unavailable.",
     topLandCover
       ? `Dominant land cover signal: ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",

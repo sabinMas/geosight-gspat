@@ -233,11 +233,7 @@ function scoreCustomMetric(geodata: GeodataResult, metric: string) {
           scoreCountSignal(amenitySignals.trailheadCount, 4, 10) * 0.25,
       );
     case "schoolAccess":
-      return Math.round(
-        scoreCountSignal(amenitySignals.schoolCount, 5, 10) * 0.55 +
-          scoreFromDistance(roadDistance, 1.8, 14) * 0.25 +
-          scoreLandCover(geodata.landClassification, "residential") * 0.2,
-      );
+      return geodata.schoolContext?.score ?? 50;
     case "hazardRisk": {
       const elevationScore = geodata.elevationMeters === null ? 60 : clamp(geodata.elevationMeters / 3, 25, 100);
       const waterPenalty =
@@ -311,7 +307,13 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
   if (factor.scoreFn === "custom") {
     switch (String(factor.params.metric ?? "")) {
       case "schoolAccess":
-        return `${geodata.amenities.schoolCount ?? "?"} mapped schools within the analysis area.`;
+        if (!geodata.schoolContext) {
+          return "School context unavailable.";
+        }
+        if (geodata.schoolContext.coverageStatus === "outside_us") {
+          return "School intelligence is currently US-first and unsupported for this location.";
+        }
+        return geodata.schoolContext.explanation;
       case "amenities":
         return `${geodata.amenities.foodAndDrinkCount ?? "?"} food/drink venues, ${geodata.amenities.transitStopCount ?? "?"} transit stops, ${geodata.amenities.parkCount ?? "?"} parks.`;
       case "commercialDemand":

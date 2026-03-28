@@ -172,7 +172,7 @@ export const PROFILES: MissionProfile[] = [
         weight: 0.2,
         scoreFn: "custom",
         params: { metric: "schoolAccess" },
-        description: "This uses nearby road and settlement proxies until live school data is added.",
+        description: "Uses nearby public-school context from NCES and Washington official accountability when available.",
       },
       {
         key: "roadTransit",
@@ -204,7 +204,7 @@ export const PROFILES: MissionProfile[] = [
         weight: 0.15,
         scoreFn: "custom",
         params: { metric: "amenities" },
-        description: "Uses road, power, and urban land-cover signals until live amenities are connected.",
+        description: "Uses live mapped amenity density from OpenStreetMap.",
       },
       {
         key: "landClassification",
@@ -216,7 +216,7 @@ export const PROFILES: MissionProfile[] = [
       },
     ],
     systemPrompt:
-      "You are a geospatial intelligence expert focused on residential development and neighborhood planning. Emphasize buildability, access, hazards, amenity context, and community readiness. Be transparent that zoning, school districts, and flood designations require dedicated live layers or jurisdictional review unless they are explicitly provided.",
+      "You are a geospatial intelligence expert focused on residential development and neighborhood planning. Emphasize buildability, access, hazards, school context, amenity context, and community readiness. Distinguish official government school accountability data from GeoSight's derived school-context score, and state clearly when school coverage is unsupported outside the current US-first pipeline.",
     defaultLayers: { water: true, power: true, roads: true, heatmap: false },
     exampleQuestions: [
       "Is this land suitable for a new neighborhood?",

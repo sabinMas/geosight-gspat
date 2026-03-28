@@ -25,7 +25,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
         label: "Location context",
         value: "Loading geodata",
         detail:
-          "GeoSight is still assembling terrain, access, climate, and land-cover context for this place.",
+          "GeoSight is still assembling terrain, access, climate, schools, and land-cover context for this place.",
         direction: "neutral",
         source: buildSourceMeta({
           id: "pending",
@@ -127,6 +127,28 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
               ? "neutral"
               : "watch",
       source: geodata.sources.climate,
+    },
+    {
+      id: "trend-school",
+      label: "School context",
+      value:
+        geodata.schoolContext?.score === null || geodata.schoolContext?.score === undefined
+          ? geodata.schoolContext?.coverageStatus === "outside_us"
+            ? "Coverage pending"
+            : "Unavailable"
+          : `${geodata.schoolContext.score} / 100`,
+      detail: geodata.schoolContext
+        ? `${geodata.schoolContext.band}. ${geodata.schoolContext.explanation}`
+        : "School context is not available for this point yet.",
+      direction:
+        geodata.schoolContext?.score !== null && geodata.schoolContext?.score !== undefined
+          ? geodata.schoolContext.score >= 70
+            ? "positive"
+            : geodata.schoolContext.score >= 55
+              ? "neutral"
+              : "watch"
+          : "watch",
+      source: geodata.sources.school,
     },
     {
       id: "trend-land",

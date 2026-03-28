@@ -170,6 +170,15 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       trailheadCount: 2,
       commercialCount: 12,
     },
+    schoolContext: {
+      coverageStatus: "state_accountability_supported",
+      score: 79,
+      band: "Promising",
+      explanation: "Demo-only school context for the preloaded Pacific Northwest showcase.",
+      nearbySchoolCount: 8,
+      nearestSchoolDistanceKm: 1.1,
+      matchedOfficialSchoolCount: 2,
+    },
     landClassification: [
       { label: "Barren/Industrial", value: 36, confidence: 0.78, color: "#ffab00" },
       { label: "Vegetation", value: siteName === "Site C" ? 44 : 28, confidence: 0.71, color: "#5be49b" },
@@ -230,6 +239,15 @@ function buildDemoGeodata(siteName: string): GeodataResult {
         freshness: "Static showcase seed",
         coverage: "Pacific Northwest demo only",
         confidence: "Demo amenity context for the preloaded cooling scenario.",
+      }),
+      school: buildSourceMeta({
+        id: "demo-school",
+        label: "School context",
+        provider: "GeoSight demo overlay",
+        status: "demo",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo-only school context to keep showcase objects schema-complete.",
       }),
       landClassification: buildSourceMeta({
         id: "demo-land-cover",

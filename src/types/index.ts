@@ -27,7 +27,8 @@ export type WorkspaceDataRequirement =
   | "saved-sites"
   | "classification"
   | "image"
-  | "source-metadata";
+  | "source-metadata"
+  | "school-context";
 export type WorkspaceCardId =
   | "active-location"
   | "chat"
@@ -39,7 +40,13 @@ export type WorkspaceCardId =
   | "elevation-profile"
   | "image-upload"
   | "land-classifier"
-  | "source-awareness";
+  | "source-awareness"
+  | "school-context";
+export type SchoolCoverageStatus =
+  | "us_supported"
+  | "state_accountability_supported"
+  | "outside_us"
+  | "no_school_matches";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 export type NearbyPlacesSource = "live" | "unavailable";
@@ -172,6 +179,49 @@ export interface DataSourceMeta {
   note?: string;
 }
 
+export interface SchoolOfficialMetrics {
+  provider: string;
+  proficiencyPercent: number | null;
+  participationPercent: number | null;
+  subjectSummary: string | null;
+  year: string | null;
+}
+
+export interface SchoolSummary {
+  id: string;
+  name: string;
+  ncesId: string | null;
+  districtName: string | null;
+  city: string | null;
+  stateCode: string | null;
+  countyName: string | null;
+  distanceKm: number | null;
+  localeLabel: string | null;
+  enrollment: number | null;
+  gradeSpan: string | null;
+  officialMetrics: SchoolOfficialMetrics | null;
+}
+
+export interface SchoolContextSummary {
+  coverageStatus: SchoolCoverageStatus;
+  score: number | null;
+  band: string;
+  explanation: string;
+  nearbySchoolCount: number;
+  nearestSchoolDistanceKm: number | null;
+  matchedOfficialSchoolCount: number;
+}
+
+export interface SchoolContextResult extends SchoolContextSummary {
+  schools: SchoolSummary[];
+  sources: {
+    baseline: DataSourceMeta;
+    stateAccountability: DataSourceMeta;
+    normalization: DataSourceMeta;
+  };
+  notes: string[];
+}
+
 export interface GeodataResult {
   elevationMeters: number | null;
   nearestWaterBody: {
@@ -217,6 +267,7 @@ export interface GeodataResult {
     trailheadCount: number | null;
     commercialCount: number | null;
   };
+  schoolContext: SchoolContextSummary | null;
   landClassification: LandCoverBucket[];
   sources: {
     elevation: DataSourceMeta;
@@ -225,6 +276,7 @@ export interface GeodataResult {
     hazards: DataSourceMeta;
     demographics: DataSourceMeta;
     amenities: DataSourceMeta;
+    school: DataSourceMeta;
     landClassification: DataSourceMeta;
   };
   sourceNotes: string[];
