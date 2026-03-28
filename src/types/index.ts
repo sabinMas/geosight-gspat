@@ -12,6 +12,7 @@ export type UseCaseType =
 export type ResultsMode = "analysis" | "nearby_places";
 export type ExploreEntrySource = "landing" | "demo" | "direct";
 export type DemoOverlayLayerKey = "water" | "power" | "roads";
+export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable" | "demo";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 export type NearbyPlacesSource = "live" | "unavailable";
@@ -115,6 +116,18 @@ export interface LandCoverBucket {
   color: string;
 }
 
+export interface DataSourceMeta {
+  id: string;
+  label: string;
+  provider: string;
+  status: DataSourceStatus;
+  lastUpdated: string | null;
+  freshness: string;
+  coverage: string;
+  confidence: string;
+  note?: string;
+}
+
 export interface GeodataResult {
   elevationMeters: number | null;
   nearestWaterBody: {
@@ -152,6 +165,14 @@ export interface GeodataResult {
     medianHomeValue: number | null;
   };
   landClassification: LandCoverBucket[];
+  sources: {
+    elevation: DataSourceMeta;
+    infrastructure: DataSourceMeta;
+    climate: DataSourceMeta;
+    hazards: DataSourceMeta;
+    demographics: DataSourceMeta;
+    landClassification: DataSourceMeta;
+  };
   sourceNotes: string[];
 }
 
@@ -179,7 +200,7 @@ export interface DataTrend {
   value: string;
   detail: string;
   direction: "positive" | "neutral" | "watch";
-  source: "derived" | "live";
+  source: DataSourceMeta;
 }
 
 export interface ElevationProfilePoint {

@@ -1,4 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  formatSourceTimestamp,
+  formatSourceStatusLabel,
+  getSourceStatusTone,
+  summarizeSourceMeta,
+} from "@/lib/source-metadata";
 import { DataTrend } from "@/types";
 
 interface AnalysisTrendsPanelProps {
@@ -36,11 +42,21 @@ export function AnalysisTrendsPanel({ trends }: AnalysisTrendsPanelProps) {
                   </div>
                   <div className="mt-2 text-xl font-semibold text-white">{trend.value}</div>
                 </div>
-                <div className="rounded-full border border-current/15 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-current/70">
-                  {trend.source}
+                <div
+                  className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getSourceStatusTone(
+                    trend.source.status,
+                  )}`}
+                >
+                  {formatSourceStatusLabel(trend.source.status)}
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-current/85">{trend.detail}</p>
+              <div className="mt-3 rounded-2xl border border-white/10 bg-slate-950/35 px-3 py-2 text-xs leading-5 text-slate-300">
+                <div className="font-medium text-white">{trend.source.label}</div>
+                <div className="mt-1">{summarizeSourceMeta(trend.source)}</div>
+                <div className="mt-1 text-slate-400">{formatSourceTimestamp(trend.source.lastUpdated)}</div>
+                <div className="mt-1 text-slate-400">{trend.source.confidence}</div>
+              </div>
             </div>
           ))}
         </div>

@@ -30,6 +30,12 @@ import { getDemoById } from "@/lib/demos/registry";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
 import { DEFAULT_PROFILE, PROFILES, getProfileById } from "@/lib/profiles";
 import { calculateProfileScore } from "@/lib/scoring";
+import {
+  formatSourceTimestamp,
+  formatSourceStatusLabel,
+  getSourceStatusTone,
+  summarizeSourceMeta,
+} from "@/lib/source-metadata";
 import { MissionProfile, ResultsMode } from "@/types";
 import { useExploreInit } from "./ExploreProvider";
 
@@ -365,6 +371,40 @@ export function ExploreWorkspace() {
               </p>
               {loading ? <p className="text-sm text-slate-400">Fetching geospatial context...</p> : null}
               {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+              {geodata ? (
+                <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                    Source awareness
+                  </div>
+                  <div className="grid gap-2">
+                    {Object.values(geodata.sources).map((source) => (
+                      <div
+                        key={source.id}
+                        className="rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-medium text-white">{source.label}</div>
+                            <div className="mt-1 text-xs text-slate-400">
+                              {summarizeSourceMeta(source)}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              {formatSourceTimestamp(source.lastUpdated)}
+                            </div>
+                          </div>
+                          <div
+                            className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getSourceStatusTone(
+                              source.status,
+                            )}`}
+                          >
+                            {formatSourceStatusLabel(source.status)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 

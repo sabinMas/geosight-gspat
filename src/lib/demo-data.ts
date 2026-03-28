@@ -1,4 +1,5 @@
 import { DemoSiteSeed, GeodataResult, SavedSite, SiteScore } from "@/types";
+import { buildSourceMeta } from "@/lib/source-metadata";
 
 export const DEFAULT_VIEW = {
   lat: 45.7,
@@ -124,6 +125,8 @@ function buildDemoScore(total: number, notes: string[]): SiteScore {
 }
 
 function buildDemoGeodata(siteName: string): GeodataResult {
+  const now = new Date().toISOString();
+
   return {
     elevationMeters: siteName === "Site C" ? 238 : siteName === "Site B" ? 102 : 78,
     nearestWaterBody: {
@@ -166,6 +169,68 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       { label: "Water", value: 10, confidence: 0.66, color: "#00e5ff" },
       { label: "Urban", value: 18, confidence: 0.64, color: "#b7c5d3" },
     ],
+    sources: {
+      elevation: buildSourceMeta({
+        id: "elevation",
+        label: "Elevation",
+        provider: "Demo overlay seed data",
+        status: "demo",
+        lastUpdated: now,
+        freshness: "Static demo seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Illustrative demo value, not a live fetch.",
+      }),
+      infrastructure: buildSourceMeta({
+        id: "infrastructure",
+        label: "Infrastructure and access",
+        provider: "Demo overlay seed data",
+        status: "demo",
+        lastUpdated: now,
+        freshness: "Static demo seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Illustrative demo distances, not live infrastructure queries.",
+      }),
+      climate: buildSourceMeta({
+        id: "climate",
+        label: "Weather and air quality",
+        provider: "Demo overlay seed data",
+        status: "demo",
+        lastUpdated: now,
+        freshness: "Static demo seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Illustrative demo climate context.",
+      }),
+      hazards: buildSourceMeta({
+        id: "hazards",
+        label: "Hazard context",
+        provider: "Demo overlay seed data",
+        status: "demo",
+        lastUpdated: now,
+        freshness: "Static demo seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Illustrative demo hazard context.",
+      }),
+      demographics: buildSourceMeta({
+        id: "demographics",
+        label: "Demographics",
+        provider: "Demo overlay seed data",
+        status: "demo",
+        lastUpdated: now,
+        freshness: "Static demo seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Illustrative demo demographics, not live Census data.",
+      }),
+      landClassification: buildSourceMeta({
+        id: "land-classification",
+        label: "Land cover estimate",
+        provider: "Demo overlay seed data",
+        status: "demo",
+        lastUpdated: now,
+        freshness: "Static demo seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Illustrative demo land-cover mix.",
+      }),
+    },
     sourceNotes: [
       "Preloaded showcase data for the Pacific Northwest cooling center scenario.",
       "Replace with live API calls after providing Cesium Ion and Groq credentials.",

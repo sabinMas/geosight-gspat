@@ -1,3 +1,4 @@
+import { buildSourceMeta } from "@/lib/source-metadata";
 import { DataTrend, GeodataResult } from "@/types";
 
 function dominantLandCover(geodata: GeodataResult | null) {
@@ -25,7 +26,16 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
         value: "Loading geodata",
         detail: "GeoSight is still assembling terrain, access, climate, and land-cover context for this place.",
         direction: "neutral",
-        source: "derived",
+        source: buildSourceMeta({
+          id: "pending",
+          label: "Location context",
+          provider: "GeoSight",
+          status: "derived",
+          freshness: "Pending request",
+          coverage: "Depends on active source pipelines",
+          confidence: "Waiting for live source responses.",
+          lastUpdated: null,
+        }),
       },
     ];
   }
@@ -56,7 +66,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           : "Useful for quick reads on slope complexity, exposure, and broad site character.",
       direction:
         geodata.elevationMeters !== null && geodata.elevationMeters < 400 ? "positive" : "watch",
-      source: "live",
+      source: geodata.sources.elevation,
     },
     {
       id: "trend-water",
@@ -64,7 +74,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       value: formatNumber(waterDistance, " km"),
       detail: `Nearest mapped water feature: ${geodata.nearestWaterBody.name}.`,
       direction: waterDistance !== null && waterDistance < 2 ? "positive" : "neutral",
-      source: "live",
+      source: geodata.sources.infrastructure,
     },
     {
       id: "trend-access",
@@ -72,7 +82,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       value: formatNumber(roadDistance, " km"),
       detail: `Nearest mapped road corridor: ${geodata.nearestRoad.name}.`,
       direction: roadDistance !== null && roadDistance < 3 ? "positive" : "neutral",
-      source: "live",
+      source: geodata.sources.infrastructure,
     },
     {
       id: "trend-climate",
@@ -84,7 +94,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           ? "Current and forecast weather details are unavailable."
           : `Daily mean ${averageTemp.toFixed(1)} C, range ${formatSignedNumber(lowTemp, " C")} to ${formatSignedNumber(highTemp, " C")}, wind ${formatSignedNumber(windSpeed, " km/h")}, precipitation ${geodata.climate.precipitationMm ?? "unknown"} mm.`,
       direction: currentTemp !== null && currentTemp >= 8 && currentTemp <= 24 ? "positive" : "neutral",
-      source: "live",
+      source: geodata.sources.climate,
     },
     {
       id: "trend-air",
@@ -96,7 +106,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           : "Current US AQI snapshot from Open-Meteo for the active point.",
       direction:
         airQualityIndex === null ? "watch" : airQualityIndex <= 50 ? "positive" : airQualityIndex <= 100 ? "neutral" : "watch",
-      source: "live",
+      source: geodata.sources.climate,
     },
     {
       id: "trend-land",
@@ -107,7 +117,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           ? `${topLandCover.value}% of the current land-cover estimate is ${topLandCover.label.toLowerCase()}.`
           : "Land-cover classification has not been derived yet.",
       direction: topLandCover?.label.includes("Water") ? "watch" : "neutral",
-      source: "live",
+      source: geodata.sources.landClassification,
     },
     {
       id: "trend-power",
@@ -115,7 +125,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       value: formatNumber(powerDistance, " km"),
       detail: `Nearest mapped power infrastructure: ${geodata.nearestPower.name}.`,
       direction: powerDistance !== null && powerDistance < 5 ? "positive" : "neutral",
-      source: "live",
+      source: geodata.sources.infrastructure,
     },
     {
       id: "trend-seismic",
@@ -134,7 +144,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           : earthquakes !== null && earthquakes > 12
             ? "watch"
             : "neutral",
-      source: "live",
+      source: geodata.sources.hazards,
     },
     {
       id: "trend-population",
@@ -148,7 +158,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           ? "County demographics are not available for this point yet."
           : `${demographics.countyName} population from ACS 5-year Census data.`,
       direction: demographics.population !== null ? "neutral" : "watch",
-      source: "live",
+      source: geodata.sources.demographics,
     },
     {
       id: "trend-income",
@@ -162,7 +172,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           ? "Household income is available, but housing value data is not."
           : `County median home value: $${demographics.medianHomeValue.toLocaleString()}.`,
       direction: demographics.medianHouseholdIncome !== null ? "neutral" : "watch",
-      source: "live",
+      source: geodata.sources.demographics,
     },
   ];
 }

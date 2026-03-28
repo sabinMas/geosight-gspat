@@ -4,6 +4,7 @@ import { toBoundingBox } from "@/lib/geospatial";
 import { calculateDistanceKm } from "@/lib/nearby-places";
 import { fetchClimateSnapshot } from "@/lib/open-meteo";
 import { fetchNearbyInfrastructure, getElementCoordinates, OverpassElement } from "@/lib/overpass";
+import { buildSourceMeta } from "@/lib/source-metadata";
 import {
   applyRateLimit,
   createRateLimitResponse,
@@ -165,6 +166,7 @@ export async function GET(request: NextRequest) {
   const waterways = infrastructure.filter(
     (item) => item.tags?.waterway || item.tags?.natural === "water",
   );
+  const now = new Date().toISOString();
 
   const geodata: GeodataResult = {
     elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
@@ -208,6 +210,100 @@ export async function GET(request: NextRequest) {
             medianHomeValue: null,
           },
     landClassification: buildLandCoverBuckets(infrastructure),
+    sources: {
+      elevation: buildSourceMeta({
+        id: "elevation",
+        label: "Elevation",
+        provider: "USGS National Map EPQS",
+        status:
+          elevationResult.status === "fulfilled" && elevationResult.value !== null
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "On-demand request",
+        coverage: "Best for US locations",
+        confidence:
+          elevationResult.status === "fulfilled" && elevationResult.value !== null
+            ? "Direct point elevation lookup."
+            : "No elevation response was returned for this point.",
+      }),
+      infrastructure: buildSourceMeta({
+        id: "infrastructure",
+        label: "Infrastructure and access",
+        provider: "OpenStreetMap via Overpass",
+        status: infrastructureResult.status === "fulfilled" ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global, map completeness varies by region",
+        confidence:
+          infrastructure.length > 0
+            ? "Direct mapped roads, power, waterways, and land-use features."
+            : "Coverage depends on OpenStreetMap completeness near the selected point.",
+      }),
+      climate: buildSourceMeta({
+        id: "climate",
+        label: "Weather and air quality",
+        provider: "Open-Meteo",
+        status:
+          climateResult.status === "fulfilled" &&
+          (climateResult.value.currentTempC !== null ||
+            climateResult.value.airQualityIndex !== null)
+            ? climateResult.value.airQualityIndex === null ? "limited" : "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global forecast coverage, AQI coverage varies",
+        confidence:
+          climateResult.status === "fulfilled"
+            ? "Direct forecast and current-condition snapshot from Open-Meteo."
+            : "Weather or AQI data could not be retrieved for this point.",
+      }),
+      hazards: buildSourceMeta({
+        id: "hazards",
+        label: "Hazard context",
+        provider: "USGS Earthquake Catalog",
+        status: hazardResult.status === "fulfilled" ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global earthquakes, current implementation summarizes recent seismic context",
+        confidence:
+          hazardResult.status === "fulfilled"
+            ? "Recent seismic activity is direct; this is not a full hazard-risk model."
+            : "No recent seismic context was returned for this point.",
+      }),
+      demographics: buildSourceMeta({
+        id: "demographics",
+        label: "Demographics",
+        provider: "FCC + US Census ACS 5-year",
+        status:
+          demographicsResult.status === "fulfilled" &&
+          demographicsResult.value.population !== null
+            ? "live"
+            : demographicsResult.status === "fulfilled"
+              ? "limited"
+              : "unavailable",
+        lastUpdated: now,
+        freshness: "ACS 5-year estimates, cached 24 hours",
+        coverage: "US counties only",
+        confidence:
+          demographicsResult.status === "fulfilled"
+            ? "County-level demographics, not parcel- or neighborhood-level."
+            : "Demographic coverage is unavailable outside the current US pipeline.",
+      }),
+      landClassification: buildSourceMeta({
+        id: "land-classification",
+        label: "Land cover estimate",
+        provider: "Derived from OpenStreetMap land-use and natural features",
+        status: infrastructure.length > 0 ? "derived" : "limited",
+        lastUpdated: now,
+        freshness: "Derived from the current Overpass fetch",
+        coverage: "Global where OSM land-use tagging exists",
+        confidence:
+          infrastructure.length > 0
+            ? "Approximate land-cover mix inferred from mapped land-use and natural tags."
+            : "No mapped land-use context was available to derive land-cover buckets.",
+      }),
+    },
     sourceNotes: [
       "USGS elevation via The National Map EPQS.",
       "Overpass OSM features for roads, power lines, waterways, and land-use context.",
