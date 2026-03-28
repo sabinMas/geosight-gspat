@@ -140,6 +140,21 @@ export interface DataTrend {
   source: "derived" | "live";
 }
 
+export interface ElevationProfilePoint {
+  step: string;
+  distanceKm: number;
+  elevation: number | null;
+  coordinates: Coordinates;
+}
+
+export interface ElevationProfileSummary {
+  lengthKm: number;
+  minElevation: number | null;
+  maxElevation: number | null;
+  elevationGain: number | null;
+  elevationLoss: number | null;
+}
+
 export interface SiteFactorScore {
   key: SiteFactorKey;
   label: string;

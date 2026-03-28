@@ -387,7 +387,11 @@ export function ExploreWorkspace() {
             exaggeration={terrainExaggeration}
             onExaggerationChange={setTerrainExaggeration}
           />
-          <ElevationProfile />
+          <ElevationProfile
+            center={selectedPoint}
+            region={selectedRegion}
+            locationName={selectedLocationName}
+          />
         </div>
       </div>
 
