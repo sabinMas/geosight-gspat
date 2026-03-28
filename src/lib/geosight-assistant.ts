@@ -217,6 +217,10 @@ export function buildFallbackAssessment(
     payload.geodata?.hazards?.earthquakeCount30d !== undefined
       ? `Recent seismic context: ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
       : "Recent seismic context is currently unavailable.",
+    payload.geodata?.amenities?.schoolCount !== null &&
+    payload.geodata?.amenities?.schoolCount !== undefined
+      ? `Mapped amenities: ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, and ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues in the active analysis area.`
+      : "Mapped amenity counts are currently unavailable.",
     topLandCover
       ? `Dominant land cover signal: ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",

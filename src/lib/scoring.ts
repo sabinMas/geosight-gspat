@@ -11,6 +11,24 @@ import {
 
 type DistanceSource = "water" | "power" | "road";
 
+function scoreCountSignal(
+  count: number | null,
+  idealCount: number,
+  maxUsefulCount: number = idealCount * 2,
+) {
+  if (count === null) {
+    return 50;
+  }
+
+  if (count <= 0) {
+    return 15;
+  }
+
+  const effectiveMax = Math.max(maxUsefulCount, idealCount);
+  const ratio = Math.min(count, effectiveMax) / effectiveMax;
+  return clamp(Math.round(20 + ratio * 80), 15, 100);
+}
+
 function scoreFromDistance(
   distanceKm: number | null,
   idealKm: number,
@@ -204,16 +222,21 @@ function scoreCustomMetric(geodata: GeodataResult, metric: string) {
   const topLandCover = dominantLandCover(geodata.landClassification);
   const urbanScore = scoreLandCover(geodata.landClassification, "commercial");
   const vegetationScore = scoreLandCover(geodata.landClassification, "vegetation");
+  const amenitySignals = geodata.amenities;
 
   switch (metric) {
     case "terrainVariety":
       return scoreTerrain(geodata.elevationMeters, "terrainVariety");
     case "remoteness":
-      return scoreFromDistance(roadDistance, 6, 0.7, "far");
+      return Math.round(
+        scoreFromDistance(roadDistance, 6, 0.7, "far") * 0.75 +
+          scoreCountSignal(amenitySignals.trailheadCount, 4, 10) * 0.25,
+      );
     case "schoolAccess":
       return Math.round(
-        scoreFromDistance(roadDistance, 1.8, 14) * 0.55 +
-          scoreLandCover(geodata.landClassification, "residential") * 0.45,
+        scoreCountSignal(amenitySignals.schoolCount, 5, 10) * 0.55 +
+          scoreFromDistance(roadDistance, 1.8, 14) * 0.25 +
+          scoreLandCover(geodata.landClassification, "residential") * 0.2,
       );
     case "hazardRisk": {
       const elevationScore = geodata.elevationMeters === null ? 60 : clamp(geodata.elevationMeters / 3, 25, 100);
@@ -223,18 +246,31 @@ function scoreCustomMetric(geodata: GeodataResult, metric: string) {
     }
     case "amenities":
       return Math.round(
-        scoreFromDistance(roadDistance, 1.5, 12) * 0.55 +
-          urbanScore * 0.45,
+        scoreCountSignal(
+          (amenitySignals.foodAndDrinkCount ?? 0) +
+            (amenitySignals.transitStopCount ?? 0) +
+            (amenitySignals.parkCount ?? 0),
+          12,
+          28,
+        ) * 0.65 +
+          scoreFromDistance(roadDistance, 1.5, 12) * 0.2 +
+          urbanScore * 0.15,
       );
     case "commercialDemand":
       return Math.round(
-        scoreFromDistance(roadDistance, 1.2, 12) * 0.5 +
-          urbanScore * 0.5,
+        scoreCountSignal(
+          (amenitySignals.commercialCount ?? 0) + (amenitySignals.foodAndDrinkCount ?? 0),
+          18,
+          40,
+        ) * 0.55 +
+          scoreFromDistance(roadDistance, 1.2, 12) * 0.2 +
+          urbanScore * 0.25,
       );
     case "commercialDensity":
       return Math.round(
-        urbanScore * 0.6 +
-          scoreFromDistance(powerDistance, 2, 18) * 0.4,
+        scoreCountSignal(amenitySignals.commercialCount, 12, 28) * 0.55 +
+          urbanScore * 0.2 +
+          scoreFromDistance(powerDistance, 2, 18) * 0.25,
       );
     case "landCost":
       return Math.round(
@@ -270,6 +306,22 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
     return dominant
       ? `Dominant cover: ${dominant.label} (${dominant.value}%).`
       : "Land cover unavailable.";
+  }
+
+  if (factor.scoreFn === "custom") {
+    switch (String(factor.params.metric ?? "")) {
+      case "schoolAccess":
+        return `${geodata.amenities.schoolCount ?? "?"} mapped schools within the analysis area.`;
+      case "amenities":
+        return `${geodata.amenities.foodAndDrinkCount ?? "?"} food/drink venues, ${geodata.amenities.transitStopCount ?? "?"} transit stops, ${geodata.amenities.parkCount ?? "?"} parks.`;
+      case "commercialDemand":
+      case "commercialDensity":
+        return `${geodata.amenities.commercialCount ?? "?"} mapped commercial venues and ${geodata.amenities.foodAndDrinkCount ?? "?"} food/drink venues nearby.`;
+      case "remoteness":
+        return `${geodata.amenities.trailheadCount ?? "?"} mapped trailheads or recreation access points in the area.`;
+      default:
+        return factor.description;
+    }
   }
 
   return factor.description;

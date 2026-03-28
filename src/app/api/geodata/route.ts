@@ -3,7 +3,12 @@ import { fetchCountyDemographics } from "@/lib/census";
 import { toBoundingBox } from "@/lib/geospatial";
 import { calculateDistanceKm } from "@/lib/nearby-places";
 import { fetchClimateSnapshot } from "@/lib/open-meteo";
-import { fetchNearbyInfrastructure, getElementCoordinates, OverpassElement } from "@/lib/overpass";
+import {
+  buildAmenitySignals,
+  fetchNearbyInfrastructure,
+  getElementCoordinates,
+  OverpassElement,
+} from "@/lib/overpass";
 import { buildSourceMeta } from "@/lib/source-metadata";
 import {
   applyRateLimit,
@@ -166,6 +171,7 @@ export async function GET(request: NextRequest) {
   const waterways = infrastructure.filter(
     (item) => item.tags?.waterway || item.tags?.natural === "water",
   );
+  const amenitySignals = buildAmenitySignals(infrastructure);
   const now = new Date().toISOString();
 
   const geodata: GeodataResult = {
@@ -208,6 +214,18 @@ export async function GET(request: NextRequest) {
             population: null,
             medianHouseholdIncome: null,
             medianHomeValue: null,
+          },
+    amenities:
+      infrastructureResult.status === "fulfilled"
+        ? amenitySignals
+        : {
+            schoolCount: null,
+            healthcareCount: null,
+            foodAndDrinkCount: null,
+            transitStopCount: null,
+            parkCount: null,
+            trailheadCount: null,
+            commercialCount: null,
           },
     landClassification: buildLandCoverBuckets(infrastructure),
     sources: {
@@ -289,6 +307,19 @@ export async function GET(request: NextRequest) {
           demographicsResult.status === "fulfilled"
             ? "County-level demographics, not parcel- or neighborhood-level."
             : "Demographic coverage is unavailable outside the current US pipeline.",
+      }),
+      amenities: buildSourceMeta({
+        id: "amenities",
+        label: "Amenities and activity",
+        provider: "OpenStreetMap via Overpass",
+        status: infrastructureResult.status === "fulfilled" ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 6 hours",
+        coverage: "Global, depends on local OpenStreetMap completeness",
+        confidence:
+          infrastructureResult.status === "fulfilled"
+            ? "Counts are based on mapped schools, healthcare, transit, parks, trailheads, and commercial POIs within the active analysis box."
+            : "Amenity counts could not be derived from the current Overpass response.",
       }),
       landClassification: buildSourceMeta({
         id: "land-classification",

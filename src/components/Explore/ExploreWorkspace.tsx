@@ -363,6 +363,19 @@ export function ExploreWorkspace() {
                     Strongest M{geodata?.hazards.strongestEarthquakeMagnitude30d?.toFixed(1) ?? "--"}
                   </div>
                 </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Amenities</div>
+                  <div className="mt-2 text-sm font-semibold text-white">
+                    {(
+                      (geodata?.amenities.schoolCount ?? 0) +
+                      (geodata?.amenities.healthcareCount ?? 0) +
+                      (geodata?.amenities.foodAndDrinkCount ?? 0)
+                    ) || "--"} mapped basics
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Schools {geodata?.amenities.schoolCount ?? "--"} / Transit {geodata?.amenities.transitStopCount ?? "--"}
+                  </div>
+                </div>
               </div>
 
               <p className="text-sm leading-6 text-slate-300">

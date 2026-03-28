@@ -164,6 +164,15 @@ export interface GeodataResult {
     medianHouseholdIncome: number | null;
     medianHomeValue: number | null;
   };
+  amenities: {
+    schoolCount: number | null;
+    healthcareCount: number | null;
+    foodAndDrinkCount: number | null;
+    transitStopCount: number | null;
+    parkCount: number | null;
+    trailheadCount: number | null;
+    commercialCount: number | null;
+  };
   landClassification: LandCoverBucket[];
   sources: {
     elevation: DataSourceMeta;
@@ -171,6 +180,7 @@ export interface GeodataResult {
     climate: DataSourceMeta;
     hazards: DataSourceMeta;
     demographics: DataSourceMeta;
+    amenities: DataSourceMeta;
     landClassification: DataSourceMeta;
   };
   sourceNotes: string[];

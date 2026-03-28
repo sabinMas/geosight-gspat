@@ -163,6 +163,15 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       medianHouseholdIncome: null,
       medianHomeValue: null,
     },
+    amenities: {
+      schoolCount: siteName === "Site C" ? 4 : 6,
+      healthcareCount: siteName === "Site C" ? 2 : 3,
+      foodAndDrinkCount: siteName === "Site B" ? 10 : 8,
+      transitStopCount: siteName === "Site C" ? 3 : 5,
+      parkCount: siteName === "Site C" ? 5 : 3,
+      trailheadCount: siteName === "Site C" ? 6 : 2,
+      commercialCount: siteName === "Site B" ? 14 : 11,
+    },
     landClassification: [
       { label: "Barren/Industrial", value: 36, confidence: 0.78, color: "#ffab00" },
       { label: "Vegetation", value: siteName === "Site C" ? 44 : 28, confidence: 0.71, color: "#5be49b" },
@@ -219,6 +228,16 @@ function buildDemoGeodata(siteName: string): GeodataResult {
         freshness: "Static demo seed",
         coverage: "Pacific Northwest demo only",
         confidence: "Illustrative demo demographics, not live Census data.",
+      }),
+      amenities: buildSourceMeta({
+        id: "amenities",
+        label: "Amenities and activity",
+        provider: "Demo overlay seed data",
+        status: "demo",
+        lastUpdated: now,
+        freshness: "Static demo seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Illustrative demo amenity counts, not live OSM queries.",
       }),
       landClassification: buildSourceMeta({
         id: "land-classification",

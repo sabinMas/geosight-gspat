@@ -54,6 +54,13 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
   const earthquakes = geodata.hazards.earthquakeCount30d;
   const strongestEarthquake = geodata.hazards.strongestEarthquakeMagnitude30d;
   const nearestEarthquake = geodata.hazards.nearestEarthquakeKm;
+  const amenities = geodata.amenities;
+  const serviceCount =
+    (amenities.schoolCount ?? 0) +
+    (amenities.healthcareCount ?? 0) +
+    (amenities.transitStopCount ?? 0);
+  const activityCount =
+    (amenities.commercialCount ?? 0) + (amenities.foodAndDrinkCount ?? 0);
 
   return [
     {
@@ -161,6 +168,23 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       source: geodata.sources.demographics,
     },
     {
+      id: "trend-services",
+      label: "Community services",
+      value:
+        amenities.schoolCount === null
+          ? "Unavailable"
+          : `${serviceCount} key services`,
+      detail:
+        amenities.schoolCount === null
+          ? "Mapped school and healthcare coverage is unavailable for this point."
+          : `${amenities.schoolCount} schools, ${amenities.healthcareCount} healthcare sites, ${amenities.transitStopCount} transit stops, and ${amenities.parkCount} parks in the active analysis area.`,
+      direction:
+        amenities.schoolCount !== null && serviceCount >= 8
+          ? "positive"
+          : "neutral",
+      source: geodata.sources.amenities,
+    },
+    {
       id: "trend-income",
       label: "Median income",
       value:
@@ -173,6 +197,23 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           : `County median home value: $${demographics.medianHomeValue.toLocaleString()}.`,
       direction: demographics.medianHouseholdIncome !== null ? "neutral" : "watch",
       source: geodata.sources.demographics,
+    },
+    {
+      id: "trend-activity",
+      label: "Mapped activity",
+      value:
+        amenities.commercialCount === null
+          ? "Unavailable"
+          : `${activityCount} venues`,
+      detail:
+        amenities.commercialCount === null
+          ? "Mapped commercial and food activity is unavailable for this point."
+          : `${amenities.commercialCount} commercial venues, ${amenities.foodAndDrinkCount} food/drink venues, and ${amenities.trailheadCount} trailheads or recreation access points in the active area.`,
+      direction:
+        amenities.commercialCount !== null && activityCount >= 12
+          ? "positive"
+          : "neutral",
+      source: geodata.sources.amenities,
     },
   ];
 }

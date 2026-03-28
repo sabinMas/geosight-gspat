@@ -16,6 +16,16 @@ export type OverpassElement = {
   tags?: Record<string, string>;
 };
 
+export type AmenitySignals = {
+  schoolCount: number;
+  healthcareCount: number;
+  foodAndDrinkCount: number;
+  transitStopCount: number;
+  parkCount: number;
+  trailheadCount: number;
+  commercialCount: number;
+};
+
 const CATEGORY_QUERIES: Record<NearbyPlaceCategory, { radiusMeters: number; body: string }> = {
   trail: {
     radiusMeters: 18000,
@@ -196,7 +206,17 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
       relation["natural"~"water|wood|scrub|wetland|grassland|heath|bare_rock|beach|sand"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["landuse"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["landuse"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["amenity"~"school|college|university|kindergarten|hospital|clinic|doctors|pharmacy|restaurant|cafe|fast_food|bar|pub|bus_station|ferry_terminal"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["amenity"~"school|college|university|kindergarten|hospital|clinic|doctors|pharmacy|restaurant|cafe|fast_food|bar|pub|bus_station|ferry_terminal"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["shop"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["shop"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["public_transport"~"platform|station|stop_position"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      way["public_transport"~"platform|station"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["railway"~"station|halt|tram_stop|subway_entrance"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["highway"="bus_stop"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["highway"="trailhead"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       way["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
+      node["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
       relation["leisure"="park"](${safeBox.south},${safeBox.west},${safeBox.north},${safeBox.east});
     );
     out tags center 20;
@@ -273,4 +293,79 @@ export async function fetchNearbyPlaces(
   }
 
   return [];
+}
+
+export function buildAmenitySignals(elements: OverpassElement[]): AmenitySignals {
+  const counts: AmenitySignals = {
+    schoolCount: 0,
+    healthcareCount: 0,
+    foodAndDrinkCount: 0,
+    transitStopCount: 0,
+    parkCount: 0,
+    trailheadCount: 0,
+    commercialCount: 0,
+  };
+
+  const seen = new Set<string>();
+
+  for (const element of elements) {
+    const tags = element.tags ?? {};
+    const key = `${element.type}-${element.id}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+
+    const amenity = tags.amenity ?? "";
+    const railway = tags.railway ?? "";
+    const publicTransport = tags.public_transport ?? "";
+    const shop = tags.shop ?? "";
+    const leisure = tags.leisure ?? "";
+    const highway = tags.highway ?? "";
+    const tourism = tags.tourism ?? "";
+
+    if (["school", "college", "university", "kindergarten"].includes(amenity)) {
+      counts.schoolCount += 1;
+    }
+
+    if (["hospital", "clinic", "doctors", "pharmacy"].includes(amenity)) {
+      counts.healthcareCount += 1;
+    }
+
+    if (["restaurant", "cafe", "fast_food", "bar", "pub"].includes(amenity)) {
+      counts.foodAndDrinkCount += 1;
+    }
+
+    if (
+      amenity === "bus_station" ||
+      amenity === "ferry_terminal" ||
+      highway === "bus_stop" ||
+      ["platform", "station", "stop_position"].includes(publicTransport) ||
+      ["station", "halt", "tram_stop", "subway_entrance"].includes(railway)
+    ) {
+      counts.transitStopCount += 1;
+    }
+
+    if (leisure === "park") {
+      counts.parkCount += 1;
+    }
+
+    if (
+      highway === "trailhead" ||
+      tourism === "viewpoint" ||
+      tags.route === "hiking"
+    ) {
+      counts.trailheadCount += 1;
+    }
+
+    if (
+      shop ||
+      ["commercial", "retail"].includes(tags.landuse ?? "") ||
+      ["marketplace", "mall"].includes(tags.shop ?? "")
+    ) {
+      counts.commercialCount += 1;
+    }
+  }
+
+  return counts;
 }
