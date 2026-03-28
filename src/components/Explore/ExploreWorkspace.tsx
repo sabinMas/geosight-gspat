@@ -24,8 +24,9 @@ import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useSavedSites } from "@/hooks/useSavedSites";
 import { useSiteAnalysis } from "@/hooks/useSiteAnalysis";
 import { resolveLocationQuery } from "@/lib/cesium-search";
-import { DEFAULT_VIEW, PRELOADED_SITES } from "@/lib/demo-data";
 import { buildLocationTrends } from "@/lib/data-trends";
+import { DEFAULT_VIEW } from "@/lib/demo-data";
+import { getDemoById } from "@/lib/demos/registry";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
 import { DEFAULT_PROFILE, PROFILES, getProfileById } from "@/lib/profiles";
 import { calculateProfileScore } from "@/lib/scoring";
@@ -54,18 +55,25 @@ function getInitialProfile(profileId?: string) {
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
+  const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
+  const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
+  const overlayDemo = coolingDemo ?? activeDemo;
+
   const [activeProfile, setActiveProfile] = useState<MissionProfile>(() =>
-    getInitialProfile(init.profileId),
+    getInitialProfile(init.profileId ?? activeDemo?.profileId),
   );
   const [initError, setInitError] = useState<string | null>(null);
   const [initStatus, setInitStatus] = useState<"idle" | "resolving">(
     init.locationQuery ? "resolving" : "idle",
   );
-  const [demoOpen, setDemoOpen] = useState(init.demoId === "pnw-cooling");
-  const [pendingDemoLoad, setPendingDemoLoad] = useState(init.demoId === "pnw-cooling");
+  const [demoOpen, setDemoOpen] = useState(activeDemo?.entryMode === "overlay");
+  const [pendingDemoLoad, setPendingDemoLoad] = useState(activeDemo?.entryMode === "overlay");
   const [pendingDemoSiteId, setPendingDemoSiteId] = useState<string | null>(null);
 
-  const defaultLabel = init.locationQuery ? "Resolving location..." : "Starter view";
+  const defaultCoordinates = activeDemo?.coordinates ?? { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng };
+  const defaultLabel = init.locationQuery
+    ? "Resolving location..."
+    : activeDemo?.locationName ?? "Starter view";
   const {
     selectedPoint,
     selectedLocationName,
@@ -74,7 +82,7 @@ export function ExploreWorkspace() {
     setSelectedRegion,
     quickRegions,
   } = useGlobeInteraction(
-    { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
+    defaultCoordinates,
     defaultLabel,
     activeProfile.demoSites ?? [],
   );
@@ -99,6 +107,14 @@ export function ExploreWorkspace() {
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
   }, [activeProfile]);
+
+  useEffect(() => {
+    if (init.locationQuery || !activeDemo || activeDemo.entryMode !== "workspace") {
+      return;
+    }
+
+    selectPoint(activeDemo.coordinates, activeDemo.locationName);
+  }, [activeDemo, init.locationQuery, selectPoint]);
 
   useEffect(() => {
     if (!init.locationQuery) {
@@ -143,26 +159,20 @@ export function ExploreWorkspace() {
   }, [init.locationQuery, selectPoint]);
 
   useEffect(() => {
-    if (!pendingDemoLoad || activeProfile.id !== "data-center") {
+    if (!pendingDemoLoad || activeProfile.id !== "data-center" || !coolingDemo?.preloadedSites?.length) {
       return;
     }
 
-    loadDemoSites(PRELOADED_SITES);
+    loadDemoSites(coolingDemo.preloadedSites);
     const focusSite =
-      PRELOADED_SITES.find((candidate) => candidate.id === pendingDemoSiteId) ??
-      PRELOADED_SITES[0];
+      coolingDemo.preloadedSites.find((candidate) => candidate.id === pendingDemoSiteId) ??
+      coolingDemo.preloadedSites[0];
     if (focusSite) {
       selectPoint(focusSite.coordinates, `${focusSite.name} cooling demo`);
     }
     setPendingDemoLoad(false);
     setPendingDemoSiteId(null);
-  }, [activeProfile.id, loadDemoSites, pendingDemoLoad, pendingDemoSiteId, selectPoint]);
-
-  useEffect(() => {
-    if (init.demoId === "pnw-cooling" && activeProfile.id !== "data-center") {
-      setActiveProfile(DEFAULT_PROFILE);
-    }
-  }, [activeProfile.id, init.demoId]);
+  }, [activeProfile.id, coolingDemo, loadDemoSites, pendingDemoLoad, pendingDemoSiteId, selectPoint]);
 
   const effectiveClassification = useMemo(
     () =>
@@ -200,13 +210,13 @@ export function ExploreWorkspace() {
   const handleFocusDemoSite = (siteId: string) => {
     setActiveProfile(DEFAULT_PROFILE);
     setDemoOpen(true);
-    const site = PRELOADED_SITES.find((candidate) => candidate.id === siteId);
+    const site = coolingDemo?.preloadedSites?.find((candidate) => candidate.id === siteId);
     if (!site) {
       return;
     }
 
     if (activeProfile.id === "data-center") {
-      loadDemoSites(PRELOADED_SITES);
+      loadDemoSites(coolingDemo?.preloadedSites ?? []);
       selectPoint(site.coordinates, `${site.name} cooling demo`);
       return;
     }
@@ -253,6 +263,21 @@ export function ExploreWorkspace() {
             </div>
           ) : null}
 
+          {activeDemo ? (
+            <div
+              className="rounded-2xl border px-4 py-3 text-sm"
+              style={{
+                borderColor: `${activeDemo.accentColor}33`,
+                backgroundColor: `${activeDemo.accentColor}12`,
+                color: "#e2e8f0",
+              }}
+            >
+              <span className="font-semibold text-white">{activeDemo.name}</span>
+              <span className="mx-2 text-slate-400">•</span>
+              {activeDemo.description}
+            </div>
+          ) : null}
+
           <section className="relative min-h-[560px] overflow-hidden rounded-[2rem] border border-cyan-400/15 bg-slate-950/60">
             <CesiumGlobe
               selectedPoint={selectedPoint}
@@ -267,8 +292,8 @@ export function ExploreWorkspace() {
               region={selectedRegion}
               onReset={() =>
                 selectPoint(
-                  { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
-                  "Starter view",
+                  defaultCoordinates,
+                  activeDemo?.locationName ?? "Starter view",
                 )
               }
             />
@@ -395,15 +420,18 @@ export function ExploreWorkspace() {
         </div>
       </div>
 
-      <CoolingDemoOverlay
-        open={demoOpen}
-        score={score}
-        sites={sites}
-        onClose={() => setDemoOpen(false)}
-        onLoadShowcase={handleLoadShowcase}
-        onSaveCurrentSite={handleSaveCurrentSite}
-        onFocusSite={handleFocusDemoSite}
-      />
+      {overlayDemo ? (
+        <CoolingDemoOverlay
+          demo={overlayDemo}
+          open={demoOpen}
+          score={score}
+          sites={sites}
+          onClose={() => setDemoOpen(false)}
+          onLoadShowcase={handleLoadShowcase}
+          onSaveCurrentSite={handleSaveCurrentSite}
+          onFocusSite={handleFocusDemoSite}
+        />
+      ) : null}
     </main>
   );
 }

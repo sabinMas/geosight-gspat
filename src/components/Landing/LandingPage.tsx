@@ -18,8 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
+import { DEMO_REGISTRY } from "@/lib/demos/registry";
 import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
-import { LandingUseCase } from "@/types";
+import { DemoOverlay, LandingUseCase } from "@/types";
 
 const ICONS = {
   House,
@@ -33,6 +34,10 @@ const ICONS = {
 } as const;
 
 function getIcon(iconName: LandingUseCase["icon"]) {
+  return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
+}
+
+function getDemoIcon(iconName: DemoOverlay["icon"]) {
   return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
 }
 
@@ -88,11 +93,11 @@ export function LandingPage() {
     }
   };
 
-  const handleOpenDemo = () => {
+  const handleOpenDemo = (demo: DemoOverlay) => {
     router.push(
       buildExploreHref({
-        profileId: "data-center",
-        demoId: "pnw-cooling",
+        profileId: demo.profileId,
+        demoId: demo.id,
         entrySource: "demo",
       }),
     );
@@ -123,7 +128,10 @@ export function LandingPage() {
                   "Mission-based AI reasoning",
                   "Compare locations in one workspace",
                 ].map((item) => (
-                  <div key={item} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"
+                  >
                     {item}
                   </div>
                 ))}
@@ -157,19 +165,28 @@ export function LandingPage() {
                           className="rounded-[1.5rem] border p-4 text-left transition hover:bg-white/8"
                           style={{
                             borderColor: active ? useCase.accentColor : "rgba(255,255,255,0.1)",
-                            background: active ? `${useCase.accentColor}12` : "rgba(255,255,255,0.04)",
-                            boxShadow: active ? `0 0 0 1px ${useCase.accentColor}55` : undefined,
+                            background: active
+                              ? `${useCase.accentColor}12`
+                              : "rgba(255,255,255,0.04)",
+                            boxShadow: active
+                              ? `0 0 0 1px ${useCase.accentColor}55`
+                              : undefined,
                           }}
                         >
                           <div className="flex items-start gap-3">
                             <div
                               className="flex h-10 w-10 items-center justify-center rounded-2xl"
-                              style={{ background: `${useCase.accentColor}18`, color: useCase.accentColor }}
+                              style={{
+                                background: `${useCase.accentColor}18`,
+                                color: useCase.accentColor,
+                              }}
                             >
                               <Icon className="h-5 w-5" />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-white">{useCase.title}</div>
+                              <div className="text-sm font-semibold text-white">
+                                {useCase.title}
+                              </div>
                               <div className="mt-1 text-xs leading-5 text-slate-400">
                                 {useCase.description}
                               </div>
@@ -192,7 +209,11 @@ export function LandingPage() {
                     className="h-12 border-white/10 bg-slate-950/50"
                   />
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button type="submit" className="h-12 flex-1 rounded-2xl" disabled={submitting}>
+                    <Button
+                      type="submit"
+                      className="h-12 flex-1 rounded-2xl"
+                      disabled={submitting}
+                    >
                       {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       Open GeoSight
                     </Button>
@@ -210,9 +231,15 @@ export function LandingPage() {
                 </form>
 
                 <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Selected route</div>
-                  <div className="mt-2 text-base font-semibold text-white">{selectedUseCase.title}</div>
-                  <p className="mt-1 text-sm leading-6 text-slate-300">{selectedUseCase.description}</p>
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                    Selected route
+                  </div>
+                  <div className="mt-2 text-base font-semibold text-white">
+                    {selectedUseCase.title}
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-slate-300">
+                    {selectedUseCase.description}
+                  </p>
                 </div>
 
                 {error ? <div className="text-sm text-rose-300">{error}</div> : null}
@@ -241,8 +268,13 @@ export function LandingPage() {
                   text: "Use mission-aware scoring, AI reasoning, and layered map context to compare sites.",
                 },
               ].map((step, index) => (
-                <div key={step.title} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs uppercase tracking-[0.2em] text-cyan-200">Step {index + 1}</div>
+                <div
+                  key={step.title}
+                  className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
+                >
+                  <div className="text-xs uppercase tracking-[0.2em] text-cyan-200">
+                    Step {index + 1}
+                  </div>
                   <div className="mt-2 text-lg font-semibold text-white">{step.title}</div>
                   <p className="mt-2 text-sm leading-6 text-slate-300">{step.text}</p>
                 </div>
@@ -252,24 +284,53 @@ export function LandingPage() {
 
           <Card className="border-white/10 bg-slate-950/50">
             <CardHeader>
-              <CardTitle>Featured demo overlay</CardTitle>
+              <CardTitle>Guided demos</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm leading-6 text-slate-300">
               <p>
-                Need a guided walkthrough? Open the Pacific Northwest data center cooling overlay
-                to see GeoSight&apos;s benchmark workflow with preloaded Columbia Gorge sites and
-                comparison scoring.
+                Need a faster starting point? These guided demos route into preconfigured missions
+                and regions so you can see GeoSight behaving like a platform, not just a single
+                scenario.
               </p>
-              <Button className="w-full justify-center rounded-2xl" onClick={handleOpenDemo}>
-                See data center cooling demo
-              </Button>
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Included in the demo</div>
-                <div className="mt-2 grid gap-2 text-sm text-slate-200">
-                  <span>Columbia River cooling-site showcase</span>
-                  <span>Preloaded benchmark scores</span>
-                  <span>Optional overlay, separate from the default product flow</span>
-                </div>
+              <div className="grid gap-3">
+                {DEMO_REGISTRY.map((demo) => {
+                  const Icon = getDemoIcon(demo.icon);
+                  return (
+                    <button
+                      key={demo.id}
+                      type="button"
+                      onClick={() => handleOpenDemo(demo)}
+                      className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition hover:bg-white/10"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-2xl"
+                          style={{ background: `${demo.accentColor}18`, color: demo.accentColor }}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-sm font-semibold text-white">{demo.name}</div>
+                            <span
+                              className="rounded-full border px-2 py-0.5 text-[11px]"
+                              style={{
+                                borderColor: `${demo.accentColor}44`,
+                                color: demo.accentColor,
+                              }}
+                            >
+                              {demo.entryMode === "overlay" ? "Overlay demo" : "Workspace demo"}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">
+                            {demo.locationName}
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-slate-300">{demo.tagline}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

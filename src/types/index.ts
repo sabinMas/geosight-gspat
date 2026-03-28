@@ -63,6 +63,20 @@ export interface LandingUseCase {
   suggestedQuery: string;
 }
 
+export interface DemoOverlay {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  profileId: string;
+  accentColor: string;
+  icon: string;
+  locationName: string;
+  coordinates: Coordinates;
+  entryMode: "workspace" | "overlay";
+  preloadedSites?: SavedSite[];
+}
+
 export interface Coordinates {
   lat: number;
   lng: number;

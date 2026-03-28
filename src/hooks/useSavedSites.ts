@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PRELOADED_SITES } from "@/lib/demo-data";
 import { SavedSite } from "@/types";
 
 const STORAGE_KEY = "geosight.saved-sites";
@@ -38,7 +37,7 @@ export function useSavedSites(activeProfileId: string) {
     saveSites([...nextProfileSites, ...remainingSites]);
   }, [activeProfileId, allSites, saveSites]);
 
-  const loadDemoSites = useCallback((demoSites: SavedSite[] = PRELOADED_SITES) => {
+  const loadDemoSites = useCallback((demoSites: SavedSite[] = []) => {
     setSitesForProfile(demoSites.filter((site) => site.profileId === activeProfileId));
   }, [activeProfileId, setSitesForProfile]);
 

@@ -1,15 +1,15 @@
 "use client";
 
 import { X } from "lucide-react";
-import { PRELOADED_SITES } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompareTable } from "@/components/Scoring/CompareTable";
 import { FactorBreakdown } from "@/components/Scoring/FactorBreakdown";
 import { ScoreCard } from "@/components/Scoring/ScoreCard";
-import { SavedSite, SiteScore } from "@/types";
+import { DemoOverlay, SavedSite, SiteScore } from "@/types";
 
 interface CoolingDemoOverlayProps {
+  demo: DemoOverlay;
   open: boolean;
   score: SiteScore | null;
   sites: SavedSite[];
@@ -20,6 +20,7 @@ interface CoolingDemoOverlayProps {
 }
 
 export function CoolingDemoOverlay({
+  demo,
   open,
   score,
   sites,
@@ -50,22 +51,19 @@ export function CoolingDemoOverlay({
           <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
             <Card>
               <CardHeader>
-                <CardTitle>Data center cooling demo</CardTitle>
+                <CardTitle>{demo.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm leading-6 text-slate-300">
+                <p>{demo.description}</p>
                 <p>
-                  This optional overlay shows GeoSight&apos;s Pacific Northwest screening workflow
-                  for data center cooling facilities. It keeps the fixed weighted score, demo sites,
-                  and comparison table together without making them the default product story.
-                </p>
-                <p>
-                  The current demo looks at water access, climate, terrain, power infrastructure,
-                  road access, and land cover around Columbia River corridor candidates.
+                  This guided overlay keeps the comparison table, score summary, and benchmark
+                  candidate sites together without making infrastructure siting the default product
+                  story.
                 </p>
 
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" onClick={onLoadShowcase}>
-                    Load Columbia Gorge showcase
+                    Load showcase
                   </Button>
                   <Button type="button" variant="secondary" onClick={onSaveCurrentSite}>
                     Save current site to demo compare
@@ -73,7 +71,7 @@ export function CoolingDemoOverlay({
                 </div>
 
                 <div className="grid gap-3">
-                  {PRELOADED_SITES.map((site) => (
+                  {(demo.preloadedSites ?? []).map((site) => (
                     <button
                       key={site.id}
                       type="button"
