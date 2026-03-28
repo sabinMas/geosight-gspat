@@ -5,6 +5,7 @@ type FccAreaResponse = {
     county_fips?: string;
     county_name?: string;
     state_code?: string;
+    state_fips?: string;
   }>;
 };
 
@@ -33,8 +34,9 @@ export async function fetchCountyDemographics(
   const county = areaData.results?.[0];
   const countyFips = county?.county_fips?.slice(-3);
   const stateCode = county?.state_code;
+  const stateFips = county?.state_fips;
 
-  if (!countyFips || !stateCode) {
+  if (!countyFips || !stateFips) {
     return {
       countyName: county?.county_name ?? null,
       stateCode: stateCode ?? null,
@@ -45,7 +47,7 @@ export async function fetchCountyDemographics(
   }
 
   const censusResponse = await fetch(
-    `https://api.census.gov/data/2022/acs/acs5?get=NAME,B01003_001E,B19013_001E,B25077_001E&for=county:${countyFips}&in=state:${stateCode}`,
+    `https://api.census.gov/data/2022/acs/acs5?get=NAME,B01003_001E,B19013_001E,B25077_001E&for=county:${countyFips}&in=state:${stateFips}`,
     {
       next: { revalidate: 60 * 60 * 24 },
     },
@@ -60,7 +62,7 @@ export async function fetchCountyDemographics(
 
   return {
     countyName: row?.[0] ?? county.county_name ?? null,
-    stateCode,
+    stateCode: stateCode ?? null,
     population: parseNullableNumber(row?.[1]),
     medianHouseholdIncome: parseNullableNumber(row?.[2]),
     medianHomeValue: parseNullableNumber(row?.[3]),
