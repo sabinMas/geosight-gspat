@@ -249,34 +249,6 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
   };
 }
 
-export function buildAmenitySignals(elements: OverpassElement[]) {
-  const countWhere = (matcher: (tags: Record<string, string>) => boolean) =>
-    elements.filter((element) => matcher(element.tags ?? {})).length;
-
-  return {
-    schoolCount: countWhere((tags) =>
-      ["school", "college", "university"].includes(tags.amenity ?? ""),
-    ),
-    healthcareCount: countWhere((tags) =>
-      ["hospital", "clinic", "doctors"].includes(tags.amenity ?? ""),
-    ),
-    foodAndDrinkCount: countWhere((tags) =>
-      ["restaurant", "cafe", "bar", "pub", "fast_food"].includes(tags.amenity ?? ""),
-    ),
-    transitStopCount: countWhere(
-      (tags) =>
-        Boolean(tags.public_transport) ||
-        tags.amenity === "bus_station" ||
-        tags.railway === "station",
-    ),
-    parkCount: countWhere((tags) => tags.leisure === "park"),
-    trailheadCount: countWhere((tags) => tags.tourism === "trailhead"),
-    commercialCount: countWhere((tags) =>
-      ["commercial", "retail"].includes(tags.landuse ?? "") || tags.shop !== undefined,
-    ),
-  };
-}
-
 export async function fetchNearbyPlaces(
   coords: Coordinates,
   locationName: string,
@@ -392,6 +364,7 @@ export function buildAmenitySignals(elements: OverpassElement[]): AmenitySignals
 
     if (
       highway === "trailhead" ||
+      tourism === "trailhead" ||
       tourism === "viewpoint" ||
       tags.route === "hiking"
     ) {
