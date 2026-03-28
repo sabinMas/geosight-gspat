@@ -11,9 +11,9 @@ import {
   ScreenSpaceEventType,
   Viewer as CesiumViewer,
 } from "cesium";
-import { CameraFlyTo, Entity, ScreenSpaceEvent, ScreenSpaceEventHandler, Viewer } from "resium";
+import { Entity, ScreenSpaceEvent, ScreenSpaceEventHandler, Viewer } from "resium";
 import { DEFAULT_VIEW } from "@/lib/demo-data";
-import { Coordinates, RegionSelection, SavedSite } from "@/types";
+import { Coordinates, DemoMapOverlay, RegionSelection, SavedSite } from "@/types";
 import { LayerState } from "./DataLayers";
 
 if (typeof window !== "undefined") {
@@ -29,9 +29,8 @@ interface CesiumGlobeProps {
   savedSites: SavedSite[];
   layers: LayerState;
   terrainExaggeration: number;
+  demoOverlays?: DemoMapOverlay[];
 }
-
-const FLY_TO = Cartesian3.fromDegrees(DEFAULT_VIEW.lng, DEFAULT_VIEW.lat, DEFAULT_VIEW.height);
 
 export function CesiumGlobe({
   selectedPoint,
@@ -40,6 +39,7 @@ export function CesiumGlobe({
   savedSites,
   layers,
   terrainExaggeration,
+  demoOverlays = [],
 }: CesiumGlobeProps) {
   const viewerRef = useRef<CesiumViewer | null>(null);
   const lastFlyTargetRef = useRef<string | null>(null);
@@ -52,18 +52,18 @@ export function CesiumGlobe({
     }
 
     const nextTarget = `${selectedPoint.lat.toFixed(6)}:${selectedPoint.lng.toFixed(6)}`;
-    if (lastFlyTargetRef.current === null) {
-      lastFlyTargetRef.current = nextTarget;
-      return;
-    }
-
     if (lastFlyTargetRef.current === nextTarget) {
       return;
     }
 
+    const isFirstTarget = lastFlyTargetRef.current === null;
     lastFlyTargetRef.current = nextTarget;
     viewerRef.current.camera.flyTo({
-      destination: Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 16000),
+      destination: Cartesian3.fromDegrees(
+        selectedPoint.lng,
+        selectedPoint.lat,
+        isFirstTarget ? DEFAULT_VIEW.height : 16000,
+      ),
       duration: 1.8,
     });
   }, [selectedPoint, viewerReady]);
@@ -79,6 +79,23 @@ export function CesiumGlobe({
   const regionHierarchy = useMemo(
     () => selectedRegion.polygon.map((point) => Cartesian3.fromDegrees(point.lng, point.lat, 120)),
     [selectedRegion],
+  );
+
+  const activeOverlayEntities = useMemo(
+    () =>
+      demoOverlays.filter((overlay) => {
+        switch (overlay.layer) {
+          case "water":
+            return layers.water;
+          case "power":
+            return layers.power;
+          case "roads":
+            return layers.roads;
+          default:
+            return false;
+        }
+      }),
+    [demoOverlays, layers.power, layers.roads, layers.water],
   );
 
   return (
@@ -101,7 +118,6 @@ export function CesiumGlobe({
       shouldAnimate
       scene3DOnly
     >
-      <CameraFlyTo duration={2.2} destination={FLY_TO} once />
       <ScreenSpaceEventHandler>
         <ScreenSpaceEvent
           action={(event) => {
@@ -160,39 +176,18 @@ export function CesiumGlobe({
         />
       ))}
 
-      {layers.water && (
+      {activeOverlayEntities.map((overlay) => (
         <Entity
+          key={overlay.id}
           polyline={{
-            positions: Cartesian3.fromDegreesArray([
-              -121.85, 45.68, -121.3, 45.58, -120.7, 45.63, -119.85, 45.9,
-            ]),
-            width: 4,
-            material: Color.fromCssColorString("#00e5ff"),
+            positions: Cartesian3.fromDegreesArray(
+              overlay.positions.flatMap((point) => [point.lng, point.lat]),
+            ),
+            width: overlay.width,
+            material: Color.fromCssColorString(overlay.color),
           }}
         />
-      )}
-      {layers.power && (
-        <Entity
-          polyline={{
-            positions: Cartesian3.fromDegreesArray([
-              -121.55, 45.58, -120.9, 45.65, -120.15, 45.82,
-            ]),
-            width: 3,
-            material: Color.fromCssColorString("#ffab00"),
-          }}
-        />
-      )}
-      {layers.roads && (
-        <Entity
-          polyline={{
-            positions: Cartesian3.fromDegreesArray([
-              -121.78, 45.69, -121.2, 45.62, -120.35, 45.68,
-            ]),
-            width: 3,
-            material: Color.fromCssColorString("#cbd5e1"),
-          }}
-        />
-      )}
+      ))}
       {layers.heatmap && (
         <Entity
           polygon={{

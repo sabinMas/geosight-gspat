@@ -11,6 +11,7 @@ export type UseCaseType =
 
 export type ResultsMode = "analysis" | "nearby_places";
 export type ExploreEntrySource = "landing" | "demo" | "direct";
+export type DemoOverlayLayerKey = "water" | "power" | "roads";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 
@@ -75,6 +76,15 @@ export interface DemoOverlay {
   coordinates: Coordinates;
   entryMode: "workspace" | "overlay";
   preloadedSites?: SavedSite[];
+  mapOverlays?: DemoMapOverlay[];
+}
+
+export interface DemoMapOverlay {
+  id: string;
+  layer: DemoOverlayLayerKey;
+  positions: Coordinates[];
+  color: string;
+  width: number;
 }
 
 export interface Coordinates {

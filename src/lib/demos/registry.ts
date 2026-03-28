@@ -21,6 +21,42 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     coordinates: { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
     entryMode: "overlay",
     preloadedSites: PRELOADED_SITES,
+    mapOverlays: [
+      {
+        id: "gorge-water",
+        layer: "water",
+        positions: [
+          { lat: 45.68, lng: -121.85 },
+          { lat: 45.58, lng: -121.3 },
+          { lat: 45.63, lng: -120.7 },
+          { lat: 45.9, lng: -119.85 },
+        ],
+        color: "#00e5ff",
+        width: 4,
+      },
+      {
+        id: "gorge-power",
+        layer: "power",
+        positions: [
+          { lat: 45.58, lng: -121.55 },
+          { lat: 45.65, lng: -120.9 },
+          { lat: 45.82, lng: -120.15 },
+        ],
+        color: "#ffab00",
+        width: 3,
+      },
+      {
+        id: "gorge-roads",
+        layer: "roads",
+        positions: [
+          { lat: 45.69, lng: -121.78 },
+          { lat: 45.62, lng: -121.2 },
+          { lat: 45.68, lng: -120.35 },
+        ],
+        color: "#cbd5e1",
+        width: 3,
+      },
+    ],
   },
   {
     id: "colorado-hiking",

@@ -286,6 +286,7 @@ export function ExploreWorkspace() {
               savedSites={sites}
               layers={layers}
               terrainExaggeration={terrainExaggeration}
+              demoOverlays={activeDemo?.mapOverlays ?? []}
             />
             <DataLayers layers={layers} onChange={setLayers} />
             <RegionSelector
