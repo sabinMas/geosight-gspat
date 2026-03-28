@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { toBoundingBox } from "@/lib/geospatial";
 import { fetchNearbyInfrastructure } from "@/lib/overpass";
+import {
+  applyRateLimit,
+  createRateLimitResponse,
+  getCoordinatesFromSearchParams,
+  rateLimitHeaders,
+} from "@/lib/request-guards";
 import { fetchElevation } from "@/lib/usgs";
 import { GeodataResult } from "@/types";
 
@@ -23,12 +29,20 @@ function estimateLandClassification(lat: number): GeodataResult["landClassificat
 }
 
 export async function GET(request: NextRequest) {
-  const lat = Number(request.nextUrl.searchParams.get("lat"));
-  const lng = Number(request.nextUrl.searchParams.get("lng"));
+  const rateLimit = applyRateLimit(request, "geodata", {
+    windowMs: 60_000,
+    maxRequests: 24,
+  });
+  if (!rateLimit.allowed) {
+    return createRateLimitResponse(rateLimit);
+  }
 
-  if (Number.isNaN(lat) || Number.isNaN(lng)) {
+  const coordinates = getCoordinatesFromSearchParams(request.nextUrl.searchParams);
+  if (!coordinates) {
     return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
   }
+
+  const { lat, lng } = coordinates;
 
   const bbox = toBoundingBox({ lat, lng }, 8);
 
@@ -86,6 +100,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(geodata, {
     headers: {
       "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
+      ...rateLimitHeaders(rateLimit),
     },
   });
 }

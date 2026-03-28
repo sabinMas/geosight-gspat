@@ -1,23 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  applyRateLimit,
+  clampNumber,
+  createRateLimitResponse,
+  getCoordinatesFromSearchParams,
+  parseCoordinate,
+  rateLimitHeaders,
+} from "@/lib/request-guards";
 import { fetchElevation, fetchElevationProfile } from "@/lib/usgs";
 
 export async function GET(request: NextRequest) {
-  const lat = Number(request.nextUrl.searchParams.get("lat"));
-  const lng = Number(request.nextUrl.searchParams.get("lng"));
-  const lengthKm = Number(request.nextUrl.searchParams.get("lengthKm") ?? "12");
-  const samples = Number(request.nextUrl.searchParams.get("samples") ?? "9");
+  const rateLimit = applyRateLimit(request, "elevation", {
+    windowMs: 60_000,
+    maxRequests: 24,
+  });
+  if (!rateLimit.allowed) {
+    return createRateLimitResponse(rateLimit);
+  }
 
-  if (Number.isNaN(lat) || Number.isNaN(lng)) {
+  const coordinates = getCoordinatesFromSearchParams(request.nextUrl.searchParams);
+  const lengthKm = parseCoordinate(request.nextUrl.searchParams.get("lengthKm"));
+  const samples = parseCoordinate(request.nextUrl.searchParams.get("samples"));
+
+  if (!coordinates) {
     return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
   }
 
   try {
-    const elevation = await fetchElevation({ lat, lng });
+    const elevation = await fetchElevation(coordinates);
     const profileData = await fetchElevationProfile(
-      { lat, lng },
+      coordinates,
       {
-        lengthKm: Number.isFinite(lengthKm) ? Math.min(Math.max(lengthKm, 4), 24) : 12,
-        samples: Number.isFinite(samples) ? Math.min(Math.max(samples, 5), 15) : 9,
+        lengthKm: clampNumber(lengthKm, 4, 24, 12),
+        samples: Math.round(clampNumber(samples, 5, 15, 9)),
       },
     );
     return NextResponse.json(
@@ -25,6 +40,7 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
+          ...rateLimitHeaders(rateLimit),
         },
       },
     );

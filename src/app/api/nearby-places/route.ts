@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildPlaceholderNearbyPlaces, NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
-import { fetchNearbyPlaces, isValidCoordinatePair } from "@/lib/overpass";
+import { fetchNearbyPlaces } from "@/lib/overpass";
+import {
+  applyRateLimit,
+  clampNumber,
+  createRateLimitResponse,
+  getCoordinatesFromSearchParams,
+  normalizeTextInput,
+  rateLimitHeaders,
+} from "@/lib/request-guards";
 import { NearbyPlaceCategory } from "@/types";
 
 function isNearbyPlaceCategory(value: string): value is NearbyPlaceCategory {
@@ -8,12 +16,21 @@ function isNearbyPlaceCategory(value: string): value is NearbyPlaceCategory {
 }
 
 export async function GET(request: NextRequest) {
-  const lat = Number(request.nextUrl.searchParams.get("lat"));
-  const lng = Number(request.nextUrl.searchParams.get("lng"));
-  const category = request.nextUrl.searchParams.get("category");
-  const locationName = request.nextUrl.searchParams.get("locationName") ?? "the selected place";
+  const rateLimit = applyRateLimit(request, "nearby-places", {
+    windowMs: 60_000,
+    maxRequests: 30,
+  });
+  if (!rateLimit.allowed) {
+    return createRateLimitResponse(rateLimit);
+  }
 
-  if (!isValidCoordinatePair(lat, lng)) {
+  const coordinates = getCoordinatesFromSearchParams(request.nextUrl.searchParams);
+  const category = request.nextUrl.searchParams.get("category");
+  const locationName =
+    normalizeTextInput(request.nextUrl.searchParams.get("locationName"), 120) ??
+    "the selected place";
+
+  if (!coordinates) {
     return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
   }
 
@@ -22,7 +39,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const places = await fetchNearbyPlaces({ lat, lng }, locationName, category);
+    const places = await fetchNearbyPlaces(
+      {
+        lat: clampNumber(coordinates.lat, -90, 90, coordinates.lat),
+        lng: clampNumber(coordinates.lng, -180, 180, coordinates.lng),
+      },
+      locationName,
+      category,
+    );
     return NextResponse.json(
       {
         places,
@@ -31,11 +55,12 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           "Cache-Control": "s-maxage=1800, stale-while-revalidate=3600",
+          ...rateLimitHeaders(rateLimit),
         },
       },
     );
   } catch {
-    const places = buildPlaceholderNearbyPlaces(locationName, { lat, lng }, category);
+    const places = buildPlaceholderNearbyPlaces(locationName, coordinates, category);
 
     return NextResponse.json(
       {
@@ -46,6 +71,7 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+          ...rateLimitHeaders(rateLimit),
         },
       },
     );
