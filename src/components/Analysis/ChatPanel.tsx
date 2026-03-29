@@ -50,7 +50,7 @@ export function ChatPanel({
       id: "assistant-intro",
       role: "assistant",
       content:
-        "Ask about this place in whatever way is useful: site selection, schools, trails, neighborhoods, restaurants, hazards, land use, or infrastructure.",
+        "Ask about this place in whatever way is useful: siting, schools, trails, neighborhoods, hazards, land use, or infrastructure.",
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -94,8 +94,8 @@ export function ChatPanel({
   }, [dataTrends, geodata, resultsMode]);
   const groundingNote =
     resultsMode === "nearby_places"
-      ? "Nearby answers should stay inside live mapped place results plus the supporting access and amenity context around this point."
-      : "Analysis answers should stay inside these live or derived inputs and call out any gaps when a source is limited or unavailable.";
+      ? "Nearby answers should stay inside live mapped place results plus the local access and amenity context."
+      : "Analysis answers should stay inside these live and derived inputs and call out any important gaps.";
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -178,7 +178,7 @@ export function ChatPanel({
             <div>
               <div className="eyebrow">Suggested questions</div>
               <div className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Use these to start fast, or ask anything in your own words.
+                Start here or ask in your own words.
               </div>
             </div>
             {showSuggestions ? (

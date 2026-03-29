@@ -208,18 +208,23 @@ export function ExploreWorkspace() {
 
   const dataTrends = useMemo(() => buildLocationTrends(geodata), [geodata]);
   const visibleWorkspaceCardIds = workspaceCards.map((card) => card.id);
+  const visiblePrimaryCardIds = primaryCards.map((card) => card.id);
   const {
     viewMode,
     setViewMode,
     activeCardId,
     setActiveCardId,
-  } = useWorkspacePresentation(activeProfile.id, visibleWorkspaceCardIds);
+    activePrimaryCardId,
+    setActivePrimaryCardId,
+  } = useWorkspacePresentation(activeProfile.id, visibleWorkspaceCardIds, visiblePrimaryCardIds);
   const boardCards = useMemo(
     () => workspaceCards.filter((card) => visibility[card.id]),
     [visibility, workspaceCards],
   );
   const activeBoardCard =
     boardCards.find((card) => card.id === activeCardId) ?? boardCards[0] ?? null;
+  const activePrimaryCard =
+    primaryCards.find((card) => card.id === activePrimaryCardId) ?? primaryCards[0] ?? null;
 
   const showComparePrompt = sites.length >= 2 && !isCardVisible("compare");
   const showImagePrompt = Boolean(previewUrl) && !isCardVisible("land-classifier");
@@ -422,7 +427,7 @@ export function ExploreWorkspace() {
   return (
     <main className="min-h-screen px-4 py-4 md:px-6">
       <div className="mx-auto max-w-[1720px] space-y-6">
-        <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1.25fr)_420px]">
+        <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <Sidebar
             activeProfile={activeProfile}
             profiles={PROFILES}
@@ -507,10 +512,82 @@ export function ExploreWorkspace() {
                 }}
               >
                 <span className="font-semibold">{activeDemo.name}</span>
-                <span className="mx-2 text-[var(--muted-foreground)]">•</span>
+                <span className="mx-2 text-[var(--muted-foreground)]">&middot;</span>
                 {activeDemo.description}
               </div>
             ) : null}
+
+            <section className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-2">
+                  <div className="eyebrow">Primary focus</div>
+                  <h2 className="text-xl font-semibold text-[var(--foreground)]">
+                    Keep one core view open
+                  </h2>
+                  <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
+                    {activePrimaryCard?.summary ??
+                      "Switch between the active place, AI reasoning, and result summaries without stacking all three at once."}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {primaryCards.map((card) => (
+                    <Button
+                      key={card.id}
+                      type="button"
+                      size="sm"
+                      variant={card.id === activePrimaryCard?.id ? "default" : "secondary"}
+                      className="rounded-full"
+                      onClick={() => setActivePrimaryCardId(card.id)}
+                    >
+                      {card.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {(showImagePrompt || showComparePrompt || showSourcePrompt) && viewMode === "board" ? (
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[color:var(--border-soft)] pt-4">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                    <Sparkles className="h-4 w-4 text-[var(--accent)]" />
+                    Suggested next views
+                  </div>
+                  {showComparePrompt ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full"
+                      onClick={() => openCardOnBoard("compare")}
+                    >
+                      Open comparison
+                    </Button>
+                  ) : null}
+                  {showSourcePrompt ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full"
+                      onClick={() => openCardOnBoard("source-awareness")}
+                    >
+                      Open sources
+                    </Button>
+                  ) : null}
+                  {showImagePrompt ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full"
+                      onClick={() => openCardOnBoard("land-classifier")}
+                    >
+                      Open land cover
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
 
             <section className="relative min-h-[640px] overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
@@ -531,40 +608,8 @@ export function ExploreWorkspace() {
                 }
               />
             </section>
+            {activePrimaryCard ? renderPrimaryCard(activePrimaryCard.id) : null}
           </div>
-
-          <aside className="flex flex-col gap-4">
-            {primaryCards.map((card) => renderPrimaryCard(card.id))}
-
-            {(showImagePrompt || showComparePrompt || showSourcePrompt) && viewMode === "board" ? (
-              <Card>
-                <CardHeader className="space-y-3">
-                  <div className="flex items-center gap-2 text-[var(--accent)]">
-                    <Sparkles className="h-4 w-4" />
-                    <span className="eyebrow">Suggested next views</span>
-                  </div>
-                  <CardTitle>Open the next useful card</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  {showComparePrompt ? (
-                    <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={() => openCardOnBoard("compare")}>
-                      Open comparison
-                    </Button>
-                  ) : null}
-                  {showSourcePrompt ? (
-                    <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={() => openCardOnBoard("source-awareness")}>
-                      Open sources
-                    </Button>
-                  ) : null}
-                  {showImagePrompt ? (
-                    <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={() => openCardOnBoard("land-classifier")}>
-                      Open land cover
-                    </Button>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ) : null}
-          </aside>
         </section>
 
         {viewMode === "board" ? (

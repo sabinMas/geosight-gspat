@@ -91,11 +91,10 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
   return (
     <Card>
       <CardHeader className="space-y-3 pb-2">
-        <Badge>Start with a place</Badge>
-        <CardTitle className="text-2xl sm:text-3xl">Ask questions about any place on Earth</CardTitle>
+        <Badge>Search any place</Badge>
+        <CardTitle className="text-2xl sm:text-3xl">Find a place and start asking better questions</CardTitle>
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Search by city, state, ZIP, country, address, or coordinates, then let GeoSight analyze
-          that location through the currently selected mission profile.
+          Search by place name, address, ZIP, country, or coordinates.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -104,7 +103,7 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
             <Input
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              placeholder="Seattle, WA, 98101, 123 Main St Portland OR, United States, 45.523,-122.676"
+              placeholder="Seattle, WA or 45.523,-122.676"
               className="h-12 border-white/10 bg-slate-950/50 text-sm"
             />
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -143,7 +142,7 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
 
         {resolvedLocationName ? (
           <div className="rounded-[1.5rem] border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-foreground)]">
-            Resolved location: {resolvedLocationName}
+            Locked to {resolvedLocationName}
           </div>
         ) : null}
 

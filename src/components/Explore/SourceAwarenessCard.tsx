@@ -1,9 +1,6 @@
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  formatSourceTimestamp,
-  summarizeSourceMeta,
-} from "@/lib/source-metadata";
+import { formatSourceTimestamp, summarizeSourceMeta } from "@/lib/source-metadata";
 import {
   buildSourceRegistryPreview,
   formatSourceRegionScopes,
@@ -32,9 +29,9 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Review what is direct, what is derived, and where regional coverage or freshness limits
-          apply before acting on the analysis.
+          Check source status, freshness, and regional limits before acting.
         </p>
+
         <div className="grid gap-3">
           {Object.values(geodata.sources).map((source) => (
             <div
@@ -43,42 +40,50 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-[var(--foreground)]">{source.label}</div>
+                  <div className="text-sm font-semibold text-[var(--foreground)]">
+                    {source.label}
+                  </div>
                   <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                     {summarizeSourceMeta(source)}
                   </div>
                 </div>
                 <SourceStatusBadge source={source} />
               </div>
+
               <div className="mt-3 text-xs leading-5 text-[var(--foreground-soft)]">
                 {source.confidence}
               </div>
-              {source.fallbackProviders?.length ? (
-                <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                  Fallbacks: {source.fallbackProviders.join(", ")}
-                </div>
-              ) : null}
-              {source.accessType || source.regionScopes?.length ? (
-                <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                  {source.accessType ? `${source.accessType.replaceAll("_", " ")} source` : null}
-                  {source.accessType && source.regionScopes?.length ? " • " : null}
-                  {source.regionScopes?.length
-                    ? formatSourceRegionScopes(source.regionScopes)
-                    : null}
-                </div>
-              ) : null}
-              <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                {formatSourceTimestamp(source.lastUpdated)}
+
+              <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--muted-foreground)]">
+                {source.accessType ? (
+                  <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                    {source.accessType.replaceAll("_", " ")}
+                  </span>
+                ) : null}
+                {source.regionScopes?.length ? (
+                  <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                    {formatSourceRegionScopes(source.regionScopes)}
+                  </span>
+                ) : null}
+                <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                  {formatSourceTimestamp(source.lastUpdated)}
+                </span>
+                {source.fallbackProviders?.length ? (
+                  <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                    Fallbacks: {source.fallbackProviders.join(", ")}
+                  </span>
+                ) : null}
               </div>
             </div>
           ))}
         </div>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
-          <div className="text-sm font-semibold text-[var(--foreground)]">Regional source strategy</div>
+          <div className="text-sm font-semibold text-[var(--foreground)]">
+            Regional source strategy
+          </div>
           <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-            GeoSight&apos;s current provider guidance for {formatSourceRegionScopes(registryContext.scopes)}.
-            This registry helps future agents choose region-aware fallbacks instead of assuming US-only sources.
+            Provider guidance for {formatSourceRegionScopes(registryContext.scopes)}.
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {registryPreview.map((guidance) => (
@@ -97,7 +102,11 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
                 </div>
                 {guidance.fallbacks.length ? (
                   <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                    Fallbacks: {guidance.fallbacks.slice(0, 2).map((provider) => provider.name).join(", ")}
+                    Fallbacks:{" "}
+                    {guidance.fallbacks
+                      .slice(0, 2)
+                      .map((provider) => provider.name)
+                      .join(", ")}
                   </div>
                 ) : null}
               </div>

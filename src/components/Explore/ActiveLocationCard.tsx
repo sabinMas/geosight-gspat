@@ -75,7 +75,7 @@ export function ActiveLocationCard({
             <div className="eyebrow">Location summary</div>
             <CardTitle>Active location</CardTitle>
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              Focus the map here, then ask GeoSight what matters through the{" "}
+              Ask what matters here through the{" "}
               <span style={{ color: profile.accentColor }}>{profile.name}</span> lens.
             </p>
           </div>
@@ -125,8 +125,7 @@ export function ActiveLocationCard({
               <div>
                 <div className="eyebrow">Data health</div>
                 <div className="mt-2 text-sm text-[var(--muted-foreground)]">
-                  Quick trust check for the live signals shaping this view. The headline stats above
-                  now carry their own inline provenance too.
+                  Quick trust check for the signals shaping this view.
                 </div>
               </div>
               <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenSources}>
@@ -154,7 +153,7 @@ export function ActiveLocationCard({
 
         {showSourceDetailsCta ? (
           <div className="rounded-[1.5rem] border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-foreground)]">
-            Source details are available when you want to inspect freshness, coverage, and confidence.
+            Source details are ready when you want to inspect freshness, coverage, and confidence.
           </div>
         ) : null}
 

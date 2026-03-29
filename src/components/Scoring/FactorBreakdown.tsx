@@ -10,6 +10,12 @@ interface FactorBreakdownProps {
   title?: string;
 }
 
+const EVIDENCE_TONE: Record<string, string> = {
+  direct_live: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50",
+  derived_live: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50",
+  proxy: "border-amber-300/20 bg-amber-400/10 text-amber-50",
+};
+
 export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBreakdownProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -21,13 +27,36 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
     return null;
   }
 
+  const evidenceCounts = score.factors.reduce<Record<string, number>>((acc, factor) => {
+    const key = factor.evidenceKind ?? "derived_live";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <Card>
       <CardHeader className="space-y-3">
-        <div className="eyebrow">Planning board</div>
+        <div className="eyebrow">Evidence breakdown</div>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {evidenceCounts.direct_live ? (
+            <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.direct_live}`}>
+              {evidenceCounts.direct_live} direct live
+            </span>
+          ) : null}
+          {evidenceCounts.derived_live ? (
+            <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.derived_live}`}>
+              {evidenceCounts.derived_live} derived live
+            </span>
+          ) : null}
+          {evidenceCounts.proxy ? (
+            <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.proxy}`}>
+              {evidenceCounts.proxy} proxy heuristics
+            </span>
+          ) : null}
+        </div>
         <div className="h-72">
           {mounted ? (
             <ResponsiveContainer width="100%" height="100%">
@@ -57,11 +86,27 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
               key={factor.key}
               className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3"
             >
-              <div className="flex items-center justify-between text-sm text-[var(--foreground)]">
-                <span>{factor.label}</span>
-                <span>{factor.score}</span>
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--foreground)]">
+                <span className="font-medium">{factor.label}</span>
+                <div className="flex items-center gap-2">
+                  {factor.evidenceLabel ? (
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                        EVIDENCE_TONE[factor.evidenceKind ?? "derived_live"]
+                      }`}
+                    >
+                      {factor.evidenceLabel}
+                    </span>
+                  ) : null}
+                  <span className="font-semibold">{factor.score}</span>
+                </div>
               </div>
               <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">{factor.detail}</p>
+              {factor.evidenceExplanation ? (
+                <p className="mt-2 text-xs leading-5 text-[var(--foreground-soft)]">
+                  {factor.evidenceExplanation}
+                </p>
+              ) : null}
             </div>
           ))}
         </div>

@@ -22,6 +22,12 @@ function getBandLabel(score: number, profile?: MissionProfile) {
   return profile.recommendationBands.find((band) => score >= band.min)?.text ?? null;
 }
 
+const EVIDENCE_TONE: Record<string, string> = {
+  direct_live: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50",
+  derived_live: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50",
+  proxy: "border-amber-300/20 bg-amber-400/10 text-amber-50",
+};
+
 export function ScoreCard({ score, title = "Site score", profile, onOpenDetails }: ScoreCardProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -36,12 +42,17 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
   const accent = profile?.accentColor ?? "#00e5ff";
   const barColor = score.total > 80 ? "#5be49b" : score.total > 60 ? accent : "#ffab00";
   const bandLabel = getBandLabel(score.total, profile);
+  const evidenceCounts = score.factors.reduce<Record<string, number>>((acc, factor) => {
+    const key = factor.evidenceKind ?? "derived_live";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
         <div className="space-y-2">
-          <div className="eyebrow">Planning board</div>
+          <div className="eyebrow">Mission score</div>
           <CardTitle>{title}</CardTitle>
         </div>
         {onOpenDetails ? (
@@ -74,20 +85,47 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
         </div>
         <div className="space-y-3">
           <p className="text-sm leading-6 text-[var(--muted-foreground)]">{score.recommendation}</p>
-          {bandLabel ? <p className="text-xs leading-5 text-[var(--muted-foreground)]">{bandLabel}</p> : null}
+          {bandLabel ? (
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              {bandLabel}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {evidenceCounts.direct_live ? (
+              <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.direct_live}`}>
+                {evidenceCounts.direct_live} direct live
+              </span>
+            ) : null}
+            {evidenceCounts.derived_live ? (
+              <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.derived_live}`}>
+                {evidenceCounts.derived_live} derived live
+              </span>
+            ) : null}
+            {evidenceCounts.proxy ? (
+              <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.proxy}`}>
+                {evidenceCounts.proxy} proxy heuristics
+              </span>
+            ) : null}
+          </div>
           {profile ? (
             <div
-              className="rounded-[1.5rem] border p-4 text-sm text-[var(--foreground)]"
+              className="rounded-[1.5rem] border p-4"
               style={{
                 borderColor: `${accent}33`,
                 background: `${accent}12`,
               }}
             >
-              Deterministic weighted model:{" "}
-              {profile.factors
-                .map((factor) => `${factor.label} ${Math.round(factor.weight * 100)}%`)
-                .join(", ")}
-              .
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                Factor weights
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
+                {profile.factors
+                  .map((factor) => `${factor.label} ${Math.round(factor.weight * 100)}%`)
+                  .join(", ")}
+              </div>
+              <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
+                Open the breakdown to inspect the evidence behind each factor.
+              </div>
             </div>
           ) : null}
         </div>

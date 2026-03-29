@@ -29,12 +29,9 @@ export function Sidebar({
     <aside className="glass-panel data-grid z-20 flex w-full max-w-[360px] flex-col gap-4 rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] lg:h-[calc(100vh-2rem)]">
       <div className="space-y-3">
         <Badge>GeoSight</Badge>
-        <h1 className="text-3xl font-semibold text-[var(--foreground)]">
-          Multi-profile geospatial intelligence
-        </h1>
+        <h1 className="text-3xl font-semibold text-[var(--foreground)]">Location intelligence</h1>
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Search any place, switch mission profiles, and keep the workspace focused on only the
-          cards you need.
+          Pick a lens, find a place, and keep the workspace focused.
         </p>
       </div>
 
@@ -54,7 +51,7 @@ export function Sidebar({
             <div className="mt-1 text-sm" style={{ color: activeProfile.accentColor }}>
               {activeProfile.tagline}
             </div>
-            <p className="mt-3">{activeProfile.description}</p>
+            <p className="mt-3 line-clamp-4">{activeProfile.description}</p>
           </div>
         </CardContent>
       </Card>
@@ -65,24 +62,24 @@ export function Sidebar({
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
           <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
-            <div className="eyebrow">Current focus</div>
+            <div className="eyebrow">Current place</div>
             <div className="mt-2 text-sm font-medium text-[var(--foreground)]">{selectedLocationName}</div>
             <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
               {selectedRegion.center.lat.toFixed(4)} / {selectedRegion.center.lng.toFixed(4)}
             </div>
           </div>
-          <p>{activeProfile.description}</p>
+          <p>{activeProfile.tagline}</p>
         </CardContent>
       </Card>
 
       <Card className="flex-1">
         <CardHeader>
-          <CardTitle>Demo jump points</CardTitle>
+          <CardTitle>Quick regions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <details className="group rounded-2xl border border-white/10 bg-white/5 p-3" open>
             <summary className="cursor-pointer list-none text-sm font-medium text-white">
-              {activeProfile.name} starter places
+              {activeProfile.name} starters
             </summary>
             <div className="mt-3 space-y-3">
               {quickRegions.map((region) => (
@@ -117,12 +114,9 @@ export function Sidebar({
           <CardTitle>Demos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
-          <p>
-            Open the original Columbia River cooling walkthrough any time you want to compare the
-            prebuilt Pacific Northwest benchmark sites.
-          </p>
+          <p>Open the original Columbia River cooling walkthrough and benchmark set.</p>
           <Button className="w-full justify-center rounded-2xl" onClick={onOpenDemo}>
-            See data center cooling demo
+            Open cooling demo
           </Button>
         </CardContent>
       </Card>

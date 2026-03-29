@@ -329,6 +329,67 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
   return factor.description;
 }
 
+function buildFactorEvidence(factor: ScoringFactor): Pick<
+  SiteFactorScore,
+  "evidenceKind" | "evidenceLabel" | "evidenceExplanation"
+> {
+  if (factor.scoreFn === "distance" || factor.scoreFn === "elevation" || factor.scoreFn === "climate") {
+    return {
+      evidenceKind: "direct_live",
+      evidenceLabel: "Direct live signal",
+      evidenceExplanation:
+        "This factor is scored from a live measurement or nearest-feature reading returned directly by the current geodata pipeline.",
+    };
+  }
+
+  if (factor.scoreFn === "landcover") {
+    return {
+      evidenceKind: "derived_live",
+      evidenceLabel: "Derived live analysis",
+      evidenceExplanation:
+        "This factor is scored from land-cover analysis derived from live or recently fetched map context rather than a single raw measurement.",
+    };
+  }
+
+  if (factor.scoreFn === "custom") {
+    switch (String(factor.params.metric ?? "")) {
+      case "schoolAccess":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation:
+            "This factor uses GeoSight's normalized school-context analysis built from live school records and official metrics where available.",
+        };
+      case "terrainVariety":
+      case "remoteness":
+      case "hazardRisk":
+      case "amenities":
+      case "commercialDemand":
+      case "commercialDensity":
+      case "landCost":
+        return {
+          evidenceKind: "proxy",
+          evidenceLabel: "Proxy heuristic",
+          evidenceExplanation:
+            "This factor blends live signals into a heuristic score, so it is useful for first-pass comparison but should not be treated as a direct measurement.",
+        };
+      default:
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation:
+            "This factor is computed from multiple live inputs rather than a single direct reading.",
+        };
+    }
+  }
+
+  return {
+    evidenceKind: "derived_live",
+    evidenceLabel: "Derived live analysis",
+    evidenceExplanation: "This factor is computed from the currently available geospatial inputs.",
+  };
+}
+
 function runFactorScore(geodata: GeodataResult, factor: ScoringFactor) {
   switch (factor.scoreFn) {
     case "distance":
@@ -371,13 +432,18 @@ export function buildFactorScores(
   geodata: GeodataResult,
   profile: MissionProfile = DEFAULT_PROFILE,
 ): SiteFactorScore[] {
-  return profile.factors.map((factor) => ({
-    key: factor.key,
-    label: factor.label,
-    score: runFactorScore(geodata, factor),
-    weight: factor.weight,
-    detail: buildFactorDetail(geodata, factor),
-  }));
+  return profile.factors.map((factor) => {
+    const evidence = buildFactorEvidence(factor);
+
+    return {
+      key: factor.key,
+      label: factor.label,
+      score: runFactorScore(geodata, factor),
+      weight: factor.weight,
+      detail: buildFactorDetail(geodata, factor),
+      ...evidence,
+    };
+  });
 }
 
 export function calculateProfileScore(

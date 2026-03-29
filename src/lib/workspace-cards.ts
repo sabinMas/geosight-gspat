@@ -8,7 +8,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "active-location",
     title: "Active location",
-    summary: "Pin the current place, mission context, and quick trust signals.",
+    summary: "Pin the current place and scan the key trust signals.",
     icon: "MapPin",
     category: "context",
     zone: "primary",
@@ -23,7 +23,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "chat",
     title: "Ask GeoSight",
-    summary: "Run mission-aware AI analysis grounded in the active place and live context.",
+    summary: "Ask mission-aware questions grounded in the active place.",
     icon: "MessageSquare",
     category: "analysis",
     zone: "primary",
@@ -38,7 +38,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "results",
     title: "Results",
-    summary: "Switch between trend analysis and nearby place discovery around the selected point.",
+    summary: "Switch between trend summaries and nearby place discovery.",
     icon: "PanelsTopLeft",
     category: "analysis",
     zone: "primary",
@@ -53,7 +53,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "score",
     title: "Mission score",
-    summary: "See the weighted suitability score for the current mission profile.",
+    summary: "See the weighted suitability score for this mission.",
     icon: "Gauge",
     category: "planning",
     zone: "workspace",
@@ -68,7 +68,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "factor-breakdown",
     title: "Factor breakdown",
-    summary: "Inspect how each factor contributed to the mission score.",
+    summary: "Inspect how each factor changed the score.",
     icon: "BarChart3",
     category: "planning",
     zone: "workspace",
@@ -83,7 +83,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "compare",
     title: "Comparison",
-    summary: "Review saved locations side by side with the active mission lens.",
+    summary: "Review saved locations side by side.",
     icon: "Columns3",
     category: "comparison",
     zone: "workspace",
@@ -98,7 +98,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "terrain-viewer",
     title: "Terrain tools",
-    summary: "Adjust terrain exaggeration and spatial framing around the active region.",
+    summary: "Adjust terrain exaggeration and framing.",
     icon: "Mountain",
     category: "terrain",
     zone: "workspace",
@@ -113,7 +113,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "elevation-profile",
     title: "Elevation profile",
-    summary: "Inspect sampled terrain along a transect through the selected region.",
+    summary: "Inspect a sampled terrain transect through the region.",
     icon: "LineChart",
     category: "terrain",
     zone: "workspace",
@@ -128,7 +128,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "image-upload",
     title: "Imagery tools",
-    summary: "Upload an image and add remote-sensing context to the workspace.",
+    summary: "Upload imagery and add remote-sensing context.",
     icon: "ImagePlus",
     category: "media",
     zone: "workspace",
@@ -143,7 +143,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "land-classifier",
     title: "Land classification",
-    summary: "Review inferred land-cover buckets from imagery and mapped data.",
+    summary: "Review inferred land-cover buckets.",
     icon: "Leaf",
     category: "media",
     zone: "workspace",
@@ -158,7 +158,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "source-awareness",
     title: "Source awareness",
-    summary: "Check provider freshness, coverage, and confidence before acting on results.",
+    summary: "Check provider freshness, coverage, and confidence.",
     icon: "ShieldCheck",
     category: "context",
     zone: "workspace",
@@ -173,7 +173,7 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "school-context",
     title: "School context",
-    summary: "Inspect nearby public-school context and any available official metrics.",
+    summary: "Inspect nearby school context and official metrics.",
     icon: "GraduationCap",
     category: "planning",
     zone: "workspace",

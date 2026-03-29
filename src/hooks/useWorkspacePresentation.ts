@@ -8,6 +8,7 @@ const STORAGE_KEY = "geosight.workspace-presentation.v1";
 interface StoredWorkspacePresentation {
   viewMode?: WorkspaceViewMode;
   activeBoardCards?: Record<string, WorkspaceCardId>;
+  activePrimaryCards?: Record<string, WorkspaceCardId>;
 }
 
 function readStoredPresentation(): StoredWorkspacePresentation {
@@ -34,10 +35,14 @@ function writeStoredPresentation(value: StoredWorkspacePresentation) {
 export function useWorkspacePresentation(
   profileId: string,
   visibleWorkspaceCardIds: WorkspaceCardId[],
+  visiblePrimaryCardIds: WorkspaceCardId[] = [],
 ) {
   const [viewMode, setViewModeState] = useState<WorkspaceViewMode>("board");
   const [activeCardId, setActiveCardIdState] = useState<WorkspaceCardId | null>(
     visibleWorkspaceCardIds[0] ?? null,
+  );
+  const [activePrimaryCardId, setActivePrimaryCardIdState] = useState<WorkspaceCardId | null>(
+    visiblePrimaryCardIds[0] ?? null,
   );
 
   useEffect(() => {
@@ -47,11 +52,17 @@ export function useWorkspacePresentation(
     const storedCardId = stored.activeBoardCards?.[profileId];
     if (storedCardId && visibleWorkspaceCardIds.includes(storedCardId)) {
       setActiveCardIdState(storedCardId);
-      return;
+    } else {
+      setActiveCardIdState(visibleWorkspaceCardIds[0] ?? null);
     }
 
-    setActiveCardIdState(visibleWorkspaceCardIds[0] ?? null);
-  }, [profileId, visibleWorkspaceCardIds]);
+    const storedPrimaryCardId = stored.activePrimaryCards?.[profileId];
+    if (storedPrimaryCardId && visiblePrimaryCardIds.includes(storedPrimaryCardId)) {
+      setActivePrimaryCardIdState(storedPrimaryCardId);
+    } else {
+      setActivePrimaryCardIdState(visiblePrimaryCardIds[0] ?? null);
+    }
+  }, [profileId, visiblePrimaryCardIds, visibleWorkspaceCardIds]);
 
   const setViewMode = (nextViewMode: WorkspaceViewMode) => {
     setViewModeState(nextViewMode);
@@ -60,6 +71,7 @@ export function useWorkspacePresentation(
       ...stored,
       viewMode: nextViewMode,
       activeBoardCards: stored.activeBoardCards ?? {},
+      activePrimaryCards: stored.activePrimaryCards ?? {},
     });
   };
 
@@ -73,6 +85,21 @@ export function useWorkspacePresentation(
         ...(stored.activeBoardCards ?? {}),
         [profileId]: nextCardId,
       },
+      activePrimaryCards: stored.activePrimaryCards ?? {},
+    });
+  };
+
+  const setActivePrimaryCardId = (nextCardId: WorkspaceCardId) => {
+    setActivePrimaryCardIdState(nextCardId);
+    const stored = readStoredPresentation();
+    writeStoredPresentation({
+      ...stored,
+      viewMode: stored.viewMode ?? viewMode,
+      activeBoardCards: stored.activeBoardCards ?? {},
+      activePrimaryCards: {
+        ...(stored.activePrimaryCards ?? {}),
+        [profileId]: nextCardId,
+      },
     });
   };
 
@@ -81,5 +108,7 @@ export function useWorkspacePresentation(
     setViewMode,
     activeCardId,
     setActiveCardId,
+    activePrimaryCardId,
+    setActivePrimaryCardId,
   };
 }

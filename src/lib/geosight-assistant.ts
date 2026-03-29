@@ -6,6 +6,7 @@ import {
   MissionProfile,
   NearbyPlace,
   ResultsMode,
+  ScoreEvidenceKind,
 } from "@/types";
 
 export const STARTER_PROMPTS = [
@@ -71,13 +72,43 @@ Response format guidance:
 `;
 }
 
+function classifyFactorEvidence(profileFactor: MissionProfile["factors"][number]): {
+  kind: ScoreEvidenceKind;
+  label: string;
+} {
+  if (
+    profileFactor.scoreFn === "distance" ||
+    profileFactor.scoreFn === "elevation" ||
+    profileFactor.scoreFn === "climate"
+  ) {
+    return { kind: "direct_live", label: "direct live signal" };
+  }
+
+  if (profileFactor.scoreFn === "landcover") {
+    return { kind: "derived_live", label: "derived live analysis" };
+  }
+
+  if (profileFactor.scoreFn === "custom") {
+    if (String(profileFactor.params.metric ?? "") === "schoolAccess") {
+      return { kind: "derived_live", label: "derived live analysis" };
+    }
+
+    return { kind: "proxy", label: "proxy heuristic" };
+  }
+
+  return { kind: "derived_live", label: "derived live analysis" };
+}
+
 export function buildGeoSightSystemPrompt(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ) {
   const responseMode = inferResponseMode(payload.question, payload.resultsMode);
   const factorChecklist = profile.factors
-    .map((factor) => `- ${factor.label}: ${factor.description}`)
+    .map((factor) => {
+      const evidence = classifyFactorEvidence(factor);
+      return `- ${factor.label} (${evidence.label}): ${factor.description}`;
+    })
     .join("\n");
 
   const prompt = `
@@ -100,9 +131,11 @@ Behavior rules:
 - Treat the selected location as the center of the answer.
 - Restate the active location clearly.
 - Separate supported observations from approximations or inference.
+- When discussing score-style reasoning, explicitly say whether a point comes from a direct live signal, derived live analysis, or a proxy heuristic.
 - Use any structured nearby-place results or trend objects included in the input JSON.
 - If school context is present, distinguish official government accountability fields from GeoSight-derived normalization.
 - If school coverage is outside the current US-first pipeline or unavailable, say that clearly instead of inferring school quality.
+- Never present proxy heuristics as if they were direct measurements.
 - Be concise, practical, and grounded in the active mission profile.
 
 ${buildResponseGuidance(responseMode)}
@@ -191,6 +224,13 @@ function formatTrendLine(trend: DataTrend) {
   return `- ${trend.label}: ${trend.value}. ${trend.detail}`;
 }
 
+function buildFactorEvidenceLines(profile: MissionProfile) {
+  return profile.factors.map((factor) => {
+    const evidence = classifyFactorEvidence(factor);
+    return `- ${factor.label}: ${evidence.label}.`;
+  });
+}
+
 export function buildFallbackAssessment(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
@@ -277,6 +317,9 @@ export function buildFallbackAssessment(
     "",
     "Key factors considered:",
     ...profile.factors.map((factor) => `- ${factor.label}`),
+    "",
+    "Evidence mix:",
+    ...buildFactorEvidenceLines(profile),
     "",
     "Trend snapshot:",
     ...(trendLines.length

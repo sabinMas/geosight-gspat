@@ -80,6 +80,7 @@ export type SchoolCoverageStatus =
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 export type NearbyPlacesSource = "live" | "unavailable";
+export type ScoreEvidenceKind = "direct_live" | "derived_live" | "proxy";
 
 export interface WorkspaceCardDefinition {
   id: WorkspaceCardId;
@@ -395,6 +396,9 @@ export interface SiteFactorScore {
   score: number;
   weight: number;
   detail: string;
+  evidenceKind?: ScoreEvidenceKind;
+  evidenceLabel?: string;
+  evidenceExplanation?: string;
 }
 
 export interface SiteScore {
