@@ -83,6 +83,12 @@ export function HazardCard({ geodata }: HazardCardProps) {
           hazard analyst.
         </div>
 
+        {geodata?.sources.hazardFire.note ? (
+          <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 text-sm leading-6 text-[var(--muted-foreground)]">
+            {geodata.sources.hazardFire.note}
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-2">
           {geodata ? (
             <>

@@ -508,6 +508,7 @@ export interface MissionRunSourceSummary {
   liveSources: string[];
   derivedSignals: string[];
   missingCoverage: string[];
+  regionalProviders: string[];
 }
 
 export interface MissionRunResult {

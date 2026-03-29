@@ -182,7 +182,7 @@ export function MissionRunCard({
             <Sparkles className="h-4 w-4 text-[var(--accent)]" />
             Why GeoSight believes this
           </div>
-          <div className="mt-3 grid gap-3 lg:grid-cols-3">
+          <div className="mt-3 grid gap-3 lg:grid-cols-4">
             <div>
               <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                 Live sources
@@ -211,6 +211,16 @@ export function MissionRunCard({
                 {result?.sourceSummary.missingCoverage.length
                   ? result.sourceSummary.missingCoverage.slice(0, 2).join(" ")
                   : "No major source gap is currently highlighted."}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+                Regional providers
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--foreground-soft)]">
+                {result?.sourceSummary.regionalProviders.length
+                  ? result.sourceSummary.regionalProviders.slice(0, 4).join(", ")
+                  : "Regional provider selection appears here after the mission run."}
               </div>
             </div>
           </div>

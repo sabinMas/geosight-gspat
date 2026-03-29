@@ -46,6 +46,11 @@ export function SourceInlineSummary({
       <div className="mt-1 text-[11px] leading-5 text-[var(--muted-foreground)]">
         {source.confidence}
       </div>
+      {source.note ? (
+        <div className="mt-1 text-[11px] leading-5 text-[var(--muted-foreground)]">
+          {source.note}
+        </div>
+      ) : null}
     </div>
   );
 }

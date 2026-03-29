@@ -9,6 +9,10 @@ export interface FireHazardSummary {
   dataSource: "MODIS" | "VIIRS" | null;
 }
 
+export function isFireHazardConfigured() {
+  return Boolean(process.env.NASA_FIRMS_MAP_KEY);
+}
+
 function buildFirmsBoundingBox(coords: Coordinates) {
   const west = Math.max(coords.lng - 5, -180);
   const south = Math.max(coords.lat - 5, -90);

@@ -174,6 +174,7 @@ export function buildMissionRunSourceSummary(
       liveSources: [],
       derivedSignals: [],
       missingCoverage: ["Geodata has not been loaded yet for this mission run."],
+      regionalProviders: [],
     };
   }
 
@@ -189,6 +190,13 @@ export function buildMissionRunSourceSummary(
     missingCoverage: sources
       .filter((source) => source.status === "limited" || source.status === "unavailable")
       .map(formatCoverageGap),
+    regionalProviders: [
+      geodata.sources.elevation,
+      geodata.sources.demographics,
+      geodata.sources.climate,
+      geodata.sources.school,
+      geodata.sources.hazardFire,
+    ].map((source) => `${source.label}: ${source.provider}`),
   };
 }
 

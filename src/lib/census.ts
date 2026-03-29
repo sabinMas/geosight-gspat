@@ -42,6 +42,7 @@ async function reverseGeocodeCountry(coords: Coordinates) {
     `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=jsonv2&zoom=3&addressdetails=1`,
     {
       headers: {
+        "Accept-Language": "en",
         "User-Agent": "GeoSight geospatial demo",
       },
       next: { revalidate: 60 * 60 * 24 },

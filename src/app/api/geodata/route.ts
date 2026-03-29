@@ -9,7 +9,7 @@ import {
   getElementCoordinates,
   OverpassElement,
 } from "@/lib/overpass";
-import { fetchFireHazardSummary } from "@/lib/nasa-firms";
+import { fetchFireHazardSummary, isFireHazardConfigured } from "@/lib/nasa-firms";
 import {
   applyRateLimit,
   createRateLimitResponse,
@@ -162,6 +162,7 @@ export async function GET(request: NextRequest) {
 
   const { lat, lng } = coordinates;
   const bbox = toBoundingBox({ lat, lng }, 8);
+  const fireHazardConfigured = isFireHazardConfigured();
 
   const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult, fireHazardResult, schoolResult] =
     await Promise.allSettled([
@@ -345,18 +346,26 @@ export async function GET(request: NextRequest) {
         domain: "hazards",
         context: registryContext,
         status:
-          fireHazardResult.status === "fulfilled" &&
-          fireHazardResult.value.activeFireCount7d !== null
-            ? "live"
-            : "limited",
+          !fireHazardConfigured
+            ? "unavailable"
+            : fireHazardResult.status === "fulfilled" &&
+                fireHazardResult.value.activeFireCount7d !== null
+              ? "live"
+              : "limited",
         lastUpdated: now,
         freshness: "Cached up to 3 hours",
         coverage: "Global VIIRS satellite detections",
+        accessType: "api",
         confidence:
-          fireHazardResult.status === "fulfilled" &&
-          fireHazardResult.value.activeFireCount7d !== null
-            ? "Near-real-time satellite detections within the active area."
-            : "Fire detections could not be retrieved for this point.",
+          !fireHazardConfigured
+            ? "NASA FIRMS needs an API map key before GeoSight can retrieve live fire detections."
+            : fireHazardResult.status === "fulfilled" &&
+                fireHazardResult.value.activeFireCount7d !== null
+              ? "Near-real-time satellite detections within the active area."
+              : "Fire detections could not be retrieved for this point.",
+        note: !fireHazardConfigured
+          ? "Set NASA_FIRMS_MAP_KEY to enable live global fire detections in the hazard stack."
+          : undefined,
       }),
       demographics: buildRegistryAwareSourceMeta({
         id: "demographics",
@@ -465,7 +474,9 @@ export async function GET(request: NextRequest) {
       "Overpass OSM features for roads, power lines, waterways, amenities, and land-use context.",
       "Open-Meteo current weather, forecast, and air-quality snapshots.",
       "USGS earthquake event feed summarized within 250 km over the last 30 days.",
-      "NASA FIRMS VIIRS fire detections summarized within the active region.",
+      fireHazardConfigured
+        ? "NASA FIRMS VIIRS fire detections summarized within the active region."
+        : "NASA FIRMS fire detections are available when NASA_FIRMS_MAP_KEY is configured.",
       "FCC county lookup with ACS 5-year Census demographics, with World Bank national indicators for non-US locations.",
       "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
     ],
