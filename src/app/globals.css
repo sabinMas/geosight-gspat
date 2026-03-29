@@ -8,6 +8,9 @@
   --foreground: #f4f8ff;
   --foreground-soft: rgba(244, 248, 255, 0.88);
   --muted-foreground: rgba(190, 204, 224, 0.78);
+  --color-primary: #53ddff;
+  --color-warning: #ffab00;
+  --color-text-muted: rgba(190, 204, 224, 0.78);
   --accent: #53ddff;
   --accent-strong: rgba(83, 221, 255, 0.34);
   --accent-soft: rgba(83, 221, 255, 0.14);
@@ -42,6 +45,9 @@ html[data-theme="light"] {
   --foreground: #0e2436;
   --foreground-soft: rgba(14, 36, 54, 0.9);
   --muted-foreground: rgba(64, 90, 111, 0.78);
+  --color-primary: #0f9fcd;
+  --color-warning: #da9200;
+  --color-text-muted: rgba(64, 90, 111, 0.78);
   --accent: #0f9fcd;
   --accent-strong: rgba(15, 159, 205, 0.24);
   --accent-soft: rgba(15, 159, 205, 0.12);

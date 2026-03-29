@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import AgentPanel from "@/components/agent-panel/AgentPanel";
 import { ThemeProvider } from "@/components/Theme/ThemeProvider";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import "./globals.css";
@@ -27,7 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${jetBrainsMono.variable}`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <AgentPanel>{children}</AgentPanel>
+        </ThemeProvider>
       </body>
     </html>
   );

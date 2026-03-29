@@ -36,6 +36,7 @@ import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAgentPanel } from "@/context/AgentPanelContext";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useSavedSites } from "@/hooks/useSavedSites";
@@ -77,6 +78,7 @@ function getInitialProfile(profileId?: string) {
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
+  const { setGeoContext } = useAgentPanel();
   const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
   const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
   const overlayDemo = coolingDemo ?? activeDemo;
@@ -230,6 +232,46 @@ export function ExploreWorkspace() {
   );
 
   const dataTrends = useMemo(() => buildLocationTrends(geodata), [geodata]);
+
+  useEffect(() => {
+    setGeoContext({
+      lat: selectedPoint.lat,
+      lng: selectedPoint.lng,
+      profile: activeProfile.id,
+      missionId: missionRunPreset?.id,
+      score: geodata ? score?.total : undefined,
+      dataBundle: geodata
+        ? {
+            locationName: selectedLocationName,
+            resultsMode,
+            geodata,
+            schoolContext,
+            nearbyPlaces: places,
+            nearbySource,
+            dataTrends,
+            imageSummary,
+            classification: effectiveClassification,
+          }
+        : undefined,
+    });
+  }, [
+    activeProfile.id,
+    dataTrends,
+    effectiveClassification,
+    geodata,
+    imageSummary,
+    missionRunPreset?.id,
+    nearbySource,
+    places,
+    resultsMode,
+    score?.total,
+    schoolContext,
+    selectedLocationName,
+    selectedPoint.lat,
+    selectedPoint.lng,
+    setGeoContext,
+  ]);
+
   const allWorkspaceCardIds = useMemo(
     () => cards.filter((card) => card.zone === "workspace").map((card) => card.id),
     [cards],
