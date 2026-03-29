@@ -51,6 +51,21 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
     emptyState: "Switch between map analysis and nearby places for the active location.",
   },
   {
+    id: "mission-run",
+    title: "Mission run",
+    summary: "Run a judge-facing multi-step briefing for the active competition story.",
+    icon: "Sparkles",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "primary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 35,
+    requiredData: ["mission-run"],
+    supportedProfiles: ["data-center", "commercial", "residential"],
+    emptyState: "Open this to run a structured competition briefing for the active story.",
+  },
+  {
     id: "score",
     title: "Mission score",
     summary: "See the weighted suitability score for this mission.",
@@ -201,10 +216,10 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 ) as Record<WorkspaceCardId, WorkspaceCardDefinition>;
 
 const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
-  "data-center": ["active-location", "chat", "results", "score", "factor-breakdown"],
+  "data-center": ["active-location", "chat", "results", "score", "factor-breakdown", "mission-run"],
   hiking: ["active-location", "chat", "results", "score", "terrain-viewer"],
-  residential: ["active-location", "chat", "results", "score", "school-context", "source-awareness"],
-  commercial: ["active-location", "chat", "results", "score"],
+  residential: ["active-location", "chat", "results", "score", "school-context", "source-awareness", "mission-run"],
+  commercial: ["active-location", "chat", "results", "score", "mission-run"],
 };
 
 export function getWorkspaceCardDefaults(profileId: string) {

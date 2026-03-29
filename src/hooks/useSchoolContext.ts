@@ -9,28 +9,31 @@ export function useSchoolContext(coords: Coordinates) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+
+    setSchoolContext(null);
+    setLoading(true);
+    setError(null);
 
     async function run() {
-      setLoading(true);
-      setError(null);
-
       try {
-        const response = await fetch(`/api/schools?lat=${coords.lat}&lng=${coords.lng}`);
+        const response = await fetch(`/api/schools?lat=${coords.lat}&lng=${coords.lng}`, {
+          signal: controller.signal,
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch school context.");
         }
 
         const data = (await response.json()) as SchoolContextResult;
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setSchoolContext(data);
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : "Unknown school-data error.");
         }
       } finally {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -39,7 +42,7 @@ export function useSchoolContext(coords: Coordinates) {
     void run();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [coords.lat, coords.lng]);
 

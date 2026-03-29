@@ -1,4 +1,7 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   formatSourceTimestamp,
@@ -20,6 +23,8 @@ const TONE_CLASSES: Record<DataTrend["direction"], string> = {
 };
 
 export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPanelProps) {
+  const [showEvidence, setShowEvidence] = useState(false);
+
   return (
     <Card>
       <CardHeader className="space-y-4">
@@ -28,10 +33,23 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Use this mode for terrain, access, weather, hazards, land-cover, and demographic context
-          tied to the active place.
-        </p>
+        <button
+          type="button"
+          onClick={() => setShowEvidence((current) => !current)}
+          className="flex w-full items-center justify-between rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-left"
+        >
+          <div>
+            <div className="eyebrow">Evidence detail</div>
+            <div className="mt-1 text-sm text-[var(--muted-foreground)]">
+              {showEvidence ? "Hide source metadata on each trend card." : "Show source metadata on each trend card."}
+            </div>
+          </div>
+          {showEvidence ? (
+            <ChevronUp className="h-4 w-4 text-[var(--muted-foreground)]" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-[var(--muted-foreground)]" />
+          )}
+        </button>
 
         <div className="grid gap-3">
           {trends.map((trend) => (
@@ -53,14 +71,16 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-current/85">{trend.detail}</p>
-              <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/15 px-3 py-2 text-xs leading-5 text-slate-100/85">
-                <div className="font-medium text-white">{trend.source.label}</div>
-                <div className="mt-1">{summarizeSourceMeta(trend.source)}</div>
-                <div className="mt-1 text-slate-300/80">
-                  {formatSourceTimestamp(trend.source.lastUpdated)}
+              {showEvidence ? (
+                <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/15 px-3 py-2 text-xs leading-5 text-slate-100/85">
+                  <div className="font-medium text-white">{trend.source.label}</div>
+                  <div className="mt-1">{summarizeSourceMeta(trend.source)}</div>
+                  <div className="mt-1 text-slate-300/80">
+                    {formatSourceTimestamp(trend.source.lastUpdated)}
+                  </div>
+                  <div className="mt-1 text-slate-300/80">{trend.source.confidence}</div>
                 </div>
-                <div className="mt-1 text-slate-300/80">{trend.source.confidence}</div>
-              </div>
+              ) : null}
             </div>
           ))}
         </div>

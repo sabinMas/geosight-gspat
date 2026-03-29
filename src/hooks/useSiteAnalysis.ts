@@ -11,29 +11,33 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+
+    setGeodata(null);
+    setScore(null);
+    setLoading(true);
+    setError(null);
 
     async function run() {
-      setLoading(true);
-      setError(null);
-
       try {
-        const response = await fetch(`/api/geodata?lat=${coords.lat}&lng=${coords.lng}`);
+        const response = await fetch(`/api/geodata?lat=${coords.lat}&lng=${coords.lng}`, {
+          signal: controller.signal,
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch geodata.");
         }
 
         const data = (await response.json()) as GeodataResult;
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setGeodata(data);
           setScore(calculateProfileScore(data, profile));
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : "Unknown geodata error.");
         }
       } finally {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -42,7 +46,7 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile) {
     void run();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [coords.lat, coords.lng, profile]);
 

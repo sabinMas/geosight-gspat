@@ -16,7 +16,7 @@ function isNearbyPlaceCategory(value: string): value is NearbyPlaceCategory {
 }
 
 export async function GET(request: NextRequest) {
-  const rateLimit = applyRateLimit(request, "nearby-places", {
+  const rateLimit = await applyRateLimit(request, "nearby-places", {
     windowMs: 60_000,
     maxRequests: 30,
   });

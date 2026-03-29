@@ -10,7 +10,7 @@ import {
 import { fetchElevation, fetchElevationProfile } from "@/lib/usgs";
 
 export async function GET(request: NextRequest) {
-  const rateLimit = applyRateLimit(request, "elevation", {
+  const rateLimit = await applyRateLimit(request, "elevation", {
     windowMs: 60_000,
     maxRequests: 24,
   });

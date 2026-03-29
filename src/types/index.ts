@@ -58,11 +58,13 @@ export type WorkspaceDataRequirement =
   | "classification"
   | "image"
   | "source-metadata"
-  | "school-context";
+  | "school-context"
+  | "mission-run";
 export type WorkspaceCardId =
   | "active-location"
   | "chat"
   | "results"
+  | "mission-run"
   | "score"
   | "factor-breakdown"
   | "compare"
@@ -140,6 +142,8 @@ export interface ExploreInitState {
   locationQuery?: string;
   demoId?: string;
   entrySource?: ExploreEntrySource;
+  judgeMode?: boolean;
+  missionRunPresetId?: string;
 }
 
 export interface LandingUseCase {
@@ -165,6 +169,13 @@ export interface DemoOverlay {
   entryMode: "workspace" | "overlay";
   preloadedSites?: SavedSite[];
   mapOverlays?: DemoMapOverlay[];
+  competition?: {
+    openingScript: string;
+    missionRunPresetId: string;
+    targetCardIds: WorkspaceCardId[];
+    successScreenshotTargets: string[];
+    fallbackNarrative: string;
+  };
 }
 
 export interface DemoMapOverlay {
@@ -438,6 +449,65 @@ export interface AnalyzeRequestBody {
   location?: Coordinates;
   locationName?: string;
   resultsMode?: ResultsMode;
+  geodata?: GeodataResult;
+  nearbyPlaces?: NearbyPlace[];
+  dataTrends?: DataTrend[];
+  imageSummary?: string;
+  classification?: LandCoverBucket[];
+}
+
+export interface MissionRunStepPreset {
+  id: string;
+  title: string;
+  objective: string;
+  question: string;
+}
+
+export interface MissionRunPreset {
+  id: string;
+  title: string;
+  profileId: string;
+  demoId?: string;
+  locationQuery?: string;
+  missionObjective: string;
+  summary: string;
+  steps: MissionRunStepPreset[];
+  successSignals: string[];
+  fallbackNarrative: string;
+  recommendedCards: WorkspaceCardId[];
+}
+
+export interface MissionRunStepResult {
+  id: string;
+  title: string;
+  objective: string;
+  answer: string;
+  model: string;
+}
+
+export interface MissionRunSourceSummary {
+  liveSources: string[];
+  derivedSignals: string[];
+  missingCoverage: string[];
+}
+
+export interface MissionRunResult {
+  presetId: string;
+  title: string;
+  missionObjective: string;
+  headline: string;
+  summary: string;
+  stepResults: MissionRunStepResult[];
+  recommendedCards: WorkspaceCardId[];
+  sourceSummary: MissionRunSourceSummary;
+  modelTrail: string[];
+}
+
+export interface MissionRunRequestBody {
+  presetId: string;
+  profileId: string;
+  location?: Coordinates;
+  locationName?: string;
   geodata?: GeodataResult;
   nearbyPlaces?: NearbyPlace[];
   dataTrends?: DataTrend[];

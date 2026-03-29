@@ -1,4 +1,5 @@
 import { Coordinates, GeodataResult } from "@/types";
+import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 
 type ForecastResponse = {
   current?: {
@@ -27,11 +28,12 @@ export async function fetchClimateSnapshot(
   coords: Coordinates,
 ): Promise<GeodataResult["climate"]> {
   const [forecastResult, airQualityResult] = await Promise.allSettled([
-    fetch(
+    fetchWithTimeout(
       `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&current=temperature_2m,wind_speed_10m&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=3`,
       {
         next: { revalidate: 60 * 60 * 6 },
       },
+      EXTERNAL_TIMEOUTS.fast,
     ).then(async (response) => {
       if (!response.ok) {
         throw new Error("Forecast request failed.");
@@ -39,11 +41,12 @@ export async function fetchClimateSnapshot(
 
       return (await response.json()) as ForecastResponse;
     }),
-    fetch(
+    fetchWithTimeout(
       `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${coords.lat}&longitude=${coords.lng}&current=us_aqi&timezone=auto`,
       {
         next: { revalidate: 60 * 60 * 6 },
       },
+      EXTERNAL_TIMEOUTS.fast,
     ).then(async (response) => {
       if (!response.ok) {
         throw new Error("Air-quality request failed.");

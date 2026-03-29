@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import { LocationSearchResult } from "@/types";
 
 interface NominatimSearchResult {
@@ -65,12 +66,12 @@ export async function GET(request: NextRequest) {
       url.searchParams.set("addressdetails", "1");
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: {
         "User-Agent": "GeoSight geospatial search demo",
       },
       next: { revalidate: 60 * 60 * 24 },
-    });
+    }, EXTERNAL_TIMEOUTS.standard);
 
     if (!response.ok) {
       throw new Error("Geocoding lookup failed.");

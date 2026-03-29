@@ -3,7 +3,7 @@ import { getCoordinatesFromSearchParams, applyRateLimit, createRateLimitResponse
 import { fetchSchoolContext } from "@/lib/schools";
 
 export async function GET(request: NextRequest) {
-  const rateLimit = applyRateLimit(request, "schools", {
+  const rateLimit = await applyRateLimit(request, "schools", {
     windowMs: 60_000,
     maxRequests: 18,
   });

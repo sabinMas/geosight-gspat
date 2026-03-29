@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatSourceTimestamp, summarizeSourceMeta } from "@/lib/source-metadata";
 import {
@@ -14,6 +19,8 @@ interface SourceAwarenessCardProps {
 }
 
 export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
+  const [showRegistryStrategy, setShowRegistryStrategy] = useState(false);
+
   if (!geodata) {
     return null;
   }
@@ -32,7 +39,7 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
           Check source status, freshness, and regional limits before acting.
         </p>
 
-        <div className="grid gap-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {Object.values(geodata.sources).map((source) => (
             <div
               key={source.id}
@@ -79,39 +86,60 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
         </div>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
-          <div className="text-sm font-semibold text-[var(--foreground)]">
-            Regional source strategy
-          </div>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-            Provider guidance for {formatSourceRegionScopes(registryContext.scopes)}.
-          </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {registryPreview.map((guidance) => (
-              <div
-                key={guidance.domain}
-                className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3"
-              >
-                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                  {SOURCE_DOMAIN_LABELS[guidance.domain]}
-                </div>
-                <div className="mt-2 text-sm font-semibold text-[var(--foreground)]">
-                  {guidance.primary?.name ?? "No provider selected yet"}
-                </div>
-                <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                  {guidance.primary?.notes ?? "No registry guidance available for this domain yet."}
-                </div>
-                {guidance.fallbacks.length ? (
-                  <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                    Fallbacks:{" "}
-                    {guidance.fallbacks
-                      .slice(0, 2)
-                      .map((provider) => provider.name)
-                      .join(", ")}
-                  </div>
-                ) : null}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-[var(--foreground)]">
+                Regional source strategy
               </div>
-            ))}
+              <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                Provider guidance for {formatSourceRegionScopes(registryContext.scopes)}.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="rounded-full"
+              onClick={() => setShowRegistryStrategy((current) => !current)}
+            >
+              {showRegistryStrategy ? "Hide" : "Show"}
+              {showRegistryStrategy ? (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              )}
+            </Button>
           </div>
+
+          {showRegistryStrategy ? (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {registryPreview.map((guidance) => (
+                <div
+                  key={guidance.domain}
+                  className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3"
+                >
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                    {SOURCE_DOMAIN_LABELS[guidance.domain]}
+                  </div>
+                  <div className="mt-2 text-sm font-semibold text-[var(--foreground)]">
+                    {guidance.primary?.name ?? "No provider selected yet"}
+                  </div>
+                  <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    {guidance.primary?.notes ?? "No registry guidance available for this domain yet."}
+                  </div>
+                  {guidance.fallbacks.length ? (
+                    <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                      Fallbacks:{" "}
+                      {guidance.fallbacks
+                        .slice(0, 2)
+                        .map((provider) => provider.name)
+                        .join(", ")}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>

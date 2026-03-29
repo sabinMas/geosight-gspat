@@ -1,4 +1,5 @@
 import { calculateDistanceKm } from "@/lib/nearby-places";
+import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import { buildSourceMeta } from "@/lib/source-metadata";
 import { Coordinates, DataSourceMeta, SchoolContextResult, SchoolContextSummary, SchoolSummary } from "@/types";
 
@@ -299,12 +300,12 @@ function buildSchoolSources(input: {
 }
 
 async function fetchJson<T>(url: string, revalidateSeconds: number) {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       "User-Agent": "GeoSight/1.0 https://geosight-gspat.vercel.app",
     },
     next: { revalidate: revalidateSeconds },
-  });
+  }, EXTERNAL_TIMEOUTS.standard);
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);

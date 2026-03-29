@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AnalysisProviderError } from "@/lib/analysis-provider";
+import { logAnalysisProviderFailure, runAnalysisWithFallback } from "@/lib/analysis-runner";
 import { buildFallbackAssessment } from "@/lib/geosight-assistant";
-import { runGeminiAnalysis } from "@/lib/gemini";
-import { runGroqAnalysis } from "@/lib/groq";
 import { getProfileById } from "@/lib/profiles";
 import {
   applyRateLimit,
@@ -12,18 +10,8 @@ import {
 } from "@/lib/request-guards";
 import { AnalyzeRequestBody } from "@/types";
 
-function logProviderFailure(provider: "groq" | "gemini", error: unknown) {
-  if (error instanceof AnalysisProviderError) {
-    const statusSuffix = typeof error.status === "number" ? ` status=${error.status}` : "";
-    console.warn(`[analyze] provider=${provider} category=${error.category}${statusSuffix}`);
-    return;
-  }
-
-  console.warn(`[analyze] provider=${provider} category=unexpected_error`);
-}
-
 export async function POST(request: NextRequest) {
-  const rateLimit = applyRateLimit(request, "analyze", {
+  const rateLimit = await applyRateLimit(request, "analyze", {
     windowMs: 60_000,
     maxRequests: 15,
   });
@@ -50,35 +38,17 @@ export async function POST(request: NextRequest) {
     question,
   };
   const headers = rateLimitHeaders(rateLimit);
+  const result = await runAnalysisWithFallback(payload, profile, {
+    fallbackAnswer: buildFallbackAssessment(payload, profile),
+    onProviderFailure(provider, error) {
+      logAnalysisProviderFailure("analyze", provider, error);
+    },
+  });
 
-  try {
-    const result = await runGroqAnalysis(payload, profile);
-    return NextResponse.json(
-      { answer: result.response, model: result.model },
-      {
-        headers,
-      },
-    );
-  } catch (groqError) {
-    logProviderFailure("groq", groqError);
-
-    try {
-      const result = await runGeminiAnalysis(payload, profile);
-      return NextResponse.json(
-        { answer: result.response, model: result.model },
-        {
-          headers,
-        },
-      );
-    } catch (geminiError) {
-      logProviderFailure("gemini", geminiError);
-    }
-
-    return NextResponse.json({
-      answer: buildFallbackAssessment(payload, profile),
-      model: "fallback",
-    }, {
+  return NextResponse.json(
+    { answer: result.response, model: result.model },
+    {
       headers,
-    });
-  }
+    },
+  );
 }

@@ -1,4 +1,5 @@
 import { Coordinates, GeodataResult } from "@/types";
+import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 
 type FccAreaResponse = {
   results?: Array<{
@@ -19,11 +20,12 @@ function parseNullableNumber(value: string | undefined) {
 export async function fetchCountyDemographics(
   coords: Coordinates,
 ): Promise<GeodataResult["demographics"]> {
-  const areaResponse = await fetch(
+  const areaResponse = await fetchWithTimeout(
     `https://geo.fcc.gov/api/census/area?lat=${coords.lat}&lon=${coords.lng}&format=json`,
     {
       next: { revalidate: 60 * 60 * 24 },
     },
+    EXTERNAL_TIMEOUTS.fast,
   );
 
   if (!areaResponse.ok) {
@@ -46,11 +48,12 @@ export async function fetchCountyDemographics(
     };
   }
 
-  const censusResponse = await fetch(
+  const censusResponse = await fetchWithTimeout(
     `https://api.census.gov/data/2022/acs/acs5?get=NAME,B01003_001E,B19013_001E,B25077_001E&for=county:${countyFips}&in=state:${stateFips}`,
     {
       next: { revalidate: 60 * 60 * 24 },
     },
+    EXTERNAL_TIMEOUTS.fast,
   );
 
   if (!censusResponse.ok) {

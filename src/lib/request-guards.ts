@@ -39,13 +39,44 @@ function getClientIdentifier(request: NextRequest) {
   return request.headers.get("x-real-ip") ?? "anonymous";
 }
 
-export function applyRateLimit(
-  request: NextRequest,
-  bucket: string,
-  config: RateLimitConfig,
-): RateLimitResult {
+function getUpstashConfig() {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+
+  if (!url || !token) {
+    return null;
+  }
+
+  return { url, token };
+}
+
+async function runUpstashCommand<T>(command: string[]) {
+  const config = getUpstashConfig();
+  if (!config) {
+    throw new Error("Missing Upstash configuration.");
+  }
+
+  const response = await fetch(config.url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(command),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upstash command failed with ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as { result?: T };
+  return payload.result;
+}
+
+function applyInMemoryRateLimit(bucket: string, identifier: string, config: RateLimitConfig): RateLimitResult {
   const now = Date.now();
-  const key = `${bucket}:${getClientIdentifier(request)}`;
+  const key = `${bucket}:${identifier}`;
   const existing = rateLimitStore.get(key);
 
   if (!existing || existing.resetAt <= now) {
@@ -77,6 +108,46 @@ export function applyRateLimit(
     resetAt: existing.resetAt,
     retryAfter: Math.max(Math.ceil((existing.resetAt - now) / 1000), 1),
   };
+}
+
+async function applySharedRateLimit(bucket: string, identifier: string, config: RateLimitConfig) {
+  const now = Date.now();
+  const key = `ratelimit:${bucket}:${identifier}`;
+
+  const count = Number((await runUpstashCommand<number>(["INCR", key])) ?? 0);
+  if (count === 1) {
+    await runUpstashCommand<number>(["PEXPIRE", key, String(config.windowMs)]);
+  }
+
+  const ttlMs = Number((await runUpstashCommand<number>(["PTTL", key])) ?? config.windowMs);
+  const effectiveTtlMs = ttlMs > 0 ? ttlMs : config.windowMs;
+  const resetAt = now + effectiveTtlMs;
+
+  return {
+    allowed: count <= config.maxRequests,
+    limit: config.maxRequests,
+    remaining: Math.max(config.maxRequests - count, 0),
+    resetAt,
+    retryAfter: Math.max(Math.ceil(effectiveTtlMs / 1000), 1),
+  } satisfies RateLimitResult;
+}
+
+export async function applyRateLimit(
+  request: NextRequest,
+  bucket: string,
+  config: RateLimitConfig,
+): Promise<RateLimitResult> {
+  const identifier = getClientIdentifier(request);
+
+  if (getUpstashConfig()) {
+    try {
+      return await applySharedRateLimit(bucket, identifier, config);
+    } catch {
+      return applyInMemoryRateLimit(bucket, identifier, config);
+    }
+  }
+
+  return applyInMemoryRateLimit(bucket, identifier, config);
 }
 
 export function rateLimitHeaders(result: RateLimitResult) {

@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Mountain,
   PanelsTopLeft,
+  Sparkles,
   ShieldCheck,
   LucideIcon,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MessageSquare,
   Mountain,
   PanelsTopLeft,
+  Sparkles,
   ShieldCheck,
 };
 

@@ -43,6 +43,14 @@ function getDemoIcon(iconName: DemoOverlay["icon"]) {
 
 export function LandingPage() {
   const router = useRouter();
+  const primaryCompetitionDemo = useMemo(
+    () => DEMO_REGISTRY.find((demo) => demo.id === "pnw-cooling") ?? DEMO_REGISTRY[0],
+    [],
+  );
+  const alternateCompetitionDemo = useMemo(
+    () => DEMO_REGISTRY.find((demo) => demo.id === "tokyo-commercial") ?? DEMO_REGISTRY[1],
+    [],
+  );
   const [selectedUseCaseId, setSelectedUseCaseId] = useState("general-exploration");
   const [locationQuery, setLocationQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -99,6 +107,8 @@ export function LandingPage() {
         profileId: demo.profileId,
         demoId: demo.id,
         entrySource: "demo",
+        judgeMode: Boolean(demo.competition),
+        missionRunPresetId: demo.competition?.missionRunPresetId,
       }),
     );
   };
@@ -120,20 +130,38 @@ export function LandingPage() {
               <div className="space-y-4">
                 <div className="eyebrow text-[var(--accent)]">GeoSight</div>
                 <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-6xl xl:text-[4.3rem]">
-                  Ask grounded questions about any place on Earth
+                  Watch GeoSight run grounded mission briefings for any place on Earth
                 </h1>
                 <p className="max-w-2xl text-base leading-8 text-[var(--muted-foreground)] sm:text-lg">
-                  Search a city, ZIP code, address, country, or coordinates, then move through a
-                  quieter geospatial workspace built for deep reasoning, live data, and mission-led
-                  exploration.
+                  Start with the Columbia River competition story, then jump to Tokyo or Washington
+                  to show that GeoSight is a trust-aware spatial reasoning system, not just a map
+                  or chatbot.
                 </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  className="h-12 rounded-full px-6"
+                  onClick={() => handleOpenDemo(primaryCompetitionDemo)}
+                >
+                  Start primary demo
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-12 rounded-full px-6"
+                  onClick={() => handleOpenDemo(alternateCompetitionDemo)}
+                >
+                  Try another story
+                </Button>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 {[
-                  "3D globe and terrain",
-                  "Mission-aware AI reasoning",
-                  "Live-source cards and dashboards",
+                  "Mission-run briefings",
+                  "Visible provenance",
+                  "Live-source spatial reasoning",
                 ].map((item) => (
                   <span
                     key={item}

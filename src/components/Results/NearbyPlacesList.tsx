@@ -33,9 +33,8 @@ export function NearbyPlacesList({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Browse mapped places around the active location. GeoSight now pulls nearby results from
-          OpenStreetMap via Overpass and leaves the panel empty when live results are unavailable
-          instead of fabricating sample places.
+          Browse mapped places around the active location. GeoSight leaves this panel empty when
+          live results are unavailable instead of fabricating sample places.
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -54,7 +53,9 @@ export function NearbyPlacesList({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]">
-          <span className="eyebrow text-[var(--accent)]">Source</span>
+          <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--foreground)]">
+            {places.length} result{places.length === 1 ? "" : "s"}
+          </span>
           <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--foreground)]">
             {source === "live" ? "Live OSM data" : "Live data unavailable"}
           </span>
@@ -96,8 +97,9 @@ export function NearbyPlacesList({
                   <div className="mt-1">{place.relativeLocation}</div>
                 </div>
               </div>
-
-              <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">{place.summary}</p>
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                {place.summary}
+              </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {place.attributes.map((attribute) => (

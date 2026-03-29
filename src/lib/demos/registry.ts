@@ -20,6 +20,19 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     locationName: "Columbia River Gorge",
     coordinates: { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
     entryMode: "overlay",
+    competition: {
+      openingScript:
+        "GeoSight starts with the original Columbia River infrastructure story: shortlist cooling candidates, surface the tradeoffs, and make the trust model obvious in seconds.",
+      missionRunPresetId: "competition-columbia",
+      targetCardIds: ["mission-run", "score", "compare", "source-awareness"],
+      successScreenshotTargets: [
+        "Mission run verdict with evidence mix",
+        "Comparison card with Columbia candidates",
+        "Source awareness card with live and derived signals",
+      ],
+      fallbackNarrative:
+        "If the AI layer slows down, fall back to the score, comparison, and source cards to show the same Columbia River trust story with deterministic evidence.",
+    },
     preloadedSites: PRELOADED_SITES,
     mapOverlays: [
       {
@@ -96,6 +109,45 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     locationName: "Tokyo, Japan",
     coordinates: { lat: 35.6762, lng: 139.6503 },
     entryMode: "workspace",
+    competition: {
+      openingScript:
+        "Use Tokyo to prove GeoSight works globally: explain corridor fit, separate direct data from inference, and name the current coverage gaps honestly.",
+      missionRunPresetId: "competition-tokyo",
+      targetCardIds: ["mission-run", "score", "source-awareness", "results"],
+      successScreenshotTargets: [
+        "Tokyo mission run verdict",
+        "Source strip showing global and limited coverage",
+        "Result card highlighting mapped activity and access",
+      ],
+      fallbackNarrative:
+        "If a model call fails, the Tokyo story still holds because mapped activity, access, utilities, and land-cover evidence remain visible and honestly bounded.",
+    },
+  },
+  {
+    id: "wa-residential",
+    name: "Washington Residential",
+    tagline: "Neighborhood due diligence with school context",
+    description:
+      "A Washington residential story built to show everyday usefulness: neighborhood fit, school context, access, and early risk signals in a trust-aware briefing.",
+    profileId: "residential",
+    accentColor: "#ffab00",
+    icon: "House",
+    locationName: "Bellevue, Washington",
+    coordinates: { lat: 47.6101, lng: -122.2015 },
+    entryMode: "workspace",
+    competition: {
+      openingScript:
+        "Use the Washington residential story to show GeoSight helping a real person or planner, with school context handled carefully and transparently.",
+      missionRunPresetId: "competition-residential",
+      targetCardIds: ["mission-run", "score", "school-context", "source-awareness"],
+      successScreenshotTargets: [
+        "Residential mission run verdict",
+        "School context card with WA official metrics",
+        "Source awareness showing school coverage and confidence",
+      ],
+      fallbackNarrative:
+        "Even in fallback mode, this residential story remains useful because GeoSight can still surface school context, access, hazards, and source provenance without bluffing.",
+    },
   },
 ];
 

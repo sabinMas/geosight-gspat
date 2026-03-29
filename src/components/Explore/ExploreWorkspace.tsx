@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { ChatPanel } from "@/components/Analysis/ChatPanel";
 import { ImageUpload } from "@/components/Analysis/ImageUpload";
 import { LandClassifier } from "@/components/Analysis/LandClassifier";
+import { MissionRunCard } from "@/components/Competition/MissionRunCard";
 import { CoolingDemoOverlay } from "@/components/Demo/CoolingDemoOverlay";
 import { ActiveLocationCard } from "@/components/Explore/ActiveLocationCard";
 import { SchoolContextCard } from "@/components/Explore/SchoolContextCard";
@@ -41,6 +42,7 @@ import { buildLocationTrends } from "@/lib/data-trends";
 import { DEFAULT_VIEW } from "@/lib/demo-data";
 import { getDemoById } from "@/lib/demos/registry";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
+import { getMissionRunPreset } from "@/lib/mission-runs";
 import { DEFAULT_PROFILE, PROFILES, getProfileById } from "@/lib/profiles";
 import { calculateProfileScore } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
@@ -72,6 +74,13 @@ export function ExploreWorkspace() {
   const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
   const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
   const overlayDemo = coolingDemo ?? activeDemo;
+  const missionRunPreset = useMemo(
+    () =>
+      getMissionRunPreset(
+        init.missionRunPresetId ?? activeDemo?.competition?.missionRunPresetId ?? null,
+      ),
+    [activeDemo?.competition?.missionRunPresetId, init.missionRunPresetId],
+  );
 
   const [activeProfile, setActiveProfile] = useState<MissionProfile>(() =>
     getInitialProfile(init.profileId ?? activeDemo?.profileId),
@@ -133,6 +142,14 @@ export function ExploreWorkspace() {
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
   }, [activeProfile]);
+
+  useEffect(() => {
+    if (!missionRunPreset || !init.judgeMode) {
+      return;
+    }
+
+    setCardVisible("mission-run", true);
+  }, [init.judgeMode, missionRunPreset, setCardVisible]);
 
   useEffect(() => {
     if (init.locationQuery || !activeDemo || activeDemo.entryMode !== "workspace") {
@@ -229,6 +246,15 @@ export function ExploreWorkspace() {
   const showComparePrompt = sites.length >= 2 && !isCardVisible("compare");
   const showImagePrompt = Boolean(previewUrl) && !isCardVisible("land-classifier");
   const showSourcePrompt = Boolean(geodata) && !isCardVisible("source-awareness");
+
+  useEffect(() => {
+    if (!init.judgeMode || !missionRunPreset) {
+      return;
+    }
+
+    setViewMode("board");
+    setActiveCardId("mission-run");
+  }, [init.judgeMode, missionRunPreset, setActiveCardId, setViewMode]);
 
   const handleSaveCurrentSite = () => {
     if (!geodata) {
@@ -341,6 +367,33 @@ export function ExploreWorkspace() {
 
   const renderWorkspaceCard = (cardId: WorkspaceCardId) => {
     switch (cardId) {
+      case "mission-run":
+        return missionRunPreset ? (
+          <MissionRunCard
+            key={cardId}
+            preset={missionRunPreset}
+            profile={activeProfile}
+            location={selectedPoint}
+            locationName={selectedLocationName}
+            geodata={geodata}
+            dataTrends={dataTrends}
+            nearbyPlaces={places}
+            imageSummary={imageSummary}
+            classification={effectiveClassification}
+            score={score}
+            onOpenCard={openCardOnBoard}
+            autoRun={init.judgeMode}
+          />
+        ) : (
+          <Card key={cardId}>
+            <CardHeader>
+              <CardTitle>Mission run</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm leading-6 text-[var(--muted-foreground)]">
+              Open a competition story or judge-mode deep-link to run a structured GeoSight briefing.
+            </CardContent>
+          </Card>
+        );
       case "score":
         return (
           <ScoreCard
@@ -450,11 +503,14 @@ export function ExploreWorkspace() {
                     <Badge>Explore workspace</Badge>
                     <div className="space-y-2">
                       <h1 className="text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
-                        A quieter board for spatial questions
+                        {init.judgeMode
+                          ? "A judge-ready board for grounded spatial reasoning"
+                          : "A quieter board for spatial questions"}
                       </h1>
                       <p className="max-w-3xl text-sm leading-7 text-[var(--muted-foreground)]">
-                        Keep the globe alive, open only the cards you need, and move between
-                        focused analysis views instead of scanning a dense page of panels.
+                        {init.judgeMode
+                          ? "Keep one mission run and one supporting card in focus while GeoSight turns live geodata into a trust-aware spatial briefing."
+                          : "Keep the globe alive, open only the cards you need, and move between focused analysis views instead of scanning a dense page of panels."}
                       </p>
                     </div>
                   </div>
@@ -466,11 +522,17 @@ export function ExploreWorkspace() {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
-                  {[
-                    "Minimal globe framing",
-                    "Card library + board workflow",
-                    "Live-source geospatial reasoning",
-                  ].map((item) => (
+                  {(init.judgeMode
+                    ? [
+                        "Mission run briefing",
+                        "Judge-mode supporting cards",
+                        "Live-source geospatial reasoning",
+                      ]
+                    : [
+                        "Minimal globe framing",
+                        "Card library + board workflow",
+                        "Live-source geospatial reasoning",
+                      ]).map((item) => (
                     <div
                       key={item}
                       className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted-foreground)]"
@@ -514,6 +576,14 @@ export function ExploreWorkspace() {
                 <span className="font-semibold">{activeDemo.name}</span>
                 <span className="mx-2 text-[var(--muted-foreground)]">&middot;</span>
                 {activeDemo.description}
+              </div>
+            ) : null}
+
+            {init.judgeMode && missionRunPreset ? (
+              <div className="rounded-[1.5rem] border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-foreground)]">
+                <span className="font-semibold">Judge mode active.</span> GeoSight is focused on the{" "}
+                {missionRunPreset.title.toLowerCase()} story with a structured mission run,
+                visible provenance, and a smaller supporting-card set.
               </div>
             ) : null}
 

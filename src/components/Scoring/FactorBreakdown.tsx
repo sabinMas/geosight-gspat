@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteScore } from "@/types";
@@ -18,6 +20,7 @@ const EVIDENCE_TONE: Record<string, string> = {
 
 export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBreakdownProps) {
   const [mounted, setMounted] = useState(false);
+  const [showMethodNotes, setShowMethodNotes] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -36,8 +39,26 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
   return (
     <Card>
       <CardHeader className="space-y-3">
-        <div className="eyebrow">Evidence breakdown</div>
-        <CardTitle>{title}</CardTitle>
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-3">
+            <div className="eyebrow">Evidence breakdown</div>
+            <CardTitle>{title}</CardTitle>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="rounded-full"
+            onClick={() => setShowMethodNotes((current) => !current)}
+          >
+            {showMethodNotes ? "Hide notes" : "Show notes"}
+            {showMethodNotes ? (
+              <ChevronUp className="ml-2 h-4 w-4" />
+            ) : (
+              <ChevronDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -102,7 +123,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
                 </div>
               </div>
               <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">{factor.detail}</p>
-              {factor.evidenceExplanation ? (
+              {showMethodNotes && factor.evidenceExplanation ? (
                 <p className="mt-2 text-xs leading-5 text-[var(--foreground-soft)]">
                   {factor.evidenceExplanation}
                 </p>

@@ -1,4 +1,5 @@
 import { calculateDistanceKm } from "@/lib/nearby-places";
+import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import { Coordinates, GeodataResult } from "@/types";
 
 type UsgsEarthquakeResponse = {
@@ -26,11 +27,12 @@ export async function fetchEarthquakeSummary(
   const end = new Date();
   const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?format=geojson&latitude=${coords.lat}&longitude=${coords.lng}&maxradiuskm=250&starttime=${toIsoDate(start)}&endtime=${toIsoDate(end)}&orderby=time`,
     {
       next: { revalidate: 60 * 60 * 6 },
     },
+    EXTERNAL_TIMEOUTS.fast,
   );
 
   if (!response.ok) {

@@ -92,6 +92,12 @@ export function buildExploreHref(init: ExploreInitState) {
   if (init.entrySource) {
     params.set("entrySource", init.entrySource);
   }
+  if (init.judgeMode) {
+    params.set("judge", "1");
+  }
+  if (init.missionRunPresetId) {
+    params.set("missionRun", init.missionRunPresetId);
+  }
 
   const query = params.toString();
   return query ? `/explore?${query}` : "/explore";
@@ -102,11 +108,15 @@ export function createExploreInit(input: {
   locationQuery?: string;
   demoId?: string;
   entrySource?: ExploreEntrySource;
+  judgeMode?: boolean;
+  missionRunPresetId?: string;
 }): ExploreInitState {
   return {
     profileId: input.profileId,
     locationQuery: input.locationQuery?.trim() || undefined,
     demoId: input.demoId,
     entrySource: input.entrySource,
+    judgeMode: input.judgeMode,
+    missionRunPresetId: input.missionRunPresetId,
   };
 }

@@ -138,7 +138,7 @@ function buildLandCoverBuckets(elements: OverpassElement[]): GeodataResult["land
 }
 
 export async function GET(request: NextRequest) {
-  const rateLimit = applyRateLimit(request, "geodata", {
+  const rateLimit = await applyRateLimit(request, "geodata", {
     windowMs: 60_000,
     maxRequests: 24,
   });

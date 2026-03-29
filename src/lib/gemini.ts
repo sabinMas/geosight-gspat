@@ -4,6 +4,7 @@ import {
   buildAnalysisProviderInput,
   normalizeProviderError,
 } from "@/lib/analysis-provider";
+import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
@@ -32,7 +33,7 @@ export async function runGeminiAnalysis(
 
   let response: Response;
   try {
-    response = await fetch(
+    response = await fetchWithTimeout(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
       {
         method: "POST",
@@ -55,6 +56,7 @@ export async function runGeminiAnalysis(
           },
         }),
       },
+      EXTERNAL_TIMEOUTS.standard,
     );
   } catch (error) {
     throw normalizeProviderError(error, "gemini");

@@ -4,6 +4,7 @@ import {
   describeRelativeLocation,
   shortLocationLabel,
 } from "@/lib/nearby-places";
+import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
@@ -234,11 +235,11 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
     out tags center;
   `;
 
-  const response = await fetch(OVERPASS_ENDPOINT, {
+  const response = await fetchWithTimeout(OVERPASS_ENDPOINT, {
     method: "POST",
     body: query,
     next: { revalidate: 60 * 60 * 6 },
-  });
+  }, EXTERNAL_TIMEOUTS.standard);
 
   if (!response.ok) {
     throw new Error("Overpass request failed.");
@@ -255,11 +256,11 @@ export async function fetchNearbyPlaces(
   category: NearbyPlaceCategory,
 ) {
   const query = buildNearbyQuery(category, coords);
-  const response = await fetch(OVERPASS_ENDPOINT, {
+  const response = await fetchWithTimeout(OVERPASS_ENDPOINT, {
     method: "POST",
     body: query,
     next: { revalidate: 60 * 30 },
-  });
+  }, EXTERNAL_TIMEOUTS.standard);
 
   if (!response.ok) {
     throw new Error("Nearby places request failed.");

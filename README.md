@@ -1,6 +1,6 @@
 # GeoSight
 
-GeoSight is an intelligent geospatial analysis platform built for asking open-ended questions about places on top of a 3D globe. The featured MVP story centers on Pacific Northwest data center cooling, but the platform is intentionally broader: click anywhere, search for cities or landmarks, inspect terrain and infrastructure context, upload imagery, and ask location-based questions across many use cases.
+GeoSight is a live geospatial reasoning platform for asking grounded questions about any place on Earth. It combines a 3D globe, mission-aware AI, deterministic scoring, and source-aware cards so users can investigate infrastructure, hazards, schools, terrain, climate, and nearby places without losing provenance.
 
 ## Vision
 
@@ -9,24 +9,47 @@ GeoSight is an intelligent geospatial analysis platform built for asking open-en
 - Support multiple evaluation modes on the same geography: cooling infrastructure, outdoor recreation, residential development, retail, logistics, and general exploration.
 - Keep the stack deployable on free tiers: Cesium Ion, Groq, Gemini, Open-Meteo, USGS, and OpenStreetMap.
 
-## What's in the MVP
+## What GeoSight Shows
 
-- Cesium globe with Pacific Northwest default fly-to
+- Cesium globe with a routed explore workspace
 - Search and click-to-analyze workflow for coordinates and named places
-- Region selection rectangle and overlay toggles
+- Mission profiles for infrastructure, hiking, residential, commercial, and general exploration
 - Groq + Gemini geospatial Q&A endpoint with profile-aware routing and deterministic fallback
-- Deterministic site viability scoring and comparison table
+- Deterministic site viability scoring, factor evidence labels, and comparison tables
+- Source-aware inline provenance for headline stats and analysis cards
 - Satellite image upload with client-side MVP land cover estimation
 - Terrain exaggeration control and elevation profile panel
-- Preloaded demo sites for The Dalles, Boardman, and Wenatchee
+- Competition-ready demo paths for Columbia River infrastructure, Tokyo commercial analysis, and Washington residential due diligence
+
+## What Judges Should Try First
+
+1. Open the Columbia River infrastructure story from the landing page or go straight to `/explore?profile=data-center&demo=pnw-cooling&entrySource=demo&judge=1&missionRun=competition-columbia`.
+2. Ask for a shortlist, a comparison, and a recommendation so the mission-run story and evidence stack are visible.
+3. Switch to the Tokyo commercial path to prove the app is not Pacific Northwest-only.
+4. Try a Washington residential search such as `Bellevue, WA` to see school context and trust signals together.
+5. Open the source and factor detail cards only after the main story lands, so the demo stays calm and judge-friendly.
+
+## Competition Package
+
+The competition handoff package lives in [`docs/competition/`](docs/competition/README.md).
+
+- Demo scripts for 90 seconds, 3 minutes, and 5 minutes
+- Pitch deck outline
+- One-page methodology/source sheet
+- Recorded-demo fallback guide
+- Screenshot and GIF capture checklist
 
 ## Screenshots / GIFs
 
-Add screenshots after first local run:
+Capture targets are defined in the competition docs package. These assets are still to be recorded:
 
-- `docs/geosight-globe.png`
-- `docs/geosight-analysis-panel.png`
-- `docs/geosight-comparison-table.png`
+- `docs/captures/01-landing-hero.png`
+- `docs/captures/02-columbia-river-mission-run.png`
+- `docs/captures/03-tokyo-commercial-mission-run.png`
+- `docs/captures/04-residential-school-context.png`
+- `docs/captures/05-comparison-and-provenance.png`
+- `docs/captures/geo-sight-primary-demo.gif`
+- `docs/captures/geo-sight-backup-demo.mp4`
 
 ## Setup
 
@@ -49,6 +72,7 @@ cp .env.example .env.local
 - `GROQ_API_KEY_2`: optional second Groq key to expand the free-tier request pool
 - `GROQ_API_KEY_3`: optional third Groq key to expand the free-tier request pool
 - `GEMINI_API_KEY`: fallback key from [Google AI Studio](https://aistudio.google.com/)
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`: optional but recommended shared rate-limit store from [Upstash Redis](https://upstash.com/)
 
 4. Start the development server:
 
@@ -68,6 +92,8 @@ npm run dev
    - `GROQ_API_KEY_2`
    - `GROQ_API_KEY_3`
    - `GEMINI_API_KEY`
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
 4. Deploy.
 
 The app is already structured for Vercel serverless routes under `src/app/api/*`.
@@ -101,3 +127,4 @@ flowchart LR
 
 - Backlog and roadmap: [`docs/BACKLOG.md`](docs/BACKLOG.md)
 - Platform and product standards: [`agents.md`](agents.md)
+- Competition submission package: [`docs/competition/README.md`](docs/competition/README.md)

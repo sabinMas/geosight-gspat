@@ -20,6 +20,8 @@ export default async function ExplorePage({
     locationQuery: firstValue(params.location),
     demoId: firstValue(params.demo),
     entrySource: (firstValue(params.entrySource) as ExploreInitState["entrySource"]) ?? "direct",
+    judgeMode: firstValue(params.judge) === "1",
+    missionRunPresetId: firstValue(params.missionRun),
   };
 
   return (
