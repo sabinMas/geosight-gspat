@@ -1,4 +1,6 @@
 import { DEFAULT_PROFILE } from "@/lib/profiles";
+import { injectRagIntoMessages } from "@/lib/rag/inject";
+import { CoreMessage } from "@/lib/rag/types";
 import {
   AnalyzeRequestBody,
   DataTrend,
@@ -151,6 +153,36 @@ ${buildResponseGuidance(responseMode)}
 `;
 
   return { prompt, responseMode };
+}
+
+export async function buildGeoSightMessagesWithRag(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+): Promise<CoreMessage[]> {
+  const { prompt } = buildGeoSightSystemPrompt(payload, profile);
+  const serializedPayload = JSON.stringify(
+    {
+      missionProfile: profile.name,
+      missionProfileId: profile.id,
+      ...payload,
+    },
+    null,
+    2,
+  );
+
+  return injectRagIntoMessages(
+    [
+      {
+        role: "system",
+        content: prompt,
+      },
+      {
+        role: "user",
+        content: serializedPayload,
+      },
+    ],
+    payload.question,
+  );
 }
 
 function pickTopLandCover(geodata?: GeodataResult) {

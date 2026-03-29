@@ -2,7 +2,7 @@ import Groq from "groq-sdk";
 import {
   AnalysisProviderError,
   AnalysisResult,
-  buildAnalysisProviderInput,
+  buildAnalysisProviderMessages,
   normalizeProviderError,
 } from "@/lib/analysis-provider";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
@@ -47,7 +47,7 @@ export async function runGroqAnalysis(
 ) : Promise<AnalysisResult> {
   const apiKey = pickGroqKey();
   const model = resolveModel(profile.id);
-  const { prompt, serializedPayload } = buildAnalysisProviderInput(payload, profile);
+  const messages = await buildAnalysisProviderMessages(payload, profile);
   const groq = new Groq({ apiKey });
 
   let completion;
@@ -55,13 +55,10 @@ export async function runGroqAnalysis(
     completion = await groq.chat.completions.create({
       model,
       temperature: 0.2,
-      messages: [
-        { role: "system", content: prompt },
-        {
-          role: "user",
-          content: serializedPayload,
-        },
-      ],
+      messages: messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
     });
   } catch (error) {
     throw normalizeProviderError(error, "groq");

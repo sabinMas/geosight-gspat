@@ -1,5 +1,4 @@
 import { geoAnalystAgent } from "@/lib/agents/geo-analyst";
-import { geoNativeAgent } from "@/lib/agents/geo-native";
 import { GeoSightAgentAdapter, GeoSightAgentId } from "@/lib/agents/types";
 
 export type AgentId = "geo-analyst" | "geo-guide" | "geo-scribe";
@@ -25,6 +24,9 @@ export type GeoSightContext = {
   dataBundle?: Record<string, unknown>;
 };
 
+export const GEO_ANALYST_SYSTEM_PROMPT =
+  "You are GeoAnalyst, a precision geospatial intelligence agent embedded in GeoSight. You analyze locations using real environmental, infrastructure, and demographic data. Always ground answers in the data bundle provided in context. Cite your data sources by name. Never speculate beyond the data. If a data source is unavailable, say so explicitly. Write in structured professional analysis prose that begins with a short headline assessment, then supporting evidence, then risks and unknowns, then next diligence steps. Distinguish direct live signals, derived live analysis, and proxy heuristics whenever that distinction matters.";
+
 export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
   "geo-analyst": {
     id: "geo-analyst",
@@ -35,8 +37,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     temperature: 0.3,
     maxTokens: 2048,
     accentColor: "var(--color-primary)",
-    systemPrompt:
-      "You are GeoAnalyst, a precision geospatial intelligence agent embedded in GeoSight. You analyze locations using real environmental, infrastructure, and demographic data. Always ground answers in the data bundle provided in context. Cite your data sources by name. Never speculate beyond the data. If a data source is unavailable, say so explicitly. Write in structured professional analysis prose - paragraphs, not bullet lists.",
+    systemPrompt: GEO_ANALYST_SYSTEM_PROMPT,
   },
   "geo-guide": {
     id: "geo-guide",
@@ -78,7 +79,6 @@ export function getAgentConfig(agentId: AgentId) {
 
 export const AGENT_REGISTRY: Record<GeoSightAgentId, GeoSightAgentAdapter> = {
   "geo-analyst": geoAnalystAgent,
-  "geo-native": geoNativeAgent,
 };
 
 export function getAgentAdapter(agentId: GeoSightAgentId) {

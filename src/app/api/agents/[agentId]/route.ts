@@ -6,8 +6,8 @@ import {
   getAgentConfig,
   isAgentId,
 } from "@/lib/agents/agent-registry";
-
-export const runtime = "edge";
+import { injectRagIntoMessages } from "@/lib/rag/inject";
+import { CoreMessage } from "@/lib/rag/types";
 
 type GroqStreamChunk = {
   choices?: Array<{
@@ -66,6 +66,26 @@ function buildSystemMessage(config: AgentConfig, context?: GeoSightContext) {
     null,
     2,
   )}`;
+}
+
+async function buildCompletionMessages(
+  config: AgentConfig,
+  message: string,
+  context?: GeoSightContext,
+): Promise<CoreMessage[]> {
+  return injectRagIntoMessages(
+    [
+      {
+        role: "system",
+        content: buildSystemMessage(config, context),
+      },
+      {
+        role: "user",
+        content: message,
+      },
+    ],
+    message,
+  );
 }
 
 function parseGroqChunk(value: string) {
@@ -166,6 +186,8 @@ async function requestGroqCompletion(
   message: string,
   context?: GeoSightContext,
 ) {
+  const messages = await buildCompletionMessages(config, message, context);
+
   return fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -177,16 +199,10 @@ async function requestGroqCompletion(
       temperature: config.temperature,
       max_tokens: config.maxTokens,
       stream: true,
-      messages: [
-        {
-          role: "system",
-          content: buildSystemMessage(config, context),
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
+      messages: messages.map((entry) => ({
+        role: entry.role,
+        content: entry.content,
+      })),
     }),
   });
 }

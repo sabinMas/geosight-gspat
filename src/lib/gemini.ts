@@ -1,11 +1,12 @@
 import {
   AnalysisProviderError,
   AnalysisResult,
-  buildAnalysisProviderInput,
+  buildAnalysisProviderMessages,
   normalizeProviderError,
 } from "@/lib/analysis-provider";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
+import { CoreMessage } from "@/lib/rag/types";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 const GEMINI_MODEL = "gemini-1.5-flash";
@@ -20,6 +21,26 @@ type GeminiGenerateContentResponse = {
   }>;
 };
 
+function buildGeminiMessagePayload(messages: CoreMessage[]) {
+  const systemMessages = messages
+    .filter((message) => message.role === "system")
+    .map((message) => message.content.trim())
+    .filter(Boolean);
+  const conversationalMessages = messages.filter((message) => message.role !== "system");
+
+  return {
+    systemInstruction: systemMessages.length
+      ? {
+          parts: [{ text: systemMessages.join("\n\n") }],
+        }
+      : undefined,
+    contents: conversationalMessages.map((message) => ({
+      role: message.role === "assistant" ? "model" : "user",
+      parts: [{ text: message.content }],
+    })),
+  };
+}
+
 export async function runGeminiAnalysis(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
@@ -29,7 +50,8 @@ export async function runGeminiAnalysis(
     throw new AnalysisProviderError("gemini", "missing_config");
   }
 
-  const { prompt, serializedPayload } = buildAnalysisProviderInput(payload, profile);
+  const messages = await buildAnalysisProviderMessages(payload, profile);
+  const geminiMessages = buildGeminiMessagePayload(messages);
 
   let response: Response;
   try {
@@ -41,15 +63,8 @@ export async function runGeminiAnalysis(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: prompt }],
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: serializedPayload }],
-            },
-          ],
+          systemInstruction: geminiMessages.systemInstruction,
+          contents: geminiMessages.contents,
           generationConfig: {
             temperature: 0.2,
             maxOutputTokens: 1024,

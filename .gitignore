@@ -12,3 +12,4 @@ pnpm-lock.yaml
 
 .vercel
 tsconfig.tsbuildinfo
+src/lib/rag/embeddings-cache.json

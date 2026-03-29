@@ -1,4 +1,8 @@
-import { buildGeoSightSystemPrompt } from "@/lib/geosight-assistant";
+import {
+  buildGeoSightMessagesWithRag,
+  buildGeoSightSystemPrompt,
+} from "@/lib/geosight-assistant";
+import { CoreMessage } from "@/lib/rag/types";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 export type AnalysisResult = {
@@ -35,6 +39,13 @@ export function buildAnalysisProviderInput(payload: AnalyzeRequestBody, profile:
   );
 
   return { prompt, serializedPayload };
+}
+
+export async function buildAnalysisProviderMessages(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile,
+): Promise<CoreMessage[]> {
+  return buildGeoSightMessagesWithRag(payload, profile);
 }
 
 export function normalizeProviderError(

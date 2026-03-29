@@ -29,6 +29,12 @@
       ]
     }
   },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS",
+      "moduleResolution": "node"
+    }
+  },
   "include": [
     "**/*.ts",
     "**/*.tsx",
