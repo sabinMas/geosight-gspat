@@ -105,12 +105,15 @@ export const COMMERCIAL_DEMO_SITES: DemoSiteSeed[] = [
 
 function buildDemoScore(total: number, notes: string[]): SiteScore {
   const factorBase = [
-    { key: "waterProximity", label: "Water source proximity", weight: 0.3, score: total + 5 },
-    { key: "terrain", label: "Elevation & flatness", weight: 0.15, score: total - 4 },
-    { key: "powerInfrastructure", label: "Power infrastructure", weight: 0.2, score: total + 2 },
-    { key: "climate", label: "Climate suitability", weight: 0.15, score: total - 1 },
-    { key: "transportation", label: "Road transportation", weight: 0.1, score: total - 6 },
-    { key: "landClassification", label: "Land classification", weight: 0.1, score: total - 8 },
+    { key: "waterProximity", label: "Cooling water access", weight: 0.26, score: total + 5 },
+    { key: "terrain", label: "Elevation & flatness", weight: 0.12, score: total - 4 },
+    { key: "powerInfrastructure", label: "Power infrastructure", weight: 0.18, score: total + 2 },
+    { key: "climate", label: "Climate suitability", weight: 0.13, score: total - 1 },
+    { key: "transportation", label: "Road transportation", weight: 0.08, score: total - 6 },
+    { key: "landClassification", label: "Land classification", weight: 0.08, score: total - 8 },
+    { key: "broadbandConnectivity", label: "Broadband readiness", weight: 0.1, score: total - 3 },
+    { key: "floodRisk", label: "Flood risk", weight: 0.02, score: total + 1 },
+    { key: "contaminationRisk", label: "Contamination risk", weight: 0.03, score: total + 2 },
   ] as const;
 
   return {
@@ -121,19 +124,28 @@ function buildDemoScore(total: number, notes: string[]): SiteScore {
       score: Math.min(Math.max(Math.round(factor.score), 0), 100),
       detail: notes[index] ?? "Fallback demo note",
     })),
+    broadband: {
+      maxDownloadMbps: 1_000,
+      maxUploadMbps: 100,
+      providerCount: 2,
+      technologies: ["fiber", "cable"],
+      score: Math.min(Math.max(Math.round(total - 3), 0), 100),
+    },
   };
 }
 
 function buildDemoGeodata(siteName: string): GeodataResult {
+  const isMountainSite = siteName === "Site C";
+
   return {
-    elevationMeters: siteName === "Site C" ? 238 : siteName === "Site B" ? 102 : 78,
+    elevationMeters: isMountainSite ? 238 : siteName === "Site B" ? 102 : 78,
     nearestWaterBody: {
       name: "Columbia River",
-      distanceKm: siteName === "Site C" ? 1.9 : 0.7,
+      distanceKm: isMountainSite ? 1.9 : 0.7,
     },
     nearestRoad: {
       name: siteName === "Site A" ? "I-84" : siteName === "Site B" ? "I-82" : "US-2",
-      distanceKm: siteName === "Site C" ? 3.2 : 1.4,
+      distanceKm: isMountainSite ? 3.2 : 1.4,
     },
     nearestPower: {
       name: siteName === "Site A" ? "Google/The Dalles Utility Corridor" : "Regional transmission line",
@@ -172,6 +184,57 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       parkCount: 6,
       trailheadCount: 2,
       commercialCount: 12,
+    },
+    broadband: {
+      maxDownloadMbps: isMountainSite ? 250 : siteName === "Site B" ? 500 : 1_000,
+      maxUploadMbps: isMountainSite ? 25 : siteName === "Site B" ? 50 : 100,
+      providerCount: isMountainSite ? 1 : 2,
+      technologies: isMountainSite ? ["fixed_wireless"] : ["fiber", "cable"],
+      providers: [
+        {
+          providerName: isMountainSite ? "Regional fixed wireless" : "Regional fiber provider",
+          technology: isMountainSite ? "fixed_wireless" : "fiber",
+          maxDownloadMbps: isMountainSite ? 250 : 1_000,
+          maxUploadMbps: isMountainSite ? 25 : 100,
+        },
+      ],
+      available: true,
+      error: false,
+      note: "Showcase-only broadband summary for the preloaded cooling demo.",
+    },
+    floodZone: {
+      zoneCode: isMountainSite ? "AE" : "X",
+      zoneSubtype: isMountainSite ? "1 PCT ANNUAL CHANCE FLOOD HAZARD" : "AREA OF MINIMAL FLOOD HAZARD",
+      isSpecialFloodHazardArea: isMountainSite,
+      label: isMountainSite
+        ? "Zone AE Special Flood Hazard Area"
+        : "Zone X - area of minimal flood hazard",
+    },
+    streamGauges: [
+      {
+        siteNumber: isMountainSite ? "14113200" : "14105700",
+        stationName: isMountainSite ? "Mosier Creek near Mosier OR" : "Columbia River at The Dalles OR",
+        dischargeCfs: isMountainSite ? 182 : 162_000,
+        drainageAreaSqMi: isMountainSite ? 41.5 : 237_000,
+        distanceKm: isMountainSite ? 7.4 : 3.1,
+      },
+    ],
+    airQuality: {
+      stationName: isMountainSite ? "Wenatchee Valley monitor" : "The Dalles monitor",
+      distanceKm: isMountainSite ? 18.4 : 12.2,
+      pm25UgM3: isMountainSite ? 11.2 : 7.4,
+      pm10UgM3: isMountainSite ? 20.6 : 14.3,
+      aqiCategory: "Good",
+      aqiColor: "green",
+    },
+    epaHazards: {
+      superfundSiteCount: isMountainSite ? 1 : 0,
+      triFacilityCount: siteName === "Site B" ? 2 : 1,
+      nearestSiteName: isMountainSite ? "Regional cleanup site" : "Industrial reporting facility",
+      nearestSiteDistanceKm: isMountainSite ? 18.6 : 22.4,
+      nearestSiteType: isMountainSite ? "superfund" : "tri",
+      nearestSuperfundDistanceKm: isMountainSite ? 18.6 : null,
+      hasSuperfundWithin10Km: false,
     },
     schoolContext: {
       coverageStatus: "state_accountability_supported",
@@ -269,6 +332,51 @@ function buildDemoGeodata(siteName: string): GeodataResult {
         freshness: "Static showcase seed",
         coverage: "Pacific Northwest demo only",
         confidence: "Demo land-cover context for the preloaded cooling scenario.",
+      }),
+      broadband: buildSourceMeta({
+        id: "demo-broadband",
+        label: "Broadband availability",
+        provider: "GeoSight demo overlay",
+        status: "demo",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo-only broadband context to keep showcase objects schema-complete.",
+      }),
+      floodZone: buildSourceMeta({
+        id: "demo-flood-zone",
+        label: "Flood zone",
+        provider: "GeoSight demo overlay",
+        status: "demo",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo-only FEMA-style flood context for the cooling showcase.",
+      }),
+      water: buildSourceMeta({
+        id: "demo-water",
+        label: "Stream gauges",
+        provider: "GeoSight demo overlay",
+        status: "demo",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo-only stream gauge context for the cooling showcase.",
+      }),
+      airQuality: buildSourceMeta({
+        id: "demo-air-quality",
+        label: "Air quality stations",
+        provider: "GeoSight demo overlay",
+        status: "demo",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo-only air-quality context for the cooling showcase.",
+      }),
+      epaHazards: buildSourceMeta({
+        id: "demo-epa-hazards",
+        label: "Contamination screening",
+        provider: "GeoSight demo overlay",
+        status: "demo",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo-only EPA-style contamination context for the cooling showcase.",
       }),
     },
     sourceNotes: [

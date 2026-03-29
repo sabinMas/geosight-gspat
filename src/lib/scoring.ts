@@ -113,6 +113,30 @@ function scoreTerrain(elevation: number | null, mode: string = "cooling") {
   return 30;
 }
 
+function scoreDischargeVolume(dischargeCfs: number | null) {
+  if (dischargeCfs === null) {
+    return 60;
+  }
+
+  if (dischargeCfs >= 10_000) {
+    return 100;
+  }
+  if (dischargeCfs >= 3_000) {
+    return 90;
+  }
+  if (dischargeCfs >= 1_000) {
+    return 78;
+  }
+  if (dischargeCfs >= 250) {
+    return 64;
+  }
+  if (dischargeCfs >= 50) {
+    return 48;
+  }
+
+  return 28;
+}
+
 function scoreClimate(
   tempC: number | null,
   coolingDegreeDays: number | null,
@@ -215,9 +239,168 @@ function dominantLandCover(classification: LandCoverBucket[]) {
   return [...classification].sort((a, b) => b.value - a.value)[0];
 }
 
-function scoreCustomMetric(geodata: GeodataResult, metric: string) {
-  const roadDistance = geodata.nearestRoad.distanceKm;
+function scoreBroadbandAvailability(
+  geodata: GeodataResult,
+  mode: "data_center" | "residential" = "residential",
+) {
+  if (geodata.sources.broadband.status === "unavailable") {
+    return 60;
+  }
+
+  const broadband = geodata.broadband;
+  if (!broadband?.available) {
+    return 58;
+  }
+
+  const downloadMbps = broadband.maxDownloadMbps;
+  const uploadMbps = broadband.maxUploadMbps;
+  const providerCount = broadband.providerCount;
+  const technologyBonus = broadband.technologies.includes("fiber")
+    ? 8
+    : broadband.technologies.includes("cable")
+      ? 4
+      : broadband.technologies.includes("fixed_wireless")
+        ? -2
+        : 0;
+
+  if (mode === "data_center") {
+    const downloadScore =
+      downloadMbps === null ? 60 : clamp(Math.round((downloadMbps / 1_000) * 100), 25, 100);
+    const uploadScore =
+      uploadMbps === null ? 55 : clamp(Math.round((uploadMbps / 500) * 100), 20, 100);
+    const providerScore = scoreCountSignal(providerCount, 3, 5);
+
+    return clamp(
+      Math.round(downloadScore * 0.45 + uploadScore * 0.25 + providerScore * 0.3 + technologyBonus),
+      15,
+      100,
+    );
+  }
+
+  const downloadScore =
+    downloadMbps === null ? 60 : clamp(Math.round((downloadMbps / 300) * 100), 25, 100);
+  const uploadScore =
+    uploadMbps === null ? 58 : clamp(Math.round((uploadMbps / 40) * 100), 25, 100);
+  const providerScore = scoreCountSignal(providerCount, 2, 4);
+
+  return clamp(
+    Math.round(downloadScore * 0.45 + uploadScore * 0.2 + providerScore * 0.35 + technologyBonus),
+    15,
+    100,
+  );
+}
+
+function scoreFloodRisk(geodata: GeodataResult) {
+  if (geodata.sources.floodZone.status === "unavailable") {
+    return 60;
+  }
+
+  const floodZone = geodata.floodZone;
+  if (!floodZone?.zoneCode) {
+    return 58;
+  }
+
+  if (floodZone.zoneCode === "X") {
+    return 96;
+  }
+
+  if (floodZone.isSpecialFloodHazardArea) {
+    return 18;
+  }
+
+  if (floodZone.zoneCode === "D" || floodZone.zoneCode === "B" || floodZone.zoneCode === "C") {
+    return 62;
+  }
+
+  return 70;
+}
+
+function scoreAirQualityContext(geodata: GeodataResult) {
+  if (geodata.airQuality) {
+    switch (geodata.airQuality.aqiCategory) {
+      case "Good":
+        return 94;
+      case "Moderate":
+        return 78;
+      case "Unhealthy for Sensitive Groups":
+        return 58;
+      case "Unhealthy":
+        return 34;
+      case "Very Unhealthy":
+        return 18;
+      case "Hazardous":
+        return 10;
+      default:
+        return 60;
+    }
+  }
+
+  const openMeteoAqi = geodata.climate.airQualityIndex;
+  if (openMeteoAqi === null) {
+    return 60;
+  }
+
+  if (openMeteoAqi <= 50) {
+    return 88;
+  }
+  if (openMeteoAqi <= 100) {
+    return 72;
+  }
+  if (openMeteoAqi <= 150) {
+    return 52;
+  }
+  if (openMeteoAqi <= 200) {
+    return 32;
+  }
+
+  return 18;
+}
+
+function scoreContaminationRisk(geodata: GeodataResult) {
+  if (geodata.sources.epaHazards.status === "unavailable") {
+    return 60;
+  }
+
+  const hazards = geodata.epaHazards;
+  if (!hazards) {
+    return 58;
+  }
+
+  const superfundPenalty = Math.min(hazards.superfundSiteCount * 10, 35);
+  const triPenalty = Math.min(hazards.triFacilityCount * 3, 15);
+  const proximityPenalty =
+    hazards.nearestSuperfundDistanceKm !== null && hazards.nearestSuperfundDistanceKm <= 10
+      ? 28
+      : hazards.nearestSiteDistanceKm !== null && hazards.nearestSiteDistanceKm <= 10
+        ? 10
+        : 0;
+
+  return clamp(Math.round(92 - superfundPenalty - triPenalty - proximityPenalty), 15, 100);
+}
+
+function scoreWaterAccess(geodata: GeodataResult) {
   const waterDistance = geodata.nearestWaterBody.distanceKm;
+  const nearestGauge = [...geodata.streamGauges].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+
+  const mappedWaterScore = scoreFromDistance(waterDistance, 1, 15);
+  const gaugeDistanceScore = nearestGauge
+    ? scoreFromDistance(nearestGauge.distanceKm, 4, 35)
+    : 60;
+  const dischargeScore = scoreDischargeVolume(nearestGauge?.dischargeCfs ?? null);
+
+  return clamp(
+    Math.round(mappedWaterScore * 0.45 + gaugeDistanceScore * 0.25 + dischargeScore * 0.3),
+    15,
+    100,
+  );
+}
+
+function scoreCustomMetric(
+  geodata: GeodataResult,
+  metric: string,
+  params: ScoringFactor["params"] = {},
+) {
+  const roadDistance = geodata.nearestRoad.distanceKm;
   const powerDistance = geodata.nearestPower.distanceKm;
   const topLandCover = dominantLandCover(geodata.landClassification);
   const urbanScore = scoreLandCover(geodata.landClassification, "commercial");
@@ -225,6 +408,8 @@ function scoreCustomMetric(geodata: GeodataResult, metric: string) {
   const amenitySignals = geodata.amenities;
 
   switch (metric) {
+    case "waterAccess":
+      return scoreWaterAccess(geodata);
     case "terrainVariety":
       return scoreTerrain(geodata.elevationMeters, "terrainVariety");
     case "remoteness":
@@ -234,12 +419,17 @@ function scoreCustomMetric(geodata: GeodataResult, metric: string) {
       );
     case "schoolAccess":
       return geodata.schoolContext?.score ?? 50;
-    case "hazardRisk": {
-      const elevationScore = geodata.elevationMeters === null ? 60 : clamp(geodata.elevationMeters / 3, 25, 100);
-      const waterPenalty =
-        waterDistance === null ? 0 : clamp(28 - waterDistance * 8, 0, 28);
-      return clamp(Math.round(elevationScore - waterPenalty), 15, 100);
-    }
+    case "floodRisk":
+      return scoreFloodRisk(geodata);
+    case "broadbandConnectivity":
+      return scoreBroadbandAvailability(
+        geodata,
+        String(params.mode ?? "residential") === "data_center" ? "data_center" : "residential",
+      );
+    case "airQuality":
+      return scoreAirQualityContext(geodata);
+    case "contaminationRisk":
+      return scoreContaminationRisk(geodata);
     case "amenities":
       return Math.round(
         scoreCountSignal(
@@ -306,6 +496,26 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
 
   if (factor.scoreFn === "custom") {
     switch (String(factor.params.metric ?? "")) {
+      case "waterAccess": {
+        const nearestGauge = [...geodata.streamGauges].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+        if (!nearestGauge) {
+          return `Nearest mapped water feature ${geodata.nearestWaterBody.name} at ${
+            geodata.nearestWaterBody.distanceKm === null
+              ? "unknown distance"
+              : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
+          }; no nearby USGS discharge gauge in range.`;
+        }
+
+        return `${geodata.nearestWaterBody.name} at ${
+          geodata.nearestWaterBody.distanceKm === null
+            ? "unknown distance"
+            : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
+        }; nearest USGS gauge ${nearestGauge.stationName} (${nearestGauge.distanceKm.toFixed(1)} km) reporting ${
+          nearestGauge.dischargeCfs === null
+            ? "unknown discharge"
+            : `${nearestGauge.dischargeCfs.toLocaleString()} cfs`
+        }.`;
+      }
       case "schoolAccess":
         if (!geodata.schoolContext) {
           return "School context unavailable.";
@@ -314,6 +524,46 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           return "School intelligence is currently US-first and unsupported for this location.";
         }
         return geodata.schoolContext.explanation;
+      case "floodRisk":
+        return geodata.floodZone
+          ? geodata.floodZone.label
+          : "FEMA flood-zone context unavailable.";
+      case "broadbandConnectivity":
+        if (!geodata.broadband?.available) {
+          return geodata.broadband?.note ?? "FCC broadband availability unavailable for this point.";
+        }
+        return `${geodata.broadband.providerCount} providers, up to ${
+          geodata.broadband.maxDownloadMbps === null
+            ? "unknown download"
+            : `${geodata.broadband.maxDownloadMbps.toLocaleString()} Mbps down`
+        } / ${
+          geodata.broadband.maxUploadMbps === null
+            ? "unknown upload"
+            : `${geodata.broadband.maxUploadMbps.toLocaleString()} Mbps up`
+        }; technologies ${geodata.broadband.technologies.join(", ") || "unclassified"}.`;
+      case "airQuality":
+        return geodata.airQuality
+          ? `${geodata.airQuality.stationName} reports PM2.5 ${
+              geodata.airQuality.pm25UgM3 === null ? "--" : `${geodata.airQuality.pm25UgM3} ug/m3`
+            } and PM10 ${
+              geodata.airQuality.pm10UgM3 === null ? "--" : `${geodata.airQuality.pm10UgM3} ug/m3`
+            } (${geodata.airQuality.aqiCategory}).`
+          : geodata.climate.airQualityIndex === null
+            ? "Air-quality station coverage unavailable."
+            : `OpenAQ station unavailable; Open-Meteo current AQI ${geodata.climate.airQualityIndex}.`;
+      case "contaminationRisk":
+        if (geodata.sources.epaHazards.status === "unavailable") {
+          return "EPA contamination screening unavailable for this location.";
+        }
+        return geodata.epaHazards
+          ? `${geodata.epaHazards.superfundSiteCount} Superfund sites and ${geodata.epaHazards.triFacilityCount} TRI facilities within ~50 km; nearest ${geodata.epaHazards.nearestSiteType ?? "site"} ${
+              geodata.epaHazards.nearestSiteName ?? "unknown"
+            } at ${
+              geodata.epaHazards.nearestSiteDistanceKm === null
+                ? "unknown distance"
+                : `${geodata.epaHazards.nearestSiteDistanceKm.toFixed(1)} km`
+            }.`
+          : "EPA contamination screening unavailable.";
       case "amenities":
         return `${geodata.amenities.foodAndDrinkCount ?? "?"} food/drink venues, ${geodata.amenities.transitStopCount ?? "?"} transit stops, ${geodata.amenities.parkCount ?? "?"} parks.`;
       case "commercialDemand":
@@ -360,9 +610,19 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
           evidenceExplanation:
             "This factor uses GeoSight's normalized school-context analysis built from live school records and official metrics where available.",
         };
+      case "waterAccess":
+      case "floodRisk":
+      case "broadbandConnectivity":
+      case "airQuality":
+      case "contaminationRisk":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation:
+            "This factor translates one or more live source measurements into a normalized mission score while preserving the underlying source context in the detail text.",
+        };
       case "terrainVariety":
       case "remoteness":
-      case "hazardRisk":
       case "amenities":
       case "commercialDemand":
       case "commercialDensity":
@@ -414,7 +674,11 @@ function runFactorScore(geodata: GeodataResult, factor: ScoringFactor) {
         String(factor.params.mode ?? "developed"),
       );
     case "custom":
-      return scoreCustomMetric(geodata, String(factor.params.metric ?? ""));
+      return scoreCustomMetric(
+        geodata,
+        String(factor.params.metric ?? ""),
+        factor.params,
+      );
     default:
       return 50;
   }
@@ -459,6 +723,16 @@ export function calculateProfileScore(
     total,
     recommendation: buildRecommendation(total, profile),
     factors,
+    broadband: geodata.broadband
+      ? {
+          maxDownloadMbps: geodata.broadband.maxDownloadMbps,
+          maxUploadMbps: geodata.broadband.maxUploadMbps,
+          providerCount: geodata.broadband.providerCount,
+          technologies: geodata.broadband.technologies,
+          score:
+            factors.find((factor) => factor.key === "broadbandConnectivity")?.score ?? null,
+        }
+      : null,
   };
 }
 

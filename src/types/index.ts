@@ -18,6 +18,8 @@ export type SourceDomain =
   | "nearby_places"
   | "demographics"
   | "hazards"
+  | "hydrology"
+  | "environmental"
   | "schools"
   | "broadband"
   | "terrain"
@@ -74,7 +76,12 @@ export type WorkspaceCardId =
   | "land-classifier"
   | "source-awareness"
   | "school-context"
-  | "hazard-context";
+  | "hazard-context"
+  | "broadband-context"
+  | "flood-risk"
+  | "cooling-water"
+  | "air-quality"
+  | "contamination-risk";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -314,6 +321,65 @@ export interface SchoolContextResult extends SchoolContextSummary {
   notes: string[];
 }
 
+export type BroadbandTechnologyType =
+  | "fiber"
+  | "cable"
+  | "dsl"
+  | "fixed_wireless"
+  | "other";
+
+export interface BroadbandProviderAvailability {
+  providerName: string;
+  technology: BroadbandTechnologyType;
+  maxDownloadMbps: number | null;
+  maxUploadMbps: number | null;
+}
+
+export interface BroadbandResult {
+  maxDownloadMbps: number | null;
+  maxUploadMbps: number | null;
+  providerCount: number;
+  technologies: BroadbandTechnologyType[];
+  providers: BroadbandProviderAvailability[];
+  available: boolean;
+  error: boolean;
+  note: string | null;
+}
+
+export interface FloodZoneResult {
+  zoneCode: string | null;
+  zoneSubtype: string | null;
+  isSpecialFloodHazardArea: boolean | null;
+  label: string;
+}
+
+export interface StreamGaugeResult {
+  siteNumber: string;
+  stationName: string;
+  dischargeCfs: number | null;
+  drainageAreaSqMi: number | null;
+  distanceKm: number;
+}
+
+export interface AirQualityResult {
+  stationName: string;
+  distanceKm: number | null;
+  pm25UgM3: number | null;
+  pm10UgM3: number | null;
+  aqiCategory: string;
+  aqiColor: "green" | "yellow" | "orange" | "red" | "purple" | "maroon" | "slate";
+}
+
+export interface EPAHazardResult {
+  superfundSiteCount: number;
+  triFacilityCount: number;
+  nearestSiteName: string | null;
+  nearestSiteDistanceKm: number | null;
+  nearestSiteType: "superfund" | "tri" | null;
+  nearestSuperfundDistanceKm: number | null;
+  hasSuperfundWithin10Km: boolean;
+}
+
 export interface GeodataResult {
   elevationMeters: number | null;
   nearestWaterBody: {
@@ -362,6 +428,11 @@ export interface GeodataResult {
     trailheadCount: number | null;
     commercialCount: number | null;
   };
+  broadband: BroadbandResult | null;
+  floodZone: FloodZoneResult | null;
+  streamGauges: StreamGaugeResult[];
+  airQuality: AirQualityResult | null;
+  epaHazards: EPAHazardResult | null;
   schoolContext: SchoolContextSummary | null;
   landClassification: LandCoverBucket[];
   sources: {
@@ -374,6 +445,11 @@ export interface GeodataResult {
     amenities: DataSourceMeta;
     school: DataSourceMeta;
     landClassification: DataSourceMeta;
+    broadband: DataSourceMeta;
+    floodZone: DataSourceMeta;
+    water: DataSourceMeta;
+    airQuality: DataSourceMeta;
+    epaHazards: DataSourceMeta;
   };
   sourceNotes: string[];
 }
@@ -431,10 +507,19 @@ export interface SiteFactorScore {
   evidenceExplanation?: string;
 }
 
+export interface BroadbandScoreSummary {
+  maxDownloadMbps: number | null;
+  maxUploadMbps: number | null;
+  providerCount: number;
+  technologies: BroadbandTechnologyType[];
+  score: number | null;
+}
+
 export interface SiteScore {
   total: number;
   recommendation: string;
   factors: SiteFactorScore[];
+  broadband: BroadbandScoreSummary | null;
 }
 
 export interface SavedSite {

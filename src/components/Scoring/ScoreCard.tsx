@@ -116,6 +116,28 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
             ) : null}
           </div>
           <div className="text-sm leading-6 text-[var(--muted-foreground)]">{evidenceSummary}</div>
+          {score.broadband ? (
+            <div className="rounded-[1.5rem] border border-cyan-300/20 bg-cyan-400/8 p-4">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-50">
+                Broadband summary
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
+                {score.broadband.providerCount} providers, up to{" "}
+                {score.broadband.maxDownloadMbps === null
+                  ? "unknown download"
+                  : `${score.broadband.maxDownloadMbps.toLocaleString()} Mbps down`}{" "}
+                /{" "}
+                {score.broadband.maxUploadMbps === null
+                  ? "unknown upload"
+                  : `${score.broadband.maxUploadMbps.toLocaleString()} Mbps up`}.
+              </div>
+              {score.broadband.score !== null ? (
+                <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
+                  Broadband factor score: {score.broadband.score} / 100
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {profile ? (
             <div
               className="rounded-[1.5rem] border p-4"

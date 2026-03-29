@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAirQuality } from "@/lib/air-quality";
 import { fetchCountyDemographics } from "@/lib/census";
+import { getEPAHazards } from "@/lib/epa-envirofacts";
+import { getFloodZone } from "@/lib/fema-flood";
+import { getBroadbandAvailability } from "@/lib/fcc-broadband";
 import { toBoundingBox } from "@/lib/geospatial";
 import { calculateDistanceKm } from "@/lib/nearby-places";
 import { fetchClimateSnapshot } from "@/lib/open-meteo";
@@ -21,6 +25,7 @@ import { resolveSourceRegistryContext } from "@/lib/source-registry";
 import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
 import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
+import { getNearbyStreamGauges } from "@/lib/water";
 import { GeodataResult } from "@/types";
 
 function isLikelyCountryCode(value: string | null) {
@@ -162,9 +167,24 @@ export async function GET(request: NextRequest) {
 
   const { lat, lng } = coordinates;
   const bbox = toBoundingBox({ lat, lng }, 8);
+  const isUsPoint = isLikelyUsCoordinate(lat, lng);
   const fireHazardConfigured = isFireHazardConfigured();
+  const openAqConfigured = Boolean(process.env.OPENAQ_API_KEY?.trim());
 
-  const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult, fireHazardResult, schoolResult] =
+  const [
+    elevationResult,
+    infrastructureResult,
+    climateResult,
+    demographicsResult,
+    hazardResult,
+    fireHazardResult,
+    schoolResult,
+    broadbandResult,
+    floodZoneResult,
+    waterGaugeResult,
+    airQualityResult,
+    epaHazardResult,
+  ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
       fetchNearbyInfrastructure(bbox),
@@ -173,6 +193,11 @@ export async function GET(request: NextRequest) {
       fetchEarthquakeSummary({ lat, lng }),
       fetchFireHazardSummary({ lat, lng }),
       fetchSchoolContext({ lat, lng }),
+      getBroadbandAvailability({ lat, lng }),
+      getFloodZone(lat, lng),
+      getNearbyStreamGauges(lat, lng),
+      getAirQuality(lat, lng),
+      getEPAHazards({ lat, lng }),
     ]);
 
   const infrastructure =
@@ -262,6 +287,11 @@ export async function GET(request: NextRequest) {
             trailheadCount: null,
             commercialCount: null,
           },
+    broadband: isUsPoint && broadbandResult.status === "fulfilled" ? broadbandResult.value : null,
+    floodZone: isUsPoint && floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
+    streamGauges: isUsPoint && waterGaugeResult.status === "fulfilled" ? waterGaugeResult.value : [],
+    airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
+    epaHazards: isUsPoint && epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
     schoolContext:
       schoolResult.status === "fulfilled"
         ? summarizeSchoolContext(schoolResult.value)
@@ -468,6 +498,123 @@ export async function GET(request: NextRequest) {
             ? "Approximate land-cover mix inferred from mapped land-use and natural tags."
             : "No mapped land-use context was available to derive land-cover buckets.",
       }),
+      broadband: buildRegistryAwareSourceMeta({
+        id: "broadband",
+        label: "Broadband availability",
+        provider: "FCC Broadband Map",
+        domain: "broadband",
+        context: registryContext,
+        status:
+          !isUsPoint
+            ? "unavailable"
+            : broadbandResult.status === "fulfilled" && broadbandResult.value?.available
+              ? "live"
+              : broadbandResult.status === "fulfilled"
+                ? "limited"
+                : "unavailable",
+        lastUpdated: now,
+        freshness: "Cached up to 24 hours",
+        coverage: "United States only",
+        confidence:
+          !isUsPoint
+            ? "FCC broadband availability is only supported for US locations."
+            : broadbandResult.status === "fulfilled" && broadbandResult.value?.available
+              ? "Direct provider availability summary from the FCC Broadband Map."
+              : "Broadband availability could not be confirmed for this point from the FCC public endpoint.",
+        note:
+          broadbandResult.status === "fulfilled" ? broadbandResult.value?.note ?? undefined : undefined,
+      }),
+      floodZone: buildRegistryAwareSourceMeta({
+        id: "flood-zone",
+        label: "Flood zone",
+        provider: "FEMA National Flood Hazard Layer",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          !isUsPoint
+            ? "unavailable"
+            : floodZoneResult.status === "fulfilled" && floodZoneResult.value
+              ? "live"
+              : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 24 hours",
+        coverage: "United States only",
+        confidence:
+          !isUsPoint
+            ? "FEMA flood-zone coverage is only available for US locations."
+            : floodZoneResult.status === "fulfilled" && floodZoneResult.value
+              ? "Direct FEMA flood-zone designation at or immediately around the selected point."
+              : "FEMA did not return a flood-zone designation for this point.",
+      }),
+      water: buildRegistryAwareSourceMeta({
+        id: "water-gauges",
+        label: "Stream gauges",
+        provider: "USGS Water Services",
+        domain: "hydrology",
+        context: registryContext,
+        status:
+          !isUsPoint
+            ? "unavailable"
+            : waterGaugeResult.status === "fulfilled" && waterGaugeResult.value.length > 0
+              ? "live"
+              : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 15 minutes for discharge and 30 minutes for gauge metadata",
+        coverage: "United States stream gauge network",
+        confidence:
+          !isUsPoint
+            ? "USGS Water Services is currently only used for US gauges."
+            : waterGaugeResult.status === "fulfilled" && waterGaugeResult.value.length > 0
+              ? "Direct live discharge readings from nearby active USGS stream gauges."
+              : "No nearby active USGS discharge gauges were returned within the current search radius.",
+      }),
+      airQuality: buildRegistryAwareSourceMeta({
+        id: "air-quality",
+        label: "Air quality stations",
+        provider: "OpenAQ",
+        domain: "environmental",
+        context: registryContext,
+        status:
+          !openAqConfigured
+            ? "unavailable"
+            : airQualityResult.status === "fulfilled" && airQualityResult.value
+              ? "live"
+              : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 30 minutes",
+        coverage: "Global where OpenAQ stations exist",
+        confidence:
+          !openAqConfigured
+            ? "OpenAQ now requires an API key for live station access in this integration."
+            : airQualityResult.status === "fulfilled" && airQualityResult.value
+              ? "Direct fine-particle readings from the nearest OpenAQ monitoring station."
+              : "No nearby OpenAQ PM2.5 or PM10 station reading was available within the supported search radius.",
+        note: !openAqConfigured
+          ? "Set OPENAQ_API_KEY to enable live PM2.5 and PM10 station lookups."
+          : undefined,
+      }),
+      epaHazards: buildRegistryAwareSourceMeta({
+        id: "epa-hazards",
+        label: "Contamination screening",
+        provider: "EPA Envirofacts",
+        domain: "environmental",
+        context: registryContext,
+        status:
+          !isUsPoint
+            ? "unavailable"
+            : epaHazardResult.status === "fulfilled"
+              ? "live"
+              : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 12 hours",
+        coverage: "United States only",
+        confidence:
+          !isUsPoint
+            ? "EPA contamination screening is currently US-only."
+            : epaHazardResult.status === "fulfilled"
+              ? "Nearby Superfund and TRI counts are screened from EPA public datasets, then distance-filtered around the selected point."
+              : "EPA contamination-screening results could not be assembled for this point.",
+      }),
     },
     sourceNotes: [
       "Elevation via USGS EPQS in the US, with OpenTopoData SRTM fallback for global coverage.",
@@ -479,7 +626,14 @@ export async function GET(request: NextRequest) {
         : "NASA FIRMS fire detections are available when NASA_FIRMS_MAP_KEY is configured.",
       "FCC county lookup with ACS 5-year Census demographics, with World Bank national indicators for non-US locations.",
       "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
-    ],
+      !isUsPoint
+        ? "FCC Broadband Map, FEMA flood zones, USGS Water Services, and EPA contamination screening are currently US-only."
+        : null,
+      broadbandResult.status === "fulfilled" ? broadbandResult.value?.note ?? null : null,
+      !openAqConfigured
+        ? "OpenAQ station lookups require OPENAQ_API_KEY in the current API version."
+        : null,
+    ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };
 
   return NextResponse.json(geodata, {

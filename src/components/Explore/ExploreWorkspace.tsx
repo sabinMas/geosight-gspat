@@ -9,6 +9,11 @@ import { LandClassifier } from "@/components/Analysis/LandClassifier";
 import { MissionRunCard } from "@/components/Competition/MissionRunCard";
 import { CoolingDemoOverlay } from "@/components/Demo/CoolingDemoOverlay";
 import { ActiveLocationCard } from "@/components/Explore/ActiveLocationCard";
+import { AirQualityCard } from "@/components/Explore/AirQualityCard";
+import { BroadbandCard } from "@/components/Explore/BroadbandCard";
+import { ContaminationRiskCard } from "@/components/Explore/ContaminationRiskCard";
+import { CoolingWaterCard } from "@/components/Explore/CoolingWaterCard";
+import { FloodRiskCard } from "@/components/Explore/FloodRiskCard";
 import { HazardCard } from "@/components/Explore/HazardCard";
 import { SchoolContextCard } from "@/components/Explore/SchoolContextCard";
 import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
@@ -495,6 +500,16 @@ export function ExploreWorkspace() {
         );
       case "hazard-context":
         return <HazardCard key={cardId} geodata={geodata} />;
+      case "broadband-context":
+        return <BroadbandCard key={cardId} geodata={geodata} score={score} />;
+      case "flood-risk":
+        return <FloodRiskCard key={cardId} geodata={geodata} />;
+      case "cooling-water":
+        return <CoolingWaterCard key={cardId} geodata={geodata} />;
+      case "air-quality":
+        return <AirQualityCard key={cardId} geodata={geodata} />;
+      case "contamination-risk":
+        return <ContaminationRiskCard key={cardId} geodata={geodata} />;
       default:
         return null;
     }
