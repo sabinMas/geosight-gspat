@@ -3,6 +3,10 @@
 import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  inferSourceRegistryContextFromGeodata,
+  summarizeRegistryContext,
+} from "@/lib/source-registry";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import {
   formatSourceStatusLabel,
@@ -76,6 +80,14 @@ export function ActiveLocationCard({
 }: ActiveLocationCardProps) {
   const sourceHighlights = geodata
     ? [geodata.sources.infrastructure, geodata.sources.climate, geodata.sources.demographics]
+    : [];
+  const registryContext = inferSourceRegistryContextFromGeodata(geodata);
+  const coverageLabel = summarizeRegistryContext(registryContext);
+  const coverageNotes = geodata
+    ? [
+        geodata.sources.demographics.confidence,
+        geodata.sources.school.confidence,
+      ]
     : [];
 
   return (
@@ -152,6 +164,22 @@ export function ActiveLocationCard({
                   <span>{source.label}</span>
                   <SourceStatusBadge source={source} />
                 </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {geodata ? (
+          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow">Coverage posture</span>
+              <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
+                {coverageLabel}
+              </span>
+            </div>
+            <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--muted-foreground)]">
+              {coverageNotes.map((note) => (
+                <p key={note}>{note}</p>
               ))}
             </div>
           </div>

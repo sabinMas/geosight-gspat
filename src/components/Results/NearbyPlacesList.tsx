@@ -61,6 +61,11 @@ export function NearbyPlacesList({
           </span>
         </div>
 
+        <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 text-sm leading-6 text-[var(--muted-foreground)]">
+          Nearby places come from live OpenStreetMap mapping. Coverage can vary by region and category,
+          and GeoSight will show an honest empty state rather than fabricate fallback places.
+        </div>
+
         {loading ? (
           <div className="rounded-[1.5rem] border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--accent-foreground)]">
             Loading nearby places...

@@ -33,6 +33,19 @@ const ICONS = {
   Factory,
 } as const;
 
+function getDemoCoverageBadges(demo: DemoOverlay) {
+  switch (demo.id) {
+    case "tokyo-commercial":
+      return ["Global proof", "World Bank fallback", "School limits visible"];
+    case "wa-residential":
+      return ["US depth", "WA school context", "Trust-aware briefing"];
+    case "pnw-cooling":
+      return ["Primary competition story", "Comparison-ready", "Infrastructure focus"];
+    default:
+      return ["Workspace story"];
+  }
+}
+
 function getIcon(iconName: LandingUseCase["icon"]) {
   return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
 }
@@ -436,6 +449,16 @@ export function LandingPage() {
                             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
                               {demo.tagline}
                             </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {getDemoCoverageBadges(demo).map((badge) => (
+                                <span
+                                  key={`${demo.id}-${badge}`}
+                                  className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] text-[var(--foreground-soft)]"
+                                >
+                                  {badge}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </button>

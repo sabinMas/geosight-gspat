@@ -385,8 +385,26 @@ export function resolveSourceRegistryContext(input: {
 export function inferSourceRegistryContextFromGeodata(
   geodata: GeodataResult | null,
 ): SourceRegistryContext {
-  const stateCode = geodata?.demographics.stateCode ?? null;
-  return resolveSourceRegistryContext({ stateCode });
+  const locationCode = geodata?.demographics.stateCode ?? null;
+  const normalizedCode = normalizeCountryCode(locationCode);
+
+  if (normalizedCode && US_STATE_CODES.has(normalizedCode)) {
+    return resolveSourceRegistryContext({ stateCode: normalizedCode, countryCode: "US" });
+  }
+
+  return resolveSourceRegistryContext({ countryCode: normalizedCode, stateCode: null });
+}
+
+export function summarizeRegistryContext(context: SourceRegistryContext) {
+  const labels = context.scopes
+    .filter((scope) => scope !== "global")
+    .map((scope) => SOURCE_REGION_LABELS[scope]);
+
+  if (!labels.length) {
+    return "Global fallback posture";
+  }
+
+  return `${labels.join(" + ")} coverage posture`;
 }
 
 function providerRank(provider: SourceProviderDefinition, context: SourceRegistryContext) {

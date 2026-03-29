@@ -47,6 +47,14 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
+  const directCount = evidenceCounts.direct_live ?? 0;
+  const proxyCount = evidenceCounts.proxy ?? 0;
+  const evidenceSummary =
+    proxyCount > directCount
+      ? "This score leans more heavily on proxy heuristics than direct live measurements."
+      : proxyCount > 0
+        ? "This score blends direct measurements, derived live analysis, and a smaller proxy layer."
+        : "This score is currently grounded in direct and derived live signals without proxy-heavy weighting.";
 
   return (
     <Card>
@@ -107,6 +115,7 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
               </span>
             ) : null}
           </div>
+          <div className="text-sm leading-6 text-[var(--muted-foreground)]">{evidenceSummary}</div>
           {profile ? (
             <div
               className="rounded-[1.5rem] border p-4"

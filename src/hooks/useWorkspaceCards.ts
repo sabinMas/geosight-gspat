@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getWorkspaceCardsForProfile,
   mergeWorkspacePreferences,
@@ -60,29 +60,32 @@ export function useWorkspaceCards(profileId: string) {
     setVisibility(mergeWorkspacePreferences(profileId, profilePreferences));
   }, [profileId]);
 
-  const persist = (nextVisibility: Record<WorkspaceCardId, boolean>) => {
-    const stored = readStoredPreferences();
-    const nextState: StoredWorkspaceCardPreferences = {
-      globalOrder:
-        stored.globalOrder.length > 0
-          ? stored.globalOrder
-          : cards.map((card) => card.id),
-      profiles: {
-        ...stored.profiles,
-        [profileId]: toWorkspaceCardPreferences(nextVisibility),
-      },
-    };
+  const persist = useCallback(
+    (nextVisibility: Record<WorkspaceCardId, boolean>) => {
+      const stored = readStoredPreferences();
+      const nextState: StoredWorkspaceCardPreferences = {
+        globalOrder:
+          stored.globalOrder.length > 0
+            ? stored.globalOrder
+            : cards.map((card) => card.id),
+        profiles: {
+          ...stored.profiles,
+          [profileId]: toWorkspaceCardPreferences(nextVisibility),
+        },
+      };
 
-    writeStoredPreferences(nextState);
-  };
+      writeStoredPreferences(nextState);
+    },
+    [cards, profileId],
+  );
 
-  const setCardVisible = (cardId: WorkspaceCardId, visible: boolean) => {
+  const setCardVisible = useCallback((cardId: WorkspaceCardId, visible: boolean) => {
     setVisibility((current) => {
       const next = { ...current, [cardId]: visible };
       persist(next);
       return next;
     });
-  };
+  }, [persist]);
 
   const visibleCards = useMemo(
     () => cards.filter((card) => visibility[card.id]),

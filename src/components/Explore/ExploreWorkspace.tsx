@@ -229,8 +229,14 @@ export function ExploreWorkspace() {
     () => cards.filter((card) => card.zone === "workspace").map((card) => card.id),
     [cards],
   );
-  const visibleWorkspaceCardIds = workspaceCards.map((card) => card.id);
-  const visiblePrimaryCardIds = primaryCards.map((card) => card.id);
+  const visibleWorkspaceCardIds = useMemo(
+    () => workspaceCards.map((card) => card.id),
+    [workspaceCards],
+  );
+  const visiblePrimaryCardIds = useMemo(
+    () => primaryCards.map((card) => card.id),
+    [primaryCards],
+  );
   const {
     viewMode,
     setViewMode,

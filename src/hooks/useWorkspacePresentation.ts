@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SavedBoard, WorkspaceCardId, WorkspaceViewMode } from "@/types";
 
 const STORAGE_KEY = "geosight.workspace-presentation.v1";
@@ -69,7 +69,7 @@ export function useWorkspacePresentation(
     }
   }, [profileId, visiblePrimaryCardIds, visibleWorkspaceCardIds]);
 
-  const setViewMode = (nextViewMode: WorkspaceViewMode) => {
+  const setViewMode = useCallback((nextViewMode: WorkspaceViewMode) => {
     setViewModeState(nextViewMode);
     const stored = readStoredPresentation();
     writeStoredPresentation({
@@ -79,9 +79,9 @@ export function useWorkspacePresentation(
       activePrimaryCards: stored.activePrimaryCards ?? {},
       savedBoards: stored.savedBoards ?? [],
     });
-  };
+  }, []);
 
-  const setActiveCardId = (nextCardId: WorkspaceCardId) => {
+  const setActiveCardId = useCallback((nextCardId: WorkspaceCardId) => {
     setActiveCardIdState(nextCardId);
     const stored = readStoredPresentation();
     writeStoredPresentation({
@@ -94,9 +94,9 @@ export function useWorkspacePresentation(
       activePrimaryCards: stored.activePrimaryCards ?? {},
       savedBoards: stored.savedBoards ?? [],
     });
-  };
+  }, [profileId, viewMode]);
 
-  const setActivePrimaryCardId = (nextCardId: WorkspaceCardId) => {
+  const setActivePrimaryCardId = useCallback((nextCardId: WorkspaceCardId) => {
     setActivePrimaryCardIdState(nextCardId);
     const stored = readStoredPresentation();
     writeStoredPresentation({
@@ -109,9 +109,9 @@ export function useWorkspacePresentation(
       },
       savedBoards: stored.savedBoards ?? [],
     });
-  };
+  }, [profileId, viewMode]);
 
-  const saveCurrentBoard = (name: string) => {
+  const saveCurrentBoard = useCallback((name: string) => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       return;
@@ -138,9 +138,9 @@ export function useWorkspacePresentation(
       savedBoards: nextBoards,
     });
     setSavedBoards(sameProfileBoards);
-  };
+  }, [activeCardId, profileId, visibleWorkspaceCardIds]);
 
-  const restoreBoard = (boardId: string) => {
+  const restoreBoard = useCallback((boardId: string) => {
     const stored = readStoredPresentation();
     const board = (stored.savedBoards ?? []).find(
       (candidate) => candidate.id === boardId && candidate.profileId === profileId,
@@ -175,9 +175,9 @@ export function useWorkspacePresentation(
       activePrimaryCards: stored.activePrimaryCards ?? {},
       savedBoards: stored.savedBoards ?? [],
     });
-  };
+  }, [allWorkspaceCardIds, profileId, setWorkspaceCardVisible]);
 
-  const deleteBoard = (boardId: string) => {
+  const deleteBoard = useCallback((boardId: string) => {
     const stored = readStoredPresentation();
     const nextBoards = (stored.savedBoards ?? []).filter((board) => board.id !== boardId);
     writeStoredPresentation({
@@ -185,7 +185,7 @@ export function useWorkspacePresentation(
       savedBoards: nextBoards,
     });
     setSavedBoards(nextBoards.filter((board) => board.profileId === profileId));
-  };
+  }, [profileId]);
 
   return {
     viewMode,
