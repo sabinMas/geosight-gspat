@@ -38,7 +38,7 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
             {nearestGauge ? (
               <>
                 <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
-                  {nearestGauge.stationName}
+                  {nearestGauge.siteName}
                 </div>
                 <div className="mt-2 grid gap-2 text-sm text-[var(--muted-foreground)]">
                   <div>

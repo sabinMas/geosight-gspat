@@ -26,7 +26,8 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
           </div>
         ) : hazards ? (
           <>
-            {hazards.hasSuperfundWithin10Km ? (
+            {hazards.nearestSuperfundDistanceKm !== null &&
+            hazards.nearestSuperfundDistanceKm <= 10 ? (
               <div className="rounded-[1.5rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] p-4 text-sm leading-6 text-[var(--danger-foreground)]">
                 Warning: a mapped Superfund site falls within 10 km of this point. Treat contamination
                 history and remediation status as required diligence items.
@@ -37,26 +38,26 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
               <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
                 <div className="eyebrow">Superfund sites</div>
                 <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-                  {hazards.superfundSiteCount}
+                  {hazards.superfundCount}
                 </div>
               </div>
               <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
                 <div className="eyebrow">TRI facilities</div>
                 <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-                  {hazards.triFacilityCount}
+                  {hazards.triCount}
                 </div>
               </div>
             </div>
 
             <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-              <div className="eyebrow">Nearest screened site</div>
+              <div className="eyebrow">Nearest Superfund site</div>
               <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
-                {hazards.nearestSiteName ?? "None in current search window"}
+                {hazards.nearestSuperfundName ?? "None in current search window"}
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                {hazards.nearestSiteDistanceKm === null
+                {hazards.nearestSuperfundDistanceKm === null
                   ? "No EPA-screened site was returned within roughly 50 km."
-                  : `${hazards.nearestSiteType === "superfund" ? "Superfund site" : "TRI facility"} about ${hazards.nearestSiteDistanceKm.toFixed(1)} km away.`}
+                  : `Mapped Superfund site about ${hazards.nearestSuperfundDistanceKm.toFixed(1)} km away.`}
               </div>
             </div>
           </>

@@ -123,13 +123,13 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
                 {score.broadband.providerCount} providers, up to{" "}
-                {score.broadband.maxDownloadMbps === null
+                {score.broadband.maxDownloadSpeed <= 0
                   ? "unknown download"
-                  : `${score.broadband.maxDownloadMbps.toLocaleString()} Mbps down`}{" "}
+                  : `${score.broadband.maxDownloadSpeed.toLocaleString()} Mbps down`}{" "}
                 /{" "}
-                {score.broadband.maxUploadMbps === null
+                {score.broadband.maxUploadSpeed <= 0
                   ? "unknown upload"
-                  : `${score.broadband.maxUploadMbps.toLocaleString()} Mbps up`}.
+                  : `${score.broadband.maxUploadSpeed.toLocaleString()} Mbps up`}.
               </div>
               {score.broadband.score !== null ? (
                 <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">

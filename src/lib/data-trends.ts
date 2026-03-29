@@ -98,12 +98,12 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
         !nearestGauge
           ? "Unavailable"
           : nearestGauge.dischargeCfs === null
-            ? nearestGauge.stationName
+            ? nearestGauge.siteName
             : `${nearestGauge.dischargeCfs.toLocaleString()} cfs`,
       detail:
         !nearestGauge
           ? "No nearby live USGS discharge gauge was returned within the current search radius."
-          : `${nearestGauge.stationName} is ${nearestGauge.distanceKm.toFixed(1)} km away${
+          : `${nearestGauge.siteName} is ${nearestGauge.distanceKm.toFixed(1)} km away${
               nearestGauge.drainageAreaSqMi === null
                 ? "."
                 : ` with ${nearestGauge.drainageAreaSqMi.toLocaleString()} sq mi drainage area.`
@@ -164,7 +164,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
             : `AQI ${airQualityIndex}`,
       detail:
         airStation
-          ? `${airStation.stationName} reports PM2.5 ${airStation.pm25UgM3 ?? "--"} ug/m3 and PM10 ${airStation.pm10UgM3 ?? "--"} ug/m3.`
+          ? `${airStation.stationName} reports PM2.5 ${airStation.pm25 ?? "--"} ug/m3 and PM10 ${airStation.pm10 ?? "--"} ug/m3.`
           : airQualityIndex === null
             ? "OpenAQ station and Open-Meteo AQI data are not available for this point."
             : "Current US AQI snapshot from Open-Meteo for the active point.",
@@ -188,20 +188,19 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       id: "trend-broadband",
       label: "Broadband",
       value:
-        broadband?.available
+        broadband
           ? `${broadband.providerCount} providers`
           : geodata.sources.broadband.status === "unavailable"
             ? "Unsupported"
             : "Unavailable",
       detail:
-        broadband?.available
-          ? `Up to ${broadband.maxDownloadMbps ?? "--"} Mbps down / ${broadband.maxUploadMbps ?? "--"} Mbps up with ${broadband.technologies.join(", ") || "unclassified"} technologies.`
-          : geodata.sources.broadband.note ??
-            "FCC broadband availability was not returned for this point.",
+        broadband
+          ? `Up to ${broadband.maxDownloadSpeed || "--"} Mbps down / ${broadband.maxUploadSpeed || "--"} Mbps up with ${broadband.technologies.join(", ") || "unclassified"} technologies.`
+          : "FCC broadband availability was not returned for this point.",
       direction:
-        broadband?.available && (broadband.maxDownloadMbps ?? 0) >= 300
+        broadband && broadband.maxDownloadSpeed >= 300
           ? "positive"
-          : broadband?.available
+          : broadband
             ? "neutral"
             : "watch",
       source: geodata.sources.broadband,
@@ -209,12 +208,12 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
     {
       id: "trend-flood",
       label: "Flood zone",
-      value: floodZone?.zoneCode ?? "Unavailable",
+      value: floodZone?.floodZone ?? "Unavailable",
       detail: floodZone?.label ?? "FEMA flood-zone data is not available for this point.",
       direction:
-        floodZone?.isSpecialFloodHazardArea
+        floodZone?.isSpecialFloodHazard
           ? "watch"
-          : floodZone?.zoneCode === "X"
+          : floodZone?.floodZone === "X"
             ? "positive"
             : "neutral",
       source: geodata.sources.floodZone,
@@ -225,17 +224,18 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       value:
         epaHazards === null
           ? "Unavailable"
-          : `${epaHazards.superfundSiteCount} Superfund / ${epaHazards.triFacilityCount} TRI`,
+          : `${epaHazards.superfundCount} Superfund / ${epaHazards.triCount} TRI`,
       detail:
         epaHazards === null
           ? "EPA contamination screening is not available for this point."
-          : epaHazards.nearestSiteDistanceKm === null
+          : epaHazards.nearestSuperfundDistanceKm === null
             ? "No EPA-screened Superfund or TRI site was returned within roughly 50 km."
-            : `${epaHazards.nearestSiteType === "superfund" ? "Nearest Superfund site" : "Nearest TRI facility"} ${epaHazards.nearestSiteName ?? "unknown"} at ${epaHazards.nearestSiteDistanceKm.toFixed(1)} km.`,
+            : `Nearest Superfund site ${epaHazards.nearestSuperfundName ?? "unknown"} at ${epaHazards.nearestSuperfundDistanceKm.toFixed(1)} km.`,
       direction:
-        epaHazards?.hasSuperfundWithin10Km
+        epaHazards?.nearestSuperfundDistanceKm !== null &&
+        (epaHazards?.nearestSuperfundDistanceKm ?? Number.POSITIVE_INFINITY) <= 10
           ? "watch"
-          : epaHazards && epaHazards.superfundSiteCount === 0 && epaHazards.triFacilityCount === 0
+          : epaHazards && epaHazards.superfundCount === 0 && epaHazards.triCount === 0
             ? "positive"
             : "neutral",
       source: geodata.sources.epaHazards,

@@ -7,15 +7,15 @@ interface FloodRiskCardProps {
 }
 
 function getRiskTone(geodata: GeodataResult) {
-  if (!geodata.floodZone?.zoneCode) {
+  if (!geodata.floodZone?.floodZone) {
     return "border-slate-300/15 bg-slate-400/10 text-slate-100";
   }
 
-  if (geodata.floodZone.isSpecialFloodHazardArea) {
+  if (geodata.floodZone.isSpecialFloodHazard) {
     return "border-rose-300/20 bg-rose-400/10 text-rose-50";
   }
 
-  if (geodata.floodZone.zoneCode === "X") {
+  if (geodata.floodZone.floodZone === "X") {
     return "border-emerald-300/20 bg-emerald-400/10 text-emerald-50";
   }
 
@@ -23,15 +23,15 @@ function getRiskTone(geodata: GeodataResult) {
 }
 
 function getRiskLabel(geodata: GeodataResult) {
-  if (!geodata.floodZone?.zoneCode) {
+  if (!geodata.floodZone?.floodZone) {
     return "Unavailable";
   }
 
-  if (geodata.floodZone.isSpecialFloodHazardArea) {
+  if (geodata.floodZone.isSpecialFloodHazard) {
     return "High flood caution";
   }
 
-  if (geodata.floodZone.zoneCode === "X") {
+  if (geodata.floodZone.floodZone === "X") {
     return "Lower mapped flood risk";
   }
 
@@ -57,7 +57,7 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
           <div className="eyebrow">Mapped FEMA zone</div>
           <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-            {geodata.floodZone?.zoneCode ?? "--"}
+            {geodata.floodZone?.floodZone ?? "--"}
           </div>
           <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
             {geodata.floodZone?.label ??
@@ -65,7 +65,7 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
           </div>
         </div>
 
-        {geodata.floodZone?.isSpecialFloodHazardArea ? (
+        {geodata.floodZone?.isSpecialFloodHazard ? (
           <div className="rounded-[1.5rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] p-4 text-sm leading-6 text-[var(--danger-foreground)]">
             This point intersects a mapped Special Flood Hazard Area. Treat it as a material siting
             constraint and confirm local floodplain requirements before moving forward.

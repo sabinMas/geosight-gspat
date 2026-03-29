@@ -348,10 +348,10 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   {
     id: "air-quality",
     title: "Air quality",
-    summary: "Nearest particle-monitoring station context with AQI-style category framing.",
+    summary: "Nearest particle-monitoring station context with a color-coded AQI badge.",
     questionAnswered: "What does the nearest live PM2.5 / PM10 reading suggest about air quality here?",
     regionCoverage: "Global where OpenAQ stations exist; Open-Meteo fallback context where they do not",
-    failureMode: "Shows station gaps or API-key limits explicitly instead of guessing air quality",
+    failureMode: "Shows station gaps explicitly instead of guessing air quality",
     freshnessWindow: "Cached up to 30 minutes",
     nextActions: ["Compare nearby neighborhoods or trailheads", "Use with climate context", "Inspect source status"],
     icon: "Wind",
@@ -403,7 +403,7 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
   "data-center": ["active-location", "chat", "results", "score", "cooling-water", "broadband-context", "factor-breakdown", "mission-run"],
   hiking: ["active-location", "chat", "results", "score", "terrain-viewer", "air-quality"],
-  residential: ["active-location", "chat", "results", "score", "school-context", "flood-risk", "air-quality", "source-awareness", "mission-run"],
+  residential: ["active-location", "chat", "results", "score", "school-context", "flood-risk", "air-quality", "contamination-risk", "source-awareness", "mission-run"],
   commercial: ["active-location", "chat", "results", "score", "mission-run"],
 };
 

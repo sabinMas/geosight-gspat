@@ -1,27 +1,16 @@
-/**
- * Query EPA Envirofacts screening datasets for nearby Superfund and TRI sites,
- * returning counts and the nearest mapped contamination-related facility.
- */
+import * as turf from "@turf/turf";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
-import { calculateDistanceKm } from "@/lib/nearby-places";
-import { Coordinates, EPAHazardResult } from "@/types";
+import { EPAHazardResult } from "@/types";
 
-const EPA_SEARCH_RADIUS_KM = 50;
 const EPA_DEGREE_SPAN = 0.5;
-const FCC_AREA_ENDPOINT = "https://geo.fcc.gov/api/census/area";
+const EPA_SEARCH_RADIUS_KM = 50;
 
-type FccAreaResponse = {
-  results?: Array<{
-    state_code?: string;
-  }>;
-};
+type JsonRecord = Record<string, unknown>;
 
-type EpaSiteCandidate = {
+type HazardCandidate = {
   name: string;
   distanceKm: number;
 };
-
-type JsonRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null;
@@ -44,27 +33,6 @@ function asString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-async function fetchStateCode(coords: Coordinates) {
-  try {
-    const response = await fetchWithTimeout(
-      `${FCC_AREA_ENDPOINT}?lat=${coords.lat}&lon=${coords.lng}&format=json`,
-      {
-        next: { revalidate: 60 * 60 * 24 },
-      },
-      EXTERNAL_TIMEOUTS.fast,
-    );
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const payload = (await response.json()) as FccAreaResponse;
-    return payload.results?.[0]?.state_code?.trim().toUpperCase() ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function normalizeTriCoordinate(value: unknown, isLongitude: boolean) {
   const numeric = asNumber(value);
   if (numeric === null) {
@@ -79,20 +47,26 @@ function normalizeTriCoordinate(value: unknown, isLongitude: boolean) {
   return isLongitude && numeric > 0 ? -numeric : numeric;
 }
 
+function calculateDistanceKm(lat: number, lng: number, targetLat: number, targetLng: number) {
+  return turf.distance(
+    turf.point([lng, lat]),
+    turf.point([targetLng, targetLat]),
+    { units: "kilometers" },
+  );
+}
+
 function toNearbyCandidate(
-  coords: Coordinates,
+  lat: number,
+  lng: number,
   name: string | null,
-  latitude: number | null,
-  longitude: number | null,
+  candidateLat: number | null,
+  candidateLng: number | null,
 ) {
-  if (!name || latitude === null || longitude === null) {
+  if (!name || candidateLat === null || candidateLng === null) {
     return null;
   }
 
-  const distanceKm = Number(
-    calculateDistanceKm(coords, { lat: latitude, lng: longitude }).toFixed(1),
-  );
-
+  const distanceKm = Number(calculateDistanceKm(lat, lng, candidateLat, candidateLng).toFixed(1));
   if (distanceKm > EPA_SEARCH_RADIUS_KM) {
     return null;
   }
@@ -100,7 +74,7 @@ function toNearbyCandidate(
   return {
     name,
     distanceKm,
-  } satisfies EpaSiteCandidate;
+  } satisfies HazardCandidate;
 }
 
 async function fetchJsonArray(url: string) {
@@ -115,25 +89,32 @@ async function fetchJsonArray(url: string) {
     );
 
     if (!response.ok) {
-      return [];
+      return null;
     }
 
     const payload = (await response.json()) as unknown;
-    return Array.isArray(payload) ? payload : [];
+    return Array.isArray(payload) ? payload : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-async function fetchSuperfundSites(coords: Coordinates, stateCode: string) {
-  const minLat = coords.lat - EPA_DEGREE_SPAN;
-  const maxLat = coords.lat + EPA_DEGREE_SPAN;
-  const url =
+async function fetchSuperfundSites(lat: number, lng: number) {
+  const minLat = lat - EPA_DEGREE_SPAN;
+  const maxLat = lat + EPA_DEGREE_SPAN;
+  const minLng = lng - EPA_DEGREE_SPAN;
+  const maxLng = lng + EPA_DEGREE_SPAN;
+  const efserviceUrl =
+    "https://data.epa.gov/efservice/" +
+    `CERCLIS_SITES/LATITUDE83/BEGINNING/${minLat}/ENDING/${maxLat}/` +
+    `LONGITUDE83/BEGINNING/${minLng}/ENDING/${maxLng}/JSON`;
+  const dmapUrl =
     "https://data.epa.gov/dmapservice/sems.envirofacts_site/" +
-    `fk_ref_state_code/equals/${encodeURIComponent(stateCode)}/` +
     `primary_latitude_decimal_val/greaterThan/${minLat}/` +
-    `primary_latitude_decimal_val/lessThan/${maxLat}/1:200/JSON`;
-  const payload = await fetchJsonArray(url);
+    `primary_latitude_decimal_val/lessThan/${maxLat}/` +
+    `primary_longitude_decimal_val/greaterThan/${minLng}/` +
+    `primary_longitude_decimal_val/lessThan/${maxLng}/1:500/JSON`;
+  const payload = (await fetchJsonArray(efserviceUrl)) ?? (await fetchJsonArray(dmapUrl)) ?? [];
 
   return payload
     .map((entry) => {
@@ -142,26 +123,44 @@ async function fetchSuperfundSites(coords: Coordinates, stateCode: string) {
       }
 
       return toNearbyCandidate(
-        coords,
-        asString(entry.name),
-        asNumber(entry.primary_latitude_decimal_val),
-        asNumber(entry.primary_longitude_decimal_val),
+        lat,
+        lng,
+        asString(entry.site_name) ??
+          asString(entry.name) ??
+          asString(entry.site_alias_name) ??
+          asString(entry.site_id),
+        asNumber(entry.latitude83) ??
+          asNumber(entry.primary_latitude_decimal_val) ??
+          asNumber(entry.latitude),
+        asNumber(entry.longitude83) ??
+          asNumber(entry.primary_longitude_decimal_val) ??
+          asNumber(entry.longitude),
       );
     })
-    .filter((site): site is EpaSiteCandidate => site !== null);
+    .filter((candidate): candidate is HazardCandidate => candidate !== null);
 }
 
-async function fetchTriFacilities(coords: Coordinates) {
-  const minLat = Math.round((coords.lat - EPA_DEGREE_SPAN) * 10_000);
-  const maxLat = Math.round((coords.lat + EPA_DEGREE_SPAN) * 10_000);
-  const absLongitude = Math.abs(coords.lng);
-  const minLng = Math.round((absLongitude - EPA_DEGREE_SPAN) * 10_000);
-  const maxLng = Math.round((absLongitude + EPA_DEGREE_SPAN) * 10_000);
-  const url =
+async function fetchTriFacilities(lat: number, lng: number) {
+  const minLat = lat - EPA_DEGREE_SPAN;
+  const maxLat = lat + EPA_DEGREE_SPAN;
+  const minLng = lng - EPA_DEGREE_SPAN;
+  const maxLng = lng + EPA_DEGREE_SPAN;
+  const efserviceUrl =
+    "https://data.epa.gov/efservice/" +
+    `TRI_FACILITY/LATITUDE82/BEGINNING/${minLat}/ENDING/${maxLat}/` +
+    `LONGITUDE82/BEGINNING/${minLng}/ENDING/${maxLng}/JSON`;
+  const absLongitude = Math.abs(lng);
+  const dmapMinLng = Math.round((absLongitude - EPA_DEGREE_SPAN) * 10_000);
+  const dmapMaxLng = Math.round((absLongitude + EPA_DEGREE_SPAN) * 10_000);
+  const dmapMinLat = Math.round(minLat * 10_000);
+  const dmapMaxLat = Math.round(maxLat * 10_000);
+  const dmapUrl =
     "https://data.epa.gov/dmapservice/tri.tri_facility/" +
-    `fac_latitude/greaterThan/${minLat}/fac_latitude/lessThan/${maxLat}/` +
-    `fac_longitude/greaterThan/${minLng}/fac_longitude/lessThan/${maxLng}/1:200/JSON`;
-  const payload = await fetchJsonArray(url);
+    `fac_latitude/greaterThan/${dmapMinLat}/` +
+    `fac_latitude/lessThan/${dmapMaxLat}/` +
+    `fac_longitude/greaterThan/${dmapMinLng}/` +
+    `fac_longitude/lessThan/${dmapMaxLng}/1:500/JSON`;
+  const payload = (await fetchJsonArray(efserviceUrl)) ?? (await fetchJsonArray(dmapUrl)) ?? [];
 
   return payload
     .map((entry) => {
@@ -169,74 +168,51 @@ async function fetchTriFacilities(coords: Coordinates) {
         return null;
       }
 
-      const latitude =
+      const triLat =
+        asNumber(entry.latitude82) ??
         normalizeTriCoordinate(entry.pref_latitude, false) ??
         normalizeTriCoordinate(entry.fac_latitude, false);
-      const longitude =
+      const triLng =
+        asNumber(entry.longitude82) ??
         normalizeTriCoordinate(entry.pref_longitude, true) ??
         normalizeTriCoordinate(entry.fac_longitude, true);
 
       return toNearbyCandidate(
-        coords,
-        asString(entry.facility_name),
-        latitude,
-        longitude,
+        lat,
+        lng,
+        asString(entry.facility_name) ??
+          asString(entry.site_name) ??
+          asString(entry.name),
+        triLat,
+        triLng,
       );
     })
-    .filter((site): site is EpaSiteCandidate => site !== null);
+    .filter((candidate): candidate is HazardCandidate => candidate !== null);
 }
 
 export async function getEPAHazards(
-  coords: Coordinates,
+  lat: number,
+  lng: number,
 ): Promise<EPAHazardResult> {
   try {
-    const stateCode = await fetchStateCode(coords);
-    if (!stateCode) {
-      return {
-        superfundSiteCount: 0,
-        triFacilityCount: 0,
-        nearestSiteName: null,
-        nearestSiteDistanceKm: null,
-        nearestSiteType: null,
-        nearestSuperfundDistanceKm: null,
-        hasSuperfundWithin10Km: false,
-      };
-    }
-
     const [superfundSites, triFacilities] = await Promise.all([
-      fetchSuperfundSites(coords, stateCode),
-      fetchTriFacilities(coords),
+      fetchSuperfundSites(lat, lng),
+      fetchTriFacilities(lat, lng),
     ]);
     const nearestSuperfund = [...superfundSites].sort((a, b) => a.distanceKm - b.distanceKm)[0];
-    const nearestTri = [...triFacilities].sort((a, b) => a.distanceKm - b.distanceKm)[0];
-    const nearestSite =
-      !nearestSuperfund
-        ? nearestTri
-          ? { ...nearestTri, type: "tri" as const }
-          : null
-        : !nearestTri || nearestSuperfund.distanceKm <= nearestTri.distanceKm
-          ? { ...nearestSuperfund, type: "superfund" as const }
-          : { ...nearestTri, type: "tri" as const };
 
     return {
-      superfundSiteCount: superfundSites.length,
-      triFacilityCount: triFacilities.length,
-      nearestSiteName: nearestSite?.name ?? null,
-      nearestSiteDistanceKm: nearestSite?.distanceKm ?? null,
-      nearestSiteType: nearestSite?.type ?? null,
+      superfundCount: superfundSites.length,
+      triCount: triFacilities.length,
+      nearestSuperfundName: nearestSuperfund?.name ?? null,
       nearestSuperfundDistanceKm: nearestSuperfund?.distanceKm ?? null,
-      hasSuperfundWithin10Km:
-        typeof nearestSuperfund?.distanceKm === "number" && nearestSuperfund.distanceKm <= 10,
     };
   } catch {
     return {
-      superfundSiteCount: 0,
-      triFacilityCount: 0,
-      nearestSiteName: null,
-      nearestSiteDistanceKm: null,
-      nearestSiteType: null,
+      superfundCount: 0,
+      triCount: 0,
+      nearestSuperfundName: null,
       nearestSuperfundDistanceKm: null,
-      hasSuperfundWithin10Km: false,
     };
   }
 }

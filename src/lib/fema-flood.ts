@@ -1,21 +1,20 @@
-/**
- * Query FEMA's National Flood Hazard Layer for the flood-zone designation at or
- * immediately around a point, returning the mapped zone code, SFHA flag, and a
- * human-readable label.
- */
-import { toBoundingBox } from "@/lib/geospatial";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import { FloodZoneResult } from "@/types";
 
-const FEMA_NFHL_ENDPOINT =
-  "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query";
+const FEMA_FLOOD_ENDPOINTS = [
+  "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query",
+  "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query",
+] as const;
+
+type FemaAttributes = {
+  FLD_ZONE?: string | null;
+  FLD_ZONE_SUBTY?: string | null;
+  ZONE_SUBTY?: string | null;
+  SFHA_TF?: string | null;
+};
 
 type FemaFeature = {
-  attributes?: {
-    FLD_ZONE?: string | null;
-    ZONE_SUBTY?: string | null;
-    SFHA_TF?: string | null;
-  };
+  attributes?: FemaAttributes;
 };
 
 type FemaResponse = {
@@ -23,98 +22,85 @@ type FemaResponse = {
 };
 
 function describeFloodZone(
-  zoneCode: string | null,
-  zoneSubtype: string | null,
-  isSpecialFloodHazardArea: boolean | null,
+  floodZone: string,
+  subtype: string | null,
+  isSpecialFloodHazard: boolean,
 ) {
-  if (!zoneCode) {
-    return "Flood zone unavailable";
+  if (floodZone === "X") {
+    return subtype
+      ? `Zone X - ${subtype.toLowerCase()}`
+      : "Zone X - area of minimal flood hazard";
   }
 
-  if (zoneCode === "X") {
-    return zoneSubtype
-      ? `Zone X - ${zoneSubtype.toLowerCase()}`
-      : "Zone X - minimal flood hazard";
+  if (isSpecialFloodHazard) {
+    return subtype
+      ? `Zone ${floodZone} Special Flood Hazard Area - ${subtype.toLowerCase()}`
+      : `Zone ${floodZone} Special Flood Hazard Area`;
   }
 
-  if (isSpecialFloodHazardArea) {
-    return zoneSubtype
-      ? `Zone ${zoneCode} SFHA - ${zoneSubtype.toLowerCase()}`
-      : `Zone ${zoneCode} Special Flood Hazard Area`;
-  }
-
-  return zoneSubtype ? `Zone ${zoneCode} - ${zoneSubtype.toLowerCase()}` : `Zone ${zoneCode}`;
+  return subtype ? `Zone ${floodZone} - ${subtype.toLowerCase()}` : `Zone ${floodZone}`;
 }
 
-async function runFemaQuery(url: string) {
-  const response = await fetchWithTimeout(
-    url,
-    {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 60 * 60 * 24 },
-    },
-    EXTERNAL_TIMEOUTS.standard,
-  );
+async function queryFloodEndpoint(url: string) {
+  try {
+    const response = await fetchWithTimeout(
+      url,
+      {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 60 * 60 * 24 },
+      },
+      EXTERNAL_TIMEOUTS.standard,
+    );
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as FemaResponse;
+  } catch {
     return null;
   }
-
-  return (await response.json()) as FemaResponse;
 }
 
 export async function getFloodZone(
   lat: number,
   lng: number,
-  radiusKm = 1,
 ): Promise<FloodZoneResult | null> {
   try {
-    const pointQuery = new URL(FEMA_NFHL_ENDPOINT);
-    pointQuery.searchParams.set("geometry", `${lng},${lat}`);
-    pointQuery.searchParams.set("geometryType", "esriGeometryPoint");
-    pointQuery.searchParams.set("inSR", "4326");
-    pointQuery.searchParams.set("spatialRel", "esriSpatialRelIntersects");
-    pointQuery.searchParams.set("outFields", "FLD_ZONE,ZONE_SUBTY,SFHA_TF");
-    pointQuery.searchParams.set("returnGeometry", "false");
-    pointQuery.searchParams.set("f", "json");
+    const queries = FEMA_FLOOD_ENDPOINTS.map((endpoint) => {
+      const url = new URL(endpoint);
+      url.searchParams.set("geometry", `${lng},${lat}`);
+      url.searchParams.set("geometryType", "esriGeometryPoint");
+      url.searchParams.set("spatialRel", "esriSpatialRelIntersects");
+      url.searchParams.set("outFields", "FLD_ZONE,FLD_ZONE_SUBTY,ZONE_SUBTY,SFHA_TF");
+      url.searchParams.set("returnGeometry", "false");
+      url.searchParams.set("f", "json");
+      return url.toString();
+    });
 
-    let payload = await runFemaQuery(pointQuery.toString());
+    for (const query of queries) {
+      const payload = await queryFloodEndpoint(query);
+      const attributes = payload?.features?.[0]?.attributes;
 
-    if (!payload?.features?.length && radiusKm > 0) {
-      const bbox = toBoundingBox({ lat, lng }, radiusKm);
-      const envelopeQuery = new URL(FEMA_NFHL_ENDPOINT);
-      envelopeQuery.searchParams.set(
-        "geometry",
-        `${bbox.west},${bbox.south},${bbox.east},${bbox.north}`,
-      );
-      envelopeQuery.searchParams.set("geometryType", "esriGeometryEnvelope");
-      envelopeQuery.searchParams.set("inSR", "4326");
-      envelopeQuery.searchParams.set("spatialRel", "esriSpatialRelIntersects");
-      envelopeQuery.searchParams.set("outFields", "FLD_ZONE,ZONE_SUBTY,SFHA_TF");
-      envelopeQuery.searchParams.set("returnGeometry", "false");
-      envelopeQuery.searchParams.set("resultRecordCount", "1");
-      envelopeQuery.searchParams.set("f", "json");
-      payload = await runFemaQuery(envelopeQuery.toString());
+      if (!attributes?.FLD_ZONE) {
+        continue;
+      }
+
+      const floodZone = attributes.FLD_ZONE.trim();
+      const subtype =
+        attributes.FLD_ZONE_SUBTY?.trim() ??
+        attributes.ZONE_SUBTY?.trim() ??
+        null;
+      const isSpecialFloodHazard = attributes.SFHA_TF?.trim().toUpperCase() === "T";
+
+      return {
+        floodZone,
+        isSpecialFloodHazard,
+        label: describeFloodZone(floodZone, subtype, isSpecialFloodHazard),
+      };
     }
 
-    const attributes = payload?.features?.[0]?.attributes;
-    if (!attributes) {
-      return null;
-    }
-
-    const zoneCode = attributes.FLD_ZONE?.trim() || null;
-    const zoneSubtype = attributes.ZONE_SUBTY?.trim() || null;
-    const isSpecialFloodHazardArea =
-      typeof attributes.SFHA_TF === "string"
-        ? attributes.SFHA_TF.toUpperCase() === "T"
-        : null;
-
-    return {
-      zoneCode,
-      zoneSubtype,
-      isSpecialFloodHazardArea,
-      label: describeFloodZone(zoneCode, zoneSubtype, isSpecialFloodHazardArea),
-    };
+    return null;
   } catch {
     return null;
   }

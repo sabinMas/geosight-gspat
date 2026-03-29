@@ -248,14 +248,14 @@ function scoreBroadbandAvailability(
   }
 
   const broadband = geodata.broadband;
-  if (!broadband?.available) {
+  if (!broadband) {
     return 58;
   }
 
-  const downloadMbps = broadband.maxDownloadMbps;
-  const uploadMbps = broadband.maxUploadMbps;
+  const downloadMbps = broadband.maxDownloadSpeed;
+  const uploadMbps = broadband.maxUploadSpeed;
   const providerCount = broadband.providerCount;
-  const technologyBonus = broadband.technologies.includes("fiber")
+  const technologyBonus = broadband.hasFiber
     ? 8
     : broadband.technologies.includes("cable")
       ? 4
@@ -265,9 +265,9 @@ function scoreBroadbandAvailability(
 
   if (mode === "data_center") {
     const downloadScore =
-      downloadMbps === null ? 60 : clamp(Math.round((downloadMbps / 1_000) * 100), 25, 100);
+      downloadMbps > 0 ? clamp(Math.round((downloadMbps / 1_000) * 100), 25, 100) : 60;
     const uploadScore =
-      uploadMbps === null ? 55 : clamp(Math.round((uploadMbps / 500) * 100), 20, 100);
+      uploadMbps > 0 ? clamp(Math.round((uploadMbps / 500) * 100), 20, 100) : 55;
     const providerScore = scoreCountSignal(providerCount, 3, 5);
 
     return clamp(
@@ -278,9 +278,9 @@ function scoreBroadbandAvailability(
   }
 
   const downloadScore =
-    downloadMbps === null ? 60 : clamp(Math.round((downloadMbps / 300) * 100), 25, 100);
+    downloadMbps > 0 ? clamp(Math.round((downloadMbps / 300) * 100), 25, 100) : 60;
   const uploadScore =
-    uploadMbps === null ? 58 : clamp(Math.round((uploadMbps / 40) * 100), 25, 100);
+    uploadMbps > 0 ? clamp(Math.round((uploadMbps / 40) * 100), 25, 100) : 58;
   const providerScore = scoreCountSignal(providerCount, 2, 4);
 
   return clamp(
@@ -296,23 +296,27 @@ function scoreFloodRisk(geodata: GeodataResult) {
   }
 
   const floodZone = geodata.floodZone;
-  if (!floodZone?.zoneCode) {
+  if (!floodZone?.floodZone) {
     return 58;
   }
 
-  if (floodZone.zoneCode === "X") {
-    return 96;
+  if (floodZone.floodZone === "X") {
+    return 100;
   }
 
-  if (floodZone.isSpecialFloodHazardArea) {
-    return 18;
+  if (floodZone.isSpecialFloodHazard) {
+    return 0;
   }
 
-  if (floodZone.zoneCode === "D" || floodZone.zoneCode === "B" || floodZone.zoneCode === "C") {
-    return 62;
+  if (
+    floodZone.floodZone === "D" ||
+    floodZone.floodZone === "B" ||
+    floodZone.floodZone === "C"
+  ) {
+    return 65;
   }
 
-  return 70;
+  return 75;
 }
 
 function scoreAirQualityContext(geodata: GeodataResult) {
@@ -366,14 +370,12 @@ function scoreContaminationRisk(geodata: GeodataResult) {
     return 58;
   }
 
-  const superfundPenalty = Math.min(hazards.superfundSiteCount * 10, 35);
-  const triPenalty = Math.min(hazards.triFacilityCount * 3, 15);
+  const superfundPenalty = Math.min(hazards.superfundCount * 10, 35);
+  const triPenalty = Math.min(hazards.triCount * 3, 15);
   const proximityPenalty =
     hazards.nearestSuperfundDistanceKm !== null && hazards.nearestSuperfundDistanceKm <= 10
       ? 28
-      : hazards.nearestSiteDistanceKm !== null && hazards.nearestSiteDistanceKm <= 10
-        ? 10
-        : 0;
+      : 0;
 
   return clamp(Math.round(92 - superfundPenalty - triPenalty - proximityPenalty), 15, 100);
 }
@@ -510,7 +512,7 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           geodata.nearestWaterBody.distanceKm === null
             ? "unknown distance"
             : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
-        }; nearest USGS gauge ${nearestGauge.stationName} (${nearestGauge.distanceKm.toFixed(1)} km) reporting ${
+        }; nearest USGS gauge ${nearestGauge.siteName} (${nearestGauge.distanceKm.toFixed(1)} km) reporting ${
           nearestGauge.dischargeCfs === null
             ? "unknown discharge"
             : `${nearestGauge.dischargeCfs.toLocaleString()} cfs`
@@ -529,24 +531,24 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           ? geodata.floodZone.label
           : "FEMA flood-zone context unavailable.";
       case "broadbandConnectivity":
-        if (!geodata.broadband?.available) {
-          return geodata.broadband?.note ?? "FCC broadband availability unavailable for this point.";
+        if (!geodata.broadband) {
+          return "FCC broadband availability unavailable for this point.";
         }
         return `${geodata.broadband.providerCount} providers, up to ${
-          geodata.broadband.maxDownloadMbps === null
-            ? "unknown download"
-            : `${geodata.broadband.maxDownloadMbps.toLocaleString()} Mbps down`
+          geodata.broadband.maxDownloadSpeed > 0
+            ? `${geodata.broadband.maxDownloadSpeed.toLocaleString()} Mbps down`
+            : "unknown download"
         } / ${
-          geodata.broadband.maxUploadMbps === null
-            ? "unknown upload"
-            : `${geodata.broadband.maxUploadMbps.toLocaleString()} Mbps up`
+          geodata.broadband.maxUploadSpeed > 0
+            ? `${geodata.broadband.maxUploadSpeed.toLocaleString()} Mbps up`
+            : "unknown upload"
         }; technologies ${geodata.broadband.technologies.join(", ") || "unclassified"}.`;
       case "airQuality":
         return geodata.airQuality
           ? `${geodata.airQuality.stationName} reports PM2.5 ${
-              geodata.airQuality.pm25UgM3 === null ? "--" : `${geodata.airQuality.pm25UgM3} ug/m3`
+              geodata.airQuality.pm25 === null ? "--" : `${geodata.airQuality.pm25} ug/m3`
             } and PM10 ${
-              geodata.airQuality.pm10UgM3 === null ? "--" : `${geodata.airQuality.pm10UgM3} ug/m3`
+              geodata.airQuality.pm10 === null ? "--" : `${geodata.airQuality.pm10} ug/m3`
             } (${geodata.airQuality.aqiCategory}).`
           : geodata.climate.airQualityIndex === null
             ? "Air-quality station coverage unavailable."
@@ -556,12 +558,12 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           return "EPA contamination screening unavailable for this location.";
         }
         return geodata.epaHazards
-          ? `${geodata.epaHazards.superfundSiteCount} Superfund sites and ${geodata.epaHazards.triFacilityCount} TRI facilities within ~50 km; nearest ${geodata.epaHazards.nearestSiteType ?? "site"} ${
-              geodata.epaHazards.nearestSiteName ?? "unknown"
+          ? `${geodata.epaHazards.superfundCount} Superfund sites and ${geodata.epaHazards.triCount} TRI facilities within ~50 km; nearest Superfund site ${
+              geodata.epaHazards.nearestSuperfundName ?? "unknown"
             } at ${
-              geodata.epaHazards.nearestSiteDistanceKm === null
+              geodata.epaHazards.nearestSuperfundDistanceKm === null
                 ? "unknown distance"
-                : `${geodata.epaHazards.nearestSiteDistanceKm.toFixed(1)} km`
+                : `${geodata.epaHazards.nearestSuperfundDistanceKm.toFixed(1)} km`
             }.`
           : "EPA contamination screening unavailable.";
       case "amenities":
@@ -725,8 +727,8 @@ export function calculateProfileScore(
     factors,
     broadband: geodata.broadband
       ? {
-          maxDownloadMbps: geodata.broadband.maxDownloadMbps,
-          maxUploadMbps: geodata.broadband.maxUploadMbps,
+          maxDownloadSpeed: geodata.broadband.maxDownloadSpeed,
+          maxUploadSpeed: geodata.broadband.maxUploadSpeed,
           providerCount: geodata.broadband.providerCount,
           technologies: geodata.broadband.technologies,
           score:

@@ -150,7 +150,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "trailAccess",
         label: "Trail access / road proximity",
-        weight: 0.09,
+        weight: 0.08,
         scoreFn: "distance",
         params: { source: "road", idealKm: 1.5, cutoffKm: 14, direction: "near" },
         description: "Access is still important for trailheads and day-use logistics.",
@@ -158,7 +158,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "weather",
         label: "Climate / weather",
-        weight: 0.1,
+        weight: 0.09,
         scoreFn: "climate",
         params: { mode: "outdoor" },
         description: "Moderate temperatures and manageable precipitation support broader usability.",
@@ -209,7 +209,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "roadTransit",
         label: "Road / transit access",
-        weight: 0.16,
+        weight: 0.15,
         scoreFn: "distance",
         params: { source: "road", idealKm: 1.5, cutoffKm: 14, direction: "near" },
         description: "Closer access supports commuting and neighborhood connectivity.",
@@ -225,15 +225,15 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "floodRisk",
         label: "Flood risk",
-        weight: 0.14,
+        weight: 0.15,
         scoreFn: "custom",
         params: { metric: "floodRisk" },
-        description: "Uses FEMA flood-zone designation to penalize mapped SFHAs and uncertain flood areas.",
+        description: "Uses FEMA flood-zone designation so Zone X carries no penalty while mapped SFHAs create an approximate fifteen-point total-score penalty.",
       },
       {
         key: "amenities",
         label: "Commercial amenities nearby",
-        weight: 0.11,
+        weight: 0.1,
         scoreFn: "custom",
         params: { metric: "amenities" },
         description: "Uses live mapped amenity density from OpenStreetMap.",
@@ -265,7 +265,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "contaminationRisk",
         label: "Contamination risk",
-        weight: 0.05,
+        weight: 0.06,
         scoreFn: "custom",
         params: { metric: "contaminationRisk" },
         description: "Uses EPA Superfund and TRI proximity as an early contamination-screening factor.",

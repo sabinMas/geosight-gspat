@@ -25,23 +25,23 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
         <CardTitle>Broadband context</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {broadband?.available ? (
+        {broadband ? (
           <>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
                 <div className="eyebrow">Max download</div>
                 <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-                  {broadband.maxDownloadMbps === null
-                    ? "--"
-                    : `${broadband.maxDownloadMbps.toLocaleString()} Mbps`}
+                  {broadband.maxDownloadSpeed > 0
+                    ? `${broadband.maxDownloadSpeed.toLocaleString()} Mbps`
+                    : "--"}
                 </div>
               </div>
               <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
                 <div className="eyebrow">Max upload</div>
                 <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-                  {broadband.maxUploadMbps === null
-                    ? "--"
-                    : `${broadband.maxUploadMbps.toLocaleString()} Mbps`}
+                  {broadband.maxUploadSpeed > 0
+                    ? `${broadband.maxUploadSpeed.toLocaleString()} Mbps`
+                    : "--"}
                 </div>
               </div>
               <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
@@ -70,6 +70,11 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
                   </span>
                 )}
               </div>
+              <div className="mt-4 text-sm leading-6 text-[var(--muted-foreground)]">
+                {broadband.hasFiber
+                  ? "Fiber appears in the advertised technology mix."
+                  : "No fiber technology was detected in the returned FCC technology mix."}
+              </div>
               {score?.broadband?.score !== null && score?.broadband?.score !== undefined ? (
                 <div className="mt-4 text-sm leading-6 text-[var(--muted-foreground)]">
                   Mission broadband factor score:{" "}
@@ -82,8 +87,7 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
           </>
         ) : (
           <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            {broadband?.note ??
-              "FCC broadband availability is not available for this point right now."}
+            FCC broadband availability is not available for this point right now.
           </div>
         )}
 

@@ -1,24 +1,24 @@
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AirQualityResult, GeodataResult } from "@/types";
+import { GeodataResult } from "@/types";
 
 interface AirQualityCardProps {
   geodata: GeodataResult | null;
 }
 
-function getAqiTone(color: AirQualityResult["aqiColor"]) {
-  switch (color) {
-    case "green":
+function getAqiTone(category: NonNullable<GeodataResult["airQuality"]>["aqiCategory"]) {
+  switch (category) {
+    case "Good":
       return "border-emerald-300/20 bg-emerald-400/10 text-emerald-50";
-    case "yellow":
+    case "Moderate":
       return "border-amber-300/20 bg-amber-400/10 text-amber-50";
-    case "orange":
+    case "Unhealthy for Sensitive Groups":
       return "border-orange-300/20 bg-orange-400/10 text-orange-50";
-    case "red":
+    case "Unhealthy":
       return "border-rose-300/20 bg-rose-400/10 text-rose-50";
-    case "purple":
+    case "Very Unhealthy":
       return "border-fuchsia-300/20 bg-fuchsia-400/10 text-fuchsia-50";
-    case "maroon":
+    case "Hazardous":
       return "border-red-300/20 bg-red-500/10 text-red-50";
     default:
       return "border-slate-300/15 bg-slate-400/10 text-slate-100";
@@ -39,7 +39,7 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
       <CardContent className="space-y-4">
         {geodata.airQuality ? (
           <>
-            <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${getAqiTone(geodata.airQuality.aqiColor)}`}>
+            <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${getAqiTone(geodata.airQuality.aqiCategory)}`}>
               {geodata.airQuality.aqiCategory}
             </div>
             <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
@@ -48,21 +48,19 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
                 {geodata.airQuality.stationName}
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                {geodata.airQuality.distanceKm === null
-                  ? "Distance unavailable."
-                  : `${geodata.airQuality.distanceKm.toFixed(1)} km from the selected point.`}
+                {`${geodata.airQuality.distanceKm.toFixed(1)} km from the selected point.`}
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
                   <div className="eyebrow">PM2.5</div>
                   <div className="mt-2 text-xl font-semibold text-[var(--foreground)]">
-                    {geodata.airQuality.pm25UgM3 === null ? "--" : `${geodata.airQuality.pm25UgM3} ug/m3`}
+                    {geodata.airQuality.pm25 === null ? "--" : `${geodata.airQuality.pm25} ug/m3`}
                   </div>
                 </div>
                 <div>
                   <div className="eyebrow">PM10</div>
                   <div className="mt-2 text-xl font-semibold text-[var(--foreground)]">
-                    {geodata.airQuality.pm10UgM3 === null ? "--" : `${geodata.airQuality.pm10UgM3} ug/m3`}
+                    {geodata.airQuality.pm10 === null ? "--" : `${geodata.airQuality.pm10} ug/m3`}
                   </div>
                 </div>
               </div>

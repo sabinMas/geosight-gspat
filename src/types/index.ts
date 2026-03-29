@@ -260,6 +260,7 @@ export interface SourceRegistryContext {
 export interface SourceProviderDefinition {
   id: string;
   name: string;
+  url?: string;
   domains: SourceDomain[];
   accessType: SourceAccessType;
   coverage: SourceRegionScope[];
@@ -321,41 +322,23 @@ export interface SchoolContextResult extends SchoolContextSummary {
   notes: string[];
 }
 
-export type BroadbandTechnologyType =
-  | "fiber"
-  | "cable"
-  | "dsl"
-  | "fixed_wireless"
-  | "other";
-
-export interface BroadbandProviderAvailability {
-  providerName: string;
-  technology: BroadbandTechnologyType;
-  maxDownloadMbps: number | null;
-  maxUploadMbps: number | null;
-}
-
 export interface BroadbandResult {
-  maxDownloadMbps: number | null;
-  maxUploadMbps: number | null;
+  maxDownloadSpeed: number;
+  maxUploadSpeed: number;
   providerCount: number;
-  technologies: BroadbandTechnologyType[];
-  providers: BroadbandProviderAvailability[];
-  available: boolean;
-  error: boolean;
-  note: string | null;
+  technologies: string[];
+  hasFiber: boolean;
 }
 
 export interface FloodZoneResult {
-  zoneCode: string | null;
-  zoneSubtype: string | null;
-  isSpecialFloodHazardArea: boolean | null;
+  floodZone: string;
+  isSpecialFloodHazard: boolean;
   label: string;
 }
 
 export interface StreamGaugeResult {
   siteNumber: string;
-  stationName: string;
+  siteName: string;
   dischargeCfs: number | null;
   drainageAreaSqMi: number | null;
   distanceKm: number;
@@ -363,21 +346,23 @@ export interface StreamGaugeResult {
 
 export interface AirQualityResult {
   stationName: string;
-  distanceKm: number | null;
-  pm25UgM3: number | null;
-  pm10UgM3: number | null;
-  aqiCategory: string;
-  aqiColor: "green" | "yellow" | "orange" | "red" | "purple" | "maroon" | "slate";
+  pm25: number | null;
+  pm10: number | null;
+  aqiCategory:
+    | "Good"
+    | "Moderate"
+    | "Unhealthy for Sensitive Groups"
+    | "Unhealthy"
+    | "Very Unhealthy"
+    | "Hazardous";
+  distanceKm: number;
 }
 
 export interface EPAHazardResult {
-  superfundSiteCount: number;
-  triFacilityCount: number;
-  nearestSiteName: string | null;
-  nearestSiteDistanceKm: number | null;
-  nearestSiteType: "superfund" | "tri" | null;
+  superfundCount: number;
+  triCount: number;
+  nearestSuperfundName: string | null;
   nearestSuperfundDistanceKm: number | null;
-  hasSuperfundWithin10Km: boolean;
 }
 
 export interface GeodataResult {
@@ -508,10 +493,10 @@ export interface SiteFactorScore {
 }
 
 export interface BroadbandScoreSummary {
-  maxDownloadMbps: number | null;
-  maxUploadMbps: number | null;
+  maxDownloadSpeed: number;
+  maxUploadSpeed: number;
   providerCount: number;
-  technologies: BroadbandTechnologyType[];
+  technologies: string[];
   score: number | null;
 }
 

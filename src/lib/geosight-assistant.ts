@@ -197,13 +197,13 @@ function buildProfileAssessmentLine(profileId: string, geodata?: GeodataResult) 
 }
 
 function payloadBroadbandLine(geodata?: GeodataResult) {
-  if (!geodata?.broadband?.available) {
+  if (!geodata?.broadband) {
     return "unavailable broadband";
   }
 
-  return geodata.broadband.maxDownloadMbps === null
+  return geodata.broadband.maxDownloadSpeed <= 0
     ? `${geodata.broadband.providerCount} providers`
-    : `${geodata.broadband.maxDownloadMbps.toLocaleString()} Mbps down across ${geodata.broadband.providerCount} providers`;
+    : `${geodata.broadband.maxDownloadSpeed.toLocaleString()} Mbps down across ${geodata.broadband.providerCount} providers`;
 }
 
 function buildNextQuestions(profileId: string) {
@@ -276,23 +276,23 @@ export function buildFallbackAssessment(
     payload.geodata?.nearestPower
       ? `Nearest mapped power infrastructure: ${payload.geodata.nearestPower.name} (${payload.geodata.nearestPower.distanceKm ?? "unknown"} km).`
       : "Power access is currently unavailable.",
-    payload.geodata?.broadband?.available
-      ? `Broadband context: ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadMbps ?? "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadMbps ?? "unknown"} Mbps up.`
-      : payload.geodata?.sources?.broadband.note ?? "Broadband context is currently unavailable.",
+    payload.geodata?.broadband
+      ? `Broadband context: ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadSpeed || "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadSpeed || "unknown"} Mbps up.`
+      : "Broadband context is currently unavailable.",
     payload.geodata?.floodZone
       ? `FEMA flood zone: ${payload.geodata.floodZone.label}.`
       : "FEMA flood-zone context is currently unavailable.",
     payload.geodata?.streamGauges?.[0]
-      ? `Nearest USGS stream gauge: ${payload.geodata.streamGauges[0].stationName} (${payload.geodata.streamGauges[0].distanceKm.toFixed(1)} km) reporting ${payload.geodata.streamGauges[0].dischargeCfs ?? "unknown"} cfs.`
+      ? `Nearest USGS stream gauge: ${payload.geodata.streamGauges[0].siteName} (${payload.geodata.streamGauges[0].distanceKm.toFixed(1)} km) reporting ${payload.geodata.streamGauges[0].dischargeCfs ?? "unknown"} cfs.`
       : "USGS stream-gauge context is currently unavailable.",
     payload.geodata?.airQuality
-      ? `Nearest air-quality station: ${payload.geodata.airQuality.stationName} with PM2.5 ${payload.geodata.airQuality.pm25UgM3 ?? "unknown"} ug/m3, PM10 ${payload.geodata.airQuality.pm10UgM3 ?? "unknown"} ug/m3, category ${payload.geodata.airQuality.aqiCategory}.`
+      ? `Nearest air-quality station: ${payload.geodata.airQuality.stationName} with PM2.5 ${payload.geodata.airQuality.pm25 ?? "unknown"} ug/m3, PM10 ${payload.geodata.airQuality.pm10 ?? "unknown"} ug/m3, category ${payload.geodata.airQuality.aqiCategory}.`
       : payload.geodata?.climate?.airQualityIndex !== null &&
           payload.geodata?.climate?.airQualityIndex !== undefined
         ? `OpenAQ station unavailable; Open-Meteo AQI is ${payload.geodata.climate.airQualityIndex}.`
         : "Air-quality context is currently unavailable.",
     payload.geodata?.epaHazards
-      ? `EPA screening: ${payload.geodata.epaHazards.superfundSiteCount} Superfund sites and ${payload.geodata.epaHazards.triFacilityCount} TRI facilities within roughly 50 km; nearest site ${payload.geodata.epaHazards.nearestSiteName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSiteDistanceKm ?? "unknown"} km.`
+      ? `EPA screening: ${payload.geodata.epaHazards.superfundCount} Superfund sites and ${payload.geodata.epaHazards.triCount} TRI facilities within roughly 50 km; nearest Superfund site ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
       : "EPA contamination screening is currently unavailable.",
     payload.geodata?.hazards?.earthquakeCount30d !== null &&
     payload.geodata?.hazards?.earthquakeCount30d !== undefined

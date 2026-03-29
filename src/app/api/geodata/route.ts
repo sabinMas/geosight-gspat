@@ -3,7 +3,7 @@ import { getAirQuality } from "@/lib/air-quality";
 import { fetchCountyDemographics } from "@/lib/census";
 import { getEPAHazards } from "@/lib/epa-envirofacts";
 import { getFloodZone } from "@/lib/fema-flood";
-import { getBroadbandAvailability } from "@/lib/fcc-broadband";
+import { getFCCBroadband } from "@/lib/fcc-broadband";
 import { toBoundingBox } from "@/lib/geospatial";
 import { calculateDistanceKm } from "@/lib/nearby-places";
 import { fetchClimateSnapshot } from "@/lib/open-meteo";
@@ -169,7 +169,6 @@ export async function GET(request: NextRequest) {
   const bbox = toBoundingBox({ lat, lng }, 8);
   const isUsPoint = isLikelyUsCoordinate(lat, lng);
   const fireHazardConfigured = isFireHazardConfigured();
-  const openAqConfigured = Boolean(process.env.OPENAQ_API_KEY?.trim());
 
   const [
     elevationResult,
@@ -193,11 +192,11 @@ export async function GET(request: NextRequest) {
       fetchEarthquakeSummary({ lat, lng }),
       fetchFireHazardSummary({ lat, lng }),
       fetchSchoolContext({ lat, lng }),
-      getBroadbandAvailability({ lat, lng }),
+      getFCCBroadband(lat, lng),
       getFloodZone(lat, lng),
       getNearbyStreamGauges(lat, lng),
       getAirQuality(lat, lng),
-      getEPAHazards({ lat, lng }),
+      getEPAHazards(lat, lng),
     ]);
 
   const infrastructure =
@@ -507,27 +506,23 @@ export async function GET(request: NextRequest) {
         status:
           !isUsPoint
             ? "unavailable"
-            : broadbandResult.status === "fulfilled" && broadbandResult.value?.available
+            : broadbandResult.status === "fulfilled" && broadbandResult.value
               ? "live"
-              : broadbandResult.status === "fulfilled"
-                ? "limited"
-                : "unavailable",
+              : "limited",
         lastUpdated: now,
         freshness: "Cached up to 24 hours",
         coverage: "United States only",
         confidence:
           !isUsPoint
             ? "FCC broadband availability is only supported for US locations."
-            : broadbandResult.status === "fulfilled" && broadbandResult.value?.available
+            : broadbandResult.status === "fulfilled" && broadbandResult.value
               ? "Direct provider availability summary from the FCC Broadband Map."
               : "Broadband availability could not be confirmed for this point from the FCC public endpoint.",
-        note:
-          broadbandResult.status === "fulfilled" ? broadbandResult.value?.note ?? undefined : undefined,
       }),
       floodZone: buildRegistryAwareSourceMeta({
         id: "flood-zone",
         label: "Flood zone",
-        provider: "FEMA National Flood Hazard Layer",
+        provider: "FEMA NFHL",
         domain: "hazards",
         context: registryContext,
         status:
@@ -575,23 +570,16 @@ export async function GET(request: NextRequest) {
         domain: "environmental",
         context: registryContext,
         status:
-          !openAqConfigured
-            ? "unavailable"
-            : airQualityResult.status === "fulfilled" && airQualityResult.value
-              ? "live"
-              : "limited",
+          airQualityResult.status === "fulfilled" && airQualityResult.value
+            ? "live"
+            : "limited",
         lastUpdated: now,
         freshness: "Cached up to 30 minutes",
         coverage: "Global where OpenAQ stations exist",
         confidence:
-          !openAqConfigured
-            ? "OpenAQ now requires an API key for live station access in this integration."
-            : airQualityResult.status === "fulfilled" && airQualityResult.value
-              ? "Direct fine-particle readings from the nearest OpenAQ monitoring station."
-              : "No nearby OpenAQ PM2.5 or PM10 station reading was available within the supported search radius.",
-        note: !openAqConfigured
-          ? "Set OPENAQ_API_KEY to enable live PM2.5 and PM10 station lookups."
-          : undefined,
+          airQualityResult.status === "fulfilled" && airQualityResult.value
+            ? "Direct fine-particle readings from the nearest OpenAQ monitoring station."
+            : "No nearby OpenAQ PM2.5 or PM10 station reading was available within the supported search radius.",
       }),
       epaHazards: buildRegistryAwareSourceMeta({
         id: "epa-hazards",
@@ -628,10 +616,6 @@ export async function GET(request: NextRequest) {
       "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
       !isUsPoint
         ? "FCC Broadband Map, FEMA flood zones, USGS Water Services, and EPA contamination screening are currently US-only."
-        : null,
-      broadbandResult.status === "fulfilled" ? broadbandResult.value?.note ?? null : null,
-      !openAqConfigured
-        ? "OpenAQ station lookups require OPENAQ_API_KEY in the current API version."
         : null,
     ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };

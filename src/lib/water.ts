@@ -1,14 +1,11 @@
-/**
- * Query USGS Water Services for active nearby stream gauges and summarize the
- * latest discharge, drainage area, and distance from the selected point.
- */
-import { toBoundingBox } from "@/lib/geospatial";
+import * as turf from "@turf/turf";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
-import { calculateDistanceKm } from "@/lib/nearby-places";
 import { StreamGaugeResult } from "@/types";
 
 const USGS_IV_ENDPOINT = "https://waterservices.usgs.gov/nwis/iv/";
 const USGS_SITE_ENDPOINT = "https://waterservices.usgs.gov/nwis/site/";
+const BOUNDING_BOX_HALF_SPAN_DEGREES = 0.5;
+const DEFAULT_RADIUS_KM = 50;
 
 type UsgsTimeSeries = {
   sourceInfo?: {
@@ -47,6 +44,14 @@ function parseNullableNumber(value: string | number | null | undefined) {
   return null;
 }
 
+function calculateDistanceKm(lat: number, lng: number, targetLat: number, targetLng: number) {
+  return turf.distance(
+    turf.point([lng, lat]),
+    turf.point([targetLng, targetLat]),
+    { units: "kilometers" },
+  );
+}
+
 function parseDrainageAreaRdb(text: string) {
   const rows = text
     .split(/\r?\n/)
@@ -58,7 +63,7 @@ function parseDrainageAreaRdb(text: string) {
     return new Map<string, number | null>();
   }
 
-  const headers = rows[headerIndex].split("\t");
+  const headers = rows[headerIndex]?.split("\t") ?? [];
   const siteNumberIndex = headers.indexOf("site_no");
   const drainageAreaIndex = headers.indexOf("drain_area_va");
   const result = new Map<string, number | null>();
@@ -100,24 +105,23 @@ async function fetchDrainageAreaMap(siteNumbers: string[]) {
       return new Map<string, number | null>();
     }
 
-    const text = await response.text();
-    return parseDrainageAreaRdb(text);
+    return parseDrainageAreaRdb(await response.text());
   } catch {
     return new Map<string, number | null>();
   }
 }
 
-export async function getNearbyStreamGauges(
-  lat: number,
-  lng: number,
-  radiusKm = 25,
-): Promise<StreamGaugeResult[]> {
+async function fetchInstantaneousValues(lat: number, lng: number) {
+  const west = lng - BOUNDING_BOX_HALF_SPAN_DEGREES;
+  const south = lat - BOUNDING_BOX_HALF_SPAN_DEGREES;
+  const east = lng + BOUNDING_BOX_HALF_SPAN_DEGREES;
+  const north = lat + BOUNDING_BOX_HALF_SPAN_DEGREES;
+  const url =
+    `${USGS_IV_ENDPOINT}?format=json` +
+    `&bBox=${west},${south},${east},${north}` +
+    "&parameterCd=00060&siteType=ST&siteStatus=active";
+
   try {
-    const bbox = toBoundingBox({ lat, lng }, radiusKm);
-    const url =
-      `${USGS_IV_ENDPOINT}?format=json` +
-      `&bBox=${bbox.west},${bbox.south},${bbox.east},${bbox.north}` +
-      "&parameterCd=00060&siteType=ST&siteStatus=active";
     const response = await fetchWithTimeout(
       url,
       {
@@ -128,40 +132,62 @@ export async function getNearbyStreamGauges(
     );
 
     if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as UsgsIvResponse;
+  } catch {
+    return null;
+  }
+}
+
+export async function getNearbyStreamGauges(
+  lat: number,
+  lng: number,
+  radiusKm: number = DEFAULT_RADIUS_KM,
+): Promise<StreamGaugeResult[]> {
+  try {
+    const payload = await fetchInstantaneousValues(lat, lng);
+    const timeSeries = payload?.value?.timeSeries ?? [];
+    if (!timeSeries.length) {
       return [];
     }
 
-    const payload = (await response.json()) as UsgsIvResponse;
-    const gauges = (payload.value?.timeSeries ?? [])
-      .map((series) => {
-        const latitude = series.sourceInfo?.geoLocation?.geogLocation?.latitude;
-        const longitude = series.sourceInfo?.geoLocation?.geogLocation?.longitude;
+    const gauges = timeSeries
+      .map((series): StreamGaugeResult | null => {
+        const siteName = series.sourceInfo?.siteName?.trim() ?? "";
         const siteNumber = series.sourceInfo?.siteCode?.[0]?.value?.trim() ?? "";
-        const stationName = series.sourceInfo?.siteName?.trim() ?? "";
+        const gaugeLat = series.sourceInfo?.geoLocation?.geogLocation?.latitude;
+        const gaugeLng = series.sourceInfo?.geoLocation?.geogLocation?.longitude;
 
         if (
+          !siteName ||
           !siteNumber ||
-          !stationName ||
-          typeof latitude !== "number" ||
-          typeof longitude !== "number"
+          typeof gaugeLat !== "number" ||
+          typeof gaugeLng !== "number"
         ) {
           return null;
         }
 
-        const gauge: StreamGaugeResult = {
+        const distanceKm = Number(calculateDistanceKm(lat, lng, gaugeLat, gaugeLng).toFixed(1));
+        if (distanceKm > radiusKm) {
+          return null;
+        }
+
+        return {
+          siteName,
           siteNumber,
-          stationName,
+          distanceKm,
           dischargeCfs: parseNullableNumber(series.values?.[0]?.value?.[0]?.value),
           drainageAreaSqMi: null,
-          distanceKm: Number(
-            calculateDistanceKm({ lat, lng }, { lat: latitude, lng: longitude }).toFixed(1),
-          ),
         };
-
-        return gauge;
       })
       .filter((gauge): gauge is StreamGaugeResult => gauge !== null)
       .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    if (!gauges.length) {
+      return [];
+    }
 
     const drainageAreaBySite = await fetchDrainageAreaMap(
       Array.from(new Set(gauges.map((gauge) => gauge.siteNumber))),

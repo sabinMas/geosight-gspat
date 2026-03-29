@@ -125,8 +125,8 @@ function buildDemoScore(total: number, notes: string[]): SiteScore {
       detail: notes[index] ?? "Fallback demo note",
     })),
     broadband: {
-      maxDownloadMbps: 1_000,
-      maxUploadMbps: 100,
+      maxDownloadSpeed: 1_000,
+      maxUploadSpeed: 100,
       providerCount: 2,
       technologies: ["fiber", "cable"],
       score: Math.min(Math.max(Math.round(total - 3), 0), 100),
@@ -186,26 +186,15 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       commercialCount: 12,
     },
     broadband: {
-      maxDownloadMbps: isMountainSite ? 250 : siteName === "Site B" ? 500 : 1_000,
-      maxUploadMbps: isMountainSite ? 25 : siteName === "Site B" ? 50 : 100,
+      maxDownloadSpeed: isMountainSite ? 250 : siteName === "Site B" ? 500 : 1_000,
+      maxUploadSpeed: isMountainSite ? 25 : siteName === "Site B" ? 50 : 100,
       providerCount: isMountainSite ? 1 : 2,
       technologies: isMountainSite ? ["fixed_wireless"] : ["fiber", "cable"],
-      providers: [
-        {
-          providerName: isMountainSite ? "Regional fixed wireless" : "Regional fiber provider",
-          technology: isMountainSite ? "fixed_wireless" : "fiber",
-          maxDownloadMbps: isMountainSite ? 250 : 1_000,
-          maxUploadMbps: isMountainSite ? 25 : 100,
-        },
-      ],
-      available: true,
-      error: false,
-      note: "Showcase-only broadband summary for the preloaded cooling demo.",
+      hasFiber: !isMountainSite,
     },
     floodZone: {
-      zoneCode: isMountainSite ? "AE" : "X",
-      zoneSubtype: isMountainSite ? "1 PCT ANNUAL CHANCE FLOOD HAZARD" : "AREA OF MINIMAL FLOOD HAZARD",
-      isSpecialFloodHazardArea: isMountainSite,
+      floodZone: isMountainSite ? "AE" : "X",
+      isSpecialFloodHazard: isMountainSite,
       label: isMountainSite
         ? "Zone AE Special Flood Hazard Area"
         : "Zone X - area of minimal flood hazard",
@@ -213,7 +202,7 @@ function buildDemoGeodata(siteName: string): GeodataResult {
     streamGauges: [
       {
         siteNumber: isMountainSite ? "14113200" : "14105700",
-        stationName: isMountainSite ? "Mosier Creek near Mosier OR" : "Columbia River at The Dalles OR",
+        siteName: isMountainSite ? "Mosier Creek near Mosier OR" : "Columbia River at The Dalles OR",
         dischargeCfs: isMountainSite ? 182 : 162_000,
         drainageAreaSqMi: isMountainSite ? 41.5 : 237_000,
         distanceKm: isMountainSite ? 7.4 : 3.1,
@@ -222,19 +211,15 @@ function buildDemoGeodata(siteName: string): GeodataResult {
     airQuality: {
       stationName: isMountainSite ? "Wenatchee Valley monitor" : "The Dalles monitor",
       distanceKm: isMountainSite ? 18.4 : 12.2,
-      pm25UgM3: isMountainSite ? 11.2 : 7.4,
-      pm10UgM3: isMountainSite ? 20.6 : 14.3,
+      pm25: isMountainSite ? 11.2 : 7.4,
+      pm10: isMountainSite ? 20.6 : 14.3,
       aqiCategory: "Good",
-      aqiColor: "green",
     },
     epaHazards: {
-      superfundSiteCount: isMountainSite ? 1 : 0,
-      triFacilityCount: siteName === "Site B" ? 2 : 1,
-      nearestSiteName: isMountainSite ? "Regional cleanup site" : "Industrial reporting facility",
-      nearestSiteDistanceKm: isMountainSite ? 18.6 : 22.4,
-      nearestSiteType: isMountainSite ? "superfund" : "tri",
+      superfundCount: isMountainSite ? 1 : 0,
+      triCount: siteName === "Site B" ? 2 : 1,
+      nearestSuperfundName: isMountainSite ? "Regional cleanup site" : null,
       nearestSuperfundDistanceKm: isMountainSite ? 18.6 : null,
-      hasSuperfundWithin10Km: false,
     },
     schoolContext: {
       coverageStatus: "state_accountability_supported",
