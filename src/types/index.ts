@@ -73,7 +73,8 @@ export type WorkspaceCardId =
   | "image-upload"
   | "land-classifier"
   | "source-awareness"
-  | "school-context";
+  | "school-context"
+  | "hazard-context";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -88,6 +89,11 @@ export interface WorkspaceCardDefinition {
   id: WorkspaceCardId;
   title: string;
   summary: string;
+  questionAnswered: string;
+  regionCoverage: string;
+  failureMode: string;
+  freshnessWindow: string;
+  nextActions: string[];
   icon: string;
   category: WorkspaceCardCategory;
   zone: WorkspaceCardZone;
@@ -229,6 +235,15 @@ export interface DataSourceMeta {
   fallbackProviders?: string[];
 }
 
+export interface SavedBoard {
+  id: string;
+  name: string;
+  profileId: string;
+  activeCardId: WorkspaceCardId | null;
+  visibleCardIds: WorkspaceCardId[];
+  createdAt: string;
+}
+
 export interface SourceRegistryContext {
   countryCode?: string | null;
   stateCode?: string | null;
@@ -322,11 +337,14 @@ export interface GeodataResult {
     precipitationMm: number | null;
     windSpeedKph: number | null;
     airQualityIndex: number | null;
+    weatherRiskSummary: string | null;
   };
   hazards: {
     earthquakeCount30d: number | null;
     strongestEarthquakeMagnitude30d: number | null;
     nearestEarthquakeKm: number | null;
+    activeFireCount7d: number | null;
+    nearestFireKm: number | null;
   };
   demographics: {
     countyName: string | null;
@@ -351,6 +369,7 @@ export interface GeodataResult {
     infrastructure: DataSourceMeta;
     climate: DataSourceMeta;
     hazards: DataSourceMeta;
+    hazardFire: DataSourceMeta;
     demographics: DataSourceMeta;
     amenities: DataSourceMeta;
     school: DataSourceMeta;

@@ -55,6 +55,8 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
   const earthquakes = geodata.hazards.earthquakeCount30d;
   const strongestEarthquake = geodata.hazards.strongestEarthquakeMagnitude30d;
   const nearestEarthquake = geodata.hazards.nearestEarthquakeKm;
+  const activeFireCount = geodata.hazards.activeFireCount7d;
+  const nearestFireKm = geodata.hazards.nearestFireKm;
   const amenities = geodata.amenities;
   const serviceCount =
     (amenities.schoolCount ?? 0) +
@@ -110,6 +112,19 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
         currentTemp !== null && currentTemp >= 8 && currentTemp <= 24 ? "positive" : "neutral",
       source: geodata.sources.climate,
     },
+    ...(geodata.climate.weatherRiskSummary
+      ? [
+          {
+            id: "trend-weather-risk",
+            label: "Weather risk",
+            value: geodata.climate.weatherRiskSummary,
+            detail:
+              "Open-Meteo forecast risk summary built from current and short-range WMO weather codes.",
+            direction: "watch" as const,
+            source: geodata.sources.climate,
+          },
+        ]
+      : []),
     {
       id: "trend-air",
       label: "Air quality",
@@ -188,6 +203,26 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
             ? "watch"
             : "neutral",
       source: geodata.sources.hazards,
+    },
+    {
+      id: "trend-fire",
+      label: "Active fires (7d)",
+      value:
+        activeFireCount === null
+          ? "Unavailable"
+          : activeFireCount === 0
+            ? "None detected"
+            : `${activeFireCount} detections`,
+      detail:
+        activeFireCount === null
+          ? "NASA FIRMS VIIRS fire detections are unavailable for this point."
+          : activeFireCount === 0
+            ? "No VIIRS fire detections were returned within the active analysis region over the last 7 days."
+            : `VIIRS satellite fire detections in the last 7 days. Nearest detection ${
+                nearestFireKm === null ? "distance unavailable" : `${nearestFireKm.toFixed(1)} km away`
+              }.`,
+      direction: activeFireCount !== null && activeFireCount > 10 ? "watch" : "neutral",
+      source: geodata.sources.hazardFire,
     },
     {
       id: "trend-population",

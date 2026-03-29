@@ -6,7 +6,11 @@ import {
 import { buildElevationTransect } from "@/lib/geospatial";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 
-export async function fetchElevation(coords: Coordinates) {
+function isLikelyUsCoordinate(coords: Coordinates) {
+  return coords.lat >= 18 && coords.lat <= 72 && coords.lng >= -180 && coords.lng <= -64;
+}
+
+async function fetchElevationUsgs(coords: Coordinates) {
   const url = `https://epqs.nationalmap.gov/v1/json?x=${coords.lng}&y=${coords.lat}&units=Meters&wkid=4326&includeDate=false`;
   const response = await fetchWithTimeout(url, {
     next: { revalidate: 60 * 60 * 6 },
@@ -18,6 +22,45 @@ export async function fetchElevation(coords: Coordinates) {
 
   const data = (await response.json()) as { value?: number };
   return typeof data.value === "number" ? data.value : null;
+}
+
+export async function fetchElevationOpenTopo(coords: Coordinates) {
+  const response = await fetchWithTimeout(
+    `https://api.opentopodata.org/v1/srtm90m?locations=${coords.lat},${coords.lng}`,
+    {
+      next: { revalidate: 60 * 60 * 6 },
+    },
+    EXTERNAL_TIMEOUTS.fast,
+  );
+
+  if (!response.ok) {
+    throw new Error("OpenTopoData elevation request failed.");
+  }
+
+  const data = (await response.json()) as {
+    results?: Array<{ elevation?: number | null }>;
+  };
+  const elevation = data.results?.[0]?.elevation;
+  return typeof elevation === "number" && Number.isFinite(elevation) ? elevation : null;
+}
+
+export async function fetchElevation(coords: Coordinates) {
+  if (isLikelyUsCoordinate(coords)) {
+    try {
+      const usgsElevation = await fetchElevationUsgs(coords);
+      if (usgsElevation !== null) {
+        return usgsElevation;
+      }
+    } catch {
+      // Fall through to the global fallback.
+    }
+  }
+
+  try {
+    return await fetchElevationOpenTopo(coords);
+  } catch {
+    return null;
+  }
 }
 
 function buildElevationSummary(profile: ElevationProfilePoint[]): ElevationProfileSummary {

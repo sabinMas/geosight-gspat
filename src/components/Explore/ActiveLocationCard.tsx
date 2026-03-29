@@ -4,6 +4,10 @@ import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import {
+  formatSourceStatusLabel,
+  getSourceStatusTone,
+} from "@/lib/source-metadata";
 import { DataSourceMeta, GeodataResult, MissionProfile } from "@/types";
 
 interface ActiveLocationCardProps {
@@ -34,7 +38,14 @@ function StatCard({
 }) {
   return (
     <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
-      <div className="eyebrow">{label}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="eyebrow">{label}</div>
+        {source ? (
+          <span className={`rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${getSourceStatusTone(source.status)}`}>
+            {formatSourceStatusLabel(source.status)}
+          </span>
+        ) : null}
+      </div>
       <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">{value}</div>
       <div className="mt-1 text-xs text-[var(--muted-foreground)]">{detail}</div>
       {source ? (

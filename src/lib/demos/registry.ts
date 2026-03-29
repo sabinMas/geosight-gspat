@@ -102,7 +102,7 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     name: "Tokyo Commerce",
     tagline: "Retail, logistics, and corridor exploration",
     description:
-      "A global commercial demo that highlights market access, utility readiness, and urban corridor analysis in one of the world's densest metros.",
+      "A global commercial demo that highlights market access, utility readiness, and urban corridor analysis in one of the world's densest metros. Elevation via SRTM global DEM, demographics via World Bank national indicators.",
     profileId: "commercial",
     accentColor: "#a78bfa",
     icon: "LineChart",

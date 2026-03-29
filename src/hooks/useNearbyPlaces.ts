@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
 import {
   Coordinates,
@@ -17,6 +17,11 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<NearbyPlacesSource>("unavailable");
+  const locationNameRef = useRef(locationName);
+
+  useEffect(() => {
+    locationNameRef.current = locationName;
+  }, [locationName]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -24,13 +29,15 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
     const run = async () => {
       setLoading(true);
       setError(null);
+      setSource("unavailable");
+      setPlaces([]);
 
       try {
         const params = new URLSearchParams({
           lat: String(coords.lat),
           lng: String(coords.lng),
           category,
-          locationName,
+          locationName: locationNameRef.current,
         });
         const response = await fetch(`/api/nearby-places?${params.toString()}`, {
           signal: controller.signal,
@@ -67,7 +74,7 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
     void run();
 
     return () => controller.abort();
-  }, [category, coords.lat, coords.lng, locationName]);
+  }, [category, coords.lat, coords.lng]);
 
   return {
     category,

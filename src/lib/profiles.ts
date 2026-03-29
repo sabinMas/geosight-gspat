@@ -291,7 +291,7 @@ export const PROFILES: MissionProfile[] = [
       },
     ],
     systemPrompt:
-      "You are a geospatial intelligence expert focused on retail, commercial real estate, and warehouse siting. Prioritize freight and road access, inferred demand, utility readiness, and land practicality. Be explicit when demand, traffic, or land-cost commentary is based on proxy signals rather than live demographic or parcel data.",
+      "You are a geospatial intelligence expert focused on retail, commercial real estate, and warehouse siting. Prioritize freight and road access, inferred demand, utility readiness, and land practicality. Be explicit when demand, traffic, or land-cost commentary is based on proxy signals rather than live demographic or parcel data. When analyzing locations outside the US, note that demographic data comes from World Bank national indicators rather than county-level census data, and school context is not yet available.",
     defaultLayers: { water: false, power: true, roads: true, heatmap: false },
     exampleQuestions: [
       "How strong is the highway access here?",

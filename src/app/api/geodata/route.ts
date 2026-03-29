@@ -9,6 +9,7 @@ import {
   getElementCoordinates,
   OverpassElement,
 } from "@/lib/overpass";
+import { fetchFireHazardSummary } from "@/lib/nasa-firms";
 import {
   applyRateLimit,
   createRateLimitResponse,
@@ -21,6 +22,14 @@ import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
 import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { GeodataResult } from "@/types";
+
+function isLikelyCountryCode(value: string | null) {
+  return typeof value === "string" && /^[A-Z]{2}$/.test(value) && value !== "WA";
+}
+
+function isLikelyUsCoordinate(lat: number, lng: number) {
+  return lat >= 18 && lat <= 72 && lng >= -180 && lng <= -64;
+}
 
 function buildNearestFeature(
   center: { lat: number; lng: number },
@@ -154,13 +163,14 @@ export async function GET(request: NextRequest) {
   const { lat, lng } = coordinates;
   const bbox = toBoundingBox({ lat, lng }, 8);
 
-  const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult, schoolResult] =
+  const [elevationResult, infrastructureResult, climateResult, demographicsResult, hazardResult, fireHazardResult, schoolResult] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
       fetchNearbyInfrastructure(bbox),
       fetchClimateSnapshot({ lat, lng }),
       fetchCountyDemographics({ lat, lng }),
       fetchEarthquakeSummary({ lat, lng }),
+      fetchFireHazardSummary({ lat, lng }),
       fetchSchoolContext({ lat, lng }),
     ]);
 
@@ -173,13 +183,16 @@ export async function GET(request: NextRequest) {
   );
   const amenitySignals = buildAmenitySignals(infrastructure);
   const now = new Date().toISOString();
-  const derivedStateCode =
+  const derivedLocationCode =
     (demographicsResult.status === "fulfilled" ? demographicsResult.value.stateCode : null) ??
     (schoolResult.status === "fulfilled" &&
     schoolResult.value.coverageStatus === "state_accountability_supported"
       ? "WA"
       : null);
-  const registryContext = resolveSourceRegistryContext({ stateCode: derivedStateCode });
+  const registryContext = resolveSourceRegistryContext({
+    countryCode: isLikelyCountryCode(derivedLocationCode) ? derivedLocationCode : null,
+    stateCode: derivedLocationCode === "WA" ? derivedLocationCode : null,
+  });
 
   const geodata: GeodataResult = {
     elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
@@ -198,14 +211,33 @@ export async function GET(request: NextRequest) {
             precipitationMm: null,
             windSpeedKph: null,
             airQualityIndex: null,
+            weatherRiskSummary: null,
           },
     hazards:
       hazardResult.status === "fulfilled"
-        ? hazardResult.value
+        ? {
+            ...hazardResult.value,
+            activeFireCount7d:
+              fireHazardResult.status === "fulfilled"
+                ? fireHazardResult.value.activeFireCount7d
+                : null,
+            nearestFireKm:
+              fireHazardResult.status === "fulfilled"
+                ? fireHazardResult.value.nearestFireKm
+                : null,
+          }
         : {
             earthquakeCount30d: null,
             strongestEarthquakeMagnitude30d: null,
             nearestEarthquakeKm: null,
+            activeFireCount7d:
+              fireHazardResult.status === "fulfilled"
+                ? fireHazardResult.value.activeFireCount7d
+                : null,
+            nearestFireKm:
+              fireHazardResult.status === "fulfilled"
+                ? fireHazardResult.value.nearestFireKm
+                : null,
           },
     demographics:
       demographicsResult.status === "fulfilled"
@@ -238,7 +270,7 @@ export async function GET(request: NextRequest) {
       elevation: buildRegistryAwareSourceMeta({
         id: "elevation",
         label: "Elevation",
-        provider: "USGS National Map EPQS",
+        provider: isLikelyUsCoordinate(lat, lng) ? "USGS National Map EPQS" : "OpenTopoData SRTM",
         domain: "terrain",
         context: registryContext,
         status:
@@ -247,10 +279,12 @@ export async function GET(request: NextRequest) {
             : "unavailable",
         lastUpdated: now,
         freshness: "On-demand request",
-        coverage: "Best for US locations",
+        coverage: "US high-res via USGS EPQS; global fallback via OpenTopoData SRTM",
         confidence:
           elevationResult.status === "fulfilled" && elevationResult.value !== null
-            ? "Direct point elevation lookup."
+            ? isLikelyUsCoordinate(lat, lng)
+              ? "Direct point elevation lookup with region-aware fallback."
+              : "Direct point elevation lookup from the global SRTM fallback."
             : "No elevation response was returned for this point.",
       }),
       infrastructure: buildRegistryAwareSourceMeta({
@@ -298,16 +332,38 @@ export async function GET(request: NextRequest) {
         status: hazardResult.status === "fulfilled" ? "live" : "limited",
         lastUpdated: now,
         freshness: "Cached up to 6 hours",
-        coverage: "Global earthquakes, current implementation summarizes recent seismic context",
+        coverage: "Global earthquakes plus first-pass fire and weather hazard context",
         confidence:
           hazardResult.status === "fulfilled"
-            ? "Recent seismic activity is direct; this is not a full hazard-risk model."
+            ? "Recent seismic activity is direct; fire detections and weather risk are first-pass signals, not a full hazard-risk model."
             : "No recent seismic context was returned for this point.",
+      }),
+      hazardFire: buildRegistryAwareSourceMeta({
+        id: "hazard-fire",
+        label: "Active fire detections",
+        provider: "NASA FIRMS VIIRS SNPP",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          fireHazardResult.status === "fulfilled" &&
+          fireHazardResult.value.activeFireCount7d !== null
+            ? "live"
+            : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 3 hours",
+        coverage: "Global VIIRS satellite detections",
+        confidence:
+          fireHazardResult.status === "fulfilled" &&
+          fireHazardResult.value.activeFireCount7d !== null
+            ? "Near-real-time satellite detections within the active area."
+            : "Fire detections could not be retrieved for this point.",
       }),
       demographics: buildRegistryAwareSourceMeta({
         id: "demographics",
         label: "Demographics",
-        provider: "FCC + US Census ACS 5-year",
+        provider: registryContext.countryCode && registryContext.countryCode !== "US"
+          ? "World Bank Open Data"
+          : "FCC + US Census ACS 5-year",
         domain: "demographics",
         context: registryContext,
         status:
@@ -319,11 +375,11 @@ export async function GET(request: NextRequest) {
               : "unavailable",
         lastUpdated: now,
         freshness: "ACS 5-year estimates, cached 24 hours",
-        coverage: "US counties only",
+        coverage: "US county-level via FCC + ACS; national indicators via World Bank for non-US",
         confidence:
           demographicsResult.status === "fulfilled"
-            ? "County-level demographics, not parcel- or neighborhood-level."
-            : "Demographic coverage is unavailable outside the current US pipeline.",
+            ? "US locations use county-level demographics; non-US locations use national-level World Bank indicators."
+            : "Demographic coverage is unavailable for this point.",
       }),
       amenities: buildRegistryAwareSourceMeta({
         id: "amenities",
@@ -405,11 +461,12 @@ export async function GET(request: NextRequest) {
       }),
     },
     sourceNotes: [
-      "USGS elevation via The National Map EPQS.",
+      "Elevation via USGS EPQS in the US, with OpenTopoData SRTM fallback for global coverage.",
       "Overpass OSM features for roads, power lines, waterways, amenities, and land-use context.",
       "Open-Meteo current weather, forecast, and air-quality snapshots.",
       "USGS earthquake event feed summarized within 250 km over the last 30 days.",
-      "FCC county lookup with ACS 5-year Census demographics.",
+      "NASA FIRMS VIIRS fire detections summarized within the active region.",
+      "FCC county lookup with ACS 5-year Census demographics, with World Bank national indicators for non-US locations.",
       "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
     ],
   };

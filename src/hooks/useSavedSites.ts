@@ -23,19 +23,20 @@ export function useSavedSites(activeProfileId: string) {
     }
   }, []);
 
-  const saveSites = useCallback((nextSites: SavedSite[]) => {
-    setAllSites(nextSites);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSites));
-  }, []);
-
   const addSite = useCallback((site: SavedSite) => {
-    saveSites([site, ...allSites.filter((existing) => existing.id !== site.id)]);
-  }, [allSites, saveSites]);
+    setAllSites((prev) => {
+      const next = [site, ...prev.filter((existing) => existing.id !== site.id)];
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   const setSitesForProfile = useCallback((nextProfileSites: SavedSite[]) => {
     const remainingSites = allSites.filter((site) => site.profileId !== activeProfileId);
-    saveSites([...nextProfileSites, ...remainingSites]);
-  }, [activeProfileId, allSites, saveSites]);
+    const nextSites = [...nextProfileSites, ...remainingSites];
+    setAllSites(nextSites);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSites));
+  }, [activeProfileId, allSites]);
 
   const loadDemoSites = useCallback((demoSites: SavedSite[] = []) => {
     setSitesForProfile(demoSites.filter((site) => site.profileId === activeProfileId));

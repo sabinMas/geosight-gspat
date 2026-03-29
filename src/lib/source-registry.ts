@@ -156,7 +156,7 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     reliability: "High for national aggregates, not parcel-level analysis",
     rateLimit: "Public API",
     notes: "Global fallback when only national indicators are available.",
-    integrated: false,
+    integrated: true,
   },
   {
     id: "usgs-earthquake-catalog",
@@ -182,7 +182,7 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     reliability: "High for wildfire hotspot monitoring",
     rateLimit: "Open access products",
     notes: "Best free next-step global wildfire layer.",
-    integrated: false,
+    integrated: true,
   },
   {
     id: "gdacs",
@@ -273,7 +273,7 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     reliability: "Good global fallback with dataset-specific limits",
     rateLimit: "Public instances vary",
     notes: "Best future global fallback for elevation outside the US.",
-    integrated: false,
+    integrated: true,
   },
   {
     id: "cesium-ion-imagery",

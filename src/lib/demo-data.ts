@@ -148,11 +148,14 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       precipitationMm: siteName === "Site C" ? 278 : 323,
       windSpeedKph: 9.8,
       airQualityIndex: 42,
+      weatherRiskSummary: null,
     },
     hazards: {
       earthquakeCount30d: 4,
       strongestEarthquakeMagnitude30d: 2.1,
       nearestEarthquakeKm: 36.4,
+      activeFireCount7d: 0,
+      nearestFireKm: null,
     },
     demographics: {
       countyName: "Demo County",
@@ -221,6 +224,15 @@ function buildDemoGeodata(siteName: string): GeodataResult {
         freshness: "Static showcase seed",
         coverage: "Pacific Northwest demo only",
         confidence: "Demo hazard context for the preloaded cooling scenario.",
+      }),
+      hazardFire: buildSourceMeta({
+        id: "demo-hazard-fire",
+        label: "Active fire detections",
+        provider: "GeoSight demo overlay",
+        status: "demo",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo fire context for the preloaded cooling scenario.",
       }),
       demographics: buildSourceMeta({
         id: "demo-demographics",

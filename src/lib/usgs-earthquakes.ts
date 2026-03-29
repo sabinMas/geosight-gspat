@@ -69,5 +69,7 @@ export async function fetchEarthquakeSummary(
     strongestEarthquakeMagnitude30d: strongestMagnitude,
     nearestEarthquakeKm:
       nearestEarthquakeKm === null ? null : Number(nearestEarthquakeKm.toFixed(1)),
+    activeFireCount7d: null,
+    nearestFireKm: null,
   };
 }

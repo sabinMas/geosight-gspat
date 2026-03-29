@@ -12,14 +12,119 @@ type FccAreaResponse = {
 
 type CensusRow = [string, string, string, string, string, string];
 
+type NominatimReverseResponse = {
+  address?: {
+    country_code?: string;
+    country?: string;
+  };
+};
+
+type WorldBankIndicatorResponse = [
+  { page?: number; total?: number },
+  Array<{
+    value?: number | null;
+    date?: string;
+    countryiso3code?: string;
+  }>?,
+];
+
 function parseNullableNumber(value: string | undefined) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isLikelyUsCoordinate(coords: Coordinates) {
+  return coords.lat >= 18 && coords.lat <= 72 && coords.lng >= -180 && coords.lng <= -64;
+}
+
+async function reverseGeocodeCountry(coords: Coordinates) {
+  const response = await fetchWithTimeout(
+    `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=jsonv2&zoom=3&addressdetails=1`,
+    {
+      headers: {
+        "User-Agent": "GeoSight geospatial demo",
+      },
+      next: { revalidate: 60 * 60 * 24 },
+    },
+    EXTERNAL_TIMEOUTS.standard,
+  );
+
+  if (!response.ok) {
+    throw new Error("Reverse geocode failed.");
+  }
+
+  const payload = (await response.json()) as NominatimReverseResponse;
+  const countryCode = payload.address?.country_code?.toUpperCase() ?? null;
+  const countryName = payload.address?.country ?? null;
+
+  if (!countryCode || !countryName) {
+    return null;
+  }
+
+  return { countryCode, countryName };
+}
+
+async function fetchWorldBankIndicator(countryIso2: string, indicator: string) {
+  const response = await fetchWithTimeout(
+    `https://api.worldbank.org/v2/country/${countryIso2}/indicator/${indicator}?format=json&mrv=1&per_page=1`,
+    {
+      next: { revalidate: 60 * 60 * 24 },
+    },
+    EXTERNAL_TIMEOUTS.fast,
+  );
+
+  if (!response.ok) {
+    throw new Error(`World Bank indicator lookup failed for ${indicator}.`);
+  }
+
+  const payload = (await response.json()) as WorldBankIndicatorResponse;
+  const value = payload[1]?.[0]?.value;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+async function fetchGlobalDemographics(coords: Coordinates): Promise<GeodataResult["demographics"]> {
+  try {
+    const country = await reverseGeocodeCountry(coords);
+    if (!country) {
+      return {
+        countyName: null,
+        stateCode: null,
+        population: null,
+        medianHouseholdIncome: null,
+        medianHomeValue: null,
+      };
+    }
+
+    const [population, gniPerCapita] = await Promise.all([
+      fetchWorldBankIndicator(country.countryCode, "SP.POP.TOTL").catch(() => null),
+      fetchWorldBankIndicator(country.countryCode, "NY.GNP.PCAP.CD").catch(() => null),
+    ]);
+
+    return {
+      countyName: country.countryName,
+      stateCode: country.countryCode,
+      population,
+      medianHouseholdIncome: gniPerCapita,
+      medianHomeValue: null,
+    };
+  } catch {
+    return {
+      countyName: null,
+      stateCode: null,
+      population: null,
+      medianHouseholdIncome: null,
+      medianHomeValue: null,
+    };
+  }
+}
+
 export async function fetchCountyDemographics(
   coords: Coordinates,
 ): Promise<GeodataResult["demographics"]> {
+  if (!isLikelyUsCoordinate(coords)) {
+    return fetchGlobalDemographics(coords);
+  }
+
   const areaResponse = await fetchWithTimeout(
     `https://geo.fcc.gov/api/census/area?lat=${coords.lat}&lon=${coords.lng}&format=json`,
     {

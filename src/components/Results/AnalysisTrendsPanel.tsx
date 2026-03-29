@@ -62,12 +62,19 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
                   <div className="eyebrow text-current/70">{trend.label}</div>
                   <div className="mt-3 text-2xl font-semibold text-white">{trend.value}</div>
                 </div>
-                <div
-                  className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getSourceStatusTone(
-                    trend.source.status,
-                  )}`}
-                >
-                  {formatSourceStatusLabel(trend.source.status)}
+                <div className="flex flex-col items-end gap-1">
+                  <div
+                    className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getSourceStatusTone(
+                      trend.source.status,
+                    )}`}
+                  >
+                    {formatSourceStatusLabel(trend.source.status)}
+                  </div>
+                  {trend.source.accessType ? (
+                    <div className="text-[9px] uppercase tracking-[0.14em] text-current/50">
+                      {trend.source.accessType.replace("_", " ")}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-current/85">{trend.detail}</p>

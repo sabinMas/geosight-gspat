@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Mountain,
   PanelsTopLeft,
+  ShieldAlert,
   Sparkles,
   ShieldCheck,
   LucideIcon,
@@ -27,6 +28,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MessageSquare,
   Mountain,
   PanelsTopLeft,
+  ShieldAlert,
   Sparkles,
   ShieldCheck,
 };

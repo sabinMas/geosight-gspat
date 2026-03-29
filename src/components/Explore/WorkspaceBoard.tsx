@@ -1,9 +1,9 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { WorkspaceCardDefinition, WorkspaceCardId } from "@/types";
+import { SavedBoard, WorkspaceCardDefinition, WorkspaceCardId } from "@/types";
 import { WorkspaceCardIcon } from "./WorkspaceCardIcon";
 
 interface WorkspaceBoardProps {
@@ -11,6 +11,10 @@ interface WorkspaceBoardProps {
   activeCardId: WorkspaceCardId | null;
   onSelectCard: (cardId: WorkspaceCardId) => void;
   onOpenLibrary: () => void;
+  savedBoards: SavedBoard[];
+  onSaveBoard: (name: string) => void;
+  onRestoreBoard: (boardId: string) => void;
+  onDeleteBoard: (boardId: string) => void;
   children: ReactNode;
 }
 
@@ -19,8 +23,14 @@ export function WorkspaceBoard({
   activeCardId,
   onSelectCard,
   onOpenLibrary,
+  savedBoards,
+  onSaveBoard,
+  onRestoreBoard,
+  onDeleteBoard,
   children,
 }: WorkspaceBoardProps) {
+  const [boardName, setBoardName] = useState("");
+
   return (
     <section className="space-y-4">
       <div className="rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-5 shadow-[var(--shadow-panel)] backdrop-blur-xl">
@@ -61,6 +71,83 @@ export function WorkspaceBoard({
             })}
           </div>
         ) : null}
+
+        <details className="mt-5 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+            Saved layouts ({savedBoards.length})
+          </summary>
+          <div className="mt-4 space-y-3">
+            <div className="flex flex-col gap-3 md:flex-row">
+              <input
+                value={boardName}
+                onChange={(event) => setBoardName(event.target.value)}
+                placeholder="Name this board layout"
+                className="h-11 flex-1 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 text-sm text-[var(--foreground)] outline-none"
+              />
+              <Button
+                type="button"
+                className="rounded-full"
+                onClick={() => {
+                  const trimmed = boardName.trim();
+                  if (!trimmed) {
+                    return;
+                  }
+
+                  onSaveBoard(trimmed);
+                  setBoardName("");
+                }}
+              >
+                Save layout
+              </Button>
+            </div>
+
+            {savedBoards.length ? (
+              <div className="space-y-2">
+                {savedBoards.map((board) => (
+                  <div
+                    key={board.id}
+                    className="flex flex-col gap-3 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-3 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold text-[var(--foreground)]">{board.name}</div>
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        {board.visibleCardIds.length} visible cards / saved{" "}
+                        {new Date(board.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="rounded-full"
+                        onClick={() => onRestoreBoard(board.id)}
+                      >
+                        Restore
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full"
+                        onClick={() => onDeleteBoard(board.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-[var(--muted-foreground)]">
+                Save up to five named board layouts for this mission profile.
+              </div>
+            )}
+          </div>
+        </details>
       </div>
 
       <div className="space-y-4">{children}</div>

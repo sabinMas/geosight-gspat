@@ -9,6 +9,7 @@ import { LandClassifier } from "@/components/Analysis/LandClassifier";
 import { MissionRunCard } from "@/components/Competition/MissionRunCard";
 import { CoolingDemoOverlay } from "@/components/Demo/CoolingDemoOverlay";
 import { ActiveLocationCard } from "@/components/Explore/ActiveLocationCard";
+import { HazardCard } from "@/components/Explore/HazardCard";
 import { SchoolContextCard } from "@/components/Explore/SchoolContextCard";
 import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
 import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
@@ -224,6 +225,10 @@ export function ExploreWorkspace() {
   );
 
   const dataTrends = useMemo(() => buildLocationTrends(geodata), [geodata]);
+  const allWorkspaceCardIds = useMemo(
+    () => cards.filter((card) => card.zone === "workspace").map((card) => card.id),
+    [cards],
+  );
   const visibleWorkspaceCardIds = workspaceCards.map((card) => card.id);
   const visiblePrimaryCardIds = primaryCards.map((card) => card.id);
   const {
@@ -233,7 +238,17 @@ export function ExploreWorkspace() {
     setActiveCardId,
     activePrimaryCardId,
     setActivePrimaryCardId,
-  } = useWorkspacePresentation(activeProfile.id, visibleWorkspaceCardIds, visiblePrimaryCardIds);
+    savedBoards,
+    saveCurrentBoard,
+    restoreBoard,
+    deleteBoard,
+  } = useWorkspacePresentation(
+    activeProfile.id,
+    allWorkspaceCardIds,
+    visibleWorkspaceCardIds,
+    visiblePrimaryCardIds,
+    setCardVisible,
+  );
   const boardCards = useMemo(
     () => workspaceCards.filter((card) => visibility[card.id]),
     [visibility, workspaceCards],
@@ -472,6 +487,8 @@ export function ExploreWorkspace() {
             error={schoolError}
           />
         );
+      case "hazard-context":
+        return <HazardCard key={cardId} geodata={geodata} />;
       default:
         return null;
     }
@@ -688,6 +705,10 @@ export function ExploreWorkspace() {
             activeCardId={activeBoardCard?.id ?? null}
             onSelectCard={setActiveCardId}
             onOpenLibrary={() => setViewMode("library")}
+            savedBoards={savedBoards}
+            onSaveBoard={saveCurrentBoard}
+            onRestoreBoard={restoreBoard}
+            onDeleteBoard={deleteBoard}
           >
             {activeBoardCard ? (
               <div

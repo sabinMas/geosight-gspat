@@ -88,6 +88,11 @@ export function WorkspaceLibrary({
                         <div>
                           <div className="text-base font-semibold text-[var(--foreground)]">{card.title}</div>
                           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">{card.summary}</p>
+                          {card.questionAnswered ? (
+                            <p className="mt-1 text-[11px] italic leading-5 text-[var(--muted-foreground)]/70">
+                              Answers: {card.questionAnswered}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                       <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[var(--muted-foreground)]">
