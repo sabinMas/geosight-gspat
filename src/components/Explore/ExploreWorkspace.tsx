@@ -307,6 +307,7 @@ export function ExploreWorkspace() {
             resultsMode={resultsMode}
             geodata={geodata}
             nearbyPlaces={places}
+            nearbySource={nearbySource}
             dataTrends={dataTrends}
             imageSummary={imageSummary}
             classification={effectiveClassification}

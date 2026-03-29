@@ -1,9 +1,10 @@
 "use client";
 
+import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
-import { GeodataResult, MissionProfile } from "@/types";
+import { DataSourceMeta, GeodataResult, MissionProfile } from "@/types";
 
 interface ActiveLocationCardProps {
   geodata: GeodataResult | null;
@@ -24,16 +25,26 @@ function StatCard({
   label,
   value,
   detail,
+  source,
 }: {
   label: string;
   value: string;
   detail: string;
+  source?: DataSourceMeta;
 }) {
   return (
     <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
       <div className="eyebrow">{label}</div>
       <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">{value}</div>
       <div className="mt-1 text-xs text-[var(--muted-foreground)]">{detail}</div>
+      {source ? (
+        <SourceInlineSummary
+          source={source}
+          title={`${label} source`}
+          compact
+          className="mt-3"
+        />
+      ) : null}
     </div>
   );
 }
@@ -86,21 +97,25 @@ export function ActiveLocationCard({
             label="Elevation"
             value={geodata?.elevationMeters === null || geodata?.elevationMeters === undefined ? "--" : `${geodata.elevationMeters} m`}
             detail="Terrain and buildability context"
+            source={geodata?.sources.elevation}
           />
           <StatCard
             label="Nearest water"
             value={geodata?.nearestWaterBody.distanceKm === null || geodata?.nearestWaterBody.distanceKm === undefined ? "--" : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`}
             detail={geodata?.nearestWaterBody.name ?? "Loading mapped hydrology"}
+            source={geodata?.sources.infrastructure}
           />
           <StatCard
             label="Weather now"
             value={geodata?.climate.currentTempC === null || geodata?.climate.currentTempC === undefined ? "--" : `${geodata.climate.currentTempC.toFixed(1)} C`}
             detail={`Wind ${geodata?.climate.windSpeedKph?.toFixed(1) ?? "--"} km/h`}
+            source={geodata?.sources.climate}
           />
           <StatCard
             label="Air quality"
             value={geodata?.climate.airQualityIndex === null || geodata?.climate.airQualityIndex === undefined ? "AQI --" : `AQI ${geodata.climate.airQualityIndex}`}
             detail="Current atmospheric snapshot"
+            source={geodata?.sources.climate}
           />
         </div>
 
@@ -110,7 +125,8 @@ export function ActiveLocationCard({
               <div>
                 <div className="eyebrow">Data health</div>
                 <div className="mt-2 text-sm text-[var(--muted-foreground)]">
-                  Quick trust check for the live signals shaping this view.
+                  Quick trust check for the live signals shaping this view. The headline stats above
+                  now carry their own inline provenance too.
                 </div>
               </div>
               <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenSources}>

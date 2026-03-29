@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
+import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { STARTER_PROMPTS } from "@/lib/geosight-assistant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +11,12 @@ import {
   ChatMessage,
   Coordinates,
   DataTrend,
+  DataSourceMeta,
   GeodataResult,
   LandCoverBucket,
   MissionProfile,
   NearbyPlace,
+  NearbyPlacesSource,
   ResultsMode,
 } from "@/types";
 
@@ -24,6 +27,7 @@ interface ChatPanelProps {
   resultsMode: ResultsMode;
   geodata: GeodataResult | null;
   nearbyPlaces: NearbyPlace[];
+  nearbySource: NearbyPlacesSource;
   dataTrends: DataTrend[];
   imageSummary: string;
   classification: LandCoverBucket[];
@@ -36,6 +40,7 @@ export function ChatPanel({
   resultsMode,
   geodata,
   nearbyPlaces,
+  nearbySource,
   dataTrends,
   imageSummary,
   classification,
@@ -54,6 +59,43 @@ export function ChatPanel({
   const suggestionPrompts = profile.exampleQuestions.length
     ? profile.exampleQuestions
     : [...STARTER_PROMPTS];
+  const groundingSources = useMemo(() => {
+    const uniqueSources = (
+      candidates: Array<DataSourceMeta | null | undefined>,
+    ) =>
+      candidates.reduce<DataSourceMeta[]>((acc, source) => {
+        if (!source || acc.some((existing) => existing.id === source.id)) {
+          return acc;
+        }
+
+        acc.push(source);
+        return acc;
+      }, []);
+
+    if (resultsMode === "nearby_places") {
+      return uniqueSources([
+        geodata?.sources.amenities,
+        geodata?.sources.infrastructure,
+        geodata?.sources.climate,
+        geodata?.sources.school,
+      ]).slice(0, 4);
+    }
+
+    if (dataTrends.length) {
+      return uniqueSources(dataTrends.map((trend) => trend.source)).slice(0, 4);
+    }
+
+    return uniqueSources([
+      geodata?.sources.elevation,
+      geodata?.sources.climate,
+      geodata?.sources.hazards,
+      geodata?.sources.demographics,
+    ]).slice(0, 4);
+  }, [dataTrends, geodata, resultsMode]);
+  const groundingNote =
+    resultsMode === "nearby_places"
+      ? "Nearby answers should stay inside live mapped place results plus the supporting access and amenity context around this point."
+      : "Analysis answers should stay inside these live or derived inputs and call out any gaps when a source is limited or unavailable.";
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -82,23 +124,31 @@ export function ChatPanel({
           resultsMode,
           geodata,
           nearbyPlaces,
+          nearbySource,
           dataTrends,
           imageSummary,
           classification,
         }),
       });
-      const data = (await response.json()) as { answer: string };
+      const data = (await response.json()) as { answer?: string; error?: string };
+      if (!response.ok || !data.answer) {
+        throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
+      }
+
       setMessages([
         ...nextMessages,
         { id: crypto.randomUUID(), role: "assistant", content: data.answer },
       ]);
-    } catch {
+    } catch (error) {
       setMessages([
         ...nextMessages,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Analysis failed. Check your GROQ_API_KEY or try again with a shorter prompt.",
+          content:
+            error instanceof Error
+              ? error.message
+              : "GeoSight couldn't analyze this request right now.",
         },
       ]);
     } finally {
@@ -152,6 +202,34 @@ export function ChatPanel({
               ))}
             </div>
           ) : null}
+        </div>
+
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="eyebrow">Current grounding</div>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
+                {groundingNote}
+              </p>
+            </div>
+            {resultsMode === "nearby_places" ? (
+              <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1.5 text-xs text-[var(--foreground-soft)]">
+                {nearbySource === "live" ? "Nearby places: live OSM" : "Nearby places: live data unavailable"}
+              </span>
+            ) : null}
+          </div>
+
+          {groundingSources.length ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {groundingSources.map((source) => (
+                <SourceInlineSummary key={source.id} source={source} compact />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 text-sm text-[var(--muted-foreground)]">
+              GeoSight is still assembling the live and derived context for this place.
+            </div>
+          )}
         </div>
 
         <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto pr-1">

@@ -21,6 +21,7 @@ It should also become a universal dashboard canvas where users can assemble map-
 This agent model is grounded in the actual repository state, not an abstract wishlist.
 
 - Current product plan markdown: [README.md](C:\Users\mason\Documents\GitHub\GSPAT\README.md)
+- Current backlog and milestone inventory: [docs/BACKLOG.md](C:\Users\mason\Documents\GitHub\GSPAT\docs\BACKLOG.md)
 - Primary application workspace: [src/components/Explore/ExploreWorkspace.tsx](C:\Users\mason\Documents\GitHub\GSPAT\src\components\Explore\ExploreWorkspace.tsx)
 - Mission profile system: [src/lib/profiles.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\profiles.ts)
 - Scoring engine: [src/lib/scoring.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\scoring.ts)

@@ -7,14 +7,14 @@ GeoSight is an intelligent geospatial analysis platform built for asking open-en
 - Explore terrain, water access, infrastructure, and climate from a living 3D globe.
 - Blend deterministic geospatial scoring with natural-language analysis.
 - Support multiple evaluation modes on the same geography: cooling infrastructure, outdoor recreation, residential development, retail, logistics, and general exploration.
-- Keep the stack deployable on free tiers: Cesium Ion, Groq, Open-Meteo, USGS, and OpenStreetMap.
+- Keep the stack deployable on free tiers: Cesium Ion, Groq, Gemini, Open-Meteo, USGS, and OpenStreetMap.
 
 ## What's in the MVP
 
 - Cesium globe with Pacific Northwest default fly-to
 - Search and click-to-analyze workflow for coordinates and named places
 - Region selection rectangle and overlay toggles
-- Groq-powered geospatial Q&A endpoint with use-case-aware reasoning and local fallback
+- Groq + Gemini geospatial Q&A endpoint with profile-aware routing and deterministic fallback
 - Deterministic site viability scoring and comparison table
 - Satellite image upload with client-side MVP land cover estimation
 - Terrain exaggeration control and elevation profile panel
@@ -45,7 +45,10 @@ cp .env.example .env.local
 3. Add free API credentials:
 
 - `NEXT_PUBLIC_CESIUM_ION_TOKEN`: create a free account at [Cesium Ion](https://cesium.com/ion/)
-- `GROQ_API_KEY`: create a free account at [Groq Console](https://console.groq.com/)
+- `GROQ_API_KEY`: primary Groq key from [Groq Console](https://console.groq.com/)
+- `GROQ_API_KEY_2`: optional second Groq key to expand the free-tier request pool
+- `GROQ_API_KEY_3`: optional third Groq key to expand the free-tier request pool
+- `GEMINI_API_KEY`: fallback key from [Google AI Studio](https://aistudio.google.com/)
 
 4. Start the development server:
 
@@ -62,6 +65,9 @@ npm run dev
 3. Add:
    - `NEXT_PUBLIC_CESIUM_ION_TOKEN`
    - `GROQ_API_KEY`
+   - `GROQ_API_KEY_2`
+   - `GROQ_API_KEY_3`
+   - `GEMINI_API_KEY`
 4. Deploy.
 
 The app is already structured for Vercel serverless routes under `src/app/api/*`.
@@ -77,7 +83,8 @@ flowchart LR
   APIs --> USGS["USGS Elevation"]
   APIs --> OSM["Overpass / OpenStreetMap"]
   APIs --> Weather["Open-Meteo"]
-  APIs --> Groq["Groq LLM"]
+  APIs --> Groq["Groq LLM Pool"]
+  APIs --> Gemini["Gemini Flash Fallback"]
   APIs --> Score["Deterministic Turf.js / scoring logic"]
 ```
 
@@ -89,3 +96,8 @@ flowchart LR
 - Multi-region benchmarking beyond the Pacific Northwest
 - Better land cover inference with TensorFlow.js model assets in `public/models`
 - Exportable reports for site comparison and due diligence packets
+
+## Planning docs
+
+- Backlog and roadmap: [`docs/BACKLOG.md`](docs/BACKLOG.md)
+- Platform and product standards: [`agents.md`](agents.md)

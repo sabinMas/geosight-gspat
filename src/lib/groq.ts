@@ -1,47 +1,79 @@
 import Groq from "groq-sdk";
+import {
+  AnalysisProviderError,
+  AnalysisResult,
+  buildAnalysisProviderInput,
+  normalizeProviderError,
+} from "@/lib/analysis-provider";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
-import { AnalyzeRequestBody } from "@/types";
-import { buildGeoSightSystemPrompt } from "@/lib/geosight-assistant";
-import { MissionProfile } from "@/types";
+import { AnalyzeRequestBody, MissionProfile } from "@/types";
+
+const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+
+const PROFILE_MODEL_MAP: Record<string, string> = {
+  "data-center": DEFAULT_GROQ_MODEL,
+  hiking: "llama-3.1-8b-instant",
+  residential: DEFAULT_GROQ_MODEL,
+  commercial: "llama-3.1-8b-instant",
+};
+
+function getGroqKeys() {
+  return Array.from(
+    new Set(
+      [process.env.GROQ_API_KEY, process.env.GROQ_API_KEY_2, process.env.GROQ_API_KEY_3]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+}
+
+function pickGroqKey() {
+  const keys = getGroqKeys();
+
+  if (!keys.length) {
+    throw new AnalysisProviderError("groq", "missing_config");
+  }
+
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
+function resolveModel(profileId: string) {
+  return PROFILE_MODEL_MAP[profileId] ?? DEFAULT_GROQ_MODEL;
+}
 
 export async function runGroqAnalysis(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
-) {
-  const apiKey = process.env.GROQ_API_KEY;
+) : Promise<AnalysisResult> {
+  const apiKey = pickGroqKey();
+  const model = resolveModel(profile.id);
+  const { prompt, serializedPayload } = buildAnalysisProviderInput(payload, profile);
+  const groq = new Groq({ apiKey });
 
-  if (!apiKey) {
-    return {
-      response:
-        "Groq is not configured yet. Add GROQ_API_KEY to analyze uploaded imagery and ask geospatial questions with the LLM.",
-      model: "fallback",
-    };
+  let completion;
+  try {
+    completion = await groq.chat.completions.create({
+      model,
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: prompt },
+        {
+          role: "user",
+          content: serializedPayload,
+        },
+      ],
+    });
+  } catch (error) {
+    throw normalizeProviderError(error, "groq");
   }
 
-  const { prompt } = buildGeoSightSystemPrompt(payload, profile);
-  const groq = new Groq({ apiKey });
-  const completion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    temperature: 0.2,
-    messages: [
-      { role: "system", content: prompt },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
-            missionProfile: profile.name,
-            missionProfileId: profile.id,
-            ...payload,
-          },
-          null,
-          2,
-        ),
-      },
-    ],
-  });
+  const response = completion.choices[0]?.message?.content?.trim();
+  if (!response) {
+    throw new AnalysisProviderError("groq", "empty_response");
+  }
 
   return {
-    response: completion.choices[0]?.message?.content ?? "No response returned.",
-    model: completion.model,
+    response,
+    model: completion.model ?? model,
   };
 }
