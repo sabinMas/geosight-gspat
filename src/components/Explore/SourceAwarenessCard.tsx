@@ -27,13 +27,17 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
 
   const registryContext = inferSourceRegistryContextFromGeodata(geodata);
   const registryPreview = buildSourceRegistryPreview(registryContext);
-  const activeProviderSummary = [
-    geodata.sources.elevation,
-    geodata.sources.demographics,
-    geodata.sources.climate,
-    geodata.sources.school,
-    geodata.sources.hazardFire,
-  ];
+  const activeProviderSummary = Object.values(geodata.sources)
+    .sort((a, b) => {
+      if (a.status === "live" && b.status !== "live") {
+        return -1;
+      }
+      if (a.status !== "live" && b.status === "live") {
+        return 1;
+      }
+      return a.label.localeCompare(b.label);
+    })
+    .slice(0, 6);
 
   return (
     <Card>

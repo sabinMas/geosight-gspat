@@ -58,6 +58,11 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
   const activeFireCount = geodata.hazards.activeFireCount7d;
   const nearestFireKm = geodata.hazards.nearestFireKm;
   const amenities = geodata.amenities;
+  const broadband = geodata.broadband;
+  const floodZone = geodata.floodZone;
+  const nearestGauge = [...geodata.streamGauges].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+  const airStation = geodata.airQuality;
+  const epaHazards = geodata.epaHazards;
   const serviceCount =
     (amenities.schoolCount ?? 0) +
     (amenities.healthcareCount ?? 0) +
@@ -85,6 +90,29 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       detail: `Nearest mapped water feature: ${geodata.nearestWaterBody.name}.`,
       direction: waterDistance !== null && waterDistance < 2 ? "positive" : "neutral",
       source: geodata.sources.infrastructure,
+    },
+    {
+      id: "trend-water-gauge",
+      label: "Stream gauge",
+      value:
+        !nearestGauge
+          ? "Unavailable"
+          : nearestGauge.dischargeCfs === null
+            ? nearestGauge.stationName
+            : `${nearestGauge.dischargeCfs.toLocaleString()} cfs`,
+      detail:
+        !nearestGauge
+          ? "No nearby live USGS discharge gauge was returned within the current search radius."
+          : `${nearestGauge.stationName} is ${nearestGauge.distanceKm.toFixed(1)} km away${
+              nearestGauge.drainageAreaSqMi === null
+                ? "."
+                : ` with ${nearestGauge.drainageAreaSqMi.toLocaleString()} sq mi drainage area.`
+            }`,
+      direction:
+        nearestGauge?.dischargeCfs !== null && nearestGauge.dischargeCfs >= 1_000
+          ? "positive"
+          : "neutral",
+      source: geodata.sources.water,
     },
     {
       id: "trend-access",
@@ -128,20 +156,89 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
     {
       id: "trend-air",
       label: "Air quality",
-      value: airQualityIndex === null ? "Unavailable" : `AQI ${airQualityIndex}`,
+      value:
+        airStation
+          ? airStation.aqiCategory
+          : airQualityIndex === null
+            ? "Unavailable"
+            : `AQI ${airQualityIndex}`,
       detail:
-        airQualityIndex === null
-          ? "Open-Meteo air-quality data is not available for this point."
-          : "Current US AQI snapshot from Open-Meteo for the active point.",
+        airStation
+          ? `${airStation.stationName} reports PM2.5 ${airStation.pm25UgM3 ?? "--"} ug/m3 and PM10 ${airStation.pm10UgM3 ?? "--"} ug/m3.`
+          : airQualityIndex === null
+            ? "OpenAQ station and Open-Meteo AQI data are not available for this point."
+            : "Current US AQI snapshot from Open-Meteo for the active point.",
       direction:
-        airQualityIndex === null
+        airStation
+          ? airStation.aqiCategory === "Good"
+            ? "positive"
+            : airStation.aqiCategory === "Moderate"
+              ? "neutral"
+              : "watch"
+          : airQualityIndex === null
           ? "watch"
           : airQualityIndex <= 50
             ? "positive"
             : airQualityIndex <= 100
               ? "neutral"
               : "watch",
-      source: geodata.sources.climate,
+      source: airStation ? geodata.sources.airQuality : geodata.sources.climate,
+    },
+    {
+      id: "trend-broadband",
+      label: "Broadband",
+      value:
+        broadband?.available
+          ? `${broadband.providerCount} providers`
+          : geodata.sources.broadband.status === "unavailable"
+            ? "Unsupported"
+            : "Unavailable",
+      detail:
+        broadband?.available
+          ? `Up to ${broadband.maxDownloadMbps ?? "--"} Mbps down / ${broadband.maxUploadMbps ?? "--"} Mbps up with ${broadband.technologies.join(", ") || "unclassified"} technologies.`
+          : geodata.sources.broadband.note ??
+            "FCC broadband availability was not returned for this point.",
+      direction:
+        broadband?.available && (broadband.maxDownloadMbps ?? 0) >= 300
+          ? "positive"
+          : broadband?.available
+            ? "neutral"
+            : "watch",
+      source: geodata.sources.broadband,
+    },
+    {
+      id: "trend-flood",
+      label: "Flood zone",
+      value: floodZone?.zoneCode ?? "Unavailable",
+      detail: floodZone?.label ?? "FEMA flood-zone data is not available for this point.",
+      direction:
+        floodZone?.isSpecialFloodHazardArea
+          ? "watch"
+          : floodZone?.zoneCode === "X"
+            ? "positive"
+            : "neutral",
+      source: geodata.sources.floodZone,
+    },
+    {
+      id: "trend-contamination",
+      label: "Contamination screening",
+      value:
+        epaHazards === null
+          ? "Unavailable"
+          : `${epaHazards.superfundSiteCount} Superfund / ${epaHazards.triFacilityCount} TRI`,
+      detail:
+        epaHazards === null
+          ? "EPA contamination screening is not available for this point."
+          : epaHazards.nearestSiteDistanceKm === null
+            ? "No EPA-screened Superfund or TRI site was returned within roughly 50 km."
+            : `${epaHazards.nearestSiteType === "superfund" ? "Nearest Superfund site" : "Nearest TRI facility"} ${epaHazards.nearestSiteName ?? "unknown"} at ${epaHazards.nearestSiteDistanceKm.toFixed(1)} km.`,
+      direction:
+        epaHazards?.hasSuperfundWithin10Km
+          ? "watch"
+          : epaHazards && epaHazards.superfundSiteCount === 0 && epaHazards.triFacilityCount === 0
+            ? "positive"
+            : "neutral",
+      source: geodata.sources.epaHazards,
     },
     {
       id: "trend-school",

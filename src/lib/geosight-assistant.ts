@@ -89,7 +89,16 @@ function classifyFactorEvidence(profileFactor: MissionProfile["factors"][number]
   }
 
   if (profileFactor.scoreFn === "custom") {
-    if (String(profileFactor.params.metric ?? "") === "schoolAccess") {
+    if (
+      [
+        "schoolAccess",
+        "waterAccess",
+        "floodRisk",
+        "broadbandConnectivity",
+        "airQuality",
+        "contaminationRisk",
+      ].includes(String(profileFactor.params.metric ?? ""))
+    ) {
       return { kind: "derived_live", label: "derived live analysis" };
     }
 
@@ -166,16 +175,18 @@ function buildProfileAssessmentLine(profileId: string, geodata?: GeodataResult) 
   switch (profileId) {
     case "data-center":
       return waterKm !== null && powerKm !== null
-        ? `This location looks strongest when water and power access are both short-haul; water is about ${waterKm.toFixed(1)} km away and power is about ${powerKm.toFixed(1)} km away.`
-        : "This location could be workable for cooling infrastructure, but water access and nearby power availability are still the key gating signals.";
+        ? `This location looks strongest when water, power, and connectivity all line up; mapped water is about ${waterKm.toFixed(1)} km away, power is about ${powerKm.toFixed(1)} km away, and broadband tops out at ${
+            payloadBroadbandLine(geodata)
+          }.`
+        : "This location could be workable for cooling infrastructure, but water access, nearby power, and flood exposure are still the key gating signals.";
     case "hiking":
       return elevation !== null && waterKm !== null
-        ? `The recreation signal is strongest where terrain variety and water features align; this site sits around ${elevation} m elevation with water roughly ${waterKm.toFixed(1)} km away.`
+        ? `The recreation signal is strongest where terrain variety, water features, and breathable air align; this site sits around ${elevation} m elevation with water roughly ${waterKm.toFixed(1)} km away.`
         : "This area may have hiking potential, but the current map data is still too coarse to judge trail quality or scenic value confidently.";
     case "residential":
       return roadKm !== null && topLandCover
-        ? `For neighborhood development, the best early signals are road access at about ${roadKm.toFixed(1)} km and dominant land cover of ${topLandCover.label.toLowerCase()}.`
-        : "For residential use, access, hazards, and community-serving amenities still need closer validation.";
+        ? `For neighborhood development, the best early signals are road access at about ${roadKm.toFixed(1)} km, dominant land cover of ${topLandCover.label.toLowerCase()}, and whatever FEMA and broadband context says about risk and readiness.`
+        : "For residential use, access, flood exposure, broadband readiness, and community-serving amenities still need closer validation.";
     case "commercial":
       return roadKm !== null && powerKm !== null
         ? `For commercial or warehouse siting, road access around ${roadKm.toFixed(1)} km and utility access around ${powerKm.toFixed(1)} km make this a workable first-pass candidate.`
@@ -183,6 +194,16 @@ function buildProfileAssessmentLine(profileId: string, geodata?: GeodataResult) 
     default:
       return "This is a broad exploratory read using terrain, land cover, water, and access signals from the current map context.";
   }
+}
+
+function payloadBroadbandLine(geodata?: GeodataResult) {
+  if (!geodata?.broadband?.available) {
+    return "unavailable broadband";
+  }
+
+  return geodata.broadband.maxDownloadMbps === null
+    ? `${geodata.broadband.providerCount} providers`
+    : `${geodata.broadband.maxDownloadMbps.toLocaleString()} Mbps down across ${geodata.broadband.providerCount} providers`;
 }
 
 function buildNextQuestions(profileId: string) {
@@ -255,6 +276,24 @@ export function buildFallbackAssessment(
     payload.geodata?.nearestPower
       ? `Nearest mapped power infrastructure: ${payload.geodata.nearestPower.name} (${payload.geodata.nearestPower.distanceKm ?? "unknown"} km).`
       : "Power access is currently unavailable.",
+    payload.geodata?.broadband?.available
+      ? `Broadband context: ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadMbps ?? "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadMbps ?? "unknown"} Mbps up.`
+      : payload.geodata?.sources?.broadband.note ?? "Broadband context is currently unavailable.",
+    payload.geodata?.floodZone
+      ? `FEMA flood zone: ${payload.geodata.floodZone.label}.`
+      : "FEMA flood-zone context is currently unavailable.",
+    payload.geodata?.streamGauges?.[0]
+      ? `Nearest USGS stream gauge: ${payload.geodata.streamGauges[0].stationName} (${payload.geodata.streamGauges[0].distanceKm.toFixed(1)} km) reporting ${payload.geodata.streamGauges[0].dischargeCfs ?? "unknown"} cfs.`
+      : "USGS stream-gauge context is currently unavailable.",
+    payload.geodata?.airQuality
+      ? `Nearest air-quality station: ${payload.geodata.airQuality.stationName} with PM2.5 ${payload.geodata.airQuality.pm25UgM3 ?? "unknown"} ug/m3, PM10 ${payload.geodata.airQuality.pm10UgM3 ?? "unknown"} ug/m3, category ${payload.geodata.airQuality.aqiCategory}.`
+      : payload.geodata?.climate?.airQualityIndex !== null &&
+          payload.geodata?.climate?.airQualityIndex !== undefined
+        ? `OpenAQ station unavailable; Open-Meteo AQI is ${payload.geodata.climate.airQualityIndex}.`
+        : "Air-quality context is currently unavailable.",
+    payload.geodata?.epaHazards
+      ? `EPA screening: ${payload.geodata.epaHazards.superfundSiteCount} Superfund sites and ${payload.geodata.epaHazards.triFacilityCount} TRI facilities within roughly 50 km; nearest site ${payload.geodata.epaHazards.nearestSiteName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSiteDistanceKm ?? "unknown"} km.`
+      : "EPA contamination screening is currently unavailable.",
     payload.geodata?.hazards?.earthquakeCount30d !== null &&
     payload.geodata?.hazards?.earthquakeCount30d !== undefined
       ? `Recent seismic context: ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
