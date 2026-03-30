@@ -32,11 +32,13 @@ export function useSavedSites(activeProfileId: string) {
   }, []);
 
   const setSitesForProfile = useCallback((nextProfileSites: SavedSite[]) => {
-    const remainingSites = allSites.filter((site) => site.profileId !== activeProfileId);
-    const nextSites = [...nextProfileSites, ...remainingSites];
-    setAllSites(nextSites);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSites));
-  }, [activeProfileId, allSites]);
+    setAllSites((prev) => {
+      const remainingSites = prev.filter((site) => site.profileId !== activeProfileId);
+      const nextSites = [...nextProfileSites, ...remainingSites];
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSites));
+      return nextSites;
+    });
+  }, [activeProfileId]);
 
   const loadDemoSites = useCallback((demoSites: SavedSite[] = []) => {
     setSitesForProfile(demoSites.filter((site) => site.profileId === activeProfileId));
