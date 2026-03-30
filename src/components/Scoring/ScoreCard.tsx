@@ -58,8 +58,8 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <div className="space-y-2">
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 space-y-2">
           <div className="eyebrow">Mission score</div>
           <CardTitle>{title}</CardTitle>
         </div>
@@ -149,7 +149,7 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
               <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Factor weights
               </div>
-              <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
+              <div className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--foreground)]">
                 {profile.factors
                   .map((factor) => `${factor.label} ${Math.round(factor.weight * 100)}%`)
                   .join(", ")}

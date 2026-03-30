@@ -4,6 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { GeoSightContext } from "@/lib/agents/agent-config";
 import { buildLocationTrends } from "@/lib/data-trends";
 import { calculateProfileScore } from "@/lib/scoring";
+import {
+  detectWorkspaceIntent,
+  getPrimaryCardForIntent,
+  getSuggestedCardsForShell,
+  type WorkspaceIntent,
+} from "@/lib/workspace-intent";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useSavedSites } from "@/hooks/useSavedSites";
 import { useSchoolContext } from "@/hooks/useSchoolContext";
@@ -11,6 +17,7 @@ import { useSiteAnalysis } from "@/hooks/useSiteAnalysis";
 import { useWorkspaceCards } from "@/hooks/useWorkspaceCards";
 import { useWorkspacePresentation } from "@/hooks/useWorkspacePresentation";
 import { ExploreState } from "@/hooks/useExploreState";
+import { WorkspaceCardId } from "@/types";
 
 interface UseExploreDataArgs {
   state: ExploreState;
@@ -70,10 +77,14 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   } = useNearbyPlaces(selectedPoint, selectedLocationName, state.locationReady);
   const { cards, visibility, primaryCards, workspaceCards, isCardVisible, setCardVisible } =
     useWorkspaceCards(activeProfile.id);
+  const allWorkspaceCards = useMemo(
+    () => cards.filter((card) => card.zone === "workspace"),
+    [cards],
+  );
 
   const allWorkspaceCardIds = useMemo(
-    () => cards.filter((card) => card.zone === "workspace").map((card) => card.id),
-    [cards],
+    () => allWorkspaceCards.map((card) => card.id),
+    [allWorkspaceCards],
   );
   const visibleWorkspaceCardIds = useMemo(
     () => workspaceCards.map((card) => card.id),
@@ -85,12 +96,16 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   );
 
   const {
+    shellMode,
+    setShellMode,
     viewMode,
     setViewMode,
     activeCardId,
     setActiveCardId,
     activePrimaryCardId,
     setActivePrimaryCardId,
+    pinnedCardIds,
+    togglePinnedCard,
     savedBoards,
     saveCurrentBoard,
     restoreBoard,
@@ -131,6 +146,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const showComparePrompt = sites.length >= 2 && !isCardVisible("compare");
   const showImagePrompt = Boolean(previewUrl) && !isCardVisible("land-classifier");
   const showSourcePrompt = Boolean(geodata) && !isCardVisible("source-awareness");
+  const [lastIntent, setLastIntent] = useState<WorkspaceIntent | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportMarkdown, setReportMarkdown] = useState("");
@@ -158,6 +174,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
             classification: effectiveClassification,
           }
         : undefined,
+      uiContext: undefined,
     }),
     [
       activeProfile.id,
@@ -183,7 +200,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     }
 
     setCardVisible("mission-run", true);
-  }, [init.judgeMode, missionRunPreset, setCardVisible]);
+    setShellMode("board");
+  }, [init.judgeMode, missionRunPreset, setCardVisible, setShellMode]);
 
   useEffect(() => {
     if (!pendingDemoLoad || activeProfile.id !== "data-center" || !coolingDemoSites.length) {
@@ -220,6 +238,23 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setViewMode("board");
     setActiveCardId("mission-run");
   }, [init.judgeMode, missionRunPreset, setActiveCardId, setViewMode]);
+
+  useEffect(() => {
+    if (init.judgeMode || !state.locationReady || shellMode !== "minimal") {
+      return;
+    }
+
+    if (init.locationQuery || activeDemo) {
+      setShellMode("guided");
+    }
+  }, [
+    activeDemo,
+    init.judgeMode,
+    init.locationQuery,
+    setShellMode,
+    shellMode,
+    state.locationReady,
+  ]);
 
   useEffect(() => {
     setGeoContext(agentContext);
@@ -308,6 +343,81 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     selectedPoint.lng,
   ]);
 
+  const suggestedCards = useMemo(() => {
+    const suggestions = getSuggestedCardsForShell({
+      cards: allWorkspaceCards,
+      intent: lastIntent,
+      geodataReady: Boolean(geodata),
+      hasComparison: sites.length >= 2,
+      hasImagery: Boolean(previewUrl),
+    }).filter((card) => !visibility[card.id]);
+
+    return [
+      ...suggestions.filter((card) => pinnedCardIds.includes(card.id)),
+      ...suggestions.filter((card) => !pinnedCardIds.includes(card.id)),
+    ];
+  }, [allWorkspaceCards, geodata, lastIntent, pinnedCardIds, previewUrl, sites.length, visibility]);
+
+  const openCardFromTray = useCallback((cardId: WorkspaceCardId) => {
+    if (!visibility[cardId]) {
+      setCardVisible(cardId, true);
+    }
+    setActiveCardId(cardId);
+    if (shellMode === "minimal") {
+      setShellMode("guided");
+    }
+  }, [setActiveCardId, setCardVisible, setShellMode, shellMode, visibility]);
+
+  const openAdvancedBoard = useCallback(() => {
+    setShellMode("board");
+    setViewMode("board");
+    if (!activeCardId && boardCards[0]) {
+      setActiveCardId(boardCards[0].id);
+    }
+  }, [activeCardId, boardCards, setActiveCardId, setShellMode, setViewMode]);
+
+  const openLibrary = useCallback(() => {
+    setShellMode("board");
+    setViewMode("library");
+  }, [setShellMode, setViewMode]);
+
+  const handleLocationSelection = useCallback(() => {
+    if (!init.judgeMode && shellMode === "minimal") {
+      setShellMode("guided");
+    }
+    setActivePrimaryCardId("active-location");
+  }, [init.judgeMode, setActivePrimaryCardId, setShellMode, shellMode]);
+
+  const handleQuestionIntent = useCallback((question: string) => {
+    const intent = detectWorkspaceIntent(question);
+    setLastIntent(intent);
+    setShellMode("guided");
+    setActivePrimaryCardId(getPrimaryCardForIntent(intent));
+
+    const suggested = getSuggestedCardsForShell({
+      cards: allWorkspaceCards,
+      intent,
+      geodataReady: Boolean(geodata),
+      hasComparison: sites.length >= 2,
+      hasImagery: Boolean(previewUrl),
+    })[0];
+
+    if (suggested && !visibility[suggested.id]) {
+      setCardVisible(suggested.id, true);
+      setActiveCardId(suggested.id);
+    }
+  }, [
+    geodata,
+    previewUrl,
+    setActiveCardId,
+    setActivePrimaryCardId,
+    setCardVisible,
+    setShellMode,
+    sites.length,
+    visibility,
+    allWorkspaceCards,
+  ]);
+
   return {
     geodata,
     score,
@@ -330,12 +440,16 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     workspaceCards,
     isCardVisible,
     setCardVisible,
+    shellMode,
+    setShellMode,
     viewMode,
     setViewMode,
     activeCardId,
     setActiveCardId,
     activePrimaryCardId,
     setActivePrimaryCardId,
+    pinnedCardIds,
+    togglePinnedCard,
     savedBoards,
     saveCurrentBoard,
     restoreBoard,
@@ -343,6 +457,12 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     boardCards,
     activeBoardCard,
     activePrimaryCard,
+    suggestedCards,
+    openCardFromTray,
+    openAdvancedBoard,
+    openLibrary,
+    handleLocationSelection,
+    handleQuestionIntent,
     sites,
     addSite,
     loadDemoSites,

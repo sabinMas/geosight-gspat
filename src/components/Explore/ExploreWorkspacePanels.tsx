@@ -85,6 +85,7 @@ export function ExplorePrimaryPanel({
         dataTrends={data.locationTrends}
         imageSummary={state.imageSummary}
         classification={data.effectiveClassification}
+        onQuestionAsked={data.handleQuestionIntent}
       />
     );
   }

@@ -1,14 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { SavedBoard, WorkspaceCardId, WorkspaceViewMode } from "@/types";
+import {
+  SavedBoard,
+  WorkspaceCardId,
+  WorkspaceShellMode,
+  WorkspaceViewMode,
+} from "@/types";
 
 const STORAGE_KEY = "geosight.workspace-presentation.v1";
 
 interface StoredWorkspacePresentation {
   viewMode?: WorkspaceViewMode;
+  shellModes?: Record<string, WorkspaceShellMode>;
   activeBoardCards?: Record<string, WorkspaceCardId>;
   activePrimaryCards?: Record<string, WorkspaceCardId>;
+  pinnedCards?: Record<string, WorkspaceCardId[]>;
   savedBoards?: SavedBoard[];
 }
 
@@ -40,6 +47,7 @@ export function useWorkspacePresentation(
   visiblePrimaryCardIds: WorkspaceCardId[] = [],
   setWorkspaceCardVisible?: (cardId: WorkspaceCardId, visible: boolean) => void,
 ) {
+  const [shellMode, setShellModeState] = useState<WorkspaceShellMode>("minimal");
   const [viewMode, setViewModeState] = useState<WorkspaceViewMode>("board");
   const [activeCardId, setActiveCardIdState] = useState<WorkspaceCardId | null>(
     visibleWorkspaceCardIds[0] ?? null,
@@ -47,11 +55,14 @@ export function useWorkspacePresentation(
   const [activePrimaryCardId, setActivePrimaryCardIdState] = useState<WorkspaceCardId | null>(
     visiblePrimaryCardIds[0] ?? null,
   );
+  const [pinnedCardIds, setPinnedCardIds] = useState<WorkspaceCardId[]>([]);
   const [savedBoards, setSavedBoards] = useState<SavedBoard[]>([]);
 
   useEffect(() => {
     const stored = readStoredPresentation();
+    setShellModeState(stored.shellModes?.[profileId] ?? "minimal");
     setViewModeState(stored.viewMode ?? "board");
+    setPinnedCardIds(stored.pinnedCards?.[profileId] ?? []);
     setSavedBoards((stored.savedBoards ?? []).filter((board) => board.profileId === profileId));
 
     const storedCardId = stored.activeBoardCards?.[profileId];
@@ -69,14 +80,33 @@ export function useWorkspacePresentation(
     }
   }, [profileId, visiblePrimaryCardIds, visibleWorkspaceCardIds]);
 
+  const setShellMode = useCallback((nextShellMode: WorkspaceShellMode) => {
+    setShellModeState(nextShellMode);
+    const stored = readStoredPresentation();
+    writeStoredPresentation({
+      ...stored,
+      shellModes: {
+        ...(stored.shellModes ?? {}),
+        [profileId]: nextShellMode,
+      },
+      viewMode: stored.viewMode ?? "board",
+      activeBoardCards: stored.activeBoardCards ?? {},
+      activePrimaryCards: stored.activePrimaryCards ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
+      savedBoards: stored.savedBoards ?? [],
+    });
+  }, [profileId]);
+
   const setViewMode = useCallback((nextViewMode: WorkspaceViewMode) => {
     setViewModeState(nextViewMode);
     const stored = readStoredPresentation();
     writeStoredPresentation({
       ...stored,
       viewMode: nextViewMode,
+      shellModes: stored.shellModes ?? {},
       activeBoardCards: stored.activeBoardCards ?? {},
       activePrimaryCards: stored.activePrimaryCards ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
       savedBoards: stored.savedBoards ?? [],
     });
   }, []);
@@ -86,12 +116,14 @@ export function useWorkspacePresentation(
     const stored = readStoredPresentation();
     writeStoredPresentation({
       ...stored,
+      shellModes: stored.shellModes ?? {},
       viewMode: stored.viewMode ?? viewMode,
       activeBoardCards: {
         ...(stored.activeBoardCards ?? {}),
         [profileId]: nextCardId,
       },
       activePrimaryCards: stored.activePrimaryCards ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
       savedBoards: stored.savedBoards ?? [],
     });
   }, [profileId, viewMode]);
@@ -101,12 +133,14 @@ export function useWorkspacePresentation(
     const stored = readStoredPresentation();
     writeStoredPresentation({
       ...stored,
+      shellModes: stored.shellModes ?? {},
       viewMode: stored.viewMode ?? viewMode,
       activeBoardCards: stored.activeBoardCards ?? {},
       activePrimaryCards: {
         ...(stored.activePrimaryCards ?? {}),
         [profileId]: nextCardId,
       },
+      pinnedCards: stored.pinnedCards ?? {},
       savedBoards: stored.savedBoards ?? [],
     });
   }, [profileId, viewMode]);
@@ -135,6 +169,8 @@ export function useWorkspacePresentation(
 
     writeStoredPresentation({
       ...stored,
+      shellModes: stored.shellModes ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
       savedBoards: nextBoards,
     });
     setSavedBoards(sameProfileBoards);
@@ -161,10 +197,15 @@ export function useWorkspacePresentation(
         ? board.activeCardId
         : board.visibleCardIds[0] ?? null;
     setActiveCardIdState(restoredActiveCardId);
+    setShellModeState("board");
     setViewModeState("board");
 
     writeStoredPresentation({
       ...stored,
+      shellModes: {
+        ...(stored.shellModes ?? {}),
+        [profileId]: "board",
+      },
       viewMode: "board",
       activeBoardCards: restoredActiveCardId
         ? {
@@ -173,6 +214,7 @@ export function useWorkspacePresentation(
           }
         : stored.activeBoardCards ?? {},
       activePrimaryCards: stored.activePrimaryCards ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
       savedBoards: stored.savedBoards ?? [],
     });
   }, [allWorkspaceCardIds, profileId, setWorkspaceCardVisible]);
@@ -182,18 +224,46 @@ export function useWorkspacePresentation(
     const nextBoards = (stored.savedBoards ?? []).filter((board) => board.id !== boardId);
     writeStoredPresentation({
       ...stored,
+      shellModes: stored.shellModes ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
       savedBoards: nextBoards,
     });
     setSavedBoards(nextBoards.filter((board) => board.profileId === profileId));
   }, [profileId]);
 
+  const togglePinnedCard = useCallback((cardId: WorkspaceCardId) => {
+    setPinnedCardIds((current) => {
+      const next = current.includes(cardId)
+        ? current.filter((candidate) => candidate !== cardId)
+        : [...current, cardId];
+      const stored = readStoredPresentation();
+      writeStoredPresentation({
+        ...stored,
+        shellModes: stored.shellModes ?? {},
+        viewMode: stored.viewMode ?? "board",
+        activeBoardCards: stored.activeBoardCards ?? {},
+        activePrimaryCards: stored.activePrimaryCards ?? {},
+        pinnedCards: {
+          ...(stored.pinnedCards ?? {}),
+          [profileId]: next,
+        },
+        savedBoards: stored.savedBoards ?? [],
+      });
+      return next;
+    });
+  }, [profileId]);
+
   return {
+    shellMode,
+    setShellMode,
     viewMode,
     setViewMode,
     activeCardId,
     setActiveCardId,
     activePrimaryCardId,
     setActivePrimaryCardId,
+    pinnedCardIds,
+    togglePinnedCard,
     savedBoards,
     saveCurrentBoard,
     restoreBoard,

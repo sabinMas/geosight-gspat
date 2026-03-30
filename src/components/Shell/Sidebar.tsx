@@ -26,12 +26,12 @@ export function Sidebar({
   quickRegions,
 }: SidebarProps) {
   return (
-    <aside className="glass-panel data-grid z-20 flex w-full max-w-[360px] flex-col gap-4 rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] lg:h-[calc(100vh-2rem)]">
+    <aside className="glass-panel data-grid z-20 flex w-full max-w-[320px] flex-col gap-4 rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)]">
       <div className="space-y-3">
         <Badge>GeoSight</Badge>
-        <h1 className="text-3xl font-semibold text-[var(--foreground)]">Location intelligence</h1>
+        <h1 className="text-2xl font-semibold text-[var(--foreground)]">Mission controls</h1>
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Pick a lens, find a place, and keep the workspace focused.
+          Change the lens, jump regions, or open a demo without crowding the main workspace.
         </p>
       </div>
 
@@ -47,11 +47,11 @@ export function Sidebar({
           />
           <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
             <div className="eyebrow">Active lens</div>
-            <div className="mt-2 text-base font-semibold text-[var(--foreground)]">{activeProfile.name}</div>
+            <div className="mt-2 line-clamp-2 text-base font-semibold text-[var(--foreground)]">{activeProfile.name}</div>
             <div className="mt-1 text-sm" style={{ color: activeProfile.accentColor }}>
               {activeProfile.tagline}
             </div>
-            <p className="mt-3 line-clamp-4">{activeProfile.description}</p>
+            <p className="mt-3 line-clamp-3">{activeProfile.description}</p>
           </div>
         </CardContent>
       </Card>
@@ -63,7 +63,7 @@ export function Sidebar({
         <CardContent className="space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
           <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
             <div className="eyebrow">Current place</div>
-            <div className="mt-2 text-sm font-medium text-[var(--foreground)]">{selectedLocationName}</div>
+            <div className="mt-2 line-clamp-2 text-sm font-medium text-[var(--foreground)]">{selectedLocationName}</div>
             <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
               {selectedRegion.center.lat.toFixed(4)} / {selectedRegion.center.lng.toFixed(4)}
             </div>

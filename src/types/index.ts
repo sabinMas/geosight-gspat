@@ -48,6 +48,7 @@ export type SourceRegionScope =
   | "africa";
 export type ThemeMode = "dark" | "light" | "system";
 export type WorkspaceViewMode = "board" | "library";
+export type WorkspaceShellMode = "minimal" | "guided" | "board";
 export type WorkspaceCardCategory =
   | "context"
   | "analysis"
@@ -58,6 +59,20 @@ export type WorkspaceCardCategory =
 export type WorkspaceCardZone = "primary" | "workspace";
 export type WorkspaceCardEmphasis = "primary" | "secondary" | "optional";
 export type WorkspaceCardSize = "wide" | "standard";
+export type WorkspaceCardRevealTier = "primary" | "supporting" | "deep_dive";
+export type WorkspaceCardDensityBudget = "low" | "medium" | "high";
+export type WorkspaceRevealTrigger =
+  | "location_selected"
+  | "ask_reasoning"
+  | "ask_summary"
+  | "ask_trust"
+  | "ask_comparison"
+  | "ask_hazard"
+  | "ask_terrain"
+  | "ask_imagery"
+  | "ask_schools"
+  | "report_opened"
+  | "judge_mode";
 export type WorkspaceDataRequirement =
   | "geodata"
   | "score"
@@ -109,7 +124,7 @@ export interface WorkspaceCardDefinition {
   regionCoverage: string;
   failureMode: string;
   freshnessWindow: string;
-  nextActions: string[];
+  nextActions: readonly string[];
   icon: string;
   category: WorkspaceCardCategory;
   zone: WorkspaceCardZone;
@@ -120,6 +135,12 @@ export interface WorkspaceCardDefinition {
   requiredData: WorkspaceDataRequirement[];
   supportedProfiles: string[];
   emptyState: string;
+  revealTier: WorkspaceCardRevealTier;
+  revealTriggers: WorkspaceRevealTrigger[];
+  summaryVariant: string;
+  compactActions: readonly string[];
+  competitionCritical: boolean;
+  densityBudget: WorkspaceCardDensityBudget;
 }
 
 export interface WorkspaceCardPreference {

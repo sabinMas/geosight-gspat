@@ -38,6 +38,7 @@ interface ChatPanelProps {
   dataTrends: DataTrend[];
   imageSummary: string;
   classification: LandCoverBucket[];
+  onQuestionAsked?: (question: string) => void;
 }
 
 export function ChatPanel({
@@ -51,6 +52,7 @@ export function ChatPanel({
   dataTrends,
   imageSummary,
   classification,
+  onQuestionAsked,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -115,6 +117,7 @@ export function ChatPanel({
       ...messages,
       { id: crypto.randomUUID(), role: "user", content: question },
     ];
+    onQuestionAsked?.(question);
     setMessages(nextMessages);
     setDraft("");
     setLoading(true);
@@ -226,17 +229,22 @@ export function ChatPanel({
             ) : null}
           </div>
 
-          {groundingSources.length ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {groundingSources.map((source) => (
-                <SourceInlineSummary key={source.id} source={source} compact />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 text-sm text-[var(--muted-foreground)]">
-              GeoSight is still assembling the live and derived context for this place.
-            </div>
-          )}
+          <details className="mt-4 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+              Inspect grounding inputs
+            </summary>
+            {groundingSources.length ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {groundingSources.map((source) => (
+                  <SourceInlineSummary key={source.id} source={source} compact />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
+                GeoSight is still assembling the live and derived context for this place.
+              </div>
+            )}
+          </details>
         </div>
 
         <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto pr-1">

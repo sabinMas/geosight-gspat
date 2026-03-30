@@ -48,18 +48,18 @@ export function CompareTable({
 
         {sites.length > 0 ? (
           <div className="overflow-x-auto rounded-[1.5rem] border border-[color:var(--border-soft)]">
-            <table className="w-full border-collapse text-left text-sm">
+            <table className="min-w-[720px] w-full border-collapse text-left text-sm">
               <thead className="bg-[var(--surface-soft)] text-[var(--muted-foreground)]">
                 <tr>
                   <th className="px-4 py-3">Site</th>
                   <th className="px-4 py-3">Score</th>
                   {factorColumns.map((factor) => (
                     <th key={factor.key} className="px-4 py-3">
-                      <div className="space-y-2">
-                        <div>{factor.label}</div>
+                      <div className="min-w-0 space-y-2">
+                        <div className="line-clamp-2 min-w-0">{factor.label}</div>
                         {factor.evidenceLabel ? (
                           <span
-                            className={`inline-flex rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                            className={`inline-flex whitespace-normal rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
                               evidenceTone[factor.evidenceKind ?? "derived_live"]
                             }`}
                           >

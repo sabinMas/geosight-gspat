@@ -3,11 +3,14 @@ import {
   AGENT_CONFIGS,
   AgentConfig,
   GeoSightContext,
+  GeoSightUiContext,
   getAgentConfig,
   isAgentId,
 } from "@/lib/agents/agent-config";
 import { injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
+import { formatUiAuditResult, runDeterministicUiAudit } from "@/lib/ux-audit";
+import { WorkspaceCardId, WorkspaceShellMode } from "@/types";
 
 type GroqStreamChunk = {
   choices?: Array<{
@@ -39,6 +42,59 @@ function parseOptionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function parseOptionalBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function parseWorkspaceCardIds(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value.filter((entry): entry is WorkspaceCardId => typeof entry === "string") as WorkspaceCardId[];
+}
+
+function parseShellMode(value: unknown) {
+  if (value === "minimal" || value === "guided" || value === "board") {
+    return value satisfies WorkspaceShellMode;
+  }
+
+  return undefined;
+}
+
+function parseUiContext(value: unknown): GeoSightUiContext | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const context: GeoSightUiContext = {
+    currentRoute: parseOptionalString(value.currentRoute),
+    viewportClass:
+      value.viewportClass === "mobile" ||
+      value.viewportClass === "tablet" ||
+      value.viewportClass === "desktop"
+        ? value.viewportClass
+        : undefined,
+    activeProfile: parseOptionalString(value.activeProfile),
+    visiblePrimaryCardId:
+      typeof value.visiblePrimaryCardId === "string"
+        ? (value.visiblePrimaryCardId as WorkspaceCardId)
+        : undefined,
+    visibleWorkspaceCardIds: parseWorkspaceCardIds(value.visibleWorkspaceCardIds),
+    visibleControlCount: parseOptionalNumber(value.visibleControlCount),
+    visibleTextBlockCount: parseOptionalNumber(value.visibleTextBlockCount),
+    shellMode: parseShellMode(value.shellMode),
+    judgeMode: parseOptionalBoolean(value.judgeMode),
+    locationSelected: parseOptionalBoolean(value.locationSelected),
+    geodataLoading: parseOptionalBoolean(value.geodataLoading),
+    geodataLoaded: parseOptionalBoolean(value.geodataLoaded),
+    reportOpen: parseOptionalBoolean(value.reportOpen),
+    demoOpen: parseOptionalBoolean(value.demoOpen),
+  };
+
+  return Object.values(context).some((entry) => entry !== undefined) ? context : undefined;
+}
+
 function parseGeoSightContext(value: unknown): GeoSightContext | undefined {
   if (!isRecord(value)) {
     return undefined;
@@ -51,6 +107,7 @@ function parseGeoSightContext(value: unknown): GeoSightContext | undefined {
     missionId: parseOptionalString(value.missionId),
     score: parseOptionalNumber(value.score),
     dataBundle: isRecord(value.dataBundle) ? value.dataBundle : undefined,
+    uiContext: parseUiContext(value.uiContext),
   };
 
   return Object.values(context).some((entry) => entry !== undefined) ? context : undefined;
@@ -232,7 +289,65 @@ export async function POST(
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
 
+  const requestContext = parseGeoSightContext(rawBody.context);
   const agentConfig = getAgentConfig(rawAgentId);
+
+  if (rawAgentId === "geo-usability") {
+    const audit = runDeterministicUiAudit(requestContext?.uiContext);
+    const deterministicAudit = formatUiAuditResult(audit);
+    const apiKey = process.env[agentConfig.apiKeyEnv]?.trim();
+
+    if (!apiKey) {
+      return new Response(deterministicAudit, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    try {
+      const response = await requestGroqCompletion(
+        agentConfig,
+        apiKey,
+        [
+          `User request: ${message}`,
+          "",
+          "Deterministic UI audit findings:",
+          deterministicAudit,
+          "",
+          "Rewrite these findings into a concise internal UX review. Keep the same issues and recommendations. Do not add new findings.",
+        ].join("\n"),
+        requestContext,
+      );
+
+      if (!response.ok || !response.body) {
+        return new Response(deterministicAudit, {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
+      return new Response(createTextStream(response.body), {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (error) {
+      console.error("[agents-route] agent=geo-usability request_failed", error);
+
+      return new Response(deterministicAudit, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+  }
+
   const apiKey = process.env[agentConfig.apiKeyEnv]?.trim();
   if (!apiKey) {
     return NextResponse.json(
@@ -246,7 +361,7 @@ export async function POST(
       agentConfig,
       apiKey,
       message,
-      parseGeoSightContext(rawBody.context),
+      requestContext,
     );
 
     if (!response.ok || !response.body) {

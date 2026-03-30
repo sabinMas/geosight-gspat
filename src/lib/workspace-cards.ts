@@ -1,10 +1,12 @@
 import {
   WorkspaceCardDefinition,
+  WorkspaceCardDensityBudget,
   WorkspaceCardId,
   WorkspaceCardPreference,
+  WorkspaceRevealTrigger,
 } from "@/types";
 
-export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
+const WORKSPACE_CARD_REGISTRY_BASE = [
   {
     id: "active-location",
     title: "Active location",
@@ -467,6 +469,101 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
   },
 ] as const;
 
+function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
+  switch (cardId) {
+    case "active-location":
+      return ["location_selected"];
+    case "chat":
+      return ["ask_reasoning", "location_selected"];
+    case "results":
+      return ["ask_summary", "location_selected"];
+    case "mission-run":
+      return ["judge_mode"];
+    case "score":
+      return ["ask_reasoning", "location_selected"];
+    case "factor-breakdown":
+      return ["ask_reasoning", "ask_comparison"];
+    case "compare":
+      return ["ask_comparison"];
+    case "terrain-viewer":
+    case "elevation-profile":
+      return ["ask_terrain"];
+    case "image-upload":
+    case "land-classifier":
+      return ["ask_imagery"];
+    case "source-awareness":
+      return ["ask_trust", "report_opened"];
+    case "school-context":
+      return ["ask_schools"];
+    case "hazard-context":
+      return ["ask_hazard"];
+    default:
+      return ["ask_reasoning"];
+  }
+}
+
+function getDensityBudget(cardId: WorkspaceCardId): WorkspaceCardDensityBudget {
+  switch (cardId) {
+    case "active-location":
+    case "results":
+    case "score":
+    case "hazard-context":
+      return "low";
+    case "chat":
+    case "compare":
+    case "source-awareness":
+    case "factor-breakdown":
+      return "high";
+    default:
+      return "medium";
+  }
+}
+
+function getRevealTier(card: (typeof WORKSPACE_CARD_REGISTRY_BASE)[number]) {
+  if (card.zone === "primary") {
+    return "primary" as const;
+  }
+
+  if (card.emphasis === "optional") {
+    return "deep_dive" as const;
+  }
+
+  return "supporting" as const;
+}
+
+function getSummaryVariant(card: (typeof WORKSPACE_CARD_REGISTRY_BASE)[number]) {
+  switch (card.id) {
+    case "active-location":
+      return "Pin the place and scan the essentials.";
+    case "chat":
+      return "Ask a direct question about this place.";
+    case "results":
+      return "See the strongest live signals fast.";
+    case "source-awareness":
+      return "Inspect freshness, coverage, and trust.";
+    case "compare":
+      return "Compare saved sites side by side.";
+    default:
+      return card.summary;
+  }
+}
+
+export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] =
+  WORKSPACE_CARD_REGISTRY_BASE.map((card) => ({
+    ...card,
+    nextActions: [...card.nextActions],
+    requiredData: [...card.requiredData],
+    supportedProfiles: [...card.supportedProfiles],
+    revealTier: getRevealTier(card),
+    revealTriggers: getRevealTriggers(card.id),
+    summaryVariant: getSummaryVariant(card),
+    compactActions: [...card.nextActions.slice(0, 2)],
+    competitionCritical: ["mission-run", "score", "compare", "source-awareness"].includes(
+      card.id,
+    ),
+    densityBudget: getDensityBudget(card.id),
+  }));
+
 export const WORKSPACE_CARD_GROUPS = [
   { key: "context", label: "Core context" },
   { key: "analysis", label: "Analysis" },
@@ -481,10 +578,10 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 ) as Record<WorkspaceCardId, WorkspaceCardDefinition>;
 
 const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
-  "data-center": ["active-location", "chat", "results", "score", "cooling-water", "broadband-context", "factor-breakdown", "mission-run"],
-  hiking: ["active-location", "chat", "results", "score", "terrain-viewer", "air-quality"],
-  residential: ["active-location", "chat", "results", "score", "school-context", "flood-risk", "air-quality", "contamination-risk", "source-awareness", "mission-run"],
-  commercial: ["active-location", "chat", "results", "score", "mission-run"],
+  "data-center": ["active-location", "chat", "results"],
+  hiking: ["active-location", "chat", "results"],
+  residential: ["active-location", "chat", "results"],
+  commercial: ["active-location", "chat", "results"],
 };
 
 export function getWorkspaceCardDefaults(profileId: string) {
@@ -493,9 +590,7 @@ export function getWorkspaceCardDefaults(profileId: string) {
   );
 
   return WORKSPACE_CARD_REGISTRY.reduce<Record<WorkspaceCardId, boolean>>((acc, card) => {
-    acc[card.id] =
-      visibleSet.has(card.id) ||
-      (card.defaultVisibility && !visibleSet.has(card.id) ? card.defaultVisibility : visibleSet.has(card.id));
+    acc[card.id] = visibleSet.has(card.id);
     return acc;
   }, {} as Record<WorkspaceCardId, boolean>);
 }

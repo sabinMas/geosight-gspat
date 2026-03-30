@@ -1,4 +1,24 @@
-export type AgentId = "geo-analyst" | "geo-guide" | "geo-scribe";
+import type { WorkspaceCardId, WorkspaceShellMode } from "@/types";
+
+export type AgentId = "geo-analyst" | "geo-guide" | "geo-scribe" | "geo-usability";
+export type GeoSightViewportClass = "mobile" | "tablet" | "desktop";
+
+export type GeoSightUiContext = {
+  currentRoute?: string;
+  viewportClass?: GeoSightViewportClass;
+  activeProfile?: string;
+  visiblePrimaryCardId?: WorkspaceCardId | null;
+  visibleWorkspaceCardIds?: WorkspaceCardId[];
+  visibleControlCount?: number;
+  visibleTextBlockCount?: number;
+  shellMode?: WorkspaceShellMode;
+  judgeMode?: boolean;
+  locationSelected?: boolean;
+  geodataLoading?: boolean;
+  geodataLoaded?: boolean;
+  reportOpen?: boolean;
+  demoOpen?: boolean;
+};
 
 export type AgentConfig = {
   id: string;
@@ -19,10 +39,14 @@ export type GeoSightContext = {
   missionId?: string;
   score?: number;
   dataBundle?: Record<string, unknown>;
+  uiContext?: GeoSightUiContext;
 };
 
 export const GEO_ANALYST_SYSTEM_PROMPT =
   "You are GeoAnalyst, a precision geospatial intelligence agent embedded in GeoSight. You analyze locations using real environmental, infrastructure, and demographic data. Always ground answers in the data bundle provided in context. Cite your data sources by name. Never speculate beyond the data. If a data source is unavailable, say so explicitly. Write in structured professional analysis prose that begins with a short headline assessment, then supporting evidence, then risks and unknowns, then next diligence steps. Distinguish direct live signals, derived live analysis, and proxy heuristics whenever that distinction matters.";
+
+export const GEO_USABILITY_SYSTEM_PROMPT =
+  "You are GeoUsability, the internal UX audit agent for GeoSight. You review front-end state for clutter, overflow, discoverability, and hierarchy problems. Always anchor your response in the structured UI findings and UI context already provided. Do not invent visual issues that are not supported by the audit. Format responses as concise audit notes with severity, affected surface, issue type, and a specific recommendation.";
 
 export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
   "geo-analyst": {
@@ -59,6 +83,17 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     accentColor: "var(--color-text-muted)",
     systemPrompt:
       "You are GeoScribe, the report writing agent for GeoSight. You transform geospatial analysis results into polished, investor-grade written reports. Write in formal professional prose. Always include: executive summary, key findings by factor, risk assessment, and conclusion. Cite all data sources provided. Every sentence must carry information - no filler.",
+  },
+  "geo-usability": {
+    id: "geo-usability",
+    name: "GeoUsability",
+    tagline: "Front-end UX audit",
+    model: "llama-3.1-8b-instant",
+    apiKeyEnv: "GROQ_UX_KEY",
+    temperature: 0.1,
+    maxTokens: 1024,
+    accentColor: "#5be49b",
+    systemPrompt: GEO_USABILITY_SYSTEM_PROMPT,
   },
 };
 

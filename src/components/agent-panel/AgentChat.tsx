@@ -35,6 +35,8 @@ const WELCOME_MESSAGES: Record<AgentId, string> = {
     "I only explain how GeoSight works: cards, panels, scores, filters, and mission profiles. Ask how to use the interface or how to interpret something already on screen.",
   "geo-scribe":
     "I turn GeoSight findings into polished, investor-grade writing. Run an analysis first, then ask me for a report, summary, memo, or export-ready narrative.",
+  "geo-usability":
+    "I audit the current GeoSight UI for clutter, overflow, reveal timing, and mobile risk. Ask me to review what is on screen and I will respond with structured findings grounded in the visible interface state.",
 };
 
 const DEFAULT_ERROR_MESSAGE = "This agent could not respond right now.";
@@ -124,7 +126,7 @@ async function readResponseError(response: Response) {
 }
 
 export default function AgentChat() {
-  const { activeAgentId, geoContext } = useAgentPanel();
+  const { activeAgentId, geoContext, uiContext } = useAgentPanel();
   const [threads, setThreads] = useState<Record<AgentId, AgentChatMessage[]>>(() =>
     createAgentRecord(() => []),
   );
@@ -249,7 +251,13 @@ export default function AgentChat() {
         },
         body: JSON.stringify({
           message: trimmedPrompt,
-          context: geoContext ?? undefined,
+          context:
+            geoContext || uiContext
+              ? {
+                  ...(geoContext ?? {}),
+                  uiContext: uiContext ?? geoContext?.uiContext,
+                }
+              : undefined,
         }),
       });
 
