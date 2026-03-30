@@ -25,7 +25,10 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]">
+      <div
+        className="flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]"
+        title="Toggle workspace theme"
+      >
         {OPTIONS.map((option) => {
           const Icon = option.icon;
           return (

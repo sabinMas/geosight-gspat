@@ -26,6 +26,7 @@ import { ScoreCard } from "@/components/Scoring/ScoreCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
+import { WORKSPACE_CARD_MAP } from "@/lib/workspace-cards";
 import { WorkspaceCardId } from "@/types";
 import { ElevationProfile } from "../Terrain/ElevationProfile";
 import { TerrainViewer } from "../Terrain/TerrainViewer";
@@ -43,6 +44,104 @@ interface SharedPanelProps {
 interface PrimaryPanelProps extends SharedPanelProps {
   headerContent: ReactNode;
   onSaveCurrentSite: () => void;
+}
+
+function WorkspaceCardPlaceholder({
+  cardId,
+  detail,
+}: {
+  cardId: WorkspaceCardId;
+  detail: string;
+}) {
+  const card = WORKSPACE_CARD_MAP[cardId];
+
+  return (
+    <Card>
+      <CardHeader className="space-y-3">
+        <div className="eyebrow">Supporting view</div>
+        <CardTitle>{card.title}</CardTitle>
+        <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">{card.summary}</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
+          {detail}
+        </div>
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+            What this view answers
+          </div>
+          <p className="mt-2 text-sm leading-6 text-[var(--foreground)]">{card.questionAnswered}</p>
+          <div className="mt-4 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+            Next best moves
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {card.compactActions.map((action) => (
+              <span
+                key={action}
+                className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--muted-foreground)]"
+              >
+                {action}
+              </span>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function getDataDependencyPlaceholder(
+  cardId: WorkspaceCardId,
+  state: ExploreStateValue,
+  data: ExploreDataValue,
+) {
+  const locationLabel =
+    state.selectedLocationName && state.selectedLocationName !== "New focus"
+      ? state.selectedLocationName
+      : "this place";
+
+  const scoreCards = new Set<WorkspaceCardId>(["score", "factor-breakdown"]);
+  const geodataCards = new Set<WorkspaceCardId>([
+    "source-awareness",
+    "hazard-context",
+    "climate-history",
+    "broadband-context",
+    "flood-risk",
+    "cooling-water",
+    "groundwater",
+    "soil-profile",
+    "seismic-design",
+    "air-quality",
+    "contamination-risk",
+  ]);
+
+  if (scoreCards.has(cardId) && !data.siteScore) {
+    return (
+      <WorkspaceCardPlaceholder
+        cardId={cardId}
+        detail={
+          data.loading
+            ? `GeoSight is still preparing the live score inputs for ${locationLabel}. This view will populate as soon as the current location analysis completes.`
+            : `GeoSight does not have enough live scoring inputs for ${locationLabel} yet. Try re-running the location analysis or opening source awareness to inspect the coverage gap.`
+        }
+      />
+    );
+  }
+
+  if (geodataCards.has(cardId) && !data.geodata) {
+    return (
+      <WorkspaceCardPlaceholder
+        cardId={cardId}
+        detail={
+          data.loading
+            ? `GeoSight is still gathering live geodata for ${locationLabel}. This supporting view will fill in once the location load finishes.`
+            : `Live geodata is unavailable for ${locationLabel} right now, so GeoSight cannot populate this view yet. Try another region, rerun the search, or inspect the trust panel for provider status.`
+        }
+      />
+    );
+  }
+
+  return null;
 }
 
 export function ExplorePrimaryPanel({
@@ -80,11 +179,14 @@ export function ExplorePrimaryPanel({
         locationName={state.selectedLocationName}
         resultsMode={state.resultsMode}
         geodata={data.geodata}
+        geodataLoading={data.loading}
+        groundingFallbackSources={data.groundingFallbackSources}
         nearbyPlaces={data.places}
         nearbySource={data.nearbySource}
         dataTrends={data.locationTrends}
         imageSummary={state.imageSummary}
         classification={data.effectiveClassification}
+        onQuestionAsked={data.handleQuestionIntent}
       />
     );
   }
@@ -115,6 +217,11 @@ export function ExploreWorkspacePanel({
   data,
   onOpenCard,
 }: SharedPanelProps) {
+  const dataDependencyPlaceholder = getDataDependencyPlaceholder(cardId, state, data);
+  if (dataDependencyPlaceholder) {
+    return dataDependencyPlaceholder;
+  }
+
   switch (cardId) {
     case "mission-run":
       return state.missionRunPreset ? (

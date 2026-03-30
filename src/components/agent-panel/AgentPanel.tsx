@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ChevronDown, ChevronUp, MessageSquareText } from "lucide-react";
 import { AgentPanelProvider, useAgentPanel } from "@/context/AgentPanelContext";
 import { AGENT_CONFIGS } from "@/lib/agents/agent-config";
@@ -10,24 +10,23 @@ import AgentChat from "./AgentChat";
 import AgentSelector from "./AgentSelector";
 
 function AgentPanelDrawer() {
-  const { activeAgentId } = useAgentPanel();
-  const [open, setOpen] = useState(false);
+  const { activeAgentId, panelOpen, setPanelOpen } = useAgentPanel();
   const activeAgent = AGENT_CONFIGS[activeAgentId];
 
   useEffect(() => {
-    if (!open) {
+    if (!panelOpen) {
       return;
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
+        setPanelOpen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
+  }, [panelOpen, setPanelOpen]);
 
   return (
     <>
@@ -35,9 +34,9 @@ function AgentPanelDrawer() {
         id="geosight-agent-panel"
         className={cn(
           "fixed inset-x-0 bottom-0 z-40 transform-gpu transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
-          open ? "translate-y-0" : "translate-y-full pointer-events-none",
+          panelOpen ? "translate-y-0" : "translate-y-full pointer-events-none",
         )}
-        aria-hidden={!open}
+        aria-hidden={!panelOpen}
       >
         <div className="h-[320px] border-t border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 pb-4 pt-4 shadow-[var(--shadow-panel)] backdrop-blur-xl md:px-6">
           <div className="flex h-full flex-col gap-4">
@@ -64,7 +63,7 @@ function AgentPanelDrawer() {
                 variant="ghost"
                 size="icon"
                 className="rounded-full"
-                onClick={() => setOpen(false)}
+                onClick={() => setPanelOpen(false)}
                 aria-label="Close multi-agent panel"
               >
                 <ChevronDown className="h-4 w-4" />
@@ -81,16 +80,18 @@ function AgentPanelDrawer() {
         type="button"
         variant="secondary"
         className={cn(
-          "fixed right-4 z-50 h-12 rounded-full px-5 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6",
-          open ? "bottom-[336px]" : "bottom-4",
+          "fixed right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
+          panelOpen ? "bottom-[336px]" : "bottom-4",
         )}
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
+        onClick={() => setPanelOpen(!panelOpen)}
+        aria-expanded={panelOpen}
         aria-controls="geosight-agent-panel"
+        aria-label={panelOpen ? "Hide agent desk" : "Open agent desk"}
+        title={panelOpen ? "Hide agent desk" : "Ask GeoSight"}
       >
-        <MessageSquareText className="mr-2 h-4 w-4" />
-        {activeAgent.name}
-        {open ? (
+        <MessageSquareText className="h-4 w-4" />
+        <span className="ml-2 hidden text-sm md:inline">Ask GeoSight</span>
+        {panelOpen ? (
           <ChevronDown className="ml-2 h-4 w-4" />
         ) : (
           <ChevronUp className="ml-2 h-4 w-4" />

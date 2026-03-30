@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { RotateCcw, Send } from "lucide-react";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { AgentId, AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-config";
 import { Button } from "@/components/ui/button";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,8 @@ const WELCOME_MESSAGES: Record<AgentId, string> = {
     "I only explain how GeoSight works: cards, panels, scores, filters, and mission profiles. Ask how to use the interface or how to interpret something already on screen.",
   "geo-scribe":
     "I turn GeoSight findings into polished, investor-grade writing. Run an analysis first, then ask me for a report, summary, memo, or export-ready narrative.",
+  "geo-usability":
+    "I audit the current GeoSight UI for clutter, overflow, reveal timing, and mobile risk. Ask me to review what is on screen and I will respond with structured findings grounded in the visible interface state.",
 };
 
 const DEFAULT_ERROR_MESSAGE = "This agent could not respond right now.";
@@ -124,7 +127,13 @@ async function readResponseError(response: Response) {
 }
 
 export default function AgentChat() {
-  const { activeAgentId, geoContext } = useAgentPanel();
+  const {
+    activeAgentId,
+    geoContext,
+    uiContext,
+    queuedDrafts,
+    clearQueuedDraft,
+  } = useAgentPanel();
   const [threads, setThreads] = useState<Record<AgentId, AgentChatMessage[]>>(() =>
     createAgentRecord(() => []),
   );
@@ -174,12 +183,25 @@ export default function AgentChat() {
     return () => window.clearInterval(interval);
   }, [isLoading]);
 
-  const setDraftForAgent = (agentId: AgentId, value: string) => {
+  const setDraftForAgent = useCallback((agentId: AgentId, value: string) => {
     setDrafts((current) => ({
       ...current,
       [agentId]: value,
     }));
-  };
+  }, []);
+
+  useEffect(() => {
+    const queuedDraft = queuedDrafts[activeAgentId];
+    if (!queuedDraft) {
+      return;
+    }
+
+    setDraftForAgent(activeAgentId, queuedDraft);
+    clearQueuedDraft(activeAgentId);
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  }, [activeAgentId, clearQueuedDraft, queuedDrafts, setDraftForAgent]);
 
   const setLoadingState = (agentId: AgentId, value: boolean) => {
     setLoadingByAgent((current) => ({
@@ -249,7 +271,13 @@ export default function AgentChat() {
         },
         body: JSON.stringify({
           message: trimmedPrompt,
-          context: geoContext ?? undefined,
+          context:
+            geoContext || uiContext
+              ? {
+                  ...(geoContext ?? {}),
+                  uiContext: uiContext ?? geoContext?.uiContext,
+                }
+              : undefined,
         }),
       });
 
@@ -403,7 +431,13 @@ export default function AgentChat() {
                           : "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]",
                       )}
                     >
-                      {message.content || (message.isStreaming ? loadingEllipsis : "")}
+                      {isAssistant ? (
+                        <MarkdownContent
+                          content={message.content || (message.isStreaming ? loadingEllipsis : "")}
+                        />
+                      ) : (
+                        message.content || (message.isStreaming ? loadingEllipsis : "")
+                      )}
                     </div>
                   </div>
                 </div>

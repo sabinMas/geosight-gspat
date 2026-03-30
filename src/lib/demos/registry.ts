@@ -4,6 +4,7 @@ import {
   HIKING_DEMO_SITES,
   PRELOADED_SITES,
   RESIDENTIAL_DEMO_SITES,
+  TOKYO_DEMO_SITES,
 } from "@/lib/demo-data";
 import { DemoOverlay } from "@/types";
 
@@ -113,6 +114,7 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     coordinates: { lat: 35.6762, lng: 139.6503 },
     fallbackScreenshot: "/demo-fallbacks/tokyo-commercial.svg",
     entryMode: "workspace",
+    quickRegionSites: TOKYO_DEMO_SITES,
     competition: {
       openingScript:
         "Use Tokyo to prove GeoSight works globally: explain corridor fit, separate direct data from inference, and name the current coverage gaps honestly.",

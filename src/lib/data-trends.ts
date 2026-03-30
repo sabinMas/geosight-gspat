@@ -246,7 +246,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       value:
         geodata.schoolContext?.score === null || geodata.schoolContext?.score === undefined
           ? geodata.schoolContext?.coverageStatus === "outside_us"
-            ? "Coverage pending"
+            ? "Limited outside US"
             : "Unavailable"
           : `${geodata.schoolContext.score} / 100`,
       detail: geodata.schoolContext

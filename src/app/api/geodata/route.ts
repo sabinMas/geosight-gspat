@@ -173,6 +173,15 @@ export async function GET(request: NextRequest) {
   const bbox = toBoundingBox({ lat, lng }, 8);
   const isUsPoint = isLikelyUsCoordinate(lat, lng);
   const fireHazardConfigured = isFireHazardConfigured();
+  const broadbandPromise = isUsPoint ? getFCCBroadband(lat, lng) : Promise.resolve(null);
+  const floodZonePromise = isUsPoint ? getFloodZone(lat, lng) : Promise.resolve(null);
+  const waterGaugePromise = isUsPoint ? getNearbyStreamGauges(lat, lng) : Promise.resolve([]);
+  const groundwaterPromise = isUsPoint
+    ? getNearbyGroundwaterWells({ lat, lng })
+    : Promise.resolve({ wells: [], nearestWell: null, wellCount: 0 });
+  const soilProfilePromise = isUsPoint ? getSoilProfile({ lat, lng }) : Promise.resolve(null);
+  const seismicDesignPromise = isUsPoint ? getSeismicDesignParams({ lat, lng }) : Promise.resolve(null);
+  const epaHazardPromise = isUsPoint ? getEPAHazards(lat, lng) : Promise.resolve(null);
 
   const [
     elevationResult,
@@ -200,15 +209,15 @@ export async function GET(request: NextRequest) {
       fetchEarthquakeSummary({ lat, lng }),
       fetchFireHazardSummary({ lat, lng }),
       fetchSchoolContext({ lat, lng }),
-      getFCCBroadband(lat, lng),
-      getFloodZone(lat, lng),
-      getNearbyStreamGauges(lat, lng),
-      getNearbyGroundwaterWells({ lat, lng }),
-      getSoilProfile({ lat, lng }),
-      getSeismicDesignParams({ lat, lng }),
+      broadbandPromise,
+      floodZonePromise,
+      waterGaugePromise,
+      groundwaterPromise,
+      soilProfilePromise,
+      seismicDesignPromise,
       getClimateHistory({ lat, lng }),
       getAirQuality(lat, lng),
-      getEPAHazards(lat, lng),
+      epaHazardPromise,
     ]);
 
   const infrastructure =

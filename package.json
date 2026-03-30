@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:ui": "playwright test",
     "rag:build": "ts-node scripts/build-rag-store.ts",
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/copy-cesium-assets.mjs"
@@ -24,11 +25,14 @@
     "next": "^15.5.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.2.1",
+    "remark-gfm": "^4.0.1",
     "resium": "^1.19.0",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.13",

@@ -42,10 +42,10 @@ function StatCard({
 }) {
   return (
     <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="eyebrow">{label}</div>
         {source ? (
-          <span className={`rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${getSourceStatusTone(source.status)}`}>
+          <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${getSourceStatusTone(source.status)}`}>
             {formatSourceStatusLabel(source.status)}
           </span>
         ) : null}
@@ -93,8 +93,8 @@ export function ActiveLocationCard({
   return (
     <Card>
       <CardHeader className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <div className="eyebrow">Location summary</div>
             <CardTitle>Active location</CardTitle>
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
@@ -144,8 +144,8 @@ export function ActiveLocationCard({
 
         {sourceHighlights.length > 0 ? (
           <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <div className="eyebrow">Data health</div>
                 <div className="mt-2 text-sm text-[var(--muted-foreground)]">
                   Quick trust check for the signals shaping this view.

@@ -1,7 +1,7 @@
 import { AnalysisResult } from "@/lib/analysis-provider";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
-export type GeoSightAgentId = "geo-analyst" | "geo-scribe";
+export type GeoSightAgentId = "geo-analyst" | "geo-scribe" | "geo-usability";
 export type GeoSightClawInput = AnalyzeRequestBody;
 
 export type GeoSightAgentResult = AnalysisResult & {

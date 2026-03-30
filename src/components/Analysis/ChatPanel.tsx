@@ -1,11 +1,13 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Textarea } from "@/components/ui/textarea";
+import { fetchWithTimeout } from "@/lib/network";
 import {
   ChatMessage,
   Coordinates,
@@ -33,11 +35,14 @@ interface ChatPanelProps {
   locationName: string;
   resultsMode: ResultsMode;
   geodata: GeodataResult | null;
+  geodataLoading: boolean;
+  groundingFallbackSources: DataSourceMeta[];
   nearbyPlaces: NearbyPlace[];
   nearbySource: NearbyPlacesSource;
   dataTrends: DataTrend[];
   imageSummary: string;
   classification: LandCoverBucket[];
+  onQuestionAsked?: (question: string) => void;
 }
 
 export function ChatPanel({
@@ -46,11 +51,14 @@ export function ChatPanel({
   locationName,
   resultsMode,
   geodata,
+  geodataLoading,
+  groundingFallbackSources,
   nearbyPlaces,
   nearbySource,
   dataTrends,
   imageSummary,
   classification,
+  onQuestionAsked,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -104,39 +112,43 @@ export function ChatPanel({
       ? "Nearby answers should stay inside live mapped place results plus the local access and amenity context."
       : "Analysis answers should stay inside these live and derived inputs and call out any important gaps.";
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!draft.trim()) {
+  const submitQuestion = useCallback(async (question: string) => {
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion || loading) {
       return;
     }
 
-    const question = draft.trim();
     const nextMessages: ChatMessage[] = [
       ...messages,
-      { id: crypto.randomUUID(), role: "user", content: question },
+      { id: crypto.randomUUID(), role: "user", content: trimmedQuestion },
     ];
+    onQuestionAsked?.(trimmedQuestion);
     setMessages(nextMessages);
     setDraft("");
     setLoading(true);
 
     try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profileId: profile.id,
-          question,
-          location,
-          locationName,
-          resultsMode,
-          geodata,
-          nearbyPlaces,
-          nearbySource,
-          dataTrends,
-          imageSummary,
-          classification,
-        }),
-      });
+      const response = await fetchWithTimeout(
+        "/api/analyze",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            profileId: profile.id,
+            question: trimmedQuestion,
+            location,
+            locationName,
+            resultsMode,
+            geodata,
+            nearbyPlaces,
+            nearbySource,
+            dataTrends,
+            imageSummary,
+            classification,
+          }),
+        },
+        20_000,
+      );
       const data = (await response.json()) as { answer?: string; error?: string };
       if (!response.ok || !data.answer) {
         throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
@@ -161,6 +173,29 @@ export function ChatPanel({
     } finally {
       setLoading(false);
     }
+  }, [
+    classification,
+    dataTrends,
+    geodata,
+    imageSummary,
+    location,
+    locationName,
+    messages,
+    nearbyPlaces,
+    nearbySource,
+    onQuestionAsked,
+    profile.id,
+    resultsMode,
+    loading,
+  ]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!draft.trim()) {
+      return;
+    }
+
+    await submitQuestion(draft);
   };
 
   return (
@@ -199,12 +234,12 @@ export function ChatPanel({
             <div className="mt-3 flex flex-wrap gap-2">
               {suggestionPrompts.map((prompt) => (
                 <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setDraft(prompt)}
-                  className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1.5 text-xs text-[var(--foreground-soft)] transition hover:bg-[var(--surface-soft)]"
-                >
-                  {prompt}
+                    key={prompt}
+                    type="button"
+                    onClick={() => void submitQuestion(prompt)}
+                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1.5 text-xs text-[var(--foreground-soft)] transition hover:bg-[var(--surface-soft)]"
+                  >
+                    {prompt}
                 </button>
               ))}
             </div>
@@ -226,17 +261,41 @@ export function ChatPanel({
             ) : null}
           </div>
 
-          {groundingSources.length ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {groundingSources.map((source) => (
-                <SourceInlineSummary key={source.id} source={source} compact />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 text-sm text-[var(--muted-foreground)]">
-              GeoSight is still assembling the live and derived context for this place.
-            </div>
-          )}
+          <details className="mt-4 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+              Inspect grounding inputs
+            </summary>
+            {groundingSources.length ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {groundingSources.map((source) => (
+                  <SourceInlineSummary key={source.id} source={source} compact />
+                ))}
+              </div>
+            ) : groundingFallbackSources.length ? (
+              <div className="mt-3 space-y-3">
+                <div className="rounded-[1rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-2 text-sm text-[var(--warning-foreground)]">
+                  Live grounding is still loading, so GeoSight is showing demo-safe source cards for the active story.
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {groundingFallbackSources.map((source) => (
+                    <SourceInlineSummary key={source.id} source={source} compact />
+                  ))}
+                </div>
+              </div>
+            ) : geodataLoading ? (
+              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
+                GeoSight is still assembling the live and derived context for this place.
+              </div>
+            ) : geodata ? (
+              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
+                This location is loaded, but the current view does not have enough source-rich inputs to show a grounding strip yet.
+              </div>
+            ) : (
+              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
+                Select a place or wait for live context to finish loading before GeoSight can show grounding inputs.
+              </div>
+            )}
+          </details>
         </div>
 
         <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto pr-1">
@@ -249,7 +308,11 @@ export function ChatPanel({
                   : "mr-6 border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground-soft)]"
               }`}
             >
-              {message.content}
+              {message.role === "assistant" ? (
+                <MarkdownContent content={message.content} />
+              ) : (
+                message.content
+              )}
             </div>
           ))}
         </div>

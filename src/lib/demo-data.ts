@@ -103,6 +103,30 @@ export const COMMERCIAL_DEMO_SITES: DemoSiteSeed[] = [
   },
 ];
 
+export const TOKYO_DEMO_SITES: DemoSiteSeed[] = [
+  {
+    id: "tokyo-marunouchi",
+    name: "Marunouchi Core",
+    coordinates: { lat: 35.6812, lng: 139.7671 },
+    score: 84,
+    summary: "Dense office and rail-connected commercial core around Tokyo Station.",
+  },
+  {
+    id: "tokyo-shinagawa",
+    name: "Shinagawa Gateway",
+    coordinates: { lat: 35.6285, lng: 139.7387 },
+    score: 81,
+    summary: "Rail and business corridor linking central Tokyo to airport-oriented access.",
+  },
+  {
+    id: "tokyo-yokohama",
+    name: "Yokohama Port District",
+    coordinates: { lat: 35.454, lng: 139.638 },
+    score: 79,
+    summary: "Port-side logistics and commercial activity south of central Tokyo.",
+  },
+];
+
 function buildDemoScore(total: number, notes: string[]): SiteScore {
   const factorBase = [
     { key: "waterProximity", label: "Cooling water access", weight: 0.26, score: total + 5 },
