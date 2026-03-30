@@ -84,46 +84,46 @@ export function ElevationProfile({
         <CardTitle>Elevation cross-section</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm leading-6 text-slate-300">
+        <p className="text-sm leading-6 text-[var(--foreground-soft)]">
           Sampled transect across {locationName}. GeoSight uses USGS point elevations along the
           active analysis region to estimate terrain rise, drop, and relief.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Length</div>
-            <div className="mt-2 text-lg font-semibold text-white">
+          <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Length</div>
+            <div className="mt-2 text-lg font-semibold text-[var(--foreground)]">
               {summary?.lengthKm?.toFixed(1) ?? "--"} km
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Min</div>
-            <div className="mt-2 text-lg font-semibold text-white">
+          <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Min</div>
+            <div className="mt-2 text-lg font-semibold text-[var(--foreground)]">
               {summary?.minElevation ?? "--"} m
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Max</div>
-            <div className="mt-2 text-lg font-semibold text-white">
+          <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Max</div>
+            <div className="mt-2 text-lg font-semibold text-[var(--foreground)]">
               {summary?.maxElevation ?? "--"} m
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Gain / Loss</div>
-            <div className="mt-2 text-lg font-semibold text-white">
+          <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Gain / Loss</div>
+            <div className="mt-2 text-lg font-semibold text-[var(--foreground)]">
               {summary?.elevationGain ?? "--"} / {summary?.elevationLoss ?? "--"} m
             </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/8 p-4 text-sm text-cyan-50">
+          <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/8 p-4 text-sm text-[var(--foreground)]">
             Loading elevation samples...
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-4 text-sm text-amber-50">
+          <div className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-4 text-sm text-[var(--foreground)]">
             {error}
           </div>
         ) : null}

@@ -12,20 +12,20 @@ function getDepthBadge(levelFt: number) {
   if (levelFt < 20) {
     return {
       label: "Shallow",
-      tone: "border-amber-300/20 bg-amber-400/10 text-amber-50",
+      tone: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]",
     };
   }
 
   if (levelFt <= 100) {
     return {
       label: "Moderate",
-      tone: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50",
+      tone: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
     };
   }
 
   return {
     label: "Deep",
-    tone: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50",
+    tone: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]",
   };
 }
 
@@ -48,7 +48,7 @@ export function GroundwaterCard({ geodata }: GroundwaterCardProps) {
             <div
               className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${
                 nearestWell.currentLevelFt === null
-                  ? "border-slate-300/15 bg-slate-400/10 text-slate-100"
+                  ? "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]"
                   : getDepthBadge(nearestWell.currentLevelFt).tone
               }`}
             >

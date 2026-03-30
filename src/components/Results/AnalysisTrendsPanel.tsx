@@ -17,9 +17,9 @@ interface AnalysisTrendsPanelProps {
 }
 
 const TONE_CLASSES: Record<DataTrend["direction"], string> = {
-  positive: "border-emerald-300/20 bg-emerald-400/8 text-emerald-50",
-  neutral: "border-white/10 bg-white/5 text-slate-100",
-  watch: "border-amber-300/20 bg-amber-400/8 text-amber-50",
+  positive: "border-emerald-300/20 bg-emerald-400/8 text-[var(--foreground)]",
+  neutral: "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)]",
+  watch: "border-amber-300/20 bg-amber-400/8 text-[var(--foreground)]",
 };
 
 export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPanelProps) {
@@ -60,7 +60,7 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="eyebrow text-current/70">{trend.label}</div>
-                  <div className="mt-3 text-2xl font-semibold text-white">{trend.value}</div>
+                  <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">{trend.value}</div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <div
@@ -79,13 +79,13 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
               </div>
               <p className="mt-3 text-sm leading-6 text-current/85">{trend.detail}</p>
               {showEvidence ? (
-                <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/15 px-3 py-2 text-xs leading-5 text-slate-100/85">
-                  <div className="font-medium text-white">{trend.source.label}</div>
+                <div className="mt-4 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-2 text-xs leading-5 text-[var(--foreground)]/85">
+                  <div className="font-medium text-[var(--foreground)]">{trend.source.label}</div>
                   <div className="mt-1">{summarizeSourceMeta(trend.source)}</div>
-                  <div className="mt-1 text-slate-300/80">
+                  <div className="mt-1 text-[var(--foreground-soft)]/80">
                     {formatSourceTimestamp(trend.source.lastUpdated)}
                   </div>
-                  <div className="mt-1 text-slate-300/80">{trend.source.confidence}</div>
+                  <div className="mt-1 text-[var(--foreground-soft)]/80">{trend.source.confidence}</div>
                 </div>
               ) : null}
             </div>

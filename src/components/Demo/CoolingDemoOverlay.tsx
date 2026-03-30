@@ -34,7 +34,7 @@ export function CoolingDemoOverlay({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 bg-[var(--background)]/80 backdrop-blur-md">
       <div className="mx-auto flex min-h-screen max-w-6xl items-start justify-center p-4 md:p-6">
         <div className="glass-panel relative w-full rounded-[2rem] border border-cyan-300/15 p-4 md:p-6">
           <Button
@@ -53,7 +53,7 @@ export function CoolingDemoOverlay({
               <CardHeader>
                 <CardTitle>{demo.name}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm leading-6 text-slate-300">
+              <CardContent className="space-y-4 text-sm leading-6 text-[var(--foreground-soft)]">
                 <p>{demo.description}</p>
                 <p>
                   This guided overlay keeps the comparison table, score summary, and benchmark
@@ -76,12 +76,12 @@ export function CoolingDemoOverlay({
                       key={site.id}
                       type="button"
                       onClick={() => onFocusSite(site.id)}
-                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:bg-white/10"
+                      className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-left transition hover:bg-white/10"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="text-sm font-semibold text-white">{site.name}</div>
-                          <div className="mt-1 text-xs text-slate-400">{site.regionName}</div>
+                          <div className="text-sm font-semibold text-[var(--foreground)]">{site.name}</div>
+                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">{site.regionName}</div>
                         </div>
                         <div className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] text-cyan-100">
                           {site.score.total}/100

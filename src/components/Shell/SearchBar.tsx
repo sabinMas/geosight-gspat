@@ -104,7 +104,7 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
               value={value}
               onChange={(event) => setValue(event.target.value)}
               placeholder="Seattle, WA or 45.523,-122.676"
-              className="h-12 border-white/10 bg-slate-950/50 text-sm"
+              className="h-12 border-[color:var(--border-soft)] bg-[var(--background)]/50 text-sm"
             />
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button type="submit" className="h-12 min-w-[160px] rounded-2xl" disabled={loading}>

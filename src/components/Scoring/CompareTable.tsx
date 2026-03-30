@@ -14,9 +14,9 @@ export function CompareTable({
 }: CompareTableProps) {
   const factorColumns = sites[0]?.score.factors.slice(0, 3) ?? [];
   const evidenceTone: Record<string, string> = {
-    direct_live: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50",
-    derived_live: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50",
-    proxy: "border-amber-300/20 bg-amber-400/10 text-amber-50",
+    direct_live: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]",
+    derived_live: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
+    proxy: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]",
   };
 
   return (

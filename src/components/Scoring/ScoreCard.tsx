@@ -23,9 +23,9 @@ function getBandLabel(score: number, profile?: MissionProfile) {
 }
 
 const EVIDENCE_TONE: Record<string, string> = {
-  direct_live: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50",
-  derived_live: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50",
-  proxy: "border-amber-300/20 bg-amber-400/10 text-amber-50",
+  direct_live: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]",
+  derived_live: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
+  proxy: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]",
 };
 
 export function ScoreCard({ score, title = "Site score", profile, onOpenDetails }: ScoreCardProps) {
@@ -87,8 +87,8 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
             </ResponsiveContainer>
           ) : null}
           <div className={`${mounted ? "-mt-26" : "mt-10"} text-center`}>
-            <div className="text-5xl font-semibold text-white">{score.total}</div>
-            <div className="text-xs uppercase tracking-[0.24em] text-slate-400">out of 100</div>
+            <div className="text-5xl font-semibold text-[var(--foreground)]">{score.total}</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-[var(--muted-foreground)]">out of 100</div>
           </div>
         </div>
         <div className="space-y-3">
@@ -118,7 +118,7 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
           <div className="text-sm leading-6 text-[var(--muted-foreground)]">{evidenceSummary}</div>
           {score.broadband ? (
             <div className="rounded-[1.5rem] border border-cyan-300/20 bg-cyan-400/8 p-4">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-50">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground)]">
                 Broadband summary
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">

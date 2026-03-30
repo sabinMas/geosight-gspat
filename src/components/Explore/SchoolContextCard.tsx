@@ -26,7 +26,7 @@ function SchoolRow({ school }: { school: SchoolContextResult["schools"][number] 
           </div>
         </div>
         {school.officialMetrics ? (
-          <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-50">
+          <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-[var(--foreground)]">
             WA official
           </div>
         ) : null}

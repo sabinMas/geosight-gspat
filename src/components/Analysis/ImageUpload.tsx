@@ -145,7 +145,7 @@ export function ImageUpload({ onClassify, previewUrl }: ImageUploadProps) {
         <CardTitle>Satellite image upload</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-cyan-300/30 bg-cyan-400/6 px-4 py-6 text-sm text-slate-200">
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-cyan-300/30 bg-cyan-400/6 px-4 py-6 text-sm text-[var(--foreground-soft)]">
           <Upload className="h-4 w-4 text-cyan-300" />
           <span>{fileName || "Upload PNG, JPG, or TIFF imagery for land cover classification."}</span>
           <Input type="file" accept=".png,.jpg,.jpeg,.tif,.tiff" className="hidden" onChange={handleFile} />
@@ -153,7 +153,7 @@ export function ImageUpload({ onClassify, previewUrl }: ImageUploadProps) {
 
         {previewUrl ? (
           <div className="space-y-3">
-            <div className="overflow-hidden rounded-2xl border border-white/10">
+            <div className="overflow-hidden rounded-2xl border border-[color:var(--border-soft)]">
               <Image
                 src={previewUrl}
                 alt="Uploaded satellite preview"

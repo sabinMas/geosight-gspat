@@ -47,8 +47,8 @@ export function ProfileSelector({
               className="h-4 w-4"
               style={{ color: isActive ? profile.accentColor : "#cbd5e1" }}
             />
-            <div className="mt-3 text-sm font-semibold text-white">{profile.name}</div>
-            <div className="mt-1 text-[11px] leading-4 text-slate-400">{profile.tagline}</div>
+            <div className="mt-3 text-sm font-semibold text-[var(--foreground)]">{profile.name}</div>
+            <div className="mt-1 text-[11px] leading-4 text-[var(--muted-foreground)]">{profile.tagline}</div>
           </button>
         );
       })}

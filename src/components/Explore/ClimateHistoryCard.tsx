@@ -21,18 +21,18 @@ interface ClimateHistoryCardProps {
 function trendBadge(trend: NonNullable<GeodataResult["climateHistory"]>["trendDirection"]) {
   switch (trend) {
     case "warming":
-      return { label: "Warming", tone: "border-orange-300/20 bg-orange-400/10 text-orange-50" };
+      return { label: "Warming", tone: "border-orange-300/20 bg-orange-400/10 text-[var(--foreground)]" };
     case "cooling":
-      return { label: "Cooling", tone: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50" };
+      return { label: "Cooling", tone: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]" };
     case "stable":
-      return { label: "Stable", tone: "border-slate-300/15 bg-slate-400/10 text-slate-100" };
+      return { label: "Stable", tone: "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]" };
     default:
-      return { label: "Unavailable", tone: "border-slate-300/15 bg-slate-400/10 text-slate-100" };
+      return { label: "Unavailable", tone: "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]" };
   }
 }
 
 function formatTemp(value: number | null) {
-  return value === null ? "--" : `${value.toFixed(1)}°C`;
+  return value === null ? "--" : `${value.toFixed(1)}Â°C`;
 }
 
 export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
@@ -90,7 +90,7 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
                   stroke="#ff8a65"
                   strokeWidth={3}
                   dot={{ r: 3 }}
-                  name="Avg temp (°C)"
+                  name="Avg temp (Â°C)"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -100,7 +100,7 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
             <span className="text-[var(--foreground)]">
               {formatTemp(climateHistory.baselineAvgTempC)}
             </span>{" "}
-            → 2020-2024 avg:{" "}
+            â†’ 2020-2024 avg:{" "}
             <span className="text-[var(--foreground)]">
               {formatTemp(climateHistory.recentAvgTempC)}
             </span>

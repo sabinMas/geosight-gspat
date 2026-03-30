@@ -33,7 +33,7 @@ export function DataLayers({ layers, onChange }: DataLayersProps) {
         label="Roads"
         enabled={layers.roads}
         onToggle={() => onChange({ ...layers, roads: !layers.roads })}
-        accentClassName="text-slate-300"
+        accentClassName="text-[var(--foreground-soft)]"
       />
       <LayerToggle
         label="Elevation heat"

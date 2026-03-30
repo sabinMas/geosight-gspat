@@ -9,19 +9,19 @@ interface AirQualityCardProps {
 function getAqiTone(category: NonNullable<GeodataResult["airQuality"]>["aqiCategory"]) {
   switch (category) {
     case "Good":
-      return "border-emerald-300/20 bg-emerald-400/10 text-emerald-50";
+      return "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]";
     case "Moderate":
-      return "border-amber-300/20 bg-amber-400/10 text-amber-50";
+      return "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]";
     case "Unhealthy for Sensitive Groups":
-      return "border-orange-300/20 bg-orange-400/10 text-orange-50";
+      return "border-orange-300/20 bg-orange-400/10 text-[var(--foreground)]";
     case "Unhealthy":
-      return "border-rose-300/20 bg-rose-400/10 text-rose-50";
+      return "border-rose-300/20 bg-rose-400/10 text-[var(--foreground)]";
     case "Very Unhealthy":
-      return "border-fuchsia-300/20 bg-fuchsia-400/10 text-fuchsia-50";
+      return "border-fuchsia-300/20 bg-fuchsia-400/10 text-[var(--foreground)]";
     case "Hazardous":
-      return "border-red-300/20 bg-red-500/10 text-red-50";
+      return "border-red-300/20 bg-red-500/10 text-[var(--foreground)]";
     default:
-      return "border-slate-300/15 bg-slate-400/10 text-slate-100";
+      return "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]";
   }
 }
 

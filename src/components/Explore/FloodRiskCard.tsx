@@ -8,18 +8,18 @@ interface FloodRiskCardProps {
 
 function getRiskTone(geodata: GeodataResult) {
   if (!geodata.floodZone?.floodZone) {
-    return "border-slate-300/15 bg-slate-400/10 text-slate-100";
+    return "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]";
   }
 
   if (geodata.floodZone.isSpecialFloodHazard) {
-    return "border-rose-300/20 bg-rose-400/10 text-rose-50";
+    return "border-rose-300/20 bg-rose-400/10 text-[var(--foreground)]";
   }
 
   if (geodata.floodZone.floodZone === "X") {
-    return "border-emerald-300/20 bg-emerald-400/10 text-emerald-50";
+    return "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]";
   }
 
-  return "border-amber-300/20 bg-amber-400/10 text-amber-50";
+  return "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]";
 }
 
 function getRiskLabel(geodata: GeodataResult) {

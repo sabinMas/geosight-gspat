@@ -77,8 +77,8 @@ export function Sidebar({
           <CardTitle>Quick regions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <details className="group rounded-2xl border border-white/10 bg-white/5 p-3" open>
-            <summary className="cursor-pointer list-none text-sm font-medium text-white">
+          <details className="group rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3" open>
+            <summary className="cursor-pointer list-none text-sm font-medium text-[var(--foreground)]">
               {activeProfile.name} starters
             </summary>
             <div className="mt-3 space-y-3">

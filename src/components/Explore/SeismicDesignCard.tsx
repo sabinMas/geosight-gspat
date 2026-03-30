@@ -21,20 +21,20 @@ function riskBadge(pga: number | null) {
   if (pga === null) {
     return {
       label: "Unavailable",
-      tone: "border-slate-300/15 bg-slate-400/10 text-slate-100",
+      tone: "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]",
     };
   }
   if (pga < 0.1) {
-    return { label: "Low", tone: "border-emerald-300/20 bg-emerald-400/10 text-emerald-50" };
+    return { label: "Low", tone: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]" };
   }
   if (pga <= 0.4) {
-    return { label: "Moderate", tone: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50" };
+    return { label: "Moderate", tone: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]" };
   }
   if (pga <= 0.8) {
-    return { label: "High", tone: "border-amber-300/20 bg-amber-400/10 text-amber-50" };
+    return { label: "High", tone: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]" };
   }
 
-  return { label: "Very High", tone: "border-rose-300/20 bg-rose-400/10 text-rose-50" };
+  return { label: "Very High", tone: "border-rose-300/20 bg-rose-400/10 text-[var(--foreground)]" };
 }
 
 export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
