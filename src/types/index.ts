@@ -49,6 +49,8 @@ export type SourceRegionScope =
 export type ThemeMode = "dark" | "light" | "system";
 export type WorkspaceViewMode = "board" | "library";
 export type WorkspaceShellMode = "minimal" | "guided" | "board";
+export type GlobeViewMode = "satellite" | "road" | "water-terrain";
+export type SubsurfaceRenderMode = "surface_only" | "slice_stack" | "volume_future";
 export type WorkspaceCardCategory =
   | "context"
   | "analysis"
@@ -115,6 +117,33 @@ export type SchoolCoverageStatus =
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 export type NearbyPlacesSource = "live" | "unavailable";
 export type ScoreEvidenceKind = "direct_live" | "derived_live" | "proxy";
+export type AnalysisCapabilityId =
+  | "seismic-context"
+  | "groundwater-soil"
+  | "hazard-stack"
+  | "climate-trends"
+  | "source-confidence"
+  | "tomography-context";
+export type AnalysisCapabilityTriggerMode = "auto_detected" | "user_triggered";
+export type AnalysisCapabilityOutputFormat =
+  | "summary"
+  | "interpretation"
+  | "ranked_list"
+  | "risk_readout";
+export type AnalysisModelLane =
+  | "analysis"
+  | "writer"
+  | "scientific";
+export type AnalysisCapabilityStatus = "available" | "unavailable";
+export type SubsurfaceDatasetId =
+  | "groundwater"
+  | "soil-profile"
+  | "seismic-design"
+  | "tomography";
+export type SubsurfaceDatasetRenderingMode =
+  | "surface_only"
+  | "slice_stack"
+  | "volume_future";
 
 export interface WorkspaceCardDefinition {
   id: WorkspaceCardId;
@@ -141,6 +170,47 @@ export interface WorkspaceCardDefinition {
   compactActions: readonly string[];
   competitionCritical: boolean;
   densityBudget: WorkspaceCardDensityBudget;
+}
+
+export interface AnalysisCapability {
+  analysisId: AnalysisCapabilityId;
+  title: string;
+  shortLabel: string;
+  description: string;
+  triggerMode: AnalysisCapabilityTriggerMode;
+  outputFormat: AnalysisCapabilityOutputFormat;
+  modelLane: AnalysisModelLane;
+  status: AnalysisCapabilityStatus;
+  recommended: boolean;
+  available: boolean;
+  reason: string;
+  failureMode: string;
+}
+
+export interface AnalysisCapabilityResult {
+  analysisId: AnalysisCapabilityId;
+  title: string;
+  response: string;
+  model: string;
+  generatedAt: string;
+}
+
+export interface SubsurfaceDataset {
+  id: SubsurfaceDatasetId;
+  title: string;
+  description: string;
+  footprint: Coordinates[];
+  depthRangeMeters: {
+    min: number;
+    max: number;
+  } | null;
+  sliceAvailability: number[];
+  renderingModeSupport: SubsurfaceDatasetRenderingMode;
+  provenance: string;
+  units: string;
+  resolution: string;
+  confidence: string;
+  aiInterpretationAvailable: boolean;
 }
 
 export interface WorkspaceCardPreference {

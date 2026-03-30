@@ -108,3 +108,16 @@ export function isAgentId(value: string): value is AgentId {
 export function getAgentConfig(agentId: AgentId) {
   return AGENT_CONFIGS[agentId];
 }
+
+export function validateAgentEnv() {
+  const missing = AGENT_IDS.filter((agentId) => {
+    const envKey = AGENT_CONFIGS[agentId].apiKeyEnv;
+    return !process.env[envKey]?.trim();
+  });
+
+  if (missing.length) {
+    console.error(
+      `[GeoSight] Missing API keys for agents: ${missing.join(", ")}`,
+    );
+  }
+}

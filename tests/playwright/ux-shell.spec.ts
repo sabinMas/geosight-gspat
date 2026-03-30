@@ -41,6 +41,21 @@ test("explore defaults to the minimal shell and hides advanced board surfaces", 
   await expectNoHorizontalOverflow(page);
 });
 
+test("globe view controls switch basemap mode without leaving the explore shell", async ({ page }) => {
+  await page.goto("/explore");
+
+  const satelliteButton = page.getByRole("button", { name: "Satellite" });
+  const roadButton = page.getByRole("button", { name: "Road" });
+  const waterTerrainButton = page.getByRole("button", { name: "Water / terrain" });
+
+  await expect(satelliteButton).toBeVisible();
+  await expect(roadButton).toBeVisible();
+  await expect(waterTerrainButton).toBeVisible();
+  await roadButton.click();
+  await waterTerrainButton.click();
+  await expect(page.getByText("Explore workspace")).toBeVisible();
+});
+
 test("judge mode opens the richer board path", async ({ page }) => {
   await page.goto(
     "/explore?profile=data-center&demo=pnw-cooling&entrySource=demo&judge=1&missionRun=competition-columbia",
@@ -49,6 +64,27 @@ test("judge mode opens the richer board path", async ({ page }) => {
   await expect(page.getByText(/judge-ready spatial reasoning flow/i)).toBeVisible();
   await expect(page.getByText(/mission run stays in focus/i)).toBeVisible();
   await expect(page.getByText(/supporting evidence opens on demand/i)).toBeVisible();
+});
+
+test("capability-aware analysis exposes grounded scientific actions and renders a result", async ({
+  page,
+}) => {
+  await page.goto("/explore?demo=wa-residential");
+
+  await expect(page.getByText("AI analysis")).toBeVisible({ timeout: 30_000 });
+  const capabilityButton = page
+    .getByRole("button", {
+      name: /interpret|explain|summarize/i,
+    })
+    .first();
+  await expect(capabilityButton).toBeVisible({ timeout: 30_000 });
+
+  await capabilityButton.click();
+
+  await expect(page.getByText("Latest interpretation")).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByText(/lane \|/i)).toBeVisible();
 });
 
 test("geo-usability returns deterministic findings from ui context", async ({ request }) => {
@@ -79,5 +115,5 @@ test("geo-usability returns deterministic findings from ui context", async ({ re
   expect(response.ok()).toBeTruthy();
   const body = await response.text();
   expect(body).toContain("Severity");
-  expect(body).toContain("Reveal policy");
+  expect(body).toMatch(/Reveal Policy/i);
 });

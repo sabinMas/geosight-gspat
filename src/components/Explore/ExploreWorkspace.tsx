@@ -17,6 +17,7 @@ import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
 import { WorkspaceLibrary } from "@/components/Explore/WorkspaceLibrary";
 import { WorkspaceViewToggle } from "@/components/Explore/WorkspaceViewToggle";
 import { DataLayers } from "@/components/Globe/DataLayers";
+import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { SearchBar } from "@/components/Shell/SearchBar";
@@ -74,14 +75,14 @@ export function ExploreWorkspace() {
 
   const handleLoadShowcase = () => {
     state.setActiveProfile(DEFAULT_PROFILE);
-    state.setDemoOpen(true);
+    state.openDemoOverlay();
     state.setPendingDemoLoad(true);
     state.setPendingDemoSiteId(null);
   };
 
   const handleFocusDemoSite = (siteId: string) => {
     state.setActiveProfile(DEFAULT_PROFILE);
-    state.setDemoOpen(true);
+    state.openDemoOverlay();
     const site = state.coolingDemo?.preloadedSites?.find(
       (candidate) => candidate.id === siteId,
     );
@@ -99,7 +100,7 @@ export function ExploreWorkspace() {
   };
 
   const handleCloseDemoOverlay = () => {
-    state.setDemoOpen(false);
+    state.dismissDemoOverlay();
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete("demo");
@@ -126,6 +127,13 @@ export function ExploreWorkspace() {
   const resultsHeader = (
     <ResultsModeToggle mode={state.resultsMode} onChange={state.setResultsMode} />
   );
+  const reportDisabledReason = !data.geodata
+    ? "Focus a place and wait for analysis data to load before generating a report."
+    : data.loading
+      ? "GeoSight is still loading this place. Generate report unlocks after analysis finishes."
+      : data.reportLoading
+        ? "A report is already generating for this place."
+        : undefined;
   const reportPrompt = useMemo(
     () =>
       `Generate a full intelligence report for the ${state.activeProfile.name} mission at ${state.selectedLocationName}. Keep it grounded in the live GeoSight context, call out data gaps explicitly, and structure it for a judge-ready briefing.`,
@@ -195,7 +203,7 @@ export function ExploreWorkspace() {
       profiles={PROFILES}
       selectedLocationName={state.selectedLocationName}
       selectedRegion={state.selectedRegion}
-      onOpenDemo={() => state.setDemoOpen(true)}
+      onOpenDemo={state.openDemoOverlay}
       onSelectProfile={state.setActiveProfile}
       onSelectRegion={(region) => {
         state.setSelectedRegion(region);
@@ -244,19 +252,21 @@ export function ExploreWorkspace() {
                 <PanelLeft className="mr-2 h-4 w-4" />
                 Mission controls
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-full"
-                disabled={!data.geodata || data.loading || data.reportLoading}
-                onClick={() => {
-                  primeAgent("geo-scribe", reportPrompt);
-                  void data.generateReport();
-                }}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                {data.reportLoading ? "Generating report..." : "Generate report"}
-              </Button>
+              <span title={reportDisabledReason}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="rounded-full"
+                  disabled={!data.geodata || data.loading || data.reportLoading}
+                  onClick={() => {
+                    primeAgent("geo-scribe", reportPrompt);
+                    void data.generateReport();
+                  }}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  {data.reportLoading ? "Generating report..." : "Generate report"}
+                </Button>
+              </span>
               <ThemeToggle compact />
               {data.shellMode === "board" ? (
                 <WorkspaceViewToggle mode={data.viewMode} onChange={data.setViewMode} />
@@ -361,14 +371,22 @@ export function ExploreWorkspace() {
                 <CesiumGlobe
                   selectedPoint={state.selectedPoint}
                   selectedRegion={state.selectedRegion}
+                  globeViewMode={state.globeViewMode}
+                  subsurfaceRenderMode={state.subsurfaceRenderMode}
                   onPointSelect={(coords) => {
                     state.selectPoint(coords);
                     data.handleLocationSelection();
                   }}
                   savedSites={data.sites}
                   layers={state.layers}
+                  subsurfaceDatasets={data.subsurfaceDatasets}
                   terrainExaggeration={state.terrainExaggeration}
                   demoOverlays={state.activeDemo?.mapOverlays ?? []}
+                />
+                <GlobeViewSelector
+                  globeViewMode={state.globeViewMode}
+                  onChange={state.setGlobeViewMode}
+                  subsurfaceRenderMode={state.subsurfaceRenderMode}
                 />
                 {data.shellMode === "board" ? (
                   <DataLayers layers={state.layers} onChange={state.setLayers} />
@@ -534,7 +552,7 @@ export function ExploreWorkspace() {
         </div>
       ) : null}
 
-      {state.overlayDemo ? (
+      {state.overlayDemo && state.demoOpen ? (
         <CoolingDemoOverlay
           demo={state.overlayDemo}
           open={state.demoOpen}

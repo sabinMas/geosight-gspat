@@ -2,19 +2,32 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArcGisBaseMapType,
+  ArcGisMapServerImageryProvider,
   Cartesian3,
   Cartographic,
   Color,
+  createWorldImageryAsync,
   createWorldTerrainAsync,
   EllipsoidTerrainProvider,
+  ImageryLayer,
   Ion,
+  IonWorldImageryStyle,
   Math as CesiumMath,
   ScreenSpaceEventType,
   Viewer as CesiumViewer,
 } from "cesium";
 import { Entity, ScreenSpaceEvent, ScreenSpaceEventHandler, Viewer } from "resium";
 import { DEFAULT_VIEW } from "@/lib/demo-data";
-import { Coordinates, DemoMapOverlay, RegionSelection, SavedSite } from "@/types";
+import {
+  Coordinates,
+  DemoMapOverlay,
+  GlobeViewMode,
+  RegionSelection,
+  SavedSite,
+  SubsurfaceDataset,
+  SubsurfaceRenderMode,
+} from "@/types";
 import { LayerState } from "./DataLayers";
 
 if (typeof window !== "undefined") {
@@ -26,9 +39,12 @@ Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "";
 interface CesiumGlobeProps {
   selectedPoint: Coordinates;
   selectedRegion: RegionSelection;
+  globeViewMode: GlobeViewMode;
+  subsurfaceRenderMode: SubsurfaceRenderMode;
   onPointSelect: (coords: Coordinates) => void;
   savedSites: SavedSite[];
   layers: LayerState;
+  subsurfaceDatasets: SubsurfaceDataset[];
   terrainExaggeration: number;
   demoOverlays?: DemoMapOverlay[];
 }
@@ -36,9 +52,12 @@ interface CesiumGlobeProps {
 export function CesiumGlobe({
   selectedPoint,
   selectedRegion,
+  globeViewMode,
+  subsurfaceRenderMode,
   onPointSelect,
   savedSites,
   layers,
+  subsurfaceDatasets,
   terrainExaggeration,
   demoOverlays = [],
 }: CesiumGlobeProps) {
@@ -48,6 +67,7 @@ export function CesiumGlobe({
   const resizeFrameRef = useRef<number | null>(null);
   const resetTimeoutRef = useRef<number | null>(null);
   const [viewerReady, setViewerReady] = useState(false);
+  const [globeReady, setGlobeReady] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
   const terrainProvider = useMemo(
     () =>
@@ -57,6 +77,21 @@ export function CesiumGlobe({
       }),
     [],
   );
+  const subsurfaceFootprint = useMemo(
+    () =>
+      selectedRegion.polygon.length > 0 ? selectedRegion.polygon : [selectedPoint],
+    [selectedPoint, selectedRegion.polygon],
+  );
+
+  const subsurfaceCueColor = useMemo(() => {
+    if (subsurfaceDatasets.some((dataset) => dataset.id === "tomography")) {
+      return Color.fromCssColorString("#5be49b");
+    }
+    if (subsurfaceDatasets.some((dataset) => dataset.id === "seismic-design")) {
+      return Color.fromCssColorString("#c084fc");
+    }
+    return Color.fromCssColorString("#53ddff");
+  }, [subsurfaceDatasets]);
 
   const isViewerUsable = (viewer: CesiumViewer | null): viewer is CesiumViewer =>
     Boolean(viewer && !viewer.isDestroyed());
@@ -68,6 +103,7 @@ export function CesiumGlobe({
 
     console.warn(`[cesium-globe] resetting viewer after ${reason}`);
     setViewerReady(false);
+    setGlobeReady(false);
     lastFlyTargetRef.current = null;
 
     resetTimeoutRef.current = window.setTimeout(() => {
@@ -115,6 +151,83 @@ export function CesiumGlobe({
 
     viewer.scene.verticalExaggeration = terrainExaggeration;
   }, [terrainExaggeration]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const applyBasemap = async () => {
+      try {
+        let providerPromise;
+
+        switch (globeViewMode) {
+          case "road":
+            providerPromise = createWorldImageryAsync({
+              style: IonWorldImageryStyle.ROAD,
+            });
+            break;
+          case "water-terrain":
+            providerPromise = ArcGisMapServerImageryProvider.fromBasemapType(
+              ArcGisBaseMapType.HILLSHADE,
+            );
+            break;
+          case "satellite":
+          default:
+            providerPromise = createWorldImageryAsync({
+              style: IonWorldImageryStyle.AERIAL_WITH_LABELS,
+            });
+            break;
+        }
+
+        const layer = await ImageryLayer.fromProviderAsync(providerPromise);
+        if (cancelled || !isViewerUsable(viewer)) {
+          return;
+        }
+
+        viewer.imageryLayers.removeAll();
+        viewer.imageryLayers.add(layer, 0);
+        viewer.scene.requestRender();
+      } catch (error) {
+        console.warn("[cesium-globe] basemap swap failed", error);
+      }
+    };
+
+    void applyBasemap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [globeViewMode, viewerKey, viewerReady]);
+
+  useEffect(() => {
+    if (!viewerReady) {
+      setGlobeReady(false);
+      return;
+    }
+
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer)) {
+      return;
+    }
+
+    const handleTileProgress = (remaining: number) => {
+      if (remaining === 0) {
+        setGlobeReady(true);
+      }
+    };
+
+    setGlobeReady(viewer.scene.globe.tilesLoaded);
+    viewer.scene.globe.tileLoadProgressEvent.addEventListener(handleTileProgress);
+    viewer.scene.requestRender();
+
+    return () => {
+      viewer.scene.globe.tileLoadProgressEvent.removeEventListener(handleTileProgress);
+    };
+  }, [viewerKey, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -249,10 +362,17 @@ export function CesiumGlobe({
   );
 
   return (
-    <div ref={hostRef} className="h-full w-full">
+    <div ref={hostRef} className="relative h-full w-full">
+      {!globeReady ? (
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />
+          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Loading 3D map...</p>
+        </div>
+      ) : null}
       <Viewer
         key={viewerKey}
         full
+        baseLayer={false}
         ref={(node) => {
           const nextViewer = node?.cesiumElement ?? null;
           viewerRef.current = nextViewer;
@@ -323,6 +443,34 @@ export function CesiumGlobe({
             outlineColor: Color.fromCssColorString("#00e5ff"),
           }}
         />
+
+        {subsurfaceDatasets.length ? (
+          <>
+            <Entity
+              name="Subsurface footprint"
+              polygon={{
+                hierarchy: subsurfaceFootprint.map((point) =>
+                  Cartesian3.fromDegrees(point.lng, point.lat, 60),
+                ),
+                material: subsurfaceCueColor.withAlpha(
+                  subsurfaceRenderMode === "surface_only" ? 0.08 : 0.18,
+                ),
+                outline: true,
+                outlineColor: subsurfaceCueColor.withAlpha(0.8),
+              }}
+            />
+            <Entity
+              name="Subsurface focus"
+              position={Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 260)}
+              point={{
+                color: subsurfaceCueColor,
+                pixelSize: 8,
+                outlineColor: Color.WHITE,
+                outlineWidth: 1,
+              }}
+            />
+          </>
+        ) : null}
 
         {savedSites.map((site) => (
           <Entity

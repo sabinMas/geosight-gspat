@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -89,6 +89,7 @@ function UseCaseCard({
 export function LandingPage() {
   const router = useRouter();
   const { setUiContext } = useAgentPanel();
+  const step2Ref = useRef<HTMLDivElement | null>(null);
   const [selectedUseCaseId, setSelectedUseCaseId] = useState<string | null>(null);
   const [locationQuery, setLocationQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -146,6 +147,14 @@ export function LandingPage() {
       demoOpen: false,
     });
   }, [selectedUseCase?.profileId, selectedUseCase, setUiContext]);
+
+  useEffect(() => {
+    if (!selectedUseCase || !step2Ref.current) {
+      return;
+    }
+
+    step2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedUseCase]);
 
   const handleSelectUseCase = (useCaseId: string) => {
     const nextUseCase =
@@ -306,7 +315,8 @@ export function LandingPage() {
               </details>
 
               {selectedUseCase ? (
-                <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                <div ref={step2Ref} className="step2-appear mt-5 rounded-[1.5rem]">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <div className="eyebrow">Step 2</div>
                     <h3 className="text-xl font-semibold text-[var(--foreground)]">
@@ -341,6 +351,7 @@ export function LandingPage() {
                     </Button>
                   </div>
                 </form>
+                </div>
               ) : (
                 <div className="mt-5 rounded-[1.35rem] border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-5 text-sm leading-6 text-[var(--muted-foreground)]">
                   Step 2 stays hidden until you choose a mission lens.

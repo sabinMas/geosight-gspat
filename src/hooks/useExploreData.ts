@@ -1,6 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  buildCapabilityFallbackResponse,
+  buildDemoCapabilityFallbacks,
+  buildCapabilityPrompt,
+  deriveSubsurfaceDatasets,
+  evaluateAnalysisCapabilities,
+} from "@/lib/analysis-capabilities";
 import { GeoSightContext } from "@/lib/agents/agent-config";
 import { buildLocationTrends } from "@/lib/data-trends";
 import { buildDemoGroundingSources } from "@/lib/demo-fallbacks";
@@ -19,7 +26,11 @@ import { useSiteAnalysis } from "@/hooks/useSiteAnalysis";
 import { useWorkspaceCards } from "@/hooks/useWorkspaceCards";
 import { useWorkspacePresentation } from "@/hooks/useWorkspacePresentation";
 import { ExploreState } from "@/hooks/useExploreState";
-import { WorkspaceCardId } from "@/types";
+import {
+  AnalysisCapabilityId,
+  AnalysisCapabilityResult,
+  WorkspaceCardId,
+} from "@/types";
 
 interface UseExploreDataArgs {
   state: ExploreState;
@@ -36,6 +47,18 @@ async function readAgentRouteError(response: Response) {
 
   const text = (await response.text()).trim();
   return text || "GeoScribe could not generate a report right now.";
+}
+
+function laneToAgentId(capabilityId: AnalysisCapabilityId, modelLane: string) {
+  if (modelLane === "writer") {
+    return "geo-scribe" as const;
+  }
+
+  if (capabilityId === "source-confidence") {
+    return "geo-guide" as const;
+  }
+
+  return "geo-analyst" as const;
 }
 
 export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
@@ -128,6 +151,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     [geodata?.landClassification, uploadedClassification],
   );
   const locationTrends = useMemo(() => buildLocationTrends(geodata), [geodata]);
+  const subsurfaceDatasets = useMemo(
+    () => deriveSubsurfaceDatasets(geodata, state.selectedRegion),
+    [geodata, state.selectedRegion],
+  );
   const siteScore = useMemo(
     () => score ?? (geodata ? calculateProfileScore(geodata, activeProfile) : null),
     [activeProfile, geodata, score],
@@ -153,8 +180,43 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportMarkdown, setReportMarkdown] = useState("");
   const [reportError, setReportError] = useState<string | null>(null);
+  const [capabilityAnalysisLoading, setCapabilityAnalysisLoading] = useState(false);
+  const [capabilityAnalysisError, setCapabilityAnalysisError] = useState<string | null>(
+    null,
+  );
+  const [capabilityAnalysisResult, setCapabilityAnalysisResult] =
+    useState<AnalysisCapabilityResult | null>(null);
   const [slowDemoLoading, setSlowDemoLoading] = useState(false);
   const [demoFallbackDismissed, setDemoFallbackDismissed] = useState(false);
+  const analysisCapabilities = useMemo(() => {
+    const liveCapabilities = evaluateAnalysisCapabilities({
+      geodata,
+      profile: activeProfile,
+      locationName: selectedLocationName,
+      selectedRegion: state.selectedRegion,
+      dataTrends: locationTrends,
+      subsurfaceDatasets,
+    }).filter((capability) => capability.available);
+
+    if (liveCapabilities.length > 0) {
+      return liveCapabilities;
+    }
+
+    if (activeDemo && (!geodata || Boolean(error))) {
+      return buildDemoCapabilityFallbacks(activeDemo.id);
+    }
+
+    return [];
+  }, [
+    activeDemo,
+    activeProfile,
+    error,
+    geodata,
+    locationTrends,
+    selectedLocationName,
+    state.selectedRegion,
+    subsurfaceDatasets,
+  ]);
 
   const agentContext = useMemo<GeoSightContext>(
     () => ({
@@ -172,6 +234,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
             nearbyPlaces: places,
             nearbySource,
             dataTrends: locationTrends,
+            analysisCapabilities,
+            subsurfaceDatasets,
+            globeViewMode: state.globeViewMode,
+            subsurfaceRenderMode: state.subsurfaceRenderMode,
             imageSummary,
             classification: effectiveClassification,
           }
@@ -180,6 +246,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     }),
     [
       activeProfile.id,
+      analysisCapabilities,
       effectiveClassification,
       geodata,
       imageSummary,
@@ -193,6 +260,9 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       selectedPoint.lat,
       selectedPoint.lng,
       siteScore?.total,
+      state.globeViewMode,
+      state.subsurfaceRenderMode,
+      subsurfaceDatasets,
     ],
   );
 
@@ -267,6 +337,9 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setReportLoading(false);
     setReportMarkdown("");
     setReportError(null);
+    setCapabilityAnalysisLoading(false);
+    setCapabilityAnalysisError(null);
+    setCapabilityAnalysisResult(null);
   }, [activeProfile.id, selectedPoint.lat, selectedPoint.lng]);
 
   useEffect(() => {
@@ -294,6 +367,87 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const dismissDemoFallback = useCallback(() => {
     setDemoFallbackDismissed(true);
   }, []);
+
+  const clearCapabilityAnalysis = useCallback(() => {
+    setCapabilityAnalysisLoading(false);
+    setCapabilityAnalysisError(null);
+    setCapabilityAnalysisResult(null);
+  }, []);
+
+  const runCapabilityAnalysis = useCallback(
+    async (analysisId: AnalysisCapabilityId) => {
+      const capability = analysisCapabilities.find((entry) => entry.analysisId === analysisId);
+      if (!capability) {
+        return;
+      }
+
+      const targetAgentId = laneToAgentId(analysisId, capability.modelLane);
+      const prompt = buildCapabilityPrompt(analysisId, selectedLocationName);
+      const fallbackResponse = buildCapabilityFallbackResponse(analysisId, {
+        geodata,
+        profile: activeProfile,
+        locationName: selectedLocationName,
+        selectedRegion: state.selectedRegion,
+        dataTrends: locationTrends,
+        subsurfaceDatasets,
+      });
+
+      setCapabilityAnalysisLoading(true);
+      setCapabilityAnalysisError(null);
+
+      try {
+        const response = await fetchWithTimeout(
+          `/api/agents/${targetAgentId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: prompt,
+              context: agentContext,
+            }),
+          },
+          25_000,
+        );
+
+        if (!response.ok) {
+          throw new Error(await readAgentRouteError(response));
+        }
+
+        const content = (await response.text()).trim();
+        setCapabilityAnalysisResult({
+          analysisId,
+          title: capability.title,
+          response: content || fallbackResponse,
+          model: content ? capability.modelLane : `${capability.modelLane} fallback`,
+          generatedAt: new Date().toISOString(),
+        });
+      } catch (analysisError) {
+        console.warn("[capability-analysis] using deterministic fallback", analysisError);
+        setCapabilityAnalysisResult({
+          analysisId,
+          title: capability.title,
+          response: fallbackResponse,
+          model: `${capability.modelLane} fallback`,
+          generatedAt: new Date().toISOString(),
+        });
+        setCapabilityAnalysisError(null);
+      } finally {
+        setCapabilityAnalysisLoading(false);
+      }
+    },
+    [
+      activeProfile,
+      agentContext,
+      analysisCapabilities,
+      geodata,
+      locationTrends,
+      selectedLocationName,
+      state.selectedRegion,
+      subsurfaceDatasets,
+    ],
+  );
 
   const generateReport = useCallback(async () => {
     if (!geodata) {
@@ -482,6 +636,13 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     loadDemoSites,
     effectiveClassification,
     locationTrends,
+    subsurfaceDatasets,
+    analysisCapabilities,
+    capabilityAnalysisLoading,
+    capabilityAnalysisError,
+    capabilityAnalysisResult,
+    runCapabilityAnalysis,
+    clearCapabilityAnalysis,
     groundingFallbackSources,
     showComparePrompt,
     showImagePrompt,

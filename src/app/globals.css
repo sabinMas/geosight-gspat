@@ -215,6 +215,19 @@ textarea {
   background: transparent;
 }
 
+.step2-appear {
+  animation: pulse-border 0.6s ease-out;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
 ::selection {
   background: var(--accent-soft);
   color: var(--foreground);

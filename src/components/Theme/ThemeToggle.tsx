@@ -87,9 +87,10 @@ function ThemeToggleButton({
       type="button"
       variant={active ? "default" : "ghost"}
       size={compact ? "icon" : "sm"}
-      className="rounded-full"
+      className={active ? "rounded-full ring-2 ring-[var(--accent)]/40" : "rounded-full"}
       onClick={() => setMode(value)}
       aria-label={`Switch to ${label} theme`}
+      aria-pressed={active}
       title={`Switch to ${label} theme`}
     >
       {children}

@@ -167,6 +167,12 @@ export function ExplorePrimaryPanel({
         showSourceDetailsCta={data.showSourcePrompt}
         showCompareCta={data.showComparePrompt}
         onOpenCompare={() => onOpenCard("compare")}
+        analysisCapabilities={data.analysisCapabilities}
+        capabilityAnalysisLoading={data.capabilityAnalysisLoading}
+        capabilityAnalysisError={data.capabilityAnalysisError}
+        capabilityAnalysisResult={data.capabilityAnalysisResult}
+        onRunCapabilityAnalysis={data.runCapabilityAnalysis}
+        onClearCapabilityAnalysis={data.clearCapabilityAnalysis}
       />
     );
   }

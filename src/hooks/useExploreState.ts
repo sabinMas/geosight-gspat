@@ -10,12 +10,14 @@ import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
 import { getMissionRunPreset } from "@/lib/mission-run-presets";
 import { getProfileById } from "@/lib/profiles";
 import {
+  GlobeViewMode,
   DemoOverlay,
   ExploreInitState,
   LandCoverBucket,
   MissionProfile,
   RegionSelection,
   ResultsMode,
+  SubsurfaceRenderMode,
 } from "@/types";
 
 export type ExploreInitParams = ExploreInitState;
@@ -33,6 +35,8 @@ export interface ExploreState {
   initStatus: "idle" | "resolving";
   demoOpen: boolean;
   setDemoOpen: Dispatch<SetStateAction<boolean>>;
+  openDemoOverlay: () => void;
+  dismissDemoOverlay: () => void;
   pendingDemoLoad: boolean;
   setPendingDemoLoad: Dispatch<SetStateAction<boolean>>;
   pendingDemoSiteId: string | null;
@@ -52,8 +56,12 @@ export interface ExploreState {
   selectPoint: (coords: { lat: number; lng: number }, label?: string) => void;
   setSelectedRegion: Dispatch<SetStateAction<RegionSelection>>;
   quickRegions: RegionSelection[];
+  globeViewMode: GlobeViewMode;
+  setGlobeViewMode: Dispatch<SetStateAction<GlobeViewMode>>;
   layers: LayerState;
   setLayers: Dispatch<SetStateAction<LayerState>>;
+  subsurfaceRenderMode: SubsurfaceRenderMode;
+  setSubsurfaceRenderMode: Dispatch<SetStateAction<SubsurfaceRenderMode>>;
   terrainExaggeration: number;
   setTerrainExaggeration: Dispatch<SetStateAction<number>>;
   imageSummary: string;
@@ -77,9 +85,11 @@ function getInitialProfile(profileId?: string) {
 export function useExploreState(init: ExploreInitParams): ExploreState {
   const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
   const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
+  const [overlayDismissed, setOverlayDismissed] = useState(false);
   const overlayDemo = useMemo(
-    () => (activeDemo?.entryMode === "overlay" ? activeDemo : null),
-    [activeDemo],
+    () =>
+      activeDemo?.entryMode === "overlay" && !overlayDismissed ? activeDemo : null,
+    [activeDemo, overlayDismissed],
   );
   const missionRunPreset = useMemo(
     () =>
@@ -128,6 +138,9 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   );
 
   const [layers, setLayers] = useState<LayerState>(activeProfile.defaultLayers);
+  const [globeViewMode, setGlobeViewMode] = useState<GlobeViewMode>("satellite");
+  const [subsurfaceRenderMode, setSubsurfaceRenderMode] =
+    useState<SubsurfaceRenderMode>("surface_only");
   const [terrainExaggeration, setTerrainExaggeration] = useState(1.8);
   const [imageSummary, setImageSummary] = useState(
     "No image uploaded yet. Use the upload panel to run client-side land cover estimation.",
@@ -135,6 +148,14 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [uploadedClassification, setUploadedClassification] = useState<LandCoverBucket[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultsMode, setResultsMode] = useState<ResultsMode>("analysis");
+  const openDemoOverlay = useCallback(() => {
+    setOverlayDismissed(false);
+    setDemoOpen(true);
+  }, []);
+  const dismissDemoOverlay = useCallback(() => {
+    setOverlayDismissed(true);
+    setDemoOpen(false);
+  }, []);
 
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
@@ -200,6 +221,8 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     initStatus,
     demoOpen,
     setDemoOpen,
+    openDemoOverlay,
+    dismissDemoOverlay,
     pendingDemoLoad,
     setPendingDemoLoad,
     pendingDemoSiteId,
@@ -213,8 +236,12 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     selectPoint,
     setSelectedRegion,
     quickRegions,
+    globeViewMode,
+    setGlobeViewMode,
     layers,
     setLayers,
+    subsurfaceRenderMode,
+    setSubsurfaceRenderMode,
     terrainExaggeration,
     setTerrainExaggeration,
     imageSummary,
