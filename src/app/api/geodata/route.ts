@@ -27,6 +27,7 @@ import { getSeismicDesignParams } from "@/lib/seismic-design";
 import { getSoilProfile } from "@/lib/soil-profile";
 import { resolveSourceRegistryContext } from "@/lib/source-registry";
 import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
+import { sanitizeStreamGauges } from "@/lib/stream-gauges";
 import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { getNearbyStreamGauges } from "@/lib/water";
@@ -316,6 +317,10 @@ export async function GET(request: NextRequest) {
     seismicDesignResult.status === "fulfilled" ? seismicDesignResult.value : null;
   const climateHistory =
     climateHistoryResult.status === "fulfilled" ? climateHistoryResult.value : null;
+  const streamGauges =
+    isUsPoint && waterGaugeResult.status === "fulfilled"
+      ? sanitizeStreamGauges(waterGaugeResult.value)
+      : [];
   const hasSoilProfile =
     soilProfile !== null && Object.values(soilProfile).some((value) => value !== null);
   const hasSeismicDesign =
@@ -392,7 +397,7 @@ export async function GET(request: NextRequest) {
           },
     broadband: isUsPoint && broadbandResult.status === "fulfilled" ? broadbandResult.value : null,
     floodZone: isUsPoint && floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
-    streamGauges: isUsPoint && waterGaugeResult.status === "fulfilled" ? waterGaugeResult.value : [],
+    streamGauges,
     groundwater:
       groundwaterResult.status === "fulfilled"
         ? groundwaterResult.value

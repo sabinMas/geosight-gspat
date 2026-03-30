@@ -1,4 +1,5 @@
 import { DEFAULT_PROFILE } from "@/lib/profiles";
+import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { clamp } from "@/lib/utils";
 import {
   GeodataResult,
@@ -382,7 +383,7 @@ function scoreContaminationRisk(geodata: GeodataResult) {
 
 function scoreWaterAccess(geodata: GeodataResult) {
   const waterDistance = geodata.nearestWaterBody.distanceKm;
-  const nearestGauge = [...geodata.streamGauges].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+  const nearestGauge = getNearestStreamGauge(geodata);
 
   const mappedWaterScore = scoreFromDistance(waterDistance, 1, 15);
   const gaugeDistanceScore = nearestGauge
@@ -607,20 +608,20 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
   if (factor.scoreFn === "custom") {
     switch (String(factor.params.metric ?? "")) {
       case "waterAccess": {
-        const nearestGauge = [...geodata.streamGauges].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+        const nearestGauge = getNearestStreamGauge(geodata);
         if (!nearestGauge) {
           return `Nearest mapped water feature ${geodata.nearestWaterBody.name} at ${
             geodata.nearestWaterBody.distanceKm === null
               ? "unknown distance"
-              : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
+              : formatDistanceKm(geodata.nearestWaterBody.distanceKm)
           }; no nearby USGS discharge gauge in range.`;
         }
 
         return `${geodata.nearestWaterBody.name} at ${
           geodata.nearestWaterBody.distanceKm === null
             ? "unknown distance"
-            : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
-        }; nearest USGS gauge ${nearestGauge.siteName} (${nearestGauge.distanceKm.toFixed(1)} km) reporting ${
+            : formatDistanceKm(geodata.nearestWaterBody.distanceKm)
+        }; nearest USGS gauge ${nearestGauge.siteName} (${formatDistanceKm(nearestGauge.distanceKm)}) reporting ${
           nearestGauge.dischargeCfs === null
             ? "unknown discharge"
             : `${nearestGauge.dischargeCfs.toLocaleString()} cfs`

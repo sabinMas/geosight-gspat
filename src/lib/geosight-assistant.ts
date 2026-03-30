@@ -1,6 +1,7 @@
 import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
+import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import {
   AnalyzeRequestBody,
   DataTrend,
@@ -283,6 +284,7 @@ export function buildFallbackAssessment(
   const responseMode = inferResponseMode(payload.question, payload.resultsMode);
   const locationLabel = formatLocationLabel(payload);
   const topLandCover = pickTopLandCover(payload.geodata);
+  const nearestGauge = getNearestStreamGauge(payload.geodata);
   const supportedFacts = [
     payload.geodata?.elevationMeters !== null && payload.geodata?.elevationMeters !== undefined
       ? `Elevation is about ${payload.geodata.elevationMeters} m.`
@@ -306,8 +308,8 @@ export function buildFallbackAssessment(
     payload.geodata?.floodZone
       ? `FEMA flood zone: ${payload.geodata.floodZone.label}.`
       : "FEMA flood-zone context is currently unavailable.",
-    payload.geodata?.streamGauges?.[0]
-      ? `Nearest USGS stream gauge: ${payload.geodata.streamGauges[0].siteName} (${payload.geodata.streamGauges[0].distanceKm.toFixed(1)} km) reporting ${payload.geodata.streamGauges[0].dischargeCfs ?? "unknown"} cfs.`
+    nearestGauge
+      ? `Nearest USGS stream gauge: ${nearestGauge.siteName} (${formatDistanceKm(nearestGauge.distanceKm, "unknown distance")}) reporting ${nearestGauge.dischargeCfs ?? "unknown"} cfs.`
       : "USGS stream-gauge context is currently unavailable.",
     payload.geodata?.airQuality
       ? `Nearest air-quality station: ${payload.geodata.airQuality.stationName} with PM2.5 ${payload.geodata.airQuality.pm25 ?? "unknown"} ug/m3, PM10 ${payload.geodata.airQuality.pm10 ?? "unknown"} ug/m3, category ${payload.geodata.airQuality.aqiCategory}.`

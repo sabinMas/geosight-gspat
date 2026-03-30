@@ -1,4 +1,5 @@
 import { buildSourceMeta } from "@/lib/source-metadata";
+import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { DataTrend, GeodataResult } from "@/types";
 
 function dominantLandCover(geodata: GeodataResult | null) {
@@ -60,7 +61,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
   const amenities = geodata.amenities;
   const broadband = geodata.broadband;
   const floodZone = geodata.floodZone;
-  const nearestGauge = [...geodata.streamGauges].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+  const nearestGauge = getNearestStreamGauge(geodata);
   const airStation = geodata.airQuality;
   const epaHazards = geodata.epaHazards;
   const serviceCount =
@@ -103,13 +104,15 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       detail:
         !nearestGauge
           ? "No nearby live USGS discharge gauge was returned within the current search radius."
-          : `${nearestGauge.siteName} is ${nearestGauge.distanceKm.toFixed(1)} km away${
+          : `${nearestGauge.siteName} is ${formatDistanceKm(nearestGauge.distanceKm)} away${
               nearestGauge.drainageAreaSqMi === null
                 ? "."
                 : ` with ${nearestGauge.drainageAreaSqMi.toLocaleString()} sq mi drainage area.`
             }`,
       direction:
-        nearestGauge?.dischargeCfs !== null && nearestGauge.dischargeCfs >= 1_000
+        nearestGauge !== null &&
+        nearestGauge.dischargeCfs !== null &&
+        nearestGauge.dischargeCfs >= 1_000
           ? "positive"
           : "neutral",
       source: geodata.sources.water,

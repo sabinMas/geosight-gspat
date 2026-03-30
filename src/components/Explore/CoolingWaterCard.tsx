@@ -1,5 +1,6 @@
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
 interface CoolingWaterCardProps {
@@ -11,7 +12,7 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
     return null;
   }
 
-  const nearestGauge = [...geodata.streamGauges].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+  const nearestGauge = getNearestStreamGauge(geodata);
 
   return (
     <Card>
@@ -26,11 +27,11 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
             <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
               {geodata.nearestWaterBody.name}
             </div>
-            <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              {geodata.nearestWaterBody.distanceKm === null
-                ? "Distance unavailable."
-                : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km from the selected point.`}
-            </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                {geodata.nearestWaterBody.distanceKm === null
+                  ? "Distance unavailable."
+                  : `${formatDistanceKm(geodata.nearestWaterBody.distanceKm)} from the selected point.`}
+              </div>
           </div>
 
           <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
@@ -44,7 +45,7 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
                   <div>
                     Distance:{" "}
                     <span className="text-[var(--foreground)]">
-                      {nearestGauge.distanceKm.toFixed(1)} km
+                      {formatDistanceKm(nearestGauge.distanceKm)}
                     </span>
                   </div>
                   <div>
