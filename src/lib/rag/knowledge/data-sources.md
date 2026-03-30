@@ -1,43 +1,77 @@
 # GeoSight Data Sources
 
 ## OpenStreetMap via Overpass
-Endpoint: `https://overpass-api.de/api/interpreter`. GeoSight uses Overpass in `src/lib/overpass.ts` for two jobs: a large infrastructure query for roads, power lines, waterways, land use, amenities, shops, transit, parks, trailheads, and tourism features; and smaller nearby-place queries for trails, hikes, restaurants, and landmarks. It returns OSM elements with tags plus point or center coordinates. Coverage is global, but completeness depends entirely on local mapper density. GeoSight treats Overpass as a live source for mapped features and counts, not for hours, reviews, or business quality. Fallback behavior: if Overpass fails, nearby-place routes return an explicit unavailable state, geodata keeps empty amenity arrays, and land-cover derivation becomes limited rather than fabricated.
+
+Endpoint: `https://overpass-api.de/api/interpreter`. GeoSight uses Overpass for infrastructure, land-use, amenities, nearby places, recreation context, and commercial activity patterns. Coverage is global, but completeness depends on local mapper density. GeoSight treats Overpass as direct mapped context, not as a source of business quality or operating hours.
 
 ## Nominatim geocoding and reverse geocoding
-Endpoints: `https://nominatim.openstreetmap.org/search` and `https://nominatim.openstreetmap.org/reverse`. GeoSight uses Nominatim in `src/app/api/geocode/route.ts` for place search and reverse lookup, and in `src/lib/census.ts` to discover a non-US country code before requesting World Bank indicators. It returns place labels, coordinates, kind metadata, and country codes. Coverage is global. Limitations: one-result behavior in the API route can hide alternatives, and reverse geocoding is a country-scale fallback for demographics rather than a precision administrative lookup. Fallback behavior: geocode requests return 404 or 502 cleanly; global demographics return null-valued fields if reverse geocoding fails.
+
+Endpoints: `https://nominatim.openstreetmap.org/search` and `https://nominatim.openstreetmap.org/reverse`. GeoSight uses Nominatim for place search and reverse lookup, and for non-US country-code discovery before requesting World Bank indicators. Coverage is global.
 
 ## USGS elevation and OpenTopoData fallback
-Endpoints: `https://epqs.nationalmap.gov/v1/json` and `https://api.opentopodata.org/v1/srtm90m`. `src/lib/usgs.ts` uses USGS EPQS first for likely US coordinates, then falls back to OpenTopoData SRTM for global coverage. The API returns a point elevation in meters, and GeoSight also samples multiple points to build an elevation profile transect. Coverage is US-first with global fallback. Limitations: OpenTopoData depends on SRTM resolution, and any provider failure can leave null elevations inside a profile. Fallback behavior: a failed USGS call falls through to OpenTopoData; if both fail, GeoSight returns `null` rather than inventing terrain.
 
-## Open-Meteo forecast and air quality
-Endpoints: `https://api.open-meteo.com/v1/forecast` and `https://air-quality-api.open-meteo.com/v1/air-quality`. `src/lib/open-meteo.ts` requests current temperature, wind, weather code, daily mean, highs, lows, precipitation, and current US AQI. Coverage is global, with AQI quality varying by region. Limitations: weather is a forecast snapshot, not a long historical climatology product, and AQI can be absent even when weather is present. Fallback behavior: GeoSight keeps the climate object schema-complete with nulls when Open-Meteo fails and marks the source as limited or unavailable instead of claiming current conditions.
+Endpoints: `https://epqs.nationalmap.gov/v1/json` and `https://api.opentopodata.org/v1/srtm90m`. GeoSight uses USGS EPQS first for likely US coordinates, then falls back to OpenTopoData SRTM for global coverage. It returns point elevation and sampled transects for the elevation profile tool.
+
+## Open-Meteo forecast and air-quality context
+
+Endpoints: `https://api.open-meteo.com/v1/forecast` and `https://air-quality-api.open-meteo.com/v1/air-quality`. GeoSight requests current temperature, weather, wind, precipitation context, cooling-demand context, and AQI fallback values. Coverage is global, with AQI quality varying by region.
+
+## Open-Meteo Historical Archive
+
+Endpoint: `https://archive-api.open-meteo.com/v1/archive`. GeoSight aggregates daily data into yearly summaries for 2015-2024 and derives baseline versus recent temperature comparisons plus a warming, cooling, or stable trend label. Coverage is global.
 
 ## OpenAQ station readings
-Endpoint family: `https://api.openaq.org/v3/locations` and `https://api.openaq.org/v3/locations/{id}/latest`. `src/lib/air-quality.ts` first finds nearby stations within 50 km and then fetches the latest PM2.5 and PM10 values for the closest station. Coverage is global where public OpenAQ stations exist. Limitations: station density varies sharply by region, and a location can have weather AQI fallback from Open-Meteo even when OpenAQ has no nearby particulate monitor. Fallback behavior: GeoSight returns `null` for station-based air quality and falls back to Open-Meteo AQI for scoring and summaries where available.
+
+Endpoint family: `https://api.openaq.org/v3/locations` and `https://api.openaq.org/v3/locations/{id}/latest`. GeoSight uses nearby station searches and latest PM2.5/PM10 values when a monitoring station exists within range. Coverage is global where public OpenAQ stations exist; GeoSight falls back to Open-Meteo AQI context when no station reading is available.
 
 ## FCC Area API, US Census ACS, and World Bank fallback
-Endpoints: `https://geo.fcc.gov/api/census/area`, `https://api.census.gov/data/2022/acs/acs5`, and `https://api.worldbank.org/v2/country/{country}/indicator/{indicator}`. `src/lib/census.ts` uses the FCC Area API plus ACS 5-year estimates for US county demographics, and it uses World Bank population and GNI-per-capita indicators outside the US after a Nominatim reverse-geocode country lookup. Coverage is US county-level in the US and national-level outside the US. Limitations: the non-US path is coarse and should not be read like parcel or city demographics. Fallback behavior: if the global path fails, GeoSight returns null-valued demographic fields; if the US county lookup succeeds but ACS fails, GeoSight still returns the county and state code.
+
+Endpoints: `https://geo.fcc.gov/api/census/area`, `https://api.census.gov/data/2022/acs/acs5`, and `https://api.worldbank.org/v2/country/{country}/indicator/{indicator}`. GeoSight uses the FCC Area API plus ACS 5-year estimates for US county demographics, and World Bank national indicators outside the US after reverse-geocoding a country code. The non-US path is national-scale context, not parcel or city analysis.
 
 ## USGS Earthquake Catalog
-Endpoint: `https://earthquake.usgs.gov/fdsnws/event/1/query.geojson`. `src/lib/usgs-earthquakes.ts` asks for events within 250 km over the last 30 days and summarizes event count, strongest magnitude, and nearest event distance. Coverage is global. Limitations: this is a recent-event feed, not a probabilistic seismic hazard model or building-code seismic zone. Fallback behavior: if the query fails, the geodata hazard summary keeps null earthquake values and the source is marked limited.
+
+Endpoint: `https://earthquake.usgs.gov/fdsnws/event/1/query.geojson`. GeoSight asks for events within 250 km over the last 30 days and summarizes event count, strongest magnitude, and nearest event distance. Coverage is global. This is recent-event context, not a full seismic hazard model.
 
 ## NASA FIRMS
-Endpoint pattern: `https://firms.modaps.eosdis.nasa.gov/api/area/csv/{apiKey}/VIIRS_SNPP_NRT/{bbox}/5`. `src/lib/nasa-firms.ts` summarizes near-real-time VIIRS fire detections in a 5-degree box around the active point, including count, nearest detection distance, and brightest detection temperature. Coverage is global when `NASA_FIRMS_MAP_KEY` is configured. Limitations: it is a hotspot feed rather than a complete wildfire risk model, and the integration is disabled entirely without the API key. Fallback behavior: if the key is missing or the request fails, GeoSight returns null fire values and makes the unavailable state explicit in source notes.
+
+Endpoint family: `https://firms.modaps.eosdis.nasa.gov`. GeoSight summarizes near-real-time VIIRS fire detections when `NASA_FIRMS_MAP_KEY` is configured. Coverage is global. If the key is missing, GeoSight makes that unavailable state explicit rather than inventing fire data.
 
 ## FEMA National Flood Hazard Layer
-Endpoints: `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query` and `https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query`. `src/lib/fema-flood.ts` queries a point against layer 28 and returns the flood-zone code, subtype, Special Flood Hazard Area flag, and a plain-language label. Coverage is United States only. Limitations: it is a flood-zone designation lookup, not a parcel-specific drainage study or local ordinance database. Fallback behavior: non-US points are marked unsupported in geodata; missing FEMA responses return `null` instead of a safe-by-default label.
+
+Endpoints: FEMA NFHL ArcGIS query services. GeoSight queries a point against FEMA flood-zone layers and returns the zone code, Special Flood Hazard Area flag, and a plain-language label. Coverage is United States only.
+
+## FCC Broadband Map
+
+Endpoint family: FCC broadband availability endpoints. GeoSight summarizes provider count, peak download and upload speeds, technology mix, and fiber presence. Coverage is United States only.
 
 ## USGS Water Services
-Endpoints: `https://waterservices.usgs.gov/nwis/iv/` and `https://waterservices.usgs.gov/nwis/site/`. `src/lib/water.ts` requests active stream gauges with instantaneous discharge values and then pulls expanded site metadata to recover drainage area. Coverage is the United States gauge network only. Limitations: the nearest mapped water feature can exist without a nearby active gauge, and gauge coverage is sparse in some areas. Fallback behavior: GeoSight still reports mapped water proximity from Overpass when no live gauge exists, and it returns an empty gauge array rather than synthetic hydrology.
 
-## EPA Envirofacts and EPA dmapservice
-Endpoint families: `https://data.epa.gov/efservice/...` and `https://data.epa.gov/dmapservice/...`. `src/lib/epa-envirofacts.ts` uses EPA Superfund and TRI datasets to count nearby screened facilities and to identify the nearest Superfund site within roughly 50 km. Coverage is United States only. Limitations: this is early contamination screening, not a substitute for parcel history, remediation records, or site investigations. Fallback behavior: GeoSight returns zero-count/null-name objects on function failure, and geodata marks the EPA source as unavailable or limited outside the US.
+Endpoints: `https://waterservices.usgs.gov/nwis/iv/` and related site metadata endpoints. GeoSight requests active stream gauges with live discharge values and recovers expanded metadata where available. Coverage is the United States gauge network only.
+
+## USGS Groundwater Levels
+
+Endpoint family: USGS groundwater services with a modern fallback path inside GeoSight's adapter. GeoSight returns nearby monitoring wells, latest depth-to-water reading, and well count. Coverage is United States only, and results are bounded to recent readings.
+
+## NRCS Soil Data Access (SSURGO)
+
+Endpoint: `https://sdmdataaccess.nrcs.usda.gov/Tabular/post.rest`. GeoSight queries the mapped soil unit at a point and returns map-unit name, drainage class, hydrologic group, depth to water table, depth to bedrock, dominant texture, k-factor, and available water storage. Coverage is United States mapped soil-survey areas.
+
+## USGS Seismic Design Maps
+
+Endpoint: `https://earthquake.usgs.gov/ws/designmaps/asce7-22.json`. GeoSight returns site-specific design values such as PGA, `Ss`, and `S1` for ASCE 7-22 screening. Coverage is United States only.
+
+## EPA Envirofacts
+
+Endpoint families: `https://data.epa.gov/efservice/...` and `https://data.epa.gov/dmapservice/...`. GeoSight uses EPA Superfund and TRI datasets to count nearby screened facilities and identify the nearest Superfund site. Coverage is United States only and should be treated as contamination screening, not parcel-history certainty.
 
 ## NCES EDGE and Washington OSPI
-Endpoints: NCES ArcGIS public-school layer `https://nces.ed.gov/opengis/rest/services/K12_School_Locations/EDGE_GEOCODE_PUBLICSCH_2425/MapServer/0/query`, plus Washington Socrata datasets `https://data.wa.gov/resource/q4ba-s3jc.json` and `https://data.wa.gov/resource/x73g-mrqp.json`. `src/lib/schools.ts` uses NCES for nearby public-school geography nationwide and augments Washington schools with OSPI enrollment and assessment data when matches are found. Coverage is US public K-12 nationwide and Washington-only for official accountability enrichment. Limitations: outside the US the feature is explicitly unsupported, and even in the US the derived GeoSight school score is not an official school rating. Fallback behavior: GeoSight returns a coverage status such as `outside_us` or `no_school_matches` and keeps the normalized score null when it cannot support a defensible result.
 
-## Cesium Ion geocoder
-Provider: Cesium Ion Geocoder Service through the `IonGeocoderService` client in `src/lib/cesium-search.ts`. GeoSight uses this on the client as a secondary search path when the user types a place name directly into the Cesium-powered search workflow. Coverage is global according to Cesium Ion service availability. Limitations: this is a client-side convenience layer rather than the main API route, and it still depends on a valid `NEXT_PUBLIC_CESIUM_ION_TOKEN`. Fallback behavior: if the query is raw coordinates, GeoSight bypasses Cesium entirely; if no Cesium result exists, the UI throws a clean no-results error.
+Endpoints: NCES ArcGIS public-school layers plus Washington Socrata datasets. GeoSight uses NCES for nearby public-school geography nationwide and augments Washington schools with OSPI enrollment and assessment data when matches are found. Coverage is US public K-12 baseline with stronger official support in Washington.
+
+## Cesium Ion geocoder and imagery
+
+Provider: Cesium Ion. GeoSight uses the Cesium geocoder as a secondary search path and Cesium/Bing imagery as the globe's basemap layer. Coverage is global according to Cesium service availability.
 
 ## Groq and Gemini analysis providers
-Endpoints: Groq OpenAI-compatible chat completions at `https://api.groq.com/openai/v1/chat/completions` and Gemini generate-content at `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`. `src/lib/groq.ts` and `src/lib/gemini.ts` are not geospatial sources, but they are the APIs that turn GeoSight data into natural-language analysis. Limitations: they can rate-limit, return empty responses, or fail entirely. Fallback behavior: GeoSight logs the provider failure, falls from Groq to Gemini, and then falls to a deterministic text assessment if both model providers are unavailable.
+
+These are not geospatial data sources, but they are the model providers that turn GeoSight context into natural-language analysis and structured reports. GeoSight falls from Groq to Gemini and then to deterministic fallback text if both model providers fail.

@@ -1,22 +1,83 @@
 # GeoSight Scoring Methodology
 
 ## Deterministic scoring pipeline
-GeoSight computes a deterministic mission score from live or derived geodata before any LLM interpretation happens. Every profile contains weighted factors in `src/lib/profiles.ts`, and `src/lib/scoring.ts` turns each factor into a `0-100` score. The final mission score is the rounded weighted sum of those factor scores. Distance factors use an ideal distance and a cutoff distance. Elevation factors use profile-specific breakpoints for cooling, buildability, or terrain variety. Climate factors convert average temperature, cooling degree days, and precipitation into a normalized score. Land-cover factors use OpenStreetMap-derived land-use buckets. Custom factors combine live measurements into a normalized score for water access, schools, flood risk, broadband, air quality, contamination, amenities, demand, density, and land-cost heuristics.
 
-## Score ranges and qualitative meaning
-GeoSight's score scale is continuous, but the product behaves best when users treat it as a triage tool rather than a guarantee. A `0-33` score means the place is weak for the active mission or missing several key prerequisites. A `34-66` score means the place is mixed, conditional, or dependent on more diligence. A `67-100` score means the place is promising to strong for a first-pass shortlist. Profile recommendation bands are slightly stricter than those broad ranges: every current profile uses custom text at `85+`, `70+`, `55+`, and below `55` to convert the numeric score into plain-language guidance.
+GeoSight computes a deterministic mission score from live or derived geodata before any LLM interpretation happens. Every profile contains weighted factors in `src/lib/profiles.ts`, and `src/lib/scoring.ts` turns each factor into a `0-100` score. The final mission score is the rounded weighted sum of those factor scores. Factor rows also carry an evidence label so users can tell whether the score came from a direct live signal, a derived live analysis, or a proxy heuristic.
+
+## How missing data behaves
+
+GeoSight does not fabricate score inputs when providers are missing. Most functions degrade toward neutral values rather than zero so unsupported regions do not look falsely terrible. Typical null behavior is:
+
+- distance factors return `50`
+- climate factors return about `60`
+- elevation factors return about `55`
+- broadband, contamination, flood, groundwater, soil, and seismic helpers return near-neutral values when their source is unsupported or unavailable
 
 ## Data Center Cooling profile weights
-The `data-center` profile favors live infrastructure readiness over broad lifestyle context. Its weights are: Cooling water access `0.26`, Elevation and flatness `0.12`, Power infrastructure `0.18`, Climate suitability `0.13`, Road transportation `0.08`, Land classification `0.08`, Broadband readiness `0.10`, Flood risk `0.02`, and Contamination risk `0.03`. Water access is a derived live score that blends mapped water proximity, nearest USGS stream-gauge distance, and discharge volume. Power and roads are direct live distance reads from Overpass data. Terrain comes from elevation thresholds that reward lower, flatter sites. Climate rewards cooler average temperatures and lower cooling degree days. Land classification favors barren, industrial, and already-developed parcels. Broadband uses FCC provider counts, top speeds, and a fiber bonus. Flood risk uses FEMA NFHL: Zone X scores highest, Special Flood Hazard Areas score zero. Contamination screening penalizes Superfund, TRI, and close-in Superfund proximity.
+
+- Cooling water access `0.26`
+- Elevation and flatness `0.12`
+- Power infrastructure `0.18`
+- Climate suitability `0.13`
+- Road transportation `0.07`
+- Land classification `0.06`
+- Broadband readiness `0.10`
+- Flood risk `0.01`
+- Contamination risk `0.01`
+- Groundwater depth `0.02`
+- Soil buildability `0.02`
+- Seismic risk `0.02`
+
+This profile favors live infrastructure readiness, hydrology, and buildability. Water access is a derived live score that blends mapped water proximity, nearest USGS stream-gauge distance, and discharge volume. The new subsurface factors slightly refine the score without overwhelming the core infrastructure story.
 
 ## Hiking and Recreation profile weights
-The `hiking` profile emphasizes terrain character and scenic context. Its weights are: Terrain variety `0.23`, Vegetation density `0.18`, Water features nearby `0.19`, Distance from urban areas `0.15`, Trail access and road proximity `0.08`, Climate and weather `0.09`, and Air quality `0.08`. Terrain variety is a heuristic elevation score that rewards moderate-to-high relief rather than flat ground. Vegetation density comes from land-cover buckets that reward forest and vegetation while penalizing urban and industrial cover. Water features are a direct distance factor to mapped water. Remoteness is a proxy that rewards being farther from roads while still counting mapped trailheads. Climate rewards moderate temperatures and manageable precipitation. Air quality prefers nearby OpenAQ stations, then falls back to Open-Meteo AQI buckets.
+
+- Terrain variety `0.23`
+- Vegetation density `0.18`
+- Water features nearby `0.19`
+- Distance from urban areas `0.15`
+- Trail access and road proximity `0.08`
+- Climate and weather `0.09`
+- Air quality `0.08`
+
+This profile emphasizes terrain character and scenic context. Terrain variety and remoteness still contain heuristic logic, so their evidence labels matter.
 
 ## Residential Development profile weights
-The `residential` profile is an early due-diligence screen rather than a parcel-entitlement engine. Its weights are: School district proximity `0.17`, Road and transit access `0.15`, Terrain buildability `0.12`, Flood risk `0.15`, Commercial amenities nearby `0.10`, Land classification `0.10`, Broadband readiness `0.07`, Air quality `0.08`, and Contamination risk `0.06`. School access comes from GeoSight's derived school-context score built from nearby NCES public schools and Washington OSPI accountability when available. Roads are a direct distance factor. Buildability uses lower-elevation thresholds that reward flatter terrain. Flood risk uses FEMA designations. Amenities count food, transit, and parks from mapped OSM features. Residential land-cover scoring rewards a mix of urban, vegetation, and barren land while penalizing water-heavy and forest-heavy parcels. Broadband, air quality, and contamination all convert live public-source context into normalized scores.
+
+- School district proximity `0.15`
+- Road and transit access `0.13`
+- Terrain buildability `0.12`
+- Flood risk `0.13`
+- Commercial amenities nearby `0.09`
+- Land classification `0.09`
+- Broadband readiness `0.07`
+- Air quality `0.08`
+- Contamination risk `0.06`
+- Groundwater depth `0.03`
+- Soil buildability `0.03`
+- Seismic risk `0.02`
+
+This profile is an early due-diligence screen rather than a parcel-entitlement engine. It now includes beneath-the-surface factors for water-table depth, drainage and hydrologic group, and structural shaking context where those US-only sources are available.
 
 ## Commercial and Warehouse profile weights
-The `commercial` profile is intentionally more heuristic because GeoSight does not yet ingest parcel economics or live traffic counts. Its weights are: Traffic and population density `0.25`, Highway and freight access `0.20`, Existing commercial density `0.15`, Land cost indicators `0.15`, Utility infrastructure `0.15`, and Terrain flatness `0.10`. Traffic and population density is really a proxy called `commercialDemand`: it combines road access, commercial POI density, food-and-drink density, and urban land cover. Freight access is a direct road-distance factor. Commercial density is another proxy that blends commercial counts, urban land cover, and power distance. Land cost is a heuristic combining road distance, commercial land-cover score, and power distance. Utility infrastructure is direct power distance. Terrain flatness uses the same buildability-oriented elevation thresholds as the residential profile.
+
+- Traffic and population density `0.25`
+- Highway and freight access `0.20`
+- Existing commercial density `0.15`
+- Land cost indicators `0.15`
+- Utility infrastructure `0.15`
+- Terrain flatness `0.10`
+
+This profile remains intentionally more heuristic because GeoSight does not yet ingest parcel economics or detailed global traffic counts. Commercial demand, commercial density, and land-cost indicators should be read as first-pass proxy heuristics, not as direct measurements.
+
+## Subsurface scoring additions
+
+- **Groundwater depth**: favors deeper water tables for infrastructure and moderate depth bands for residential screening
+- **Soil buildability**: translates soil drainage class and hydrologic group into a coarse foundation and drainage score
+- **Seismic risk**: uses USGS peak ground acceleration as an inverse structural-risk score
+
+These factors are only strong where the relevant US sources are supported. Outside those regions, they degrade toward neutral values rather than inventing global certainty.
 
 ## Deterministic scores versus LLM interpretation
-The deterministic score answers, "How does this place rank under the current rule set?" The LLM layer answers, "How should a human interpret those results, the source coverage, the evidence mix, and the unknowns?" GeoSight keeps these separate on purpose. The score is reproducible because the formulas are fixed. The model is allowed to explain tradeoffs, sequence next checks, and translate technical evidence into plain language, but it is instructed not to invent live facts and not to hide whether a point came from a direct live signal, a derived live analysis, or a proxy heuristic.
+
+The deterministic score answers, "How does this place rank under the current rule set?" The LLM layer answers, "How should a human interpret those results, the evidence mix, the coverage gaps, and the next diligence steps?" GeoSight keeps these separate on purpose. The score is reproducible because the formulas are fixed. The model is allowed to explain tradeoffs, sequence next checks, and translate technical evidence into plain language, but it is instructed not to invent live facts and not to hide whether a point came from a direct live signal, a derived live analysis, or a proxy heuristic.

@@ -3,46 +3,59 @@
 ## Slide 1: GeoSight
 
 - Live geospatial reasoning for any place on Earth
-- One line on the problem: maps show places, but they do not explain them
-- One line on the promise: ask a place question and get a grounded answer
+- Problem statement: maps show places, but they do not explain them through a mission
+- Promise: ask a place question and get a grounded answer, a score, and a trust trail
 
 ## Slide 2: Why Current Tools Fall Short
 
-- Map tools show data but do not reason through a mission
-- Chatbots answer fluently but often lose provenance
-- Decision work needs both live context and explanation
+- Map tools show layers but do not synthesize a decision
+- Chatbots can sound confident while losing provenance
+- Serious place decisions need both live context and explanation
 
-## Slide 3: What GeoSight Does
+## Slide 3: What GeoSight Does Today
 
 - Search any place and open a mission profile
-- Pull live spatial context from terrain, weather, infrastructure, schools, hazards, and nearby places
-- Combine deterministic scoring with AI reasoning
+- Pull live spatial context from terrain, weather, infrastructure, hydrology, hazards, schools, and nearby places
+- Add subsurface intelligence through groundwater, soil profile, and seismic design values
+- Combine deterministic scoring, evidence labels, and AI reasoning
 
-## Slide 4: Live Demo Story
+## Slide 4: Demo Story One - Columbia River
 
-- Columbia River infrastructure siting
-- Show shortlist, comparison, and recommendation
-- Surface source quality and evidence labels inline
+- Infrastructure siting benchmark
+- Show mission run, score, comparison, and source-awareness proof
+- Frame this as the memorable high-stakes story
 
-## Slide 5: Agentic Layer
+## Slide 5: Why The Trust Model Matters
 
-- Mission runs turn GeoSight into a guided workflow instead of a single prompt box
-- Multi-step reasoning stays grounded in the active location
-- The app can explain what it used, what it inferred, and what it could not verify
+- Direct live, derived live, and proxy heuristic signals are labeled separately
+- Source-awareness surfaces freshness, confidence, region coverage, and fallback providers
+- GeoSight does not hide unsupported or unavailable data
 
-## Slide 6: Trust and Globality
+## Slide 6: Demo Story Two - Tokyo
 
-- Inline provenance makes the output defensible
-- Secondary stories prove the app works outside the Pacific Northwest
-- School context and residential due diligence show everyday usefulness
+- Proves the platform is not Pacific Northwest-only
+- Shows global direct live signals still working outside US-only domains
+- Demonstrates honest limitation language instead of fake certainty
 
-## Slide 7: Why This Wins
+## Slide 7: Demo Story Three - Washington Residential
 
-- Memorable live demo
-- Real data instead of fabricated answers
-- Broader platform path toward composable card-based spatial workflows
+- Shows everyday usefulness, not just industrial siting
+- School context, access, hazards, and residential due diligence
+- Connects expert-grade rigor to civilian-grade usability
 
-## Slide 8: Close
+## Slide 8: From Exploration To Deliverable
 
-- GeoSight is a universal location intelligence platform, not a one-off demo
-- Ask for the live demo, then show the backup evidence package if needed
+- GeoScribe turns the live context bundle into a structured site assessment report
+- GeoSight is not just a question-answer interface; it can produce reusable outputs
+
+## Slide 9: Why This Wins
+
+- Memorable live demo with real data
+- Strong trust and provenance story
+- Composable card-based direction beyond a single showcase workflow
+- Clear path toward a universal location-intelligence platform
+
+## Slide 10: Close
+
+- GeoSight is a live location operating system in progress, not a one-off demo
+- Invite the judges to watch the live workflow first and use the backup package only if needed
