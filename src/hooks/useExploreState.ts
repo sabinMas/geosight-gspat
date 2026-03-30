@@ -77,7 +77,10 @@ function getInitialProfile(profileId?: string) {
 export function useExploreState(init: ExploreInitParams): ExploreState {
   const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
   const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
-  const overlayDemo = coolingDemo ?? activeDemo;
+  const overlayDemo = useMemo(
+    () => (activeDemo?.entryMode === "overlay" ? activeDemo : null),
+    [activeDemo],
+  );
   const missionRunPreset = useMemo(
     () =>
       getMissionRunPreset(
