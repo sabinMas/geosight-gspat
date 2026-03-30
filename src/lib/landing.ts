@@ -59,8 +59,9 @@ export const LANDING_USE_CASES: LandingUseCase[] = [
   },
   {
     id: "general-exploration",
-    title: "General Exploration",
-    description: "Start with a place, then ask open-ended questions about what matters there.",
+    title: "General Exploration (Residential Lens)",
+    description:
+      "Start with a place, then ask open-ended questions using GeoSight's residential-development scoring lens.",
     profileId: GENERAL_EXPLORATION_PROFILE_ID,
     accentColor: "#00e5ff",
     icon: "Globe2",
