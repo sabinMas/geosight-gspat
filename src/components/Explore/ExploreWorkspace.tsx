@@ -15,7 +15,6 @@ import {
 } from "@/components/Explore/ExploreWorkspacePanels";
 import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
 import { WorkspaceLibrary } from "@/components/Explore/WorkspaceLibrary";
-import { WorkspaceViewToggle } from "@/components/Explore/WorkspaceViewToggle";
 import { DataLayers } from "@/components/Globe/DataLayers";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
@@ -56,6 +55,22 @@ export function ExploreWorkspace() {
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [workspaceNotice, setWorkspaceNotice] = useState<{
+    tone: "info" | "warning";
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!workspaceNotice) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setWorkspaceNotice(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timeout);
+  }, [workspaceNotice]);
 
   const handleSaveCurrentSite = () => {
     if (!data.geodata || !data.siteScore) {
@@ -111,6 +126,39 @@ export function ExploreWorkspace() {
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
   };
 
+  const handleOpenGuidedMode = () => {
+    if (!state.locationReady && !state.activeDemo) {
+      setWorkspaceNotice({
+        tone: "warning",
+        message: "Focus a place first to unlock guided mode.",
+      });
+      return;
+    }
+
+    data.setShellMode("guided");
+    data.setViewMode("board");
+    setWorkspaceNotice({
+      tone: "info",
+      message: "Guided mode keeps one primary view open and reveals supporting cards only when you need them.",
+    });
+  };
+
+  const handleOpenBoardMode = () => {
+    data.openAdvancedBoard();
+    setWorkspaceNotice({
+      tone: "info",
+      message: "Board mode unlocks the full card workspace and saved layout flow.",
+    });
+  };
+
+  const handleOpenLibraryMode = () => {
+    data.openLibrary();
+    setWorkspaceNotice({
+      tone: "info",
+      message: "Library mode lets you open any available workspace card on demand.",
+    });
+  };
+
   const openCard = (cardId: WorkspaceCardId) => {
     if (data.shellMode === "board") {
       if (!data.visibility[cardId]) {
@@ -139,6 +187,27 @@ export function ExploreWorkspace() {
       `Generate a full intelligence report for the ${state.activeProfile.name} mission at ${state.selectedLocationName}. Keep it grounded in the live GeoSight context, call out data gaps explicitly, and structure it for a judge-ready briefing.`,
     [state.activeProfile.name, state.selectedLocationName],
   );
+
+  const handleGenerateReport = () => {
+    if (!data.geodata) {
+      setWorkspaceNotice({
+        tone: "warning",
+        message: "Select a location first to generate a report.",
+      });
+      return;
+    }
+
+    if (data.loading) {
+      setWorkspaceNotice({
+        tone: "warning",
+        message: "GeoSight is still gathering the live context for this place. Report generation unlocks when the main analysis finishes.",
+      });
+      return;
+    }
+
+    primeAgent("geo-scribe", reportPrompt);
+    void data.generateReport();
+  };
 
   const visibleUiCardIds = useMemo(
     () =>
@@ -243,6 +312,46 @@ export function ExploreWorkspace() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={data.shellMode === "board" ? "ghost" : "default"}
+                  className="rounded-full"
+                  onClick={handleOpenGuidedMode}
+                  title="Guided mode keeps the workspace focused and reveals supporting views on demand."
+                >
+                  Guided
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    data.shellMode === "board" && data.viewMode === "board"
+                      ? "default"
+                      : "ghost"
+                  }
+                  className="rounded-full"
+                  onClick={handleOpenBoardMode}
+                  title="Board mode opens the full advanced workspace."
+                >
+                  Board
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    data.shellMode === "board" && data.viewMode === "library"
+                      ? "default"
+                      : "ghost"
+                  }
+                  className="rounded-full"
+                  onClick={handleOpenLibraryMode}
+                  title="Library mode lets you browse every available GeoSight card."
+                >
+                  Library
+                </Button>
+              </div>
               <Button
                 type="button"
                 variant="secondary"
@@ -252,27 +361,33 @@ export function ExploreWorkspace() {
                 <PanelLeft className="mr-2 h-4 w-4" />
                 Mission controls
               </Button>
-              <span title={reportDisabledReason}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="rounded-full"
-                  disabled={!data.geodata || data.loading || data.reportLoading}
-                  onClick={() => {
-                    primeAgent("geo-scribe", reportPrompt);
-                    void data.generateReport();
-                  }}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  {data.reportLoading ? "Generating report..." : "Generate report"}
-                </Button>
-              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                className="rounded-full"
+                disabled={data.reportLoading}
+                title={reportDisabledReason}
+                onClick={handleGenerateReport}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                {data.reportLoading ? "Generating report..." : "Generate report"}
+              </Button>
               <ThemeToggle compact />
-              {data.shellMode === "board" ? (
-                <WorkspaceViewToggle mode={data.viewMode} onChange={data.setViewMode} />
-              ) : null}
             </div>
           </div>
+
+          {workspaceNotice ? (
+            <div
+              className={cn(
+                "mt-4 rounded-[1.35rem] px-4 py-3 text-sm",
+                workspaceNotice.tone === "warning"
+                  ? "border border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]"
+                  : "border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]",
+              )}
+            >
+              {workspaceNotice.message}
+            </div>
+          ) : null}
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             {(state.init.judgeMode
@@ -558,6 +673,7 @@ export function ExploreWorkspace() {
           open={state.demoOpen}
           score={data.siteScore}
           sites={data.sites}
+          showcaseLoading={state.pendingDemoLoad}
           onClose={handleCloseDemoOverlay}
           onLoadShowcase={handleLoadShowcase}
           onSaveCurrentSite={handleSaveCurrentSite}

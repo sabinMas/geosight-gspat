@@ -106,7 +106,19 @@ export async function getCurrentCoordinates() {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         }),
-      () => reject(new Error("Unable to read your current location.")),
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          reject(new Error("Location access was denied. Type a place instead."));
+          return;
+        }
+
+        if (error.code === error.TIMEOUT) {
+          reject(new Error("Reading your current location took too long. Type a place instead."));
+          return;
+        }
+
+        reject(new Error("Unable to read your current location."));
+      },
       {
         enableHighAccuracy: true,
         maximumAge: 60_000,

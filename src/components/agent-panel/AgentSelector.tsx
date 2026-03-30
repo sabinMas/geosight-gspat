@@ -19,9 +19,9 @@ export default function AgentSelector() {
             type="button"
             onClick={() => setActiveAgent(agentId)}
             className={cn(
-              "min-w-[220px] rounded-[1.35rem] border px-4 py-3 text-left transition duration-300",
+              "min-w-[220px] rounded-[1.35rem] border px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40",
               isActive
-                ? "shadow-[var(--shadow-soft)]"
+                ? "shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-panel)]"
                 : "border-[color:var(--border-soft)] bg-transparent hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]",
             )}
             style={

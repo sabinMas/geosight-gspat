@@ -1,4 +1,4 @@
-import { ExploreEntrySource, ExploreInitState, LandingUseCase } from "@/types";
+import { ExploreInitState, LandingUseCase } from "@/types";
 
 export const GENERAL_EXPLORATION_PROFILE_ID = "residential";
 
@@ -102,22 +102,4 @@ export function buildExploreHref(init: ExploreInitState) {
 
   const query = params.toString();
   return query ? `/explore?${query}` : "/explore";
-}
-
-export function createExploreInit(input: {
-  profileId?: string;
-  locationQuery?: string;
-  demoId?: string;
-  entrySource?: ExploreEntrySource;
-  judgeMode?: boolean;
-  missionRunPresetId?: string;
-}): ExploreInitState {
-  return {
-    profileId: input.profileId,
-    locationQuery: input.locationQuery?.trim() || undefined,
-    demoId: input.demoId,
-    entrySource: input.entrySource,
-    judgeMode: input.judgeMode,
-    missionRunPresetId: input.missionRunPresetId,
-  };
 }

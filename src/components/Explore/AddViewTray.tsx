@@ -35,6 +35,10 @@ export function AddViewTray({
         </Button>
       </div>
 
+      <div className="mt-3 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--muted-foreground)]">
+        Board mode unlocks the full workspace canvas, reusable board presets, and the complete card library while keeping the globe and active place in view.
+      </div>
+
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         {cards.length ? (
           cards.map((card) => {

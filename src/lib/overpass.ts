@@ -70,10 +70,6 @@ function clampCoordinate(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-export function isValidCoordinatePair(lat: number, lng: number) {
-  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
-}
-
 function sanitizeBoundingBox(bbox: BoundingBox) {
   return {
     south: clampCoordinate(bbox.south, -90, 90),

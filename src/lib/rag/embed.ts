@@ -10,14 +10,35 @@ import { EmbeddedChunk, RagChunk } from "./types";
 const EMBEDDING_MODELS = ["text-embedding-004", "gemini-embedding-001"] as const;
 const EMBEDDING_BATCH_SIZE = 10;
 const EMBEDDING_BATCH_DELAY_MS = 200;
+const EMBEDDING_COOLDOWN_MS = 15 * 60 * 1000;
 
 let resolvedEmbeddingModelName: (typeof EMBEDDING_MODELS)[number] | null = null;
 const warnedUnavailableModels = new Set<string>();
+let hasWarnedMissingEmbeddingKey = false;
+let embeddingsDisabledUntil = 0;
+let cooldownWarningSilencedUntil = 0;
+
+function embeddingsInCooldown() {
+  return Date.now() < embeddingsDisabledUntil;
+}
+
+function hasEmbeddingKey() {
+  return Boolean(process.env.GEMINI_API_KEY?.trim());
+}
 
 function getEmbeddingClient() {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    console.warn("[RAG] GEMINI_API_KEY is missing. Embeddings are unavailable.");
+    if (!hasWarnedMissingEmbeddingKey) {
+      hasWarnedMissingEmbeddingKey = true;
+      console.warn("[RAG] GEMINI_API_KEY is missing. Embeddings are unavailable.");
+    }
+    return null;
+  }
+
+  hasWarnedMissingEmbeddingKey = false;
+
+  if (embeddingsInCooldown()) {
     return null;
   }
 
@@ -53,6 +74,38 @@ function isUnsupportedModelError(error: unknown) {
   return status === 404 || /not found|not supported/i.test(message);
 }
 
+function isQuotaExceededError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const status =
+    "status" in error && typeof error.status === "number" ? error.status : undefined;
+  const message = error instanceof Error ? error.message : "";
+
+  return (
+    status === 429 ||
+    /quota|rate limit|resource exhausted|too many requests|429/i.test(message)
+  );
+}
+
+function enterEmbeddingCooldown(error: unknown) {
+  const now = Date.now();
+  embeddingsDisabledUntil = Math.max(embeddingsDisabledUntil, now + EMBEDDING_COOLDOWN_MS);
+
+  if (now < cooldownWarningSilencedUntil) {
+    return;
+  }
+
+  cooldownWarningSilencedUntil = now + 60_000;
+  console.warn(
+    `[RAG] Gemini embeddings hit a quota or rate limit. Disabling embedding requests until ${new Date(
+      embeddingsDisabledUntil,
+    ).toISOString()}.`,
+    error,
+  );
+}
+
 async function runEmbeddingWithFallback<T>(
   runner: (model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>) => Promise<T>,
 ): Promise<T | null> {
@@ -81,6 +134,11 @@ async function runEmbeddingWithFallback<T>(
           );
         }
         continue;
+      }
+
+      if (isQuotaExceededError(error)) {
+        enterEmbeddingCooldown(error);
+        return null;
       }
 
       throw error;
@@ -126,7 +184,7 @@ function normalizeEmbedding(values: number[] | undefined) {
 
 export async function embedText(text: string): Promise<number[]> {
   const normalizedText = text.trim();
-  if (!normalizedText) {
+  if (!normalizedText || !hasEmbeddingKey() || embeddingsInCooldown()) {
     return [];
   }
 
@@ -152,7 +210,7 @@ export async function embedText(text: string): Promise<number[]> {
 }
 
 export async function embedChunks(chunks: RagChunk[]): Promise<EmbeddedChunk[]> {
-  if (!chunks.length) {
+  if (!chunks.length || !hasEmbeddingKey() || embeddingsInCooldown()) {
     return [];
   }
 
@@ -160,6 +218,10 @@ export async function embedChunks(chunks: RagChunk[]): Promise<EmbeddedChunk[]> 
     const embeddedChunks: EmbeddedChunk[] = [];
 
     for (let startIndex = 0; startIndex < chunks.length; startIndex += EMBEDDING_BATCH_SIZE) {
+      if (embeddingsInCooldown()) {
+        break;
+      }
+
       const batch = chunks.slice(startIndex, startIndex + EMBEDDING_BATCH_SIZE);
       const batchResults = await Promise.all(batch.map((chunk) => embedDocument(chunk)));
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompareTable } from "@/components/Scoring/CompareTable";
@@ -14,6 +14,7 @@ interface CoolingDemoOverlayProps {
   open: boolean;
   score: SiteScore | null;
   sites: SavedSite[];
+  showcaseLoading: boolean;
   onClose: () => void;
   onLoadShowcase: () => void;
   onSaveCurrentSite: () => void;
@@ -25,6 +26,7 @@ export function CoolingDemoOverlay({
   open,
   score,
   sites,
+  showcaseLoading,
   onClose,
   onLoadShowcase,
   onSaveCurrentSite,
@@ -85,13 +87,26 @@ export function CoolingDemoOverlay({
                 </p>
 
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" onClick={onLoadShowcase}>
-                    Load showcase
+                  <Button type="button" onClick={onLoadShowcase} disabled={showcaseLoading}>
+                    {showcaseLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {showcaseLoading ? "Loading showcase..." : "Load showcase"}
                   </Button>
-                  <Button type="button" variant="secondary" onClick={onSaveCurrentSite}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={onSaveCurrentSite}
+                    disabled={showcaseLoading}
+                  >
                     Save current site to demo compare
                   </Button>
                 </div>
+
+                {showcaseLoading ? (
+                  <div className="flex items-center gap-2 rounded-[1.25rem] border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-foreground)]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading the showcase sites and refocusing the workspace...
+                  </div>
+                ) : null}
 
                 <div className="grid gap-3">
                   {(demo.preloadedSites ?? []).map((site) => (

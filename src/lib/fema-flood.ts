@@ -78,14 +78,20 @@ export async function getFloodZone(
       return url.toString();
     });
 
-    for (const query of queries) {
-      const payload = await queryFloodEndpoint(query);
-      const attributes = payload?.features?.[0]?.attributes;
+    const attributes = await Promise.any(
+      queries.map(async (query) => {
+        const payload = await queryFloodEndpoint(query);
+        const featureAttributes = payload?.features?.[0]?.attributes;
 
-      if (!attributes?.FLD_ZONE) {
-        continue;
-      }
+        if (!featureAttributes?.FLD_ZONE) {
+          throw new Error("No flood zone found.");
+        }
 
+        return featureAttributes;
+      }),
+    ).catch(() => null);
+
+    if (attributes?.FLD_ZONE) {
       const floodZone = attributes.FLD_ZONE.trim();
       const subtype =
         attributes.FLD_ZONE_SUBTY?.trim() ??

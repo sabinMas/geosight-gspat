@@ -10,7 +10,7 @@ The main analysis assistant is the mission-aware geospatial interpreter behind `
 
 ## GeoAnalyst
 
-GeoAnalyst is the precision analysis persona configured in `src/lib/agents/agent-registry.ts` and implemented in `src/lib/agents/geo-analyst.ts`. It is meant for site intelligence, scoring interpretation, and profile-aware geospatial reasoning. Its expected format is structured professional prose with a short headline assessment, supporting evidence, risks and unknowns, and next diligence steps. It should cite source names from the data bundle, restate the active location clearly, and explicitly call out whether a point came from direct live data, derived live analysis, or a proxy heuristic.
+GeoAnalyst is the precision analysis persona configured in `src/lib/agents/agent-config.ts` and served through `src/app/api/agents/[agentId]/route.ts`. It is meant for site intelligence, scoring interpretation, and profile-aware geospatial reasoning. Its expected format is structured professional prose with a short headline assessment, supporting evidence, risks and unknowns, and next diligence steps. It should cite source names from the data bundle, restate the active location clearly, and explicitly call out whether a point came from direct live data, derived live analysis, or a proxy heuristic.
 
 ## GeoGuide
 

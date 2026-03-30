@@ -1,20 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DEFAULT_VIEW } from "@/lib/demo-data";
-import { fetchWithTimeout } from "@/lib/network";
+import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
 import { Coordinates, GeodataResult, MissionProfile, SiteScore } from "@/types";
+
+const GEODATA_REQUEST_TIMEOUT_MS = 18_000;
+
+function buildGeodataErrorMessage(error: unknown) {
+  if (error instanceof ExternalRequestTimeoutError) {
+    return "Live location data is taking longer than expected. GeoSight will keep working with partial context where possible.";
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "GeoSight couldn't load this location right now.";
+}
 
 export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, ready = true) {
   const [geodata, setGeodata] = useState<GeodataResult | null>(null);
   const [score, setScore] = useState<SiteScore | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastRequestKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const isDefaultView = coords.lat === DEFAULT_VIEW.lat && coords.lng === DEFAULT_VIEW.lng;
     if (!ready && isDefaultView) {
+      lastRequestKeyRef.current = null;
       setGeodata(null);
       setScore(null);
       setLoading(false);
@@ -23,9 +39,14 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, re
     }
 
     const controller = new AbortController();
+    const requestKey = `${coords.lat}:${coords.lng}`;
+    const isNewLocation = lastRequestKeyRef.current !== requestKey;
+    lastRequestKeyRef.current = requestKey;
 
-    setGeodata(null);
-    setScore(null);
+    if (isNewLocation) {
+      setGeodata(null);
+      setScore(null);
+    }
     setLoading(true);
     setError(null);
 
@@ -36,20 +57,19 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, re
           {
             signal: controller.signal,
           },
-          8_000,
+          GEODATA_REQUEST_TIMEOUT_MS,
         );
         if (!response.ok) {
-          throw new Error("Failed to fetch geodata.");
+          throw new Error("GeoSight couldn't load this location right now.");
         }
 
         const data = (await response.json()) as GeodataResult;
         if (!controller.signal.aborted) {
           setGeodata(data);
-          setScore(calculateProfileScore(data, profile));
         }
       } catch (err) {
         if (!controller.signal.aborted) {
-          setError(err instanceof Error ? err.message : "Unknown geodata error.");
+          setError(buildGeodataErrorMessage(err));
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -63,7 +83,16 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, re
     return () => {
       controller.abort();
     };
-  }, [coords.lat, coords.lng, profile, ready]);
+  }, [coords.lat, coords.lng, ready]);
+
+  useEffect(() => {
+    if (!geodata) {
+      setScore(null);
+      return;
+    }
+
+    setScore(calculateProfileScore(geodata, profile));
+  }, [geodata, profile]);
 
   return { geodata, score, loading, error };
 }

@@ -34,7 +34,9 @@ if (typeof window !== "undefined") {
   window.CESIUM_BASE_URL = "/cesium";
 }
 
-Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "";
+const CESIUM_ION_TOKEN = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN?.trim() ?? "";
+
+Ion.defaultAccessToken = CESIUM_ION_TOKEN;
 
 interface CesiumGlobeProps {
   selectedPoint: Coordinates;
@@ -61,6 +63,7 @@ export function CesiumGlobe({
   terrainExaggeration,
   demoOverlays = [],
 }: CesiumGlobeProps) {
+  const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<CesiumViewer | null>(null);
   const lastFlyTargetRef = useRef<string | null>(null);
@@ -360,6 +363,22 @@ export function CesiumGlobe({
       }),
     [demoOverlays, layers.power, layers.roads, layers.water],
   );
+
+  if (!hasCesiumToken) {
+    return (
+      <div className="flex h-full w-full items-center justify-center rounded-[2rem] border border-[color:var(--danger-border)] bg-[var(--surface-panel)] px-6 text-center shadow-[var(--shadow-panel)]">
+        <div className="max-w-lg space-y-3">
+          <div className="eyebrow text-[var(--danger-foreground)]">Globe unavailable</div>
+          <div className="text-xl font-semibold text-[var(--foreground)]">
+            Cesium Ion is not configured for this deployment
+          </div>
+          <p className="text-sm leading-7 text-[var(--muted-foreground)]">
+            Add <code>NEXT_PUBLIC_CESIUM_ION_TOKEN</code> to the active environment and redeploy to restore the 3D globe, satellite basemap, and terrain imagery.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={hostRef} className="relative h-full w-full">

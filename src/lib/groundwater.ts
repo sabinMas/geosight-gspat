@@ -355,12 +355,28 @@ export async function getNearbyGroundwaterWells(
   }
 
   try {
-    const legacyResult = await fetchLegacyGroundwater(coords);
-    if (legacyResult.wellCount > 0) {
-      return legacyResult;
+    const [legacyResult, modernResult] = await Promise.allSettled([
+      fetchLegacyGroundwater(coords),
+      fetchModernGroundwater(coords),
+    ]);
+
+    if (legacyResult.status === "fulfilled" && legacyResult.value.wellCount > 0) {
+      return legacyResult.value;
     }
 
-    return await fetchModernGroundwater(coords);
+    if (modernResult.status === "fulfilled" && modernResult.value.wellCount > 0) {
+      return modernResult.value;
+    }
+
+    if (legacyResult.status === "fulfilled") {
+      return legacyResult.value;
+    }
+
+    if (modernResult.status === "fulfilled") {
+      return modernResult.value;
+    }
+
+    return EMPTY_RESULT;
   } catch {
     return EMPTY_RESULT;
   }

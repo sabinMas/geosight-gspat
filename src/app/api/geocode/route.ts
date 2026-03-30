@@ -40,6 +40,11 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q")?.trim();
   const lat = request.nextUrl.searchParams.get("lat");
   const lng = request.nextUrl.searchParams.get("lng");
+  const requestedLimit = Number(request.nextUrl.searchParams.get("limit") ?? "1");
+  const limit =
+    Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.min(Math.floor(requestedLimit), 5)
+      : 1;
 
   if (!query && (!lat || !lng)) {
     return NextResponse.json(
@@ -56,7 +61,7 @@ export async function GET(request: NextRequest) {
     if (query) {
       url.searchParams.set("q", query);
       url.searchParams.set("format", "jsonv2");
-      url.searchParams.set("limit", "1");
+      url.searchParams.set("limit", String(limit));
       url.searchParams.set("addressdetails", "1");
     } else {
       url.searchParams.set("lat", lat!);
@@ -79,13 +84,27 @@ export async function GET(request: NextRequest) {
 
     if (query) {
       const results = (await response.json()) as NominatimSearchResult[];
-      const match = results[0];
+      const matches = results
+        .map(buildPayload)
+        .filter(
+          (result) =>
+            Number.isFinite(result.coordinates.lat) &&
+            Number.isFinite(result.coordinates.lng),
+        );
 
-      if (!match) {
+      if (!matches.length) {
         return NextResponse.json({ error: "No matching place found." }, { status: 404 });
       }
 
-      return NextResponse.json(buildPayload(match), {
+      if (limit > 1) {
+        return NextResponse.json(matches, {
+          headers: {
+            "Cache-Control": "s-maxage=86400, stale-while-revalidate=172800",
+          },
+        });
+      }
+
+      return NextResponse.json(matches[0], {
         headers: {
           "Cache-Control": "s-maxage=86400, stale-while-revalidate=172800",
         },

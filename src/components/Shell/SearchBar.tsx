@@ -1,13 +1,31 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Crosshair, Loader2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getCurrentCoordinates, parseCoordinates, resolveLocationQuery } from "@/lib/cesium-search";
+import { getCurrentCoordinates, parseCoordinates } from "@/lib/cesium-search";
 import { LocationSearchResult } from "@/types";
+
+const MIN_SUGGESTION_LENGTH = 3;
+const SUGGESTION_LIMIT = 5;
+
+async function readGeocodeError(response: Response) {
+  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+  return payload?.error ?? "Unable to search this place.";
+}
+
+async function resolveLocationFromQuery(query: string) {
+  const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+
+  if (!response.ok) {
+    throw new Error(await readGeocodeError(response));
+  }
+
+  return (await response.json()) as LocationSearchResult;
+}
 
 interface SearchBarProps {
   activeLocationName: string;
@@ -18,8 +36,67 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [suggestions, setSuggestions] = useState<LocationSearchResult[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [resolvedLocationName, setResolvedLocationName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const query = value.trim();
+
+    if (parseCoordinates(query) || query.length < MIN_SUGGESTION_LENGTH) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setSuggestionsLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/geocode?q=${encodeURIComponent(query)}&limit=${SUGGESTION_LIMIT}`,
+          {
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(await readGeocodeError(response));
+        }
+
+        const results = (await response.json()) as LocationSearchResult[];
+        if (!controller.signal.aborted) {
+          setSuggestions(results);
+        }
+      } catch (suggestionError) {
+        if (!controller.signal.aborted) {
+          console.warn("[search-bar] suggestion lookup failed", suggestionError);
+          setSuggestions([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setSuggestionsLoading(false);
+        }
+      }
+    }, 280);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [value]);
+
+  const handleSelectSuggestion = (suggestion: LocationSearchResult) => {
+    setResolvedLocationName(suggestion.name);
+    setValue(suggestion.name);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setError(null);
+    onLocate(suggestion);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,10 +121,8 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
 
     setLoading(true);
     try {
-      const resolved = await resolveLocationQuery(value);
-      setResolvedLocationName(resolved.name);
-      setValue(resolved.name);
-      onLocate(resolved);
+      const resolved = await resolveLocationFromQuery(value);
+      handleSelectSuggestion(resolved);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to search this place.");
     } finally {
@@ -80,6 +155,8 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
 
       setResolvedLocationName(result.name);
       setValue(result.name);
+      setSuggestions([]);
+      setShowSuggestions(false);
       onLocate(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to use your current location.");
@@ -103,6 +180,10 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
             <Input
               value={value}
               onChange={(event) => setValue(event.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                window.setTimeout(() => setShowSuggestions(false), 120);
+              }}
               placeholder="Seattle, WA or 45.523,-122.676"
               className="h-12 border-[color:var(--border-soft)] bg-[var(--background)]/50 text-sm"
             />
@@ -132,6 +213,38 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
             </div>
           </div>
         </form>
+
+        {showSuggestions && (suggestionsLoading || suggestions.length) ? (
+          <div className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              Suggested matches
+            </div>
+            {suggestionsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Finding nearby place matches...
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {suggestions.map((suggestion) => (
+                  <button
+                    key={`${suggestion.name}-${suggestion.coordinates.lat}-${suggestion.coordinates.lng}`}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    className="w-full rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)]"
+                  >
+                    <div className="text-sm font-medium text-[var(--foreground)]">
+                      {suggestion.name}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      {suggestion.coordinates.lat.toFixed(4)}, {suggestion.coordinates.lng.toFixed(4)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]">
           <span className="eyebrow text-[var(--accent)]">Active location</span>

@@ -49,6 +49,25 @@ async function readAgentRouteError(response: Response) {
   return text || "GeoScribe could not generate a report right now.";
 }
 
+async function readResponseTextWithTimeout(response: Response, timeoutMs: number) {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      response.text(),
+      new Promise<string>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error("The AI response took too long to finish."));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
+
 function laneToAgentId(capabilityId: AnalysisCapabilityId, modelLane: string) {
   if (modelLane === "writer") {
     return "geo-scribe" as const;
@@ -186,6 +205,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   );
   const [capabilityAnalysisResult, setCapabilityAnalysisResult] =
     useState<AnalysisCapabilityResult | null>(null);
+  const [capabilityPreviewDismissed, setCapabilityPreviewDismissed] = useState(false);
   const [slowDemoLoading, setSlowDemoLoading] = useState(false);
   const [demoFallbackDismissed, setDemoFallbackDismissed] = useState(false);
   const analysisCapabilities = useMemo(() => {
@@ -340,7 +360,54 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setCapabilityAnalysisLoading(false);
     setCapabilityAnalysisError(null);
     setCapabilityAnalysisResult(null);
+    setCapabilityPreviewDismissed(false);
   }, [activeProfile.id, selectedPoint.lat, selectedPoint.lng]);
+
+  useEffect(() => {
+    if (
+      capabilityPreviewDismissed ||
+      capabilityAnalysisLoading ||
+      capabilityAnalysisError ||
+      capabilityAnalysisResult ||
+      analysisCapabilities.length === 0
+    ) {
+      return;
+    }
+
+    const starterCapability =
+      analysisCapabilities.find((capability) => capability.recommended) ?? analysisCapabilities[0];
+
+    if (!starterCapability) {
+      return;
+    }
+
+    setCapabilityAnalysisResult({
+      analysisId: starterCapability.analysisId,
+      title: starterCapability.title,
+      response: buildCapabilityFallbackResponse(starterCapability.analysisId, {
+        geodata,
+        profile: activeProfile,
+        locationName: selectedLocationName,
+        selectedRegion: state.selectedRegion,
+        dataTrends: locationTrends,
+        subsurfaceDatasets,
+      }),
+      model: `${starterCapability.modelLane} starter preview`,
+      generatedAt: new Date().toISOString(),
+    });
+  }, [
+    activeProfile,
+    analysisCapabilities,
+    capabilityAnalysisError,
+    capabilityAnalysisLoading,
+    capabilityAnalysisResult,
+    capabilityPreviewDismissed,
+    geodata,
+    locationTrends,
+    selectedLocationName,
+    state.selectedRegion,
+    subsurfaceDatasets,
+  ]);
 
   useEffect(() => {
     setSlowDemoLoading(false);
@@ -372,6 +439,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setCapabilityAnalysisLoading(false);
     setCapabilityAnalysisError(null);
     setCapabilityAnalysisResult(null);
+    setCapabilityPreviewDismissed(true);
   }, []);
 
   const runCapabilityAnalysis = useCallback(
@@ -394,8 +462,20 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
 
       setCapabilityAnalysisLoading(true);
       setCapabilityAnalysisError(null);
+      setCapabilityPreviewDismissed(false);
+      setCapabilityAnalysisResult({
+        analysisId,
+        title: capability.title,
+        response: fallbackResponse,
+        model: `${capability.modelLane} preview`,
+        generatedAt: new Date().toISOString(),
+      });
 
       try {
+        if (!geodata) {
+          return;
+        }
+
         const response = await fetchWithTimeout(
           `/api/agents/${targetAgentId}`,
           {
@@ -415,7 +495,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
           throw new Error(await readAgentRouteError(response));
         }
 
-        const content = (await response.text()).trim();
+        const content = (await readResponseTextWithTimeout(response, 12_000)).trim();
         setCapabilityAnalysisResult({
           analysisId,
           title: capability.title,
@@ -479,7 +559,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         throw new Error(await readAgentRouteError(response));
       }
 
-      const markdown = (await response.text()).trim();
+      const markdown = (await readResponseTextWithTimeout(response, 15_000)).trim();
       if (!markdown) {
         throw new Error("GeoScribe returned an empty report.");
       }

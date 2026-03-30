@@ -1,9 +1,6 @@
 import {
-  COMMERCIAL_DEMO_SITES,
   DEFAULT_VIEW,
-  HIKING_DEMO_SITES,
   PRELOADED_SITES,
-  RESIDENTIAL_DEMO_SITES,
   TOKYO_DEMO_SITES,
 } from "@/lib/demo-data";
 import { DemoOverlay } from "@/types";
@@ -170,16 +167,3 @@ export function getDemoById(demoId?: string | null) {
 
   return DEMO_MAP[demoId] ?? null;
 }
-
-export const PROFILE_DEMO_SITE_MAP = {
-  "data-center": PRELOADED_SITES.map((site) => ({
-    id: site.id,
-    name: site.name,
-    coordinates: site.coordinates,
-    score: site.score.total,
-    summary: site.regionName,
-  })),
-  hiking: HIKING_DEMO_SITES,
-  residential: RESIDENTIAL_DEMO_SITES,
-  commercial: COMMERCIAL_DEMO_SITES,
-} as const;

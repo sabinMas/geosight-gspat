@@ -11,14 +11,6 @@ import {
   ScoreEvidenceKind,
 } from "@/types";
 
-export const STARTER_PROMPTS = [
-  "Give me a quick overview of this place.",
-  "What are some good hikes near this location?",
-  "Are there interesting restaurants in this area?",
-  "Would this work for a new neighborhood?",
-  "What risks or constraints stand out at this location?",
-] as const;
-
 function includesAny(question: string, matches: string[]) {
   return matches.some((term) => question.includes(term));
 }

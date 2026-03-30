@@ -1,7 +1,4 @@
-import {
-  buildGeoSightMessagesWithRag,
-  buildGeoSightSystemPrompt,
-} from "@/lib/geosight-assistant";
+import { buildGeoSightMessagesWithRag } from "@/lib/geosight-assistant";
 import { CoreMessage } from "@/lib/rag/types";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
@@ -24,21 +21,6 @@ export class AnalysisProviderError extends Error {
     this.category = category;
     this.status = status;
   }
-}
-
-export function buildAnalysisProviderInput(payload: AnalyzeRequestBody, profile: MissionProfile) {
-  const { prompt } = buildGeoSightSystemPrompt(payload, profile);
-  const serializedPayload = JSON.stringify(
-    {
-      missionProfile: profile.name,
-      missionProfileId: profile.id,
-      ...payload,
-    },
-    null,
-    2,
-  );
-
-  return { prompt, serializedPayload };
 }
 
 export async function buildAnalysisProviderMessages(

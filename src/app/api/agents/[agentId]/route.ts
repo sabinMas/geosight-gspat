@@ -433,57 +433,12 @@ export async function POST(
   if (rawAgentId === "geo-usability") {
     const audit = runDeterministicUiAudit(requestContext?.uiContext);
     const deterministicAudit = formatUiAuditResult(audit);
-    const apiKey = process.env[agentConfig.apiKeyEnv]?.trim();
-
-    if (!apiKey) {
-      return new Response(deterministicAudit, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "no-store",
-        },
-      });
-    }
-
-    try {
-      const response = await requestGroqCompletion(
-        agentConfig,
-        apiKey,
-        [
-          `User request: ${message}`,
-          "",
-          "Deterministic UI audit findings:",
-          deterministicAudit,
-          "",
-          "Rewrite these findings into a concise internal UX review. Keep the same issues and recommendations. Do not add new findings.",
-        ].join("\n"),
-        requestContext,
-      );
-
-      if (!response.ok || !response.body) {
-        return new Response(deterministicAudit, {
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Cache-Control": "no-store",
-          },
-        });
-      }
-
-      return new Response(createTextStream(response.body), {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "no-store",
-        },
-      });
-    } catch (error) {
-      console.error("[agents-route] agent=geo-usability request_failed", error);
-
-      return new Response(deterministicAudit, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "no-store",
-        },
-      });
-    }
+    return new Response(deterministicAudit, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
   }
 
   const apiKey = process.env[agentConfig.apiKeyEnv]?.trim();

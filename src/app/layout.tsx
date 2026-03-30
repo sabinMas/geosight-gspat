@@ -17,8 +17,11 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GeoSight",
+  title: "GeoSight — Spatial Intelligence Platform",
   description: "Ask questions about any place on Earth with geospatial data, AI reasoning, and interactive 3D map context.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

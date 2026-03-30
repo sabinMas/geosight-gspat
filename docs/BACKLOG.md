@@ -21,7 +21,7 @@ This backlog was reconciled against:
 - `src/lib/workspace-cards.ts`
 - `src/lib/source-registry.ts`
 - `src/lib/demos/registry.ts`
-- `src/lib/agents/agent-registry.ts`
+- `src/lib/agents/agent-config.ts`
 
 ## Shipped Foundation
 

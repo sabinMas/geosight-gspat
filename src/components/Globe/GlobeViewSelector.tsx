@@ -34,7 +34,10 @@ export function GlobeViewSelector({
             Change the Earth view without resetting overlays or workspace state.
           </div>
         </div>
-        <div className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+        <div
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]"
+          title="Surface only disables subsurface datasets and terrain exaggeration for a cleaner globe view."
+        >
           {subsurfaceRenderMode.replace("_", " ")}
         </div>
       </div>

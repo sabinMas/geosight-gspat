@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowRight,
   Building2,
+  Check,
+  ChevronDown,
   Factory,
   Globe2,
   House,
@@ -55,13 +58,27 @@ function UseCaseCard({
     <button
       type="button"
       onClick={() => onSelect(useCase.id)}
-      className="rounded-[1.35rem] border p-4 text-left transition duration-300"
+      className="relative rounded-[1.35rem] border p-4 text-left transition duration-300"
       style={{
         borderColor: active ? `${useCase.accentColor}55` : "var(--border-soft)",
-        background: active ? `${useCase.accentColor}14` : "var(--surface-raised)",
+        background: active ? `${useCase.accentColor}16` : "var(--surface-raised)",
+        boxShadow: active ? `0 0 0 2px ${useCase.accentColor}22, var(--shadow-soft)` : undefined,
       }}
       aria-pressed={active}
     >
+      {active ? (
+        <span
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border"
+          style={{
+            borderColor: `${useCase.accentColor}44`,
+            background: `${useCase.accentColor}1e`,
+            color: useCase.accentColor,
+          }}
+          aria-hidden="true"
+        >
+          <Check className="h-4 w-4" />
+        </span>
+      ) : null}
       <div className="flex min-w-0 items-start gap-3">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
@@ -241,24 +258,24 @@ export function LandingPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:grid-cols-3">
                 {[
                   "Prompt-first workspace",
                   "Visible provenance",
                   "Live-source spatial reasoning",
                 ].map((item) => (
-                  <span
+                  <div
                     key={item}
-                    className="metric-chip px-4 py-2 text-sm text-[var(--foreground-soft)]"
+                    className="flex items-center gap-2 rounded-[1.15rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--foreground-soft)]"
                   >
+                    <span className="h-2 w-2 rounded-full bg-[var(--accent)]" aria-hidden="true" />
                     {item}
-                  </span>
+                  </div>
                 ))}
               </div>
 
               <Button
                 type="button"
-                variant="secondary"
                 className="rounded-full"
                 onClick={() =>
                   router.push(
@@ -298,9 +315,10 @@ export function LandingPage() {
                 ))}
               </div>
 
-              <details className="mt-4 rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-                <summary className="cursor-pointer text-sm font-medium text-[var(--foreground)]">
-                  More starting lenses
+              <details className="group mt-4 rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-[var(--foreground)]">
+                  <span>More starting lenses</span>
+                  <ChevronDown className="h-4 w-4 transition-transform duration-300 group-open:rotate-180" />
                 </summary>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {additionalUseCases.map((useCase) => (
@@ -316,41 +334,41 @@ export function LandingPage() {
 
               {selectedUseCase ? (
                 <div ref={step2Ref} className="step2-appear mt-5 rounded-[1.5rem]">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="eyebrow">Step 2</div>
-                    <h3 className="text-xl font-semibold text-[var(--foreground)]">
-                      Focus a place with the {selectedUseCase.title.toLowerCase()} lens
-                    </h3>
-                    <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                      Suggested start: {selectedUseCase.suggestedQuery}
-                    </p>
-                  </div>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="eyebrow">Step 2</div>
+                      <h3 className="text-xl font-semibold text-[var(--foreground)]">
+                        Focus a place with the {selectedUseCase.title.toLowerCase()} lens
+                      </h3>
+                      <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                        Suggested start: {selectedUseCase.suggestedQuery}
+                      </p>
+                    </div>
 
-                  <Input
-                    value={locationQuery}
-                    onChange={(event) => setLocationQuery(event.target.value)}
-                    placeholder={selectedUseCase.suggestedQuery}
-                    className="h-12 rounded-[1.5rem]"
-                  />
+                    <Input
+                      value={locationQuery}
+                      onChange={(event) => setLocationQuery(event.target.value)}
+                      placeholder={selectedUseCase.suggestedQuery}
+                      className="h-12 rounded-[1.5rem]"
+                    />
 
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
-                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Open GeoSight
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="h-12 rounded-full"
-                      onClick={handleUseCurrentLocation}
-                      disabled={locating}
-                    >
-                      {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Use my location
-                    </Button>
-                  </div>
-                </form>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
+                        {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Open GeoSight
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-12 rounded-full"
+                        onClick={handleUseCurrentLocation}
+                        disabled={locating}
+                      >
+                        {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Use my location
+                      </Button>
+                    </div>
+                  </form>
                 </div>
               ) : (
                 <div className="mt-5 rounded-[1.35rem] border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-5 text-sm leading-6 text-[var(--muted-foreground)]">
@@ -399,7 +417,7 @@ export function LandingPage() {
                       }),
                     )
                   }
-                  className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-left transition duration-300 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)]"
+                  className="group rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-left transition duration-300 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)]"
                 >
                   <div className="flex min-w-0 items-start gap-4">
                     <div
@@ -422,6 +440,10 @@ export function LandingPage() {
                       <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted-foreground)]">
                         {demo.tagline}
                       </p>
+                      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-[var(--foreground)] opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        Open demo
+                        <ArrowRight className="h-4 w-4" />
+                      </div>
                     </div>
                   </div>
                 </button>

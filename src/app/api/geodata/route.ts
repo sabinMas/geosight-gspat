@@ -32,6 +32,37 @@ import { fetchElevation } from "@/lib/usgs";
 import { getNearbyStreamGauges } from "@/lib/water";
 import { GeodataResult } from "@/types";
 
+const OPTIONAL_PROVIDER_TIMEOUTS = {
+  fire: 6_500,
+  schools: 7_000,
+  broadband: 6_500,
+  flood: 6_500,
+  water: 7_000,
+  groundwater: 7_500,
+  soil: 7_000,
+  seismic: 7_000,
+  climateHistory: 8_500,
+  airQuality: 7_000,
+  epaHazards: 7_000,
+} as const;
+
+function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        reject(new Error(`[geodata] ${label} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  });
+}
+
 function isLikelyCountryCode(value: string | null) {
   return typeof value === "string" && /^[A-Z]{2}$/.test(value) && value !== "WA";
 }
@@ -173,15 +204,47 @@ export async function GET(request: NextRequest) {
   const bbox = toBoundingBox({ lat, lng }, 8);
   const isUsPoint = isLikelyUsCoordinate(lat, lng);
   const fireHazardConfigured = isFireHazardConfigured();
-  const broadbandPromise = isUsPoint ? getFCCBroadband(lat, lng) : Promise.resolve(null);
-  const floodZonePromise = isUsPoint ? getFloodZone(lat, lng) : Promise.resolve(null);
-  const waterGaugePromise = isUsPoint ? getNearbyStreamGauges(lat, lng) : Promise.resolve([]);
+  const broadbandPromise = isUsPoint
+    ? withSoftTimeout(
+        getFCCBroadband(lat, lng),
+        OPTIONAL_PROVIDER_TIMEOUTS.broadband,
+        "broadband",
+      )
+    : Promise.resolve(null);
+  const floodZonePromise = isUsPoint
+    ? withSoftTimeout(getFloodZone(lat, lng), OPTIONAL_PROVIDER_TIMEOUTS.flood, "flood zone")
+    : Promise.resolve(null);
+  const waterGaugePromise = isUsPoint
+    ? withSoftTimeout(
+        getNearbyStreamGauges(lat, lng),
+        OPTIONAL_PROVIDER_TIMEOUTS.water,
+        "stream gauges",
+      )
+    : Promise.resolve([]);
   const groundwaterPromise = isUsPoint
-    ? getNearbyGroundwaterWells({ lat, lng })
+    ? withSoftTimeout(
+        getNearbyGroundwaterWells({ lat, lng }),
+        OPTIONAL_PROVIDER_TIMEOUTS.groundwater,
+        "groundwater",
+      )
     : Promise.resolve({ wells: [], nearestWell: null, wellCount: 0 });
-  const soilProfilePromise = isUsPoint ? getSoilProfile({ lat, lng }) : Promise.resolve(null);
-  const seismicDesignPromise = isUsPoint ? getSeismicDesignParams({ lat, lng }) : Promise.resolve(null);
-  const epaHazardPromise = isUsPoint ? getEPAHazards(lat, lng) : Promise.resolve(null);
+  const soilProfilePromise = isUsPoint
+    ? withSoftTimeout(getSoilProfile({ lat, lng }), OPTIONAL_PROVIDER_TIMEOUTS.soil, "soil profile")
+    : Promise.resolve(null);
+  const seismicDesignPromise = isUsPoint
+    ? withSoftTimeout(
+        getSeismicDesignParams({ lat, lng }),
+        OPTIONAL_PROVIDER_TIMEOUTS.seismic,
+        "seismic design",
+      )
+    : Promise.resolve(null);
+  const epaHazardPromise = isUsPoint
+    ? withSoftTimeout(
+        getEPAHazards(lat, lng),
+        OPTIONAL_PROVIDER_TIMEOUTS.epaHazards,
+        "epa hazards",
+      )
+    : Promise.resolve(null);
 
   const [
     elevationResult,
@@ -207,16 +270,24 @@ export async function GET(request: NextRequest) {
       fetchClimateSnapshot({ lat, lng }),
       fetchCountyDemographics({ lat, lng }),
       fetchEarthquakeSummary({ lat, lng }),
-      fetchFireHazardSummary({ lat, lng }),
-      fetchSchoolContext({ lat, lng }),
+      withSoftTimeout(
+        fetchFireHazardSummary({ lat, lng }),
+        OPTIONAL_PROVIDER_TIMEOUTS.fire,
+        "fire hazard",
+      ),
+      withSoftTimeout(fetchSchoolContext({ lat, lng }), OPTIONAL_PROVIDER_TIMEOUTS.schools, "schools"),
       broadbandPromise,
       floodZonePromise,
       waterGaugePromise,
       groundwaterPromise,
       soilProfilePromise,
       seismicDesignPromise,
-      getClimateHistory({ lat, lng }),
-      getAirQuality(lat, lng),
+      withSoftTimeout(
+        getClimateHistory({ lat, lng }),
+        OPTIONAL_PROVIDER_TIMEOUTS.climateHistory,
+        "climate history",
+      ),
+      withSoftTimeout(getAirQuality(lat, lng), OPTIONAL_PROVIDER_TIMEOUTS.airQuality, "air quality"),
       epaHazardPromise,
     ]);
 
