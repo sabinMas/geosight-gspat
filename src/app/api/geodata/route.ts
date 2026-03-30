@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getClimateHistory } from "@/lib/climate-history";
+import { getNearbyGroundwaterWells } from "@/lib/groundwater";
 import { getAirQuality } from "@/lib/air-quality";
 import { fetchCountyDemographics } from "@/lib/census";
 import { getEPAHazards } from "@/lib/epa-envirofacts";
@@ -21,6 +23,8 @@ import {
   rateLimitHeaders,
 } from "@/lib/request-guards";
 import { fetchSchoolContext, summarizeSchoolContext } from "@/lib/schools";
+import { getSeismicDesignParams } from "@/lib/seismic-design";
+import { getSoilProfile } from "@/lib/soil-profile";
 import { resolveSourceRegistryContext } from "@/lib/source-registry";
 import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
 import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
@@ -181,6 +185,10 @@ export async function GET(request: NextRequest) {
     broadbandResult,
     floodZoneResult,
     waterGaugeResult,
+    groundwaterResult,
+    soilProfileResult,
+    seismicDesignResult,
+    climateHistoryResult,
     airQualityResult,
     epaHazardResult,
   ] =
@@ -195,6 +203,10 @@ export async function GET(request: NextRequest) {
       getFCCBroadband(lat, lng),
       getFloodZone(lat, lng),
       getNearbyStreamGauges(lat, lng),
+      getNearbyGroundwaterWells({ lat, lng }),
+      getSoilProfile({ lat, lng }),
+      getSeismicDesignParams({ lat, lng }),
+      getClimateHistory({ lat, lng }),
       getAirQuality(lat, lng),
       getEPAHazards(lat, lng),
     ]);
@@ -218,6 +230,18 @@ export async function GET(request: NextRequest) {
     countryCode: isLikelyCountryCode(derivedLocationCode) ? derivedLocationCode : null,
     stateCode: derivedLocationCode === "WA" ? derivedLocationCode : null,
   });
+  const soilProfile =
+    soilProfileResult.status === "fulfilled" ? soilProfileResult.value : null;
+  const seismicDesign =
+    seismicDesignResult.status === "fulfilled" ? seismicDesignResult.value : null;
+  const climateHistory =
+    climateHistoryResult.status === "fulfilled" ? climateHistoryResult.value : null;
+  const hasSoilProfile =
+    soilProfile !== null && Object.values(soilProfile).some((value) => value !== null);
+  const hasSeismicDesign =
+    seismicDesign !== null &&
+    [seismicDesign.ss, seismicDesign.s1, seismicDesign.pga].some((value) => value !== null);
+  const hasClimateHistory = climateHistory !== null && climateHistory.summaries.length > 0;
 
   const geodata: GeodataResult = {
     elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
@@ -289,6 +313,13 @@ export async function GET(request: NextRequest) {
     broadband: isUsPoint && broadbandResult.status === "fulfilled" ? broadbandResult.value : null,
     floodZone: isUsPoint && floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
     streamGauges: isUsPoint && waterGaugeResult.status === "fulfilled" ? waterGaugeResult.value : [],
+    groundwater:
+      groundwaterResult.status === "fulfilled"
+        ? groundwaterResult.value
+        : { wells: [], nearestWell: null, wellCount: 0 },
+    soilProfile,
+    seismicDesign,
+    climateHistory,
     airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
     epaHazards: isUsPoint && epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
     schoolContext:
@@ -563,6 +594,77 @@ export async function GET(request: NextRequest) {
               ? "Direct live discharge readings from nearby active USGS stream gauges."
               : "No nearby active USGS discharge gauges were returned within the current search radius.",
       }),
+      groundwater: buildRegistryAwareSourceMeta({
+        id: "groundwater",
+        label: "Groundwater levels",
+        provider: "USGS Groundwater Levels",
+        domain: "hydrology",
+        context: registryContext,
+        status:
+          !isUsPoint
+            ? "unavailable"
+            : groundwaterResult.status === "fulfilled" && groundwaterResult.value.wellCount > 0
+              ? "live"
+              : "limited",
+        lastUpdated: now,
+        freshness: "Live field measurements within the last 30 days",
+        coverage: "United States groundwater monitoring wells",
+        confidence:
+          !isUsPoint
+            ? "USGS groundwater monitoring coverage is currently US-only."
+            : groundwaterResult.status === "fulfilled" && groundwaterResult.value.wellCount > 0
+              ? "Direct groundwater level readings from nearby USGS monitoring wells."
+              : "No nearby active groundwater monitoring well with recent readings was found in the current search box.",
+      }),
+      soilProfile: buildRegistryAwareSourceMeta({
+        id: "soil-profile",
+        label: "Soil profile",
+        provider: "NRCS Soil Data Access (SSURGO)",
+        domain: "terrain",
+        context: registryContext,
+        status: !isUsPoint ? "unavailable" : hasSoilProfile ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Cached up to 24 hours",
+        coverage: "United States mapped soil survey areas",
+        confidence:
+          !isUsPoint
+            ? "NRCS soil survey coverage is currently US-only."
+            : hasSoilProfile
+              ? "Direct mapped soil-survey attributes for the intersecting map unit."
+              : "No mapped SSURGO soil profile was returned for this point.",
+      }),
+      seismicDesign: buildRegistryAwareSourceMeta({
+        id: "seismic-design",
+        label: "Seismic design parameters",
+        provider: "USGS Seismic Design Maps",
+        domain: "hazards",
+        context: registryContext,
+        status: !isUsPoint ? "unavailable" : hasSeismicDesign ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "ASCE 7-22 reference values",
+        coverage: "United States design-map coverage",
+        confidence:
+          !isUsPoint
+            ? "USGS ASCE 7-22 design-map coverage is currently US-only."
+            : hasSeismicDesign
+              ? "Direct site-specific seismic design parameters from the USGS design-maps service."
+              : "USGS design-map parameters were unavailable for this point.",
+      }),
+      climateHistory: buildRegistryAwareSourceMeta({
+        id: "climate-history",
+        label: "Historical climate trends",
+        provider: "Open-Meteo Historical Archive",
+        domain: "weather",
+        context: registryContext,
+        status: hasClimateHistory ? "live" : "limited",
+        lastUpdated: now,
+        freshness: "Archived daily records through the previous calendar year",
+        coverage: "Global historical weather archive",
+        confidence:
+          hasClimateHistory
+            ? "Derived yearly trend summaries from archived daily Open-Meteo records."
+            : "Historical climate summaries could not be assembled for this point.",
+      }),
       airQuality: buildRegistryAwareSourceMeta({
         id: "air-quality",
         label: "Air quality stations",
@@ -609,13 +711,17 @@ export async function GET(request: NextRequest) {
       "Overpass OSM features for roads, power lines, waterways, amenities, and land-use context.",
       "Open-Meteo current weather, forecast, and air-quality snapshots.",
       "USGS earthquake event feed summarized within 250 km over the last 30 days.",
+      "USGS groundwater well readings summarized from recent field measurements where nearby monitoring wells are available.",
       fireHazardConfigured
         ? "NASA FIRMS VIIRS fire detections summarized within the active region."
         : "NASA FIRMS fire detections are available when NASA_FIRMS_MAP_KEY is configured.",
       "FCC county lookup with ACS 5-year Census demographics, with World Bank national indicators for non-US locations.",
       "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
+      "NRCS Soil Data Access provides mapped soil drainage, water-table, bedrock, and texture context for US points.",
+      "USGS seismic design maps provide ASCE 7-22 ground-shaking parameters for US points.",
+      "Open-Meteo historical archive powers the 2015-2024 climate trend summaries.",
       !isUsPoint
-        ? "FCC Broadband Map, FEMA flood zones, USGS Water Services, and EPA contamination screening are currently US-only."
+        ? "FCC Broadband Map, FEMA flood zones, USGS Water Services, groundwater wells, NRCS soils, seismic design maps, and EPA contamination screening are currently US-only."
         : null,
     ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, MessageSquareText } from "lucide-react";
 import { AgentPanelProvider, useAgentPanel } from "@/context/AgentPanelContext";
-import { AGENT_CONFIGS } from "@/lib/agents/agent-registry";
+import { AGENT_CONFIGS } from "@/lib/agents/agent-config";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AgentChat from "./AgentChat";

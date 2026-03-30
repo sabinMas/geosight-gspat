@@ -1,3 +1,8 @@
+import type { ClimateHistoryResult } from "@/lib/climate-history";
+import type { GroundwaterSummary } from "@/lib/groundwater";
+import type { SeismicDesignParams } from "@/lib/seismic-design";
+import type { SoilProfile } from "@/lib/soil-profile";
+
 export type SiteFactorKey = string;
 
 export type UseCaseType =
@@ -81,7 +86,11 @@ export type WorkspaceCardId =
   | "flood-risk"
   | "cooling-water"
   | "air-quality"
-  | "contamination-risk";
+  | "contamination-risk"
+  | "groundwater"
+  | "soil-profile"
+  | "seismic-design"
+  | "climate-history";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -179,6 +188,7 @@ export interface DemoOverlay {
   icon: string;
   locationName: string;
   coordinates: Coordinates;
+  fallbackScreenshot: string;
   entryMode: "workspace" | "overlay";
   preloadedSites?: SavedSite[];
   mapOverlays?: DemoMapOverlay[];
@@ -416,6 +426,10 @@ export interface GeodataResult {
   broadband: BroadbandResult | null;
   floodZone: FloodZoneResult | null;
   streamGauges: StreamGaugeResult[];
+  groundwater: GroundwaterSummary;
+  soilProfile: SoilProfile | null;
+  seismicDesign: SeismicDesignParams | null;
+  climateHistory: ClimateHistoryResult | null;
   airQuality: AirQualityResult | null;
   epaHazards: EPAHazardResult | null;
   schoolContext: SchoolContextSummary | null;
@@ -433,6 +447,10 @@ export interface GeodataResult {
     broadband: DataSourceMeta;
     floodZone: DataSourceMeta;
     water: DataSourceMeta;
+    groundwater: DataSourceMeta;
+    soilProfile: DataSourceMeta;
+    seismicDesign: DataSourceMeta;
+    climateHistory: DataSourceMeta;
     airQuality: DataSourceMeta;
     epaHazards: DataSourceMeta;
   };

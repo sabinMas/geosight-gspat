@@ -51,7 +51,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "transportation",
         label: "Road transportation",
-        weight: 0.08,
+        weight: 0.07,
         scoreFn: "distance",
         params: { source: "road", idealKm: 2, cutoffKm: 18, direction: "near" },
         description: "Closer road access helps with construction and operations logistics.",
@@ -59,7 +59,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "landClassification",
         label: "Land classification",
-        weight: 0.08,
+        weight: 0.06,
         scoreFn: "landcover",
         params: { mode: "developed" },
         description: "Previously developed, industrial, or barren land is favored.",
@@ -75,7 +75,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "floodRisk",
         label: "Flood risk",
-        weight: 0.02,
+        weight: 0.01,
         scoreFn: "custom",
         params: { metric: "floodRisk" },
         description: "Uses FEMA flood-zone designation to lightly penalize infrastructure risk in mapped SFHAs.",
@@ -83,10 +83,34 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "contaminationRisk",
         label: "Contamination risk",
-        weight: 0.03,
+        weight: 0.01,
         scoreFn: "custom",
         params: { metric: "contaminationRisk" },
         description: "Uses EPA Superfund and TRI screening to lightly penalize nearby contamination context.",
+      },
+      {
+        key: "groundwaterDepth",
+        label: "Groundwater depth",
+        weight: 0.02,
+        scoreFn: "custom",
+        params: { metric: "groundwaterDepth", mode: "data_center" },
+        description: "Deeper water tables reduce dewatering and foundation complexity for infrastructure build-out.",
+      },
+      {
+        key: "soilBuildability",
+        label: "Soil buildability",
+        weight: 0.02,
+        scoreFn: "custom",
+        params: { metric: "soilBuildability" },
+        description: "Well-drained soils and stronger hydrologic groups support easier grading and foundation work.",
+      },
+      {
+        key: "seismicRisk",
+        label: "Seismic risk",
+        weight: 0.02,
+        scoreFn: "custom",
+        params: { metric: "seismicRisk" },
+        description: "Lower peak ground acceleration reduces structural reinforcement burden for major facilities.",
       },
     ],
     systemPrompt:
@@ -201,7 +225,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "schoolAccess",
         label: "School district proximity",
-        weight: 0.17,
+        weight: 0.15,
         scoreFn: "custom",
         params: { metric: "schoolAccess" },
         description: "Uses nearby public-school context from NCES and Washington official accountability when available.",
@@ -209,7 +233,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "roadTransit",
         label: "Road / transit access",
-        weight: 0.15,
+        weight: 0.13,
         scoreFn: "distance",
         params: { source: "road", idealKm: 1.5, cutoffKm: 14, direction: "near" },
         description: "Closer access supports commuting and neighborhood connectivity.",
@@ -225,7 +249,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "floodRisk",
         label: "Flood risk",
-        weight: 0.15,
+        weight: 0.13,
         scoreFn: "custom",
         params: { metric: "floodRisk" },
         description: "Uses FEMA flood-zone designation so Zone X carries no penalty while mapped SFHAs create an approximate fifteen-point total-score penalty.",
@@ -233,7 +257,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "amenities",
         label: "Commercial amenities nearby",
-        weight: 0.1,
+        weight: 0.09,
         scoreFn: "custom",
         params: { metric: "amenities" },
         description: "Uses live mapped amenity density from OpenStreetMap.",
@@ -241,7 +265,7 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "landClassification",
         label: "Land classification",
-        weight: 0.1,
+        weight: 0.09,
         scoreFn: "landcover",
         params: { mode: "residential" },
         description: "Avoids water-heavy land and favors mixed open or already-developed parcels.",
@@ -269,6 +293,30 @@ export const PROFILES: MissionProfile[] = [
         scoreFn: "custom",
         params: { metric: "contaminationRisk" },
         description: "Uses EPA Superfund and TRI proximity as an early contamination-screening factor.",
+      },
+      {
+        key: "groundwaterDepth",
+        label: "Groundwater depth",
+        weight: 0.03,
+        scoreFn: "custom",
+        params: { metric: "groundwaterDepth", mode: "residential" },
+        description: "Moderate water-table depth is generally easier for housing foundations and yard drainage.",
+      },
+      {
+        key: "soilBuildability",
+        label: "Soil buildability",
+        weight: 0.03,
+        scoreFn: "custom",
+        params: { metric: "soilBuildability" },
+        description: "Well-drained soils with stronger hydrologic groups improve neighborhood buildability and drainage resilience.",
+      },
+      {
+        key: "seismicRisk",
+        label: "Seismic risk",
+        weight: 0.02,
+        scoreFn: "custom",
+        params: { metric: "seismicRisk" },
+        description: "Lower site shaking potential improves early residential risk screening.",
       },
     ],
     systemPrompt:

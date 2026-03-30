@@ -3,7 +3,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
-import { STARTER_PROMPTS } from "@/lib/geosight-assistant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +18,14 @@ import {
   NearbyPlacesSource,
   ResultsMode,
 } from "@/types";
+
+const STARTER_PROMPTS = [
+  "Give me a quick overview of this place.",
+  "What are some good hikes near this location?",
+  "Are there interesting restaurants in this area?",
+  "Would this work for a new neighborhood?",
+  "What risks or constraints stand out at this location?",
+] as const;
 
 interface ChatPanelProps {
   profile: MissionProfile;

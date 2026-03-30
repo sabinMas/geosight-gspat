@@ -1,6 +1,6 @@
 "use client";
 
-import { AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-registry";
+import { AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-config";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { cn } from "@/lib/utils";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { AgentId, GeoSightContext } from "@/lib/agents/agent-registry";
+import { AgentId, GeoSightContext } from "@/lib/agents/agent-config";
 
 type AgentPanelContextValue = {
   activeAgentId: AgentId;

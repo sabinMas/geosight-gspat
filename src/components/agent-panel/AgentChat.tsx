@@ -3,7 +3,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { RotateCcw, Send } from "lucide-react";
 import { useAgentPanel } from "@/context/AgentPanelContext";
-import { AgentId, AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-registry";
+import { AgentId, AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-config";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";

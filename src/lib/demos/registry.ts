@@ -19,6 +19,7 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     icon: "Factory",
     locationName: "Columbia River Gorge",
     coordinates: { lat: DEFAULT_VIEW.lat, lng: DEFAULT_VIEW.lng },
+    fallbackScreenshot: "/demo-fallbacks/pnw-cooling.svg",
     entryMode: "overlay",
     competition: {
       openingScript:
@@ -82,6 +83,7 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     icon: "Trees",
     locationName: "Rocky Mountain National Park, Colorado",
     coordinates: { lat: 40.3428, lng: -105.6836 },
+    fallbackScreenshot: "/demo-fallbacks/colorado-hiking.svg",
     entryMode: "workspace",
   },
   {
@@ -95,6 +97,7 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     icon: "House",
     locationName: "Brooklyn, New York",
     coordinates: { lat: 40.6782, lng: -73.9442 },
+    fallbackScreenshot: "/demo-fallbacks/nyc-residential.svg",
     entryMode: "workspace",
   },
   {
@@ -108,6 +111,7 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     icon: "LineChart",
     locationName: "Tokyo, Japan",
     coordinates: { lat: 35.6762, lng: 139.6503 },
+    fallbackScreenshot: "/demo-fallbacks/tokyo-commercial.svg",
     entryMode: "workspace",
     competition: {
       openingScript:
@@ -134,6 +138,7 @@ export const DEMO_REGISTRY: DemoOverlay[] = [
     icon: "House",
     locationName: "Bellevue, Washington",
     coordinates: { lat: 47.6101, lng: -122.2015 },
+    fallbackScreenshot: "/demo-fallbacks/wa-residential.svg",
     entryMode: "workspace",
     competition: {
       openingScript:

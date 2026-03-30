@@ -19,6 +19,11 @@ GeoSight is a live geospatial reasoning platform for asking grounded questions a
 - Source-aware inline provenance for headline stats and analysis cards
 - Satellite image upload with client-side MVP land cover estimation
 - Terrain exaggeration control and elevation profile panel
+- Groundwater monitoring well levels and water table depth from USGS
+- USDA soil profile with drainage class, depth to bedrock, and hydrologic group
+- Site-specific seismic hazard parameters from USGS design maps (ASCE 7-22)
+- 10-year historical climate trend analysis with warming/cooling indicators
+- GeoScribe agent for generating structured site assessment reports
 - Competition-ready demo paths for Columbia River infrastructure, Tokyo commercial analysis, and Washington residential due diligence
 
 ## What Judges Should Try First
@@ -105,13 +110,21 @@ flowchart LR
   User["User"] --> UI["Next.js App Router UI"]
   UI --> Globe["Cesium + Resium Globe"]
   UI --> Upload["Client-side Image Upload + Classification"]
+  UI --> Cards["Workspace Cards + GeoScribe Report Panel"]
   UI --> APIs["Next.js API Routes"]
   APIs --> USGS["USGS Elevation"]
+  APIs --> Groundwater["USGS Groundwater Levels"]
+  APIs --> Seismic["USGS Seismic Design Maps"]
+  APIs --> Soils["NRCS Soil Data Access"]
   APIs --> OSM["Overpass / OpenStreetMap"]
   APIs --> Weather["Open-Meteo"]
+  APIs --> ClimateArchive["Open-Meteo Historical Archive"]
   APIs --> Groq["Groq LLM Pool"]
   APIs --> Gemini["Gemini Flash Fallback"]
   APIs --> Score["Deterministic Turf.js / scoring logic"]
+  APIs --> Sources["Source Registry + Provenance Metadata"]
+  Cards --> Score
+  Cards --> Sources
 ```
 
 ## Future roadmap

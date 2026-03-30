@@ -397,6 +397,103 @@ function scoreWaterAccess(geodata: GeodataResult) {
   );
 }
 
+function scoreGroundwaterDepth(
+  geodata: GeodataResult,
+  mode: "data_center" | "residential" = "data_center",
+) {
+  const currentLevelFt = geodata.groundwater.nearestWell?.currentLevelFt;
+  if (currentLevelFt === null || currentLevelFt === undefined) {
+    return 55;
+  }
+
+  if (mode === "residential") {
+    if (currentLevelFt >= 10 && currentLevelFt <= 40) {
+      return 90;
+    }
+    if (currentLevelFt > 40 && currentLevelFt <= 80) {
+      return 70;
+    }
+    return 50;
+  }
+
+  if (currentLevelFt > 50) {
+    return 100;
+  }
+  if (currentLevelFt >= 30) {
+    return 80;
+  }
+  if (currentLevelFt >= 15) {
+    return 60;
+  }
+  return 40;
+}
+
+function getHydrologicGroupCode(group: string | null) {
+  if (!group) {
+    return null;
+  }
+
+  return group.toUpperCase().match(/[ABCD]/)?.[0] ?? null;
+}
+
+function scoreSoilBuildability(geodata: GeodataResult) {
+  const soil = geodata.soilProfile;
+  if (!soil) {
+    return 50;
+  }
+
+  const hydrologicGroup = getHydrologicGroupCode(soil.hydrologicGroup);
+  const drainageClass = soil.drainageClass?.toLowerCase() ?? "";
+
+  if (hydrologicGroup === "A" && drainageClass.includes("well drained")) {
+    return 95;
+  }
+  if (hydrologicGroup === "B" && drainageClass.includes("moderately well")) {
+    return 80;
+  }
+  if (hydrologicGroup === "C") {
+    return 55;
+  }
+  if (
+    hydrologicGroup === "D" &&
+    (drainageClass.includes("poorly drained") || drainageClass.includes("very poorly"))
+  ) {
+    return 30;
+  }
+  if (hydrologicGroup === "A") {
+    return 88;
+  }
+  if (hydrologicGroup === "B") {
+    return 72;
+  }
+  if (hydrologicGroup === "D") {
+    return 35;
+  }
+  if (drainageClass.includes("poorly drained")) {
+    return 40;
+  }
+
+  return 60;
+}
+
+function scoreSeismicRisk(geodata: GeodataResult) {
+  const pga = geodata.seismicDesign?.pga;
+  if (pga === null || pga === undefined) {
+    return 60;
+  }
+
+  if (pga < 0.05) {
+    return 95;
+  }
+  if (pga < 0.15) {
+    return 80;
+  }
+  if (pga <= 0.4) {
+    return 55;
+  }
+  return 30;
+}
+
 function scoreCustomMetric(
   geodata: GeodataResult,
   metric: string,
@@ -423,6 +520,17 @@ function scoreCustomMetric(
       return geodata.schoolContext?.score ?? 50;
     case "floodRisk":
       return scoreFloodRisk(geodata);
+    case "groundwaterDepth":
+      return scoreGroundwaterDepth(
+        geodata,
+        String(params.mode ?? "data_center") === "residential"
+          ? "residential"
+          : "data_center",
+      );
+    case "soilBuildability":
+      return scoreSoilBuildability(geodata);
+    case "seismicRisk":
+      return scoreSeismicRisk(geodata);
     case "broadbandConnectivity":
       return scoreBroadbandAvailability(
         geodata,
@@ -530,6 +638,18 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
         return geodata.floodZone
           ? geodata.floodZone.label
           : "FEMA flood-zone context unavailable.";
+      case "groundwaterDepth":
+        return geodata.groundwater.nearestWell
+          ? `${geodata.groundwater.nearestWell.siteName} at ${geodata.groundwater.nearestWell.distanceKm.toFixed(1)} km reports water ${geodata.groundwater.nearestWell.currentLevelFt === null ? "level unavailable" : `${geodata.groundwater.nearestWell.currentLevelFt.toFixed(1)} ft below land surface`}.`
+          : "Groundwater monitoring well data unavailable.";
+      case "soilBuildability":
+        return geodata.soilProfile
+          ? `${geodata.soilProfile.mapUnitName ?? "Mapped soil unit"}; drainage ${geodata.soilProfile.drainageClass ?? "not reported"}, hydrologic group ${geodata.soilProfile.hydrologicGroup ?? "not reported"}, bedrock ${geodata.soilProfile.depthToBedrockCm === null ? "not reported" : `${(geodata.soilProfile.depthToBedrockCm / 30.48).toFixed(1)} ft below surface`}.`
+          : "Soil profile unavailable.";
+      case "seismicRisk":
+        return geodata.seismicDesign?.pga !== null && geodata.seismicDesign?.pga !== undefined
+          ? `USGS design values: PGA ${geodata.seismicDesign.pga.toFixed(2)} g, Ss ${geodata.seismicDesign.ss === null ? "--" : geodata.seismicDesign.ss.toFixed(2)} g, S1 ${geodata.seismicDesign.s1 === null ? "--" : geodata.seismicDesign.s1.toFixed(2)} g.`
+          : "USGS seismic design parameters unavailable.";
       case "broadbandConnectivity":
         if (!geodata.broadband) {
           return "FCC broadband availability unavailable for this point.";
@@ -614,6 +734,9 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
         };
       case "waterAccess":
       case "floodRisk":
+      case "groundwaterDepth":
+      case "soilBuildability":
+      case "seismicRisk":
       case "broadbandConnectivity":
       case "airQuality":
       case "contaminationRisk":

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getMethodologyForFactor } from "@/lib/scoring-methodology";
+import { cn } from "@/lib/utils";
 import { SiteScore } from "@/types";
 
 interface FactorBreakdownProps {
@@ -21,6 +23,7 @@ const EVIDENCE_TONE: Record<string, string> = {
 export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBreakdownProps) {
   const [mounted, setMounted] = useState(false);
   const [showMethodNotes, setShowMethodNotes] = useState(false);
+  const [openMethodKey, setOpenMethodKey] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -108,7 +111,29 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
               className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--foreground)]">
-                <span className="font-medium">{factor.label}</span>
+                <div className="group relative flex items-center gap-2">
+                  <span className="font-medium">{factor.label}</span>
+                  <button
+                    type="button"
+                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-1 text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+                    aria-label={`Show scoring methodology for ${factor.label}`}
+                    onClick={() =>
+                      setOpenMethodKey((current) =>
+                        current === factor.key ? null : factor.key,
+                      )
+                    }
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                  <div
+                    className={cn(
+                      "absolute left-0 top-full z-10 mt-2 hidden w-[320px] rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3 text-xs leading-5 text-[var(--foreground-soft)] shadow-[var(--shadow-panel)] group-hover:block group-focus-within:block",
+                      openMethodKey === factor.key && "block",
+                    )}
+                  >
+                    {getMethodologyForFactor(factor.key)}
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   {factor.evidenceLabel ? (
                     <span

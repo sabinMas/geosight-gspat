@@ -5,7 +5,7 @@ import {
   GeoSightContext,
   getAgentConfig,
   isAgentId,
-} from "@/lib/agents/agent-registry";
+} from "@/lib/agents/agent-config";
 import { injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
 
