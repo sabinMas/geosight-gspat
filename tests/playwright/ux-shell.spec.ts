@@ -20,7 +20,12 @@ test("landing keeps one dominant start flow across responsive widths", async ({ 
     await page.setViewportSize({ width, height: 1200 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /ask one place/i })).toBeVisible();
+    await expect(page.getByText(/why geosight feels different/i)).toHaveCount(0);
+    await expect(page.getByText(/step 2 stays hidden until you choose a mission lens/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /open geosight/i })).toHaveCount(0);
+    await page.getByRole("button", { name: /home buying/i }).click();
     await expect(page.getByRole("button", { name: /open geosight/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /focus a place with the home buying lens/i })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   }
 });
@@ -29,19 +34,11 @@ test("explore defaults to the minimal shell and hides advanced board surfaces", 
   await page.goto("/explore");
 
   await expect(page.getByText("Explore workspace")).toBeVisible();
+  await expect(page.getByRole("button", { name: /ask geosight/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /open advanced board/i })).toBeVisible();
   await expect(page.getByText("Saved layouts")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /supporting view/i })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
-});
-
-test("advanced board and library remain opt-in", async ({ page }) => {
-  await page.goto("/explore");
-  await page.getByRole("button", { name: /open advanced board/i }).click();
-
-  await expect(page.getByText("Open one supporting view at a time")).toBeVisible();
-  await page.getByRole("button", { name: /customize views/i }).click();
-  await expect(page.getByRole("heading", { name: /choose what stays visible/i })).toBeVisible();
 });
 
 test("judge mode opens the richer board path", async ({ page }) => {
@@ -50,7 +47,8 @@ test("judge mode opens the richer board path", async ({ page }) => {
   );
 
   await expect(page.getByText(/judge-ready spatial reasoning flow/i)).toBeVisible();
-  await expect(page.getByText("Open one supporting view at a time")).toBeVisible();
+  await expect(page.getByText(/mission run stays in focus/i)).toBeVisible();
+  await expect(page.getByText(/supporting evidence opens on demand/i)).toBeVisible();
 });
 
 test("geo-usability returns deterministic findings from ui context", async ({ request }) => {

@@ -25,7 +25,9 @@
     "next": "^15.5.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.2.1",
+    "remark-gfm": "^4.0.1",
     "resium": "^1.19.0",
     "tailwind-merge": "^3.3.1"
   },

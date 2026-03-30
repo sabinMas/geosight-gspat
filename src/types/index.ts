@@ -212,6 +212,7 @@ export interface DemoOverlay {
   fallbackScreenshot: string;
   entryMode: "workspace" | "overlay";
   preloadedSites?: SavedSite[];
+  quickRegionSites?: DemoSiteSeed[];
   mapOverlays?: DemoMapOverlay[];
   competition?: {
     openingScript: string;

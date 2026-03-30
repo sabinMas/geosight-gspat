@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DEFAULT_VIEW } from "@/lib/demo-data";
+import { fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
 import { Coordinates, GeodataResult, MissionProfile, SiteScore } from "@/types";
 
@@ -30,9 +31,13 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, re
 
     async function run() {
       try {
-        const response = await fetch(`/api/geodata?lat=${coords.lat}&lng=${coords.lng}`, {
-          signal: controller.signal,
-        });
+        const response = await fetchWithTimeout(
+          `/api/geodata?lat=${coords.lat}&lng=${coords.lng}`,
+          {
+            signal: controller.signal,
+          },
+          8_000,
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch geodata.");
         }

@@ -108,6 +108,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const defaultLabel = init.locationQuery
     ? "Resolving location..."
     : activeDemo?.locationName ?? "Starter view";
+  const quickRegionSeeds = activeDemo?.quickRegionSites ?? activeProfile.demoSites ?? [];
 
   const {
     selectedPoint,
@@ -116,7 +117,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     selectPoint: selectGlobePoint,
     setSelectedRegion,
     quickRegions,
-  } = useGlobeInteraction(defaultCoordinates, defaultLabel, activeProfile.demoSites ?? []);
+  } = useGlobeInteraction(defaultCoordinates, defaultLabel, quickRegionSeeds);
 
   const selectPoint = useCallback(
     (coords: { lat: number; lng: number }, label?: string) => {

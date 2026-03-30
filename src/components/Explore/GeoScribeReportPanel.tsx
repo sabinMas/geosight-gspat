@@ -1,7 +1,8 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, FileText, Loader2, X } from "lucide-react";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Button } from "@/components/ui/button";
 
 interface GeoScribeReportPanelProps {
@@ -13,82 +14,6 @@ interface GeoScribeReportPanelProps {
   onClose: () => void;
 }
 
-function parseMarkdown(markdown: string) {
-  const lines = markdown.split(/\r?\n/);
-  const nodes: ReactNode[] = [];
-  let bulletItems: string[] = [];
-
-  const flushBullets = () => {
-    if (!bulletItems.length) {
-      return;
-    }
-
-    const items = bulletItems;
-    bulletItems = [];
-    nodes.push(
-      <ul
-        key={`list-${nodes.length}`}
-        className="space-y-2 pl-5 text-sm leading-7 text-[var(--foreground-soft)]"
-      >
-        {items.map((item, index) => (
-          <li key={`item-${index}`} className="list-disc">
-            {item}
-          </li>
-        ))}
-      </ul>,
-    );
-  };
-
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
-
-    if (!trimmed) {
-      flushBullets();
-      return;
-    }
-
-    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      bulletItems.push(trimmed.slice(2).trim());
-      return;
-    }
-
-    flushBullets();
-
-    if (trimmed.startsWith("# ")) {
-      nodes.push(
-        <h1
-          key={`h1-${index}`}
-          className="text-2xl font-semibold tracking-tight text-[var(--foreground)]"
-        >
-          {trimmed.slice(2).trim()}
-        </h1>,
-      );
-      return;
-    }
-
-    if (trimmed.startsWith("## ")) {
-      nodes.push(
-        <h2
-          key={`h2-${index}`}
-          className="pt-2 text-lg font-semibold text-[var(--foreground)]"
-        >
-          {trimmed.slice(3).trim()}
-        </h2>,
-      );
-      return;
-    }
-
-    nodes.push(
-      <p key={`p-${index}`} className="text-sm leading-7 text-[var(--foreground-soft)]">
-        {trimmed}
-      </p>,
-    );
-  });
-
-  flushBullets();
-  return nodes;
-}
-
 export function GeoScribeReportPanel({
   open,
   locationName,
@@ -98,7 +23,6 @@ export function GeoScribeReportPanel({
   onClose,
 }: GeoScribeReportPanelProps) {
   const [copied, setCopied] = useState(false);
-  const renderedMarkdown = useMemo(() => parseMarkdown(markdown), [markdown]);
 
   useEffect(() => {
     if (!open) {
@@ -193,7 +117,7 @@ export function GeoScribeReportPanel({
               {error}
             </div>
           ) : markdown ? (
-            <div className="space-y-4">{renderedMarkdown}</div>
+            <MarkdownContent content={markdown} className="space-y-4" />
           ) : (
             <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-3 text-sm leading-6 text-[var(--muted-foreground)]">
               Generate a report to turn the current geospatial context into a shareable written assessment.

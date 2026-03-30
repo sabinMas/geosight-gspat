@@ -6,6 +6,8 @@ import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildDemoMissionRunResult } from "@/lib/demo-fallbacks";
+import { fetchWithTimeout } from "@/lib/network";
 import {
   Coordinates,
   DataTrend,
@@ -54,9 +56,11 @@ export function MissionRunCard({
   onOpenCard,
   autoRun = false,
 }: MissionRunCardProps) {
+  const MISSION_RUN_TIMEOUT_MS = 25_000;
   const [result, setResult] = useState<MissionRunResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
   const [lastRunKey, setLastRunKey] = useState<string | null>(null);
 
   const runKey = `${preset.id}:${location.lat.toFixed(4)}:${location.lng.toFixed(4)}`;
@@ -88,29 +92,46 @@ export function MissionRunCard({
 
   const runMission = useCallback(async () => {
     if (!geodata) {
-      setError("Mission runs require live geodata for the active location.");
+      setResult(
+        buildDemoMissionRunResult({
+          preset,
+          profile,
+          locationName,
+          geodata: null,
+        }),
+      );
+      setFallbackNotice(
+        "Live geodata is still loading, so GeoSight is showing the competition-safe demo mission narrative.",
+      );
+      setError(null);
+      setLastRunKey(runKey);
       return;
     }
 
     setLoading(true);
     setError(null);
+    setFallbackNotice(null);
 
     try {
-      const response = await fetch("/api/mission-run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          presetId: preset.id,
-          profileId: profile.id,
-          location,
-          locationName,
-          geodata,
-          nearbyPlaces,
-          dataTrends,
-          imageSummary,
-          classification,
-        }),
-      });
+      const response = await fetchWithTimeout(
+        "/api/mission-run",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            presetId: preset.id,
+            profileId: profile.id,
+            location,
+            locationName,
+            geodata,
+            nearbyPlaces,
+            dataTrends,
+            imageSummary,
+            classification,
+          }),
+        },
+        MISSION_RUN_TIMEOUT_MS,
+      );
 
       const payload = (await response.json()) as MissionRunResult & { error?: string };
       if (!response.ok) {
@@ -120,7 +141,21 @@ export function MissionRunCard({
       setResult(payload);
       setLastRunKey(runKey);
     } catch (runError) {
-      setError(runError instanceof Error ? runError.message : "Mission run failed.");
+      setResult(
+        buildDemoMissionRunResult({
+          preset,
+          profile,
+          locationName,
+          geodata,
+        }),
+      );
+      setFallbackNotice(
+        runError instanceof Error && runError.message.trim()
+          ? `${runError.message} GeoSight switched to the demo-safe mission fallback so the story can continue.`
+          : "Mission execution stalled, so GeoSight switched to the demo-safe fallback result.",
+      );
+      setError(null);
+      setLastRunKey(runKey);
     } finally {
       setLoading(false);
     }
@@ -132,8 +167,9 @@ export function MissionRunCard({
     location,
     locationName,
     nearbyPlaces,
-    preset.id,
-    profile.id,
+    MISSION_RUN_TIMEOUT_MS,
+    preset,
+    profile,
     runKey,
   ]);
 
@@ -156,9 +192,9 @@ export function MissionRunCard({
               {preset.missionObjective}
             </p>
           </div>
-          <Button type="button" className="rounded-full" onClick={runMission} disabled={loading || !geodata}>
+          <Button type="button" className="rounded-full" onClick={runMission} disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-            {result ? "Run again" : "Run mission"}
+            {result ? "Run again" : geodata ? "Run mission" : "Run demo mission"}
           </Button>
         </div>
 
@@ -233,8 +269,13 @@ export function MissionRunCard({
               {result?.headline ?? "Run the mission to generate the judge-facing verdict."}
             </div>
             <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-              {result?.summary ?? preset.summary}
+            {result?.summary ?? preset.summary}
             </p>
+            {fallbackNotice ? (
+              <div className="mt-3 rounded-[1rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-2 text-sm text-[var(--warning-foreground)]">
+                {fallbackNotice}
+              </div>
+            ) : null}
             {error ? (
               <div className="mt-3 rounded-[1rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-3 py-2 text-sm text-[var(--danger-foreground)]">
                 {error}
@@ -284,7 +325,7 @@ export function MissionRunCard({
                 title: step.title,
                 objective: step.objective,
                 answer: "Run the mission to generate this step.",
-                model: "pending",
+                model: "not run yet",
               }));
 
             return (

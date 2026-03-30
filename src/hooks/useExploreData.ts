@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GeoSightContext } from "@/lib/agents/agent-config";
 import { buildLocationTrends } from "@/lib/data-trends";
+import { buildDemoGroundingSources } from "@/lib/demo-fallbacks";
+import { fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
 import {
   detectWorkspaceIntent,
@@ -280,7 +282,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
 
     const timeout = window.setTimeout(() => {
       setSlowDemoLoading(true);
-    }, 8_000);
+    }, 5_000);
 
     return () => window.clearTimeout(timeout);
   }, [activeDemo, loading, selectedPoint.lat, selectedPoint.lng]);
@@ -304,16 +306,20 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setReportError(null);
 
     try {
-      const response = await fetch("/api/agents/geo-scribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetchWithTimeout(
+        "/api/agents/geo-scribe",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: `Generate a full site assessment report for ${selectedLocationName} at ${selectedPoint.lat}, ${selectedPoint.lng} using the ${activeProfile.name} mission profile. Use the full context bundle, cite real values with units, and keep the output in markdown.`,
+            context: agentContext,
+          }),
         },
-        body: JSON.stringify({
-          message: `Generate a full site assessment report for ${selectedLocationName} at ${selectedPoint.lat}, ${selectedPoint.lng} using the ${activeProfile.name} mission profile. Use the full context bundle, cite real values with units, and keep the output in markdown.`,
-          context: agentContext,
-        }),
-      });
+        25_000,
+      );
 
       if (!response.ok) {
         throw new Error(await readAgentRouteError(response));
@@ -357,6 +363,14 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       ...suggestions.filter((card) => !pinnedCardIds.includes(card.id)),
     ];
   }, [allWorkspaceCards, geodata, lastIntent, pinnedCardIds, previewUrl, sites.length, visibility]);
+
+  const groundingFallbackSources = useMemo(
+    () =>
+      activeDemo && !geodata && (slowDemoLoading || Boolean(error))
+        ? buildDemoGroundingSources(activeDemo.id, selectedLocationName)
+        : [],
+    [activeDemo, error, geodata, selectedLocationName, slowDemoLoading],
+  );
 
   const openCardFromTray = useCallback((cardId: WorkspaceCardId) => {
     if (!visibility[cardId]) {
@@ -468,6 +482,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     loadDemoSites,
     effectiveClassification,
     locationTrends,
+    groundingFallbackSources,
     showComparePrompt,
     showImagePrompt,
     showSourcePrompt,

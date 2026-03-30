@@ -58,7 +58,7 @@ export function Sidebar({
 
       <Card>
         <CardHeader>
-          <CardTitle>Current lens</CardTitle>
+          <CardTitle>Current place</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
           <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
@@ -68,7 +68,7 @@ export function Sidebar({
               {selectedRegion.center.lat.toFixed(4)} / {selectedRegion.center.lng.toFixed(4)}
             </div>
           </div>
-          <p>{activeProfile.tagline}</p>
+          <p>Keep the main workspace focused while using the globe and prompt to steer deeper analysis.</p>
         </CardContent>
       </Card>
 

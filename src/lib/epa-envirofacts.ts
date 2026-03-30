@@ -4,6 +4,7 @@ import { EPAHazardResult } from "@/types";
 
 const EPA_DEGREE_SPAN = 0.5;
 const EPA_SEARCH_RADIUS_KM = 50;
+const MAX_EPA_PAYLOAD_BYTES = 5_000_000;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -83,12 +84,18 @@ async function fetchJsonArray(url: string) {
       url,
       {
         headers: { Accept: "application/json" },
+        cache: "no-store",
         next: { revalidate: 60 * 60 * 12 },
       },
       EXTERNAL_TIMEOUTS.standard,
     );
 
     if (!response.ok) {
+      return null;
+    }
+
+    const contentLength = Number(response.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > MAX_EPA_PAYLOAD_BYTES) {
       return null;
     }
 
@@ -114,7 +121,7 @@ async function fetchSuperfundSites(lat: number, lng: number) {
     `primary_latitude_decimal_val/lessThan/${maxLat}/` +
     `primary_longitude_decimal_val/greaterThan/${minLng}/` +
     `primary_longitude_decimal_val/lessThan/${maxLng}/1:500/JSON`;
-  const payload = (await fetchJsonArray(efserviceUrl)) ?? (await fetchJsonArray(dmapUrl)) ?? [];
+  const payload = (await fetchJsonArray(dmapUrl)) ?? (await fetchJsonArray(efserviceUrl)) ?? [];
 
   return payload
     .map((entry) => {
@@ -160,7 +167,7 @@ async function fetchTriFacilities(lat: number, lng: number) {
     `fac_latitude/lessThan/${dmapMaxLat}/` +
     `fac_longitude/greaterThan/${dmapMinLng}/` +
     `fac_longitude/lessThan/${dmapMaxLng}/1:500/JSON`;
-  const payload = (await fetchJsonArray(efserviceUrl)) ?? (await fetchJsonArray(dmapUrl)) ?? [];
+  const payload = (await fetchJsonArray(dmapUrl)) ?? (await fetchJsonArray(efserviceUrl)) ?? [];
 
   return payload
     .map((entry) => {

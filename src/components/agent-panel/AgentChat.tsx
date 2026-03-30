@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { RotateCcw, Send } from "lucide-react";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { AgentId, AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-config";
 import { Button } from "@/components/ui/button";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -126,7 +127,13 @@ async function readResponseError(response: Response) {
 }
 
 export default function AgentChat() {
-  const { activeAgentId, geoContext, uiContext } = useAgentPanel();
+  const {
+    activeAgentId,
+    geoContext,
+    uiContext,
+    queuedDrafts,
+    clearQueuedDraft,
+  } = useAgentPanel();
   const [threads, setThreads] = useState<Record<AgentId, AgentChatMessage[]>>(() =>
     createAgentRecord(() => []),
   );
@@ -176,12 +183,25 @@ export default function AgentChat() {
     return () => window.clearInterval(interval);
   }, [isLoading]);
 
-  const setDraftForAgent = (agentId: AgentId, value: string) => {
+  const setDraftForAgent = useCallback((agentId: AgentId, value: string) => {
     setDrafts((current) => ({
       ...current,
       [agentId]: value,
     }));
-  };
+  }, []);
+
+  useEffect(() => {
+    const queuedDraft = queuedDrafts[activeAgentId];
+    if (!queuedDraft) {
+      return;
+    }
+
+    setDraftForAgent(activeAgentId, queuedDraft);
+    clearQueuedDraft(activeAgentId);
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  }, [activeAgentId, clearQueuedDraft, queuedDrafts, setDraftForAgent]);
 
   const setLoadingState = (agentId: AgentId, value: boolean) => {
     setLoadingByAgent((current) => ({
@@ -411,7 +431,13 @@ export default function AgentChat() {
                           : "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]",
                       )}
                     >
-                      {message.content || (message.isStreaming ? loadingEllipsis : "")}
+                      {isAssistant ? (
+                        <MarkdownContent
+                          content={message.content || (message.isStreaming ? loadingEllipsis : "")}
+                        />
+                      ) : (
+                        message.content || (message.isStreaming ? loadingEllipsis : "")
+                      )}
                     </div>
                   </div>
                 </div>

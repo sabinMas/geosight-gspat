@@ -21,6 +21,7 @@ import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
+import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
@@ -46,7 +47,7 @@ const CesiumGlobe = dynamic(
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
-  const { setGeoContext, setUiContext } = useAgentPanel();
+  const { setGeoContext, setUiContext, primeAgent } = useAgentPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -108,6 +109,11 @@ export function ExploreWorkspace() {
 
   const resultsHeader = (
     <ResultsModeToggle mode={state.resultsMode} onChange={state.setResultsMode} />
+  );
+  const reportPrompt = useMemo(
+    () =>
+      `Generate a full intelligence report for the ${state.activeProfile.name} mission at ${state.selectedLocationName}. Keep it grounded in the live GeoSight context, call out data gaps explicitly, and structure it for a judge-ready briefing.`,
+    [state.activeProfile.name, state.selectedLocationName],
   );
 
   const visibleUiCardIds = useMemo(
@@ -227,7 +233,10 @@ export function ExploreWorkspace() {
                 variant="secondary"
                 className="rounded-full"
                 disabled={!data.geodata || data.loading || data.reportLoading}
-                onClick={() => void data.generateReport()}
+                onClick={() => {
+                  primeAgent("geo-scribe", reportPrompt);
+                  void data.generateReport();
+                }}
               >
                 <FileText className="mr-2 h-4 w-4" />
                 {data.reportLoading ? "Generating report..." : "Generate report"}
@@ -327,33 +336,39 @@ export function ExploreWorkspace() {
               </div>
             ) : null}
 
-            <section className="relative min-h-[640px] overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]">
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
-              <CesiumGlobe
-                selectedPoint={state.selectedPoint}
-                selectedRegion={state.selectedRegion}
-                onPointSelect={(coords) => {
-                  state.selectPoint(coords);
-                  data.handleLocationSelection();
-                }}
-                savedSites={data.sites}
-                layers={state.layers}
-                terrainExaggeration={state.terrainExaggeration}
-                demoOverlays={state.activeDemo?.mapOverlays ?? []}
-              />
-              {data.shellMode === "board" ? (
-                <DataLayers layers={state.layers} onChange={state.setLayers} />
-              ) : null}
-              <RegionSelector
-                region={state.selectedRegion}
-                onReset={() =>
-                  state.selectPoint(
-                    state.defaultCoordinates,
-                    state.activeDemo?.locationName ?? "Starter view",
-                  )
-                }
-              />
-            </section>
+            <ClientErrorBoundary
+              title="The globe view needs a quick reset"
+              message="GeoSight kept the rest of the workspace alive. Retry the globe, switch regions, or keep working from the cards while the globe re-initializes."
+            >
+              <section className="relative min-h-[640px] overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
+                <CesiumGlobe
+                  selectedPoint={state.selectedPoint}
+                  selectedRegion={state.selectedRegion}
+                  onPointSelect={(coords) => {
+                    state.selectPoint(coords);
+                    data.handleLocationSelection();
+                  }}
+                  savedSites={data.sites}
+                  layers={state.layers}
+                  terrainExaggeration={state.terrainExaggeration}
+                  demoOverlays={state.activeDemo?.mapOverlays ?? []}
+                />
+                {data.shellMode === "board" ? (
+                  <DataLayers layers={state.layers} onChange={state.setLayers} />
+                ) : null}
+                <RegionSelector
+                  region={state.selectedRegion}
+                  onReset={() => {
+                    state.selectPoint(
+                      state.defaultCoordinates,
+                      state.activeDemo?.locationName ?? "Starter view",
+                    );
+                    data.handleLocationSelection();
+                  }}
+                />
+              </section>
+            </ClientErrorBoundary>
 
             <section className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

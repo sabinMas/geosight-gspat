@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Trees,
 } from "lucide-react";
+import { LandingUseCase } from "@/types";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
@@ -33,15 +34,62 @@ const ICONS = {
 } as const;
 
 const GUIDED_DEMO_IDS = ["pnw-cooling", "tokyo-commercial", "wa-residential"] as const;
+const FEATURED_USE_CASE_IDS = ["home-buying", "market-analysis", "infrastructure"] as const;
 
 function getIcon(iconName: (typeof LANDING_USE_CASES)[number]["icon"]) {
   return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
 }
 
+function UseCaseCard({
+  useCase,
+  active,
+  onSelect,
+}: {
+  useCase: LandingUseCase;
+  active: boolean;
+  onSelect: (useCaseId: string) => void;
+}) {
+  const Icon = getIcon(useCase.icon);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(useCase.id)}
+      className="rounded-[1.35rem] border p-4 text-left transition duration-300"
+      style={{
+        borderColor: active ? `${useCase.accentColor}55` : "var(--border-soft)",
+        background: active ? `${useCase.accentColor}14` : "var(--surface-raised)",
+      }}
+      aria-pressed={active}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
+          style={{
+            borderColor: active ? `${useCase.accentColor}40` : "var(--border-soft)",
+            background: active ? `${useCase.accentColor}18` : "var(--surface-soft)",
+            color: useCase.accentColor,
+          }}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
+            {useCase.title}
+          </div>
+          <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
+            {useCase.description}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export function LandingPage() {
   const router = useRouter();
   const { setUiContext } = useAgentPanel();
-  const [selectedUseCaseId, setSelectedUseCaseId] = useState("general-exploration");
+  const [selectedUseCaseId, setSelectedUseCaseId] = useState<string | null>(null);
   const [locationQuery, setLocationQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -58,18 +106,38 @@ export function LandingPage() {
       ),
     [],
   );
+  const featuredUseCases = useMemo(
+    () =>
+      FEATURED_USE_CASE_IDS.map((useCaseId) =>
+        LANDING_USE_CASES.find((useCase) => useCase.id === useCaseId),
+      ).filter((useCase): useCase is LandingUseCase => Boolean(useCase)),
+    [],
+  );
+  const additionalUseCases = useMemo(
+    () =>
+      LANDING_USE_CASES.filter(
+        (useCase) =>
+          !FEATURED_USE_CASE_IDS.includes(
+            useCase.id as (typeof FEATURED_USE_CASE_IDS)[number],
+          ),
+      ),
+    [],
+  );
   const selectedUseCase = useMemo(
-    () => LANDING_USE_CASES.find((useCase) => useCase.id === selectedUseCaseId) ?? LANDING_USE_CASES[0],
+    () =>
+      selectedUseCaseId
+        ? LANDING_USE_CASES.find((useCase) => useCase.id === selectedUseCaseId) ?? null
+        : null,
     [selectedUseCaseId],
   );
 
   useEffect(() => {
     setUiContext({
-      activeProfile: selectedUseCase.profileId,
+      activeProfile: selectedUseCase?.profileId,
       visiblePrimaryCardId: null,
       visibleWorkspaceCardIds: [],
-      visibleControlCount: 8,
-      visibleTextBlockCount: 7,
+      visibleControlCount: selectedUseCase ? 8 : 5,
+      visibleTextBlockCount: selectedUseCase ? 7 : 6,
       shellMode: "minimal",
       locationSelected: false,
       geodataLoaded: false,
@@ -77,9 +145,22 @@ export function LandingPage() {
       reportOpen: false,
       demoOpen: false,
     });
-  }, [selectedUseCase.profileId, setUiContext]);
+  }, [selectedUseCase?.profileId, selectedUseCase, setUiContext]);
+
+  const handleSelectUseCase = (useCaseId: string) => {
+    const nextUseCase =
+      LANDING_USE_CASES.find((useCase) => useCase.id === useCaseId) ?? null;
+    setSelectedUseCaseId(useCaseId);
+    setError(null);
+    setLocationQuery(nextUseCase?.suggestedQuery ?? "");
+  };
 
   const handleRouteToExplore = (nextLocationQuery?: string) => {
+    if (!selectedUseCase) {
+      setError("Choose a mission lens before opening GeoSight.");
+      return;
+    }
+
     const href = buildExploreHref({
       profileId: selectedUseCase.profileId,
       locationQuery: nextLocationQuery || undefined,
@@ -93,6 +174,11 @@ export function LandingPage() {
     event.preventDefault();
     setError(null);
 
+    if (!selectedUseCase) {
+      setError("Choose a mission lens to unlock the next step.");
+      return;
+    }
+
     if (!locationQuery.trim()) {
       setError("Enter a city, ZIP code, coordinates, or region to continue.");
       return;
@@ -104,6 +190,12 @@ export function LandingPage() {
 
   const handleUseCurrentLocation = async () => {
     setError(null);
+
+    if (!selectedUseCase) {
+      setError("Choose a mission lens before using your current location.");
+      return;
+    }
+
     setLocating(true);
 
     try {
@@ -123,10 +215,7 @@ export function LandingPage() {
           <div className="hero-orbit right-[-4rem] top-[-3rem]" />
           <div className="hero-orbit bottom-[-6rem] left-[-5rem]" />
 
-          <div className="relative flex items-center justify-between gap-4">
-            <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-              Universal location intelligence
-            </span>
+          <div className="relative flex justify-end">
             <ThemeToggle compact />
           </div>
 
@@ -182,82 +271,81 @@ export function LandingPage() {
               <div className="space-y-3">
                 <div className="eyebrow">Step 1</div>
                 <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-                  Choose a lens and focus a place
+                  Pick one of three featured starting lenses
                 </h2>
                 <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                  The selected mission profile carries straight into the minimal explore shell.
+                  Keep the first choice small, then unlock the location step once the lens is clear.
                 </p>
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {LANDING_USE_CASES.map((useCase) => {
-                  const Icon = getIcon(useCase.icon);
-                  const active = useCase.id === selectedUseCaseId;
-
-                  return (
-                    <button
-                      key={useCase.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedUseCaseId(useCase.id);
-                        setLocationQuery((current) => current || useCase.suggestedQuery);
-                      }}
-                      className="rounded-[1.35rem] border p-4 text-left transition duration-300"
-                      style={{
-                        borderColor: active ? `${useCase.accentColor}55` : "var(--border-soft)",
-                        background: active ? `${useCase.accentColor}14` : "var(--surface-raised)",
-                      }}
-                    >
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-                          style={{
-                            borderColor: active ? `${useCase.accentColor}40` : "var(--border-soft)",
-                            background: active ? `${useCase.accentColor}18` : "var(--surface-soft)",
-                            color: useCase.accentColor,
-                          }}
-                        >
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
-                            {useCase.title}
-                          </div>
-                          <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
-                            {useCase.description}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                {featuredUseCases.map((useCase) => (
+                  <UseCaseCard
+                    key={useCase.id}
+                    useCase={useCase}
+                    active={useCase.id === selectedUseCaseId}
+                    onSelect={handleSelectUseCase}
+                  />
+                ))}
               </div>
 
-              <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-                <Input
-                  value={locationQuery}
-                  onChange={(event) => setLocationQuery(event.target.value)}
-                  placeholder={selectedUseCase.suggestedQuery}
-                  className="h-12 rounded-[1.5rem]"
-                />
-
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Open GeoSight
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-12 rounded-full"
-                    onClick={handleUseCurrentLocation}
-                    disabled={locating}
-                  >
-                    {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Use my location
-                  </Button>
+              <details className="mt-4 rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+                <summary className="cursor-pointer text-sm font-medium text-[var(--foreground)]">
+                  More starting lenses
+                </summary>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {additionalUseCases.map((useCase) => (
+                    <UseCaseCard
+                      key={useCase.id}
+                      useCase={useCase}
+                      active={useCase.id === selectedUseCaseId}
+                      onSelect={handleSelectUseCase}
+                    />
+                  ))}
                 </div>
-              </form>
+              </details>
+
+              {selectedUseCase ? (
+                <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                  <div className="space-y-2">
+                    <div className="eyebrow">Step 2</div>
+                    <h3 className="text-xl font-semibold text-[var(--foreground)]">
+                      Focus a place with the {selectedUseCase.title.toLowerCase()} lens
+                    </h3>
+                    <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                      Suggested start: {selectedUseCase.suggestedQuery}
+                    </p>
+                  </div>
+
+                  <Input
+                    value={locationQuery}
+                    onChange={(event) => setLocationQuery(event.target.value)}
+                    placeholder={selectedUseCase.suggestedQuery}
+                    className="h-12 rounded-[1.5rem]"
+                  />
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
+                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Open GeoSight
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-12 rounded-full"
+                      onClick={handleUseCurrentLocation}
+                      disabled={locating}
+                    >
+                      {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Use my location
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="mt-5 rounded-[1.35rem] border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-5 text-sm leading-6 text-[var(--muted-foreground)]">
+                  Step 2 stays hidden until you choose a mission lens.
+                </div>
+              )}
 
               {error ? (
                 <div className="mt-4 rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
@@ -331,35 +419,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        <details className="glass-panel rounded-[2rem] p-5 md:p-6">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-            Why GeoSight feels different
-          </summary>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {[
-              {
-                title: "Grounded",
-                text: "GeoSight ties every strong claim back to source-aware spatial context.",
-              },
-              {
-                title: "Composed",
-                text: "The workspace grows from one place and one prompt into reusable cards instead of a wall of widgets.",
-              },
-              {
-                title: "Global-minded",
-                text: "The product starts with any place first, then stays honest about where domain coverage is strong or thin.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4"
-              >
-                <div className="text-base font-semibold text-[var(--foreground)]">{item.title}</div>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </details>
       </div>
     </main>
   );
