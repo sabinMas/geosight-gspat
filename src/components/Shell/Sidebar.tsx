@@ -26,7 +26,7 @@ export function Sidebar({
   quickRegions,
 }: SidebarProps) {
   return (
-    <aside className="glass-panel data-grid z-20 flex w-full max-w-[320px] flex-col gap-4 rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)]">
+    <aside className="glass-panel data-grid z-20 flex max-h-[calc(100vh-2rem)] w-full max-w-[320px] flex-col gap-4 overflow-y-auto overscroll-contain rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] scrollbar-thin xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)]">
       <div className="space-y-3">
         <Badge>GeoSight</Badge>
         <h1 className="text-2xl font-semibold text-[var(--foreground)]">Mission controls</h1>

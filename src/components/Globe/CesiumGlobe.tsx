@@ -6,6 +6,7 @@ import {
   Cartographic,
   Color,
   createWorldTerrainAsync,
+  EllipsoidTerrainProvider,
   Ion,
   Math as CesiumMath,
   ScreenSpaceEventType,
@@ -45,11 +46,43 @@ export function CesiumGlobe({
   const viewerRef = useRef<CesiumViewer | null>(null);
   const lastFlyTargetRef = useRef<string | null>(null);
   const resizeFrameRef = useRef<number | null>(null);
+  const resetTimeoutRef = useRef<number | null>(null);
   const [viewerReady, setViewerReady] = useState(false);
-  const terrainProvider = useMemo(() => createWorldTerrainAsync(), []);
+  const [viewerKey, setViewerKey] = useState(0);
+  const terrainProvider = useMemo(
+    () =>
+      createWorldTerrainAsync().catch((error) => {
+        console.warn("[cesium-globe] world terrain unavailable, using ellipsoid terrain", error);
+        return new EllipsoidTerrainProvider();
+      }),
+    [],
+  );
+
+  const isViewerUsable = (viewer: CesiumViewer | null): viewer is CesiumViewer =>
+    Boolean(viewer && !viewer.isDestroyed());
+
+  const requestViewerReset = (reason: string) => {
+    if (resetTimeoutRef.current !== null) {
+      return;
+    }
+
+    console.warn(`[cesium-globe] resetting viewer after ${reason}`);
+    setViewerReady(false);
+    lastFlyTargetRef.current = null;
+
+    resetTimeoutRef.current = window.setTimeout(() => {
+      resetTimeoutRef.current = null;
+      setViewerKey((current) => current + 1);
+    }, 180);
+  };
 
   useEffect(() => {
-    if (!viewerRef.current || !viewerReady) {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    if (!Number.isFinite(selectedPoint.lat) || !Number.isFinite(selectedPoint.lng)) {
       return;
     }
 
@@ -61,7 +94,7 @@ export function CesiumGlobe({
     const isFirstTarget = lastFlyTargetRef.current === null;
     lastFlyTargetRef.current = nextTarget;
     try {
-      viewerRef.current.camera.flyTo({
+      viewer.camera.flyTo({
         destination: Cartesian3.fromDegrees(
           selectedPoint.lng,
           selectedPoint.lat,
@@ -75,19 +108,20 @@ export function CesiumGlobe({
   }, [selectedPoint, viewerReady]);
 
   useEffect(() => {
-    if (!viewerRef.current) {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer)) {
       return;
     }
 
-    viewerRef.current.scene.verticalExaggeration = terrainExaggeration;
+    viewer.scene.verticalExaggeration = terrainExaggeration;
   }, [terrainExaggeration]);
 
   useEffect(() => {
-    if (!viewerRef.current || !viewerReady) {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
       return;
     }
 
-    const viewer = viewerRef.current;
     const host = hostRef.current;
 
     const scheduleResize = () => {
@@ -98,11 +132,16 @@ export function CesiumGlobe({
       resizeFrameRef.current = window.requestAnimationFrame(() => {
         resizeFrameRef.current = null;
 
+        if (!isViewerUsable(viewer) || !viewer.container?.isConnected) {
+          return;
+        }
+
         try {
           viewer.resize();
           viewer.scene.requestRender();
         } catch (error) {
           console.warn("[cesium-globe] viewer resize failed", error);
+          requestViewerReset("resize failure");
         }
       });
     };
@@ -136,9 +175,60 @@ export function CesiumGlobe({
     };
   }, [viewerReady]);
 
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    const handleRenderError = (_scene: unknown, error: unknown) => {
+      console.warn("[cesium-globe] render error", error);
+      requestViewerReset("render error");
+    };
+
+    const canvas = viewer.canvas;
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      requestViewerReset("webgl context loss");
+    };
+    const handleContextRestored = () => {
+      try {
+        viewer.resize();
+        viewer.scene.requestRender();
+      } catch (error) {
+        console.warn("[cesium-globe] context restore render failed", error);
+      }
+    };
+
+    viewer.scene.renderError.addEventListener(handleRenderError);
+    canvas.addEventListener("webglcontextlost", handleContextLost, false);
+    canvas.addEventListener("webglcontextrestored", handleContextRestored, false);
+
+    return () => {
+      viewer.scene.renderError.removeEventListener(handleRenderError);
+      canvas.removeEventListener("webglcontextlost", handleContextLost, false);
+      canvas.removeEventListener("webglcontextrestored", handleContextRestored, false);
+    };
+  }, [viewerReady]);
+
+  useEffect(() => {
+    return () => {
+      if (resizeFrameRef.current !== null) {
+        cancelAnimationFrame(resizeFrameRef.current);
+      }
+      if (resetTimeoutRef.current !== null) {
+        window.clearTimeout(resetTimeoutRef.current);
+      }
+      viewerRef.current = null;
+    };
+  }, []);
+
   const regionHierarchy = useMemo(
-    () => selectedRegion.polygon.map((point) => Cartesian3.fromDegrees(point.lng, point.lat, 120)),
-    [selectedRegion],
+    () =>
+      (selectedRegion.polygon.length ? selectedRegion.polygon : [selectedPoint]).map((point) =>
+        Cartesian3.fromDegrees(point.lng, point.lat, 120),
+      ),
+    [selectedPoint, selectedRegion.polygon],
   );
 
   const activeOverlayEntities = useMemo(
@@ -161,10 +251,12 @@ export function CesiumGlobe({
   return (
     <div ref={hostRef} className="h-full w-full">
       <Viewer
+        key={viewerKey}
         full
         ref={(node) => {
-          viewerRef.current = node?.cesiumElement ?? null;
-          setViewerReady(Boolean(node?.cesiumElement));
+          const nextViewer = node?.cesiumElement ?? null;
+          viewerRef.current = nextViewer;
+          setViewerReady(Boolean(nextViewer && !nextViewer.isDestroyed()));
         }}
         terrainProvider={terrainProvider}
         animation={false}
@@ -183,13 +275,15 @@ export function CesiumGlobe({
           <ScreenSpaceEvent
             action={(event) => {
               const viewer = viewerRef.current;
-              if (!viewer || !("position" in event)) {
+              if (!isViewerUsable(viewer) || !("position" in event)) {
                 return;
               }
 
               try {
                 const earthPosition =
-                  viewer.scene.pickPosition(event.position) ??
+                  (viewer.scene.pickPositionSupported
+                    ? viewer.scene.pickPosition(event.position)
+                    : undefined) ??
                   viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid);
 
                 if (!earthPosition) {

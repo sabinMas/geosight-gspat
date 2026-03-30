@@ -7,10 +7,21 @@ import {
   getAgentConfig,
   isAgentId,
 } from "@/lib/agents/agent-config";
+import { buildFallbackAssessment, formatLocationLabel } from "@/lib/geosight-assistant";
+import { getProfileById } from "@/lib/profiles";
 import { injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
 import { formatUiAuditResult, runDeterministicUiAudit } from "@/lib/ux-audit";
-import { WorkspaceCardId, WorkspaceShellMode } from "@/types";
+import {
+  AnalyzeRequestBody,
+  DataTrend,
+  GeodataResult,
+  LandCoverBucket,
+  NearbyPlace,
+  ResultsMode,
+  WorkspaceCardId,
+  WorkspaceShellMode,
+} from "@/types";
 
 type GroqStreamChunk = {
   choices?: Array<{
@@ -44,6 +55,10 @@ function parseOptionalString(value: unknown) {
 
 function parseOptionalBoolean(value: unknown) {
   return typeof value === "boolean" ? value : undefined;
+}
+
+function parseResultsMode(value: unknown): ResultsMode | undefined {
+  return value === "analysis" || value === "nearby_places" ? value : undefined;
 }
 
 function parseWorkspaceCardIds(value: unknown) {
@@ -111,6 +126,129 @@ function parseGeoSightContext(value: unknown): GeoSightContext | undefined {
   };
 
   return Object.values(context).some((entry) => entry !== undefined) ? context : undefined;
+}
+
+function getDataBundle(context?: GeoSightContext) {
+  return context?.dataBundle && isRecord(context.dataBundle) ? context.dataBundle : undefined;
+}
+
+function buildAnalyzePayload(message: string, context?: GeoSightContext): AnalyzeRequestBody {
+  const dataBundle = getDataBundle(context);
+
+  return {
+    profileId: context?.profile ?? "data-center",
+    question: message,
+    location:
+      typeof context?.lat === "number" && typeof context?.lng === "number"
+        ? { lat: context.lat, lng: context.lng }
+        : undefined,
+    locationName: parseOptionalString(dataBundle?.locationName),
+    resultsMode: parseResultsMode(dataBundle?.resultsMode),
+    geodata: isRecord(dataBundle?.geodata)
+      ? (dataBundle.geodata as unknown as GeodataResult)
+      : undefined,
+    nearbyPlaces: Array.isArray(dataBundle?.nearbyPlaces)
+      ? (dataBundle.nearbyPlaces as NearbyPlace[])
+      : undefined,
+    dataTrends: Array.isArray(dataBundle?.dataTrends)
+      ? (dataBundle.dataTrends as DataTrend[])
+      : undefined,
+    imageSummary: parseOptionalString(dataBundle?.imageSummary),
+    classification: Array.isArray(dataBundle?.classification)
+      ? (dataBundle.classification as LandCoverBucket[])
+      : undefined,
+  };
+}
+
+function buildGeoGuideFallback(message: string, context?: GeoSightContext) {
+  const normalized = message.toLowerCase();
+  const uiContext = context?.uiContext;
+  const profile = getProfileById(context?.profile ?? "data-center");
+  const supportingViews = uiContext?.visibleWorkspaceCardIds?.length
+    ? uiContext.visibleWorkspaceCardIds.join(", ")
+    : "none open yet";
+
+  if (!uiContext?.locationSelected) {
+    return `Start by focusing a place on the globe or with the search bar, then ask your question through the ${profile.name} lens. GeoSight stays in a calmer ${uiContext?.shellMode ?? "minimal"} shell until a location is selected, so the next useful step is to choose a place first.`;
+  }
+
+  if (
+    normalized.includes("source") ||
+    normalized.includes("trust") ||
+    normalized.includes("ground") ||
+    normalized.includes("provenance")
+  ) {
+    return "Open the Source awareness view to inspect live providers, freshness, coverage, and fallback notes for the current place. That is the fastest way to understand what is directly grounded versus still limited in the current analysis.";
+  }
+
+  if (
+    normalized.includes("score") ||
+    normalized.includes("factor") ||
+    normalized.includes("breakdown")
+  ) {
+    return "Use Mission score for the headline fit and Factor breakdown for the weighted reasoning behind it. If those cards are not already open, use Add view to reveal them one at a time instead of switching the whole workspace into board mode.";
+  }
+
+  if (normalized.includes("compare")) {
+    return "Use the Compare view after you have saved at least two candidate sites from the current mission profile. GeoSight keeps comparison tucked away until you need it so the default workspace stays focused on one place first.";
+  }
+
+  return `You are currently in ${uiContext?.shellMode ?? "minimal"} mode with ${uiContext?.visiblePrimaryCardId ?? "the main location view"} as the primary panel and supporting views ${supportingViews}. Stay in the current shell for one-place reasoning, or open Add view if you want to reveal a specific supporting card without cluttering the board.`;
+}
+
+function buildGeoScribeFallback(message: string, context?: GeoSightContext) {
+  const payload = buildAnalyzePayload(message, context);
+  const profile = getProfileById(payload.profileId);
+  const locationLabel = formatLocationLabel(payload);
+  const scoreLine =
+    typeof context?.score === "number"
+      ? `Current mission score: ${context.score}/100.`
+      : "Current mission score is unavailable in the active context.";
+  const assessment = buildFallbackAssessment(payload, profile);
+
+  return [
+    "# Site Assessment Report",
+    "## Executive Summary",
+    `This fallback report covers ${locationLabel} through the ${profile.name} mission profile. It was assembled from the live GeoSight context bundle because the external report model is unavailable right now.`,
+    "",
+    "## Location Context",
+    `- Mission profile: ${profile.name}`,
+    `- Location: ${locationLabel}`,
+    `- Route context: ${context?.uiContext?.currentRoute ?? "Unknown route"}`,
+    `- Shell mode: ${context?.uiContext?.shellMode ?? "Unknown shell mode"}`,
+    `- Judge mode: ${context?.uiContext?.judgeMode ? "On" : "Off"}`,
+    "",
+    "## Current Score Signal",
+    `- ${scoreLine}`,
+    "",
+    "## Structured Assessment",
+    assessment,
+    "",
+    "## Report Status",
+    "- Generated in deterministic fallback mode.",
+    "- External report-writing model credentials are currently unavailable or invalid.",
+    "- Review the Source awareness card before treating this as a final export.",
+  ].join("\n");
+}
+
+function buildAgentFallback(agentId: string, message: string, context?: GeoSightContext) {
+  if (agentId === "geo-guide") {
+    return buildGeoGuideFallback(message, context);
+  }
+
+  const payload = buildAnalyzePayload(message, context);
+  const profile = getProfileById(payload.profileId);
+
+  if (agentId === "geo-scribe") {
+    return buildGeoScribeFallback(message, context);
+  }
+
+  return [
+    "# GeoAnalyst",
+    "GeoAnalyst is currently running in deterministic fallback mode because the live model provider is unavailable.",
+    "",
+    buildFallbackAssessment(payload, profile),
+  ].join("\n\n");
 }
 
 function buildSystemMessage(config: AgentConfig, context?: GeoSightContext) {
@@ -350,10 +488,12 @@ export async function POST(
 
   const apiKey = process.env[agentConfig.apiKeyEnv]?.trim();
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "This agent is not configured right now." },
-      { status: 500 },
-    );
+    return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
   }
 
   try {

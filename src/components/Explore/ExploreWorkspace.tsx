@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FileText, PanelLeft, Sparkles, X } from "lucide-react";
 import { DemoFallbackBanner } from "@/components/Demo/DemoFallbackBanner";
 import { CoolingDemoOverlay } from "@/components/Demo/CoolingDemoOverlay";
@@ -48,6 +49,9 @@ const CesiumGlobe = dynamic(
 export function ExploreWorkspace() {
   const init = useExploreInit();
   const { setGeoContext, setUiContext, primeAgent } = useAgentPanel();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -92,6 +96,18 @@ export function ExploreWorkspace() {
     }
     state.setPendingDemoSiteId(site.id);
     state.setPendingDemoLoad(true);
+  };
+
+  const handleCloseDemoOverlay = () => {
+    state.setDemoOpen(false);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("demo");
+    params.delete("missionRun");
+    params.delete("entrySource");
+
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
   };
 
   const openCard = (cardId: WorkspaceCardId) => {
@@ -501,8 +517,8 @@ export function ExploreWorkspace() {
 
       {sidebarOpen ? (
         <div className="fixed inset-0 z-50 bg-[var(--background)]/70 backdrop-blur-sm xl:hidden">
-          <div className="absolute inset-y-0 left-0 w-full max-w-sm p-4">
-            <div className="mb-3 flex justify-end">
+          <div className="absolute inset-y-0 left-0 flex w-full max-w-sm flex-col p-4">
+            <div className="mb-3 flex shrink-0 justify-end">
               <Button
                 type="button"
                 variant="ghost"
@@ -513,7 +529,7 @@ export function ExploreWorkspace() {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            {sidebarElement}
+            <div className="min-h-0 flex-1 overflow-hidden">{sidebarElement}</div>
           </div>
         </div>
       ) : null}
@@ -524,7 +540,7 @@ export function ExploreWorkspace() {
           open={state.demoOpen}
           score={data.siteScore}
           sites={data.sites}
-          onClose={() => state.setDemoOpen(false)}
+          onClose={handleCloseDemoOverlay}
           onLoadShowcase={handleLoadShowcase}
           onSaveCurrentSite={handleSaveCurrentSite}
           onFocusSite={handleFocusDemoSite}

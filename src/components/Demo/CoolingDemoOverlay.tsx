@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,14 +30,36 @@ export function CoolingDemoOverlay({
   onSaveCurrentSite,
   onFocusSite,
 }: CoolingDemoOverlayProps) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, open]);
+
   if (!open) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--background)]/80 backdrop-blur-md">
+    <div
+      className="fixed inset-0 z-50 bg-[var(--background)]/80 backdrop-blur-md"
+      onClick={onClose}
+      aria-hidden="true"
+    >
       <div className="mx-auto flex min-h-screen max-w-6xl items-start justify-center p-4 md:p-6">
-        <div className="glass-panel relative w-full rounded-[2rem] border border-cyan-300/15 p-4 md:p-6">
+        <div
+          className="glass-panel relative w-full rounded-[2rem] border border-cyan-300/15 p-4 md:p-6"
+          onClick={(event) => event.stopPropagation()}
+        >
           <Button
             type="button"
             size="icon"
