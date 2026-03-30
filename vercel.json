@@ -1,7 +1,9 @@
 {
   "functions": {
-    "src/app/api/analyze/route.ts": {
-      "maxDuration": 30
-    }
+    "src/app/api/analyze/route.ts": { "maxDuration": 30 },
+    "src/app/api/geodata/route.ts": { "maxDuration": 30 },
+    "src/app/api/nearby-places/route.ts": { "maxDuration": 20 },
+    "src/app/api/schools/route.ts": { "maxDuration": 20 },
+    "src/app/api/agents/[agentId]/route.ts": { "maxDuration": 30 }
   }
 }
