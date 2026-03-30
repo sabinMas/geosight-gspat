@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { getMethodologyForFactor } from "@/lib/scoring-methodology";
 import { cn } from "@/lib/utils";
+import { Bar, BarChart, Cell, Tooltip, XAxis, YAxis } from "recharts";
 import { SiteScore } from "@/types";
 
 interface FactorBreakdownProps {
@@ -83,7 +84,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
         </div>
         <div className="h-72">
           {mounted ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeResponsiveContainer className="h-full">
               <BarChart data={score.factors}>
                 <XAxis dataKey="label" hide />
                 <YAxis stroke="#6b7d93" />
@@ -101,7 +102,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
                   ))}
                 </Bar>
               </BarChart>
-            </ResponsiveContainer>
+            </SafeResponsiveContainer>
           ) : null}
         </div>
         <div className="space-y-2">

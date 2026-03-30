@@ -1,6 +1,7 @@
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatSourceTimestamp } from "@/lib/source-metadata";
+import { formatDistanceKm } from "@/lib/stream-gauges";
 import { SchoolContextResult } from "@/types";
 
 interface SchoolContextCardProps {
@@ -19,7 +20,7 @@ function SchoolRow({ school }: { school: SchoolContextResult["schools"][number] 
             {[
               school.districtName,
               school.gradeSpan ? `Grades ${school.gradeSpan}` : null,
-              school.distanceKm === null ? null : `${school.distanceKm.toFixed(1)} km away`,
+              school.distanceKm === null ? null : `${formatDistanceKm(school.distanceKm)} away`,
             ]
               .filter(Boolean)
               .join(" / ")}
@@ -127,7 +128,7 @@ export function SchoolContextCard({
                     <div className="mt-2 text-lg font-semibold text-[var(--foreground)]">
                       {schoolContext.nearestSchoolDistanceKm === null
                         ? "--"
-                        : `${schoolContext.nearestSchoolDistanceKm.toFixed(1)} km`}
+                        : formatDistanceKm(schoolContext.nearestSchoolDistanceKm)}
                     </div>
                   </div>
                   <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">

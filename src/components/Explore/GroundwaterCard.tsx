@@ -2,6 +2,7 @@
 
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
 interface GroundwaterCardProps {
@@ -66,7 +67,7 @@ export function GroundwaterCard({ geodata }: GroundwaterCardProps) {
                 <div>
                   Distance:{" "}
                   <span className="text-[var(--foreground)]">
-                    {nearestWell.distanceKm.toFixed(1)} km
+                    {formatDistanceKm(nearestWell.distanceKm)}
                   </span>
                 </div>
                 <div>

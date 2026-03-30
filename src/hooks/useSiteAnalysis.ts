@@ -7,6 +7,28 @@ import { calculateProfileScore } from "@/lib/scoring";
 import { Coordinates, GeodataResult, MissionProfile, SiteScore } from "@/types";
 
 const GEODATA_REQUEST_TIMEOUT_MS = 18_000;
+const GEODATA_CACHE_TTL_MS = 2 * 60 * 1000;
+
+type GeodataCacheEntry = {
+  data: GeodataResult;
+  cachedAt: number;
+};
+
+const geodataCache = new Map<string, GeodataCacheEntry>();
+const geodataRequests = new Map<string, Promise<GeodataResult>>();
+
+function readCachedGeodata(requestKey: string) {
+  const cached = geodataCache.get(requestKey);
+  if (!cached) {
+    return null;
+  }
+
+  if (Date.now() - cached.cachedAt > GEODATA_CACHE_TTL_MS) {
+    return null;
+  }
+
+  return cached.data;
+}
 
 function buildGeodataErrorMessage(error: unknown) {
   if (error instanceof ExternalRequestTimeoutError) {
@@ -18,6 +40,44 @@ function buildGeodataErrorMessage(error: unknown) {
   }
 
   return "GeoSight couldn't load this location right now.";
+}
+
+async function fetchGeodataForPoint(lat: number, lng: number, requestKey: string) {
+  const cached = readCachedGeodata(requestKey);
+  if (cached) {
+    return cached;
+  }
+
+  const existingRequest = geodataRequests.get(requestKey);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = (async () => {
+    const response = await fetchWithTimeout(
+      `/api/geodata?lat=${lat}&lng=${lng}`,
+      {},
+      GEODATA_REQUEST_TIMEOUT_MS,
+    );
+    if (!response.ok) {
+      throw new Error("GeoSight couldn't load this location right now.");
+    }
+
+    const data = (await response.json()) as GeodataResult;
+    geodataCache.set(requestKey, {
+      data,
+      cachedAt: Date.now(),
+    });
+    return data;
+  })();
+
+  geodataRequests.set(requestKey, request);
+
+  try {
+    return await request;
+  } finally {
+    geodataRequests.delete(requestKey);
+  }
 }
 
 export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, ready = true) {
@@ -41,9 +101,20 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, re
     const controller = new AbortController();
     const requestKey = `${coords.lat}:${coords.lng}`;
     const isNewLocation = lastRequestKeyRef.current !== requestKey;
+    const cachedGeodata = readCachedGeodata(requestKey);
     lastRequestKeyRef.current = requestKey;
 
-    if (isNewLocation) {
+    if (cachedGeodata) {
+      setGeodata(cachedGeodata);
+      setScore(null);
+      setLoading(false);
+      setError(null);
+      return () => {
+        controller.abort();
+      };
+    }
+
+    if (isNewLocation && !cachedGeodata) {
       setGeodata(null);
       setScore(null);
     }
@@ -52,24 +123,19 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, re
 
     async function run() {
       try {
-        const response = await fetchWithTimeout(
-          `/api/geodata?lat=${coords.lat}&lng=${coords.lng}`,
-          {
-            signal: controller.signal,
-          },
-          GEODATA_REQUEST_TIMEOUT_MS,
-        );
-        if (!response.ok) {
-          throw new Error("GeoSight couldn't load this location right now.");
-        }
-
-        const data = (await response.json()) as GeodataResult;
+        const data = await fetchGeodataForPoint(coords.lat, coords.lng, requestKey);
         if (!controller.signal.aborted) {
           setGeodata(data);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
-          setError(buildGeodataErrorMessage(err));
+          const staleGeodata = geodataCache.get(requestKey)?.data ?? null;
+          if (staleGeodata) {
+            setGeodata(staleGeodata);
+            setError("Live refresh timed out. Showing a recent cached location snapshot.");
+          } else {
+            setError(buildGeodataErrorMessage(err));
+          }
         }
       } finally {
         if (!controller.signal.aborted) {

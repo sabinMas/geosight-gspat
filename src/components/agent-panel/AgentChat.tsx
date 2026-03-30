@@ -7,6 +7,7 @@ import { AgentId, AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-config";
 import { Button } from "@/components/ui/button";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Textarea } from "@/components/ui/textarea";
+import { fetchWithTimeout } from "@/lib/network";
 import { cn } from "@/lib/utils";
 
 type AgentChatMessage = {
@@ -42,6 +43,8 @@ const WELCOME_MESSAGES: Record<AgentId, string> = {
 
 const DEFAULT_ERROR_MESSAGE = "This agent could not respond right now.";
 const MAX_TEXTAREA_ROWS = 4;
+const AGENT_CONNECT_TIMEOUT_MS = 20_000;
+const AGENT_STREAM_IDLE_TIMEOUT_MS = 12_000;
 
 function formatTime(value: string) {
   return new Date(value).toLocaleTimeString([], {
@@ -124,6 +127,28 @@ async function readResponseError(response: Response) {
 
   const text = (await response.text()).trim();
   return text || DEFAULT_ERROR_MESSAGE;
+}
+
+async function readStreamChunk(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutMs: number,
+) {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      reader.read(),
+      new Promise<ReadableStreamReadResult<Uint8Array>>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error("The agent response stalled before it finished streaming."));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
 }
 
 export default function AgentChat() {
@@ -264,22 +289,26 @@ export default function AgentChat() {
     setLoadingState(agentId, true);
 
     try {
-      const response = await fetch(`/api/agents/${agentId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetchWithTimeout(
+        `/api/agents/${agentId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: trimmedPrompt,
+            context:
+              geoContext || uiContext
+                ? {
+                    ...(geoContext ?? {}),
+                    uiContext: uiContext ?? geoContext?.uiContext,
+                  }
+                : undefined,
+          }),
         },
-        body: JSON.stringify({
-          message: trimmedPrompt,
-          context:
-            geoContext || uiContext
-              ? {
-                  ...(geoContext ?? {}),
-                  uiContext: uiContext ?? geoContext?.uiContext,
-                }
-              : undefined,
-        }),
-      });
+        AGENT_CONNECT_TIMEOUT_MS,
+      );
 
       if (!response.ok || !response.body) {
         throw new Error(await readResponseError(response));
@@ -290,7 +319,7 @@ export default function AgentChat() {
       let receivedContent = false;
 
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readStreamChunk(reader, AGENT_STREAM_IDLE_TIMEOUT_MS);
         if (done) {
           break;
         }

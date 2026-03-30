@@ -1,5 +1,6 @@
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
 interface AirQualityCardProps {
@@ -48,7 +49,7 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
                 {geodata.airQuality.stationName}
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                {`${geodata.airQuality.distanceKm.toFixed(1)} km from the selected point.`}
+                {`${formatDistanceKm(geodata.airQuality.distanceKm, "Distance unavailable")} from the selected point.`}
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getCurrentCoordinates, parseCoordinates } from "@/lib/cesium-search";
+import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
 import { LocationSearchResult } from "@/types";
 
 const MIN_SUGGESTION_LENGTH = 3;
@@ -18,7 +19,11 @@ async function readGeocodeError(response: Response) {
 }
 
 async function resolveLocationFromQuery(query: string) {
-  const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+  const response = await fetchWithTimeout(
+    `/api/geocode?q=${encodeURIComponent(query)}`,
+    {},
+    10_000,
+  );
 
   if (!response.ok) {
     throw new Error(await readGeocodeError(response));
@@ -56,11 +61,12 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
       setSuggestionsLoading(true);
 
       try {
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `/api/geocode?q=${encodeURIComponent(query)}&limit=${SUGGESTION_LIMIT}`,
           {
             signal: controller.signal,
           },
+          8_000,
         );
 
         if (!response.ok) {
@@ -124,7 +130,13 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
       const resolved = await resolveLocationFromQuery(value);
       handleSelectSuggestion(resolved);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to search this place.");
+      setError(
+        err instanceof ExternalRequestTimeoutError
+          ? "Place lookup timed out. Try a shorter query or retry in a moment."
+          : err instanceof Error
+            ? err.message
+            : "Unable to search this place.",
+      );
     } finally {
       setLoading(false);
     }
@@ -143,8 +155,10 @@ export function SearchBar({ activeLocationName, onLocate }: SearchBarProps) {
       };
 
       try {
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `/api/geocode?lat=${coordinates.lat}&lng=${coordinates.lng}`,
+          {},
+          8_000,
         );
         if (response.ok) {
           result = (await response.json()) as LocationSearchResult;

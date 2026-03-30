@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_VIEW } from "@/lib/demo-data";
+import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
 import { NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
 import {
   Coordinates,
@@ -49,9 +50,13 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string, ready
           category,
           locationName: locationNameRef.current,
         });
-        const response = await fetch(`/api/nearby-places?${params.toString()}`, {
-          signal: controller.signal,
-        });
+        const response = await fetchWithTimeout(
+          `/api/nearby-places?${params.toString()}`,
+          {
+            signal: controller.signal,
+          },
+          12_000,
+        );
 
         const payload = (await response.json()) as {
           places?: NearbyPlace[];
@@ -73,7 +78,13 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string, ready
 
         setPlaces([]);
         setSource("unavailable");
-        setError(err instanceof Error ? err.message : "Unable to load nearby places.");
+        setError(
+          err instanceof ExternalRequestTimeoutError
+            ? "Nearby places took too long to load. Try a different category or retry in a moment."
+            : err instanceof Error
+              ? err.message
+              : "Unable to load nearby places.",
+        );
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);

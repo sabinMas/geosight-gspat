@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
+import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 import { MissionProfile, SiteScore } from "@/types";
 
 interface ScoreCardProps {
@@ -73,7 +74,7 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
       <CardContent className="grid gap-4 lg:grid-cols-[180px_1fr]">
         <div className="h-44">
           {mounted ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeResponsiveContainer className="h-full">
               <RadialBarChart
                 innerRadius="70%"
                 outerRadius="100%"
@@ -84,7 +85,7 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
                 <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
                 <RadialBar dataKey="value" background cornerRadius={18} />
               </RadialBarChart>
-            </ResponsiveContainer>
+            </SafeResponsiveContainer>
           ) : null}
           <div className={`${mounted ? "-mt-26" : "mt-10"} text-center`}>
             <div className="text-5xl font-semibold text-[var(--foreground)]">{score.total}</div>

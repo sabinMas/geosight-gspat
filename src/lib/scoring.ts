@@ -641,7 +641,7 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           : "FEMA flood-zone context unavailable.";
       case "groundwaterDepth":
         return geodata.groundwater.nearestWell
-          ? `${geodata.groundwater.nearestWell.siteName} at ${geodata.groundwater.nearestWell.distanceKm.toFixed(1)} km reports water ${geodata.groundwater.nearestWell.currentLevelFt === null ? "level unavailable" : `${geodata.groundwater.nearestWell.currentLevelFt.toFixed(1)} ft below land surface`}.`
+          ? `${geodata.groundwater.nearestWell.siteName} at ${formatDistanceKm(geodata.groundwater.nearestWell.distanceKm)} reports water ${geodata.groundwater.nearestWell.currentLevelFt === null ? "level unavailable" : `${geodata.groundwater.nearestWell.currentLevelFt.toFixed(1)} ft below land surface`}.`
           : "Groundwater monitoring well data unavailable.";
       case "soilBuildability":
         return geodata.soilProfile
@@ -684,7 +684,7 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
             } at ${
               geodata.epaHazards.nearestSuperfundDistanceKm === null
                 ? "unknown distance"
-                : `${geodata.epaHazards.nearestSuperfundDistanceKm.toFixed(1)} km`
+                : formatDistanceKm(geodata.epaHazards.nearestSuperfundDistanceKm)
             }.`
           : "EPA contamination screening unavailable.";
       case "amenities":

@@ -233,7 +233,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           ? "EPA contamination screening is not available for this point."
           : epaHazards.nearestSuperfundDistanceKm === null
             ? "No EPA-screened Superfund or TRI site was returned within roughly 50 km."
-            : `Nearest Superfund site ${epaHazards.nearestSuperfundName ?? "unknown"} at ${epaHazards.nearestSuperfundDistanceKm.toFixed(1)} km.`,
+            : `Nearest Superfund site ${epaHazards.nearestSuperfundName ?? "unknown"} at ${formatDistanceKm(epaHazards.nearestSuperfundDistanceKm)}.`,
       direction:
         epaHazards?.nearestSuperfundDistanceKm !== null &&
         (epaHazards?.nearestSuperfundDistanceKm ?? Number.POSITIVE_INFINITY) <= 10

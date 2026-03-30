@@ -109,7 +109,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     schoolContext,
     loading: schoolLoading,
     error: schoolError,
-  } = useSchoolContext(selectedPoint);
+  } = useSchoolContext(selectedPoint, state.locationReady);
   const {
     category,
     setCategory,

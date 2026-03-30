@@ -1,5 +1,6 @@
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
 interface ContaminationRiskCardProps {
@@ -57,7 +58,7 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
               <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
                 {hazards.nearestSuperfundDistanceKm === null
                   ? "No EPA-screened site was returned within roughly 50 km."
-                  : `Mapped Superfund site about ${hazards.nearestSuperfundDistanceKm.toFixed(1)} km away.`}
+                  : `Mapped Superfund site about ${formatDistanceKm(hazards.nearestSuperfundDistanceKm)} away.`}
               </div>
             </div>
           </>

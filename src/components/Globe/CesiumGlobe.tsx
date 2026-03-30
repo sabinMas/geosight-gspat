@@ -381,7 +381,7 @@ export function CesiumGlobe({
   }
 
   return (
-    <div ref={hostRef} className="relative h-full w-full">
+    <div ref={hostRef} className="absolute inset-0 h-full w-full">
       {!globeReady ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />

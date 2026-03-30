@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { estimateRegionSpanKm } from "@/lib/geospatial";
+import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
+import { formatDistanceKm } from "@/lib/stream-gauges";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
+import { Area, AreaChart, Tooltip, XAxis, YAxis } from "recharts";
 import { Coordinates, ElevationProfilePoint, ElevationProfileSummary, RegionSelection } from "@/types";
 
 interface ElevationProfileProps {
@@ -42,9 +45,13 @@ export function ElevationProfile({
           lengthKm: String(lengthKm),
           samples: "11",
         });
-        const response = await fetch(`/api/elevation?${params.toString()}`, {
-          signal: controller.signal,
-        });
+        const response = await fetchWithTimeout(
+          `/api/elevation?${params.toString()}`,
+          {
+            signal: controller.signal,
+          },
+          12_000,
+        );
         const payload = (await response.json()) as {
           profile?: ElevationProfilePoint[];
           summary?: ElevationProfileSummary;
@@ -65,7 +72,13 @@ export function ElevationProfile({
 
         setProfile([]);
         setSummary(null);
-        setError(err instanceof Error ? err.message : "Unable to load elevation profile.");
+        setError(
+          err instanceof ExternalRequestTimeoutError
+            ? "Elevation sampling timed out. Try zooming in or retrying in a moment."
+            : err instanceof Error
+              ? err.message
+              : "Unable to load elevation profile.",
+        );
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
@@ -93,7 +106,7 @@ export function ElevationProfile({
           <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Length</div>
             <div className="mt-2 text-lg font-semibold text-[var(--foreground)]">
-              {summary?.lengthKm?.toFixed(1) ?? "--"} km
+              {formatDistanceKm(summary?.lengthKm, "--")}
             </div>
           </div>
           <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
@@ -130,26 +143,26 @@ export function ElevationProfile({
 
         <div className="h-[260px]">
           {mounted && profile.length ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={profile}>
-              <defs>
-                <linearGradient id="elevationFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.75} />
-                  <stop offset="100%" stopColor="#00e5ff" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="step" stroke="#6b7d93" />
-              <YAxis stroke="#6b7d93" />
-              <Tooltip
-                contentStyle={{
-                  background: "#081221",
-                  border: "1px solid rgba(0,229,255,0.18)",
-                  borderRadius: 16,
-                }}
-              />
-              <Area type="monotone" dataKey="elevation" stroke="#00e5ff" fill="url(#elevationFill)" />
-            </AreaChart>
-          </ResponsiveContainer>
+            <SafeResponsiveContainer className="h-full">
+              <AreaChart data={profile}>
+                <defs>
+                  <linearGradient id="elevationFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#00e5ff" stopOpacity={0.75} />
+                    <stop offset="100%" stopColor="#00e5ff" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="step" stroke="#6b7d93" />
+                <YAxis stroke="#6b7d93" />
+                <Tooltip
+                  contentStyle={{
+                    background: "#081221",
+                    border: "1px solid rgba(0,229,255,0.18)",
+                    borderRadius: 16,
+                  }}
+                />
+                <Area type="monotone" dataKey="elevation" stroke="#00e5ff" fill="url(#elevationFill)" />
+              </AreaChart>
+            </SafeResponsiveContainer>
           ) : null}
         </div>
       </CardContent>

@@ -9,6 +9,7 @@ import {
   formatSourceStatusLabel,
   getSourceStatusTone,
 } from "@/lib/source-metadata";
+import { formatDistanceKm } from "@/lib/stream-gauges";
 import {
   inferSourceRegistryContextFromGeodata,
   summarizeRegistryContext,
@@ -168,7 +169,7 @@ export function ActiveLocationCard({
               geodata?.nearestWaterBody.distanceKm === null ||
               geodata?.nearestWaterBody.distanceKm === undefined
                 ? "--"
-                : `${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
+                : formatDistanceKm(geodata.nearestWaterBody.distanceKm)
             }
             detail={geodata?.nearestWaterBody.name ?? "Loading mapped hydrology"}
             source={geodata?.sources.infrastructure}
