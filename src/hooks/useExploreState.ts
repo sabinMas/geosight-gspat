@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { resolveLocationQuery } from "@/lib/cesium-search";
@@ -42,6 +42,7 @@ export interface ExploreState {
     lng: number;
   };
   defaultLabel: string;
+  locationReady: boolean;
   selectedPoint: {
     lat: number;
     lng: number;
@@ -95,6 +96,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [demoOpen, setDemoOpen] = useState(activeDemo?.entryMode === "overlay");
   const [pendingDemoLoad, setPendingDemoLoad] = useState(activeDemo?.entryMode === "overlay");
   const [pendingDemoSiteId, setPendingDemoSiteId] = useState<string | null>(null);
+  const [locationReady, setLocationReady] = useState(Boolean(activeDemo));
 
   const defaultCoordinates = activeDemo?.coordinates ?? {
     lat: DEFAULT_VIEW.lat,
@@ -108,10 +110,18 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     selectedPoint,
     selectedLocationName,
     selectedRegion,
-    selectPoint,
+    selectPoint: selectGlobePoint,
     setSelectedRegion,
     quickRegions,
   } = useGlobeInteraction(defaultCoordinates, defaultLabel, activeProfile.demoSites ?? []);
+
+  const selectPoint = useCallback(
+    (coords: { lat: number; lng: number }, label?: string) => {
+      setLocationReady(true);
+      selectGlobePoint(coords, label);
+    },
+    [selectGlobePoint],
+  );
 
   const [layers, setLayers] = useState<LayerState>(activeProfile.defaultLayers);
   const [terrainExaggeration, setTerrainExaggeration] = useState(1.8);
@@ -192,6 +202,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setPendingDemoSiteId,
     defaultCoordinates,
     defaultLabel,
+    locationReady,
     selectedPoint,
     selectedLocationName,
     selectedRegion,

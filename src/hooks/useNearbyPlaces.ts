@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DEFAULT_VIEW } from "@/lib/demo-data";
 import { NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
 import {
   Coordinates,
@@ -11,7 +12,7 @@ import {
 
 const DEFAULT_CATEGORY: NearbyPlaceCategory = "trail";
 
-export function useNearbyPlaces(coords: Coordinates, locationName: string) {
+export function useNearbyPlaces(coords: Coordinates, locationName: string, ready = true) {
   const [category, setCategory] = useState<NearbyPlaceCategory>(DEFAULT_CATEGORY);
   const [places, setPlaces] = useState<NearbyPlace[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,15 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
   }, [locationName]);
 
   useEffect(() => {
+    const isDefaultView = coords.lat === DEFAULT_VIEW.lat && coords.lng === DEFAULT_VIEW.lng;
+    if (!ready && isDefaultView) {
+      setLoading(false);
+      setError(null);
+      setSource("unavailable");
+      setPlaces([]);
+      return;
+    }
+
     const controller = new AbortController();
 
     const run = async () => {
@@ -74,7 +84,7 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string) {
     void run();
 
     return () => controller.abort();
-  }, [category, coords.lat, coords.lng]);
+  }, [category, coords.lat, coords.lng, ready]);
 
   return {
     category,

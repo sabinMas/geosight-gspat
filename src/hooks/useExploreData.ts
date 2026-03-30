@@ -51,6 +51,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const { geodata, score, loading, error } = useSiteAnalysis(
     selectedPoint,
     activeProfile,
+    state.locationReady,
   );
   const { sites, addSite, loadDemoSites } = useSavedSites(activeProfile.id);
   const {
@@ -66,7 +67,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     loading: nearbyLoading,
     error: nearbyError,
     source: nearbySource,
-  } = useNearbyPlaces(selectedPoint, selectedLocationName);
+  } = useNearbyPlaces(selectedPoint, selectedLocationName, state.locationReady);
   const { cards, visibility, primaryCards, workspaceCards, isCardVisible, setCardVisible } =
     useWorkspaceCards(activeProfile.id);
 
