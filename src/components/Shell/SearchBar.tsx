@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Crosshair, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,16 +86,15 @@ export function SearchBar({
     };
   }, [value]);
 
-  const handleSelectSuggestion = (suggestion: LocationSearchResult) => {
+  const handleSelectSuggestion = useCallback((suggestion: LocationSearchResult) => {
     setValue(suggestion.shortName ?? suggestion.name);
     setSuggestions([]);
     setShowSuggestions(false);
     setError(null);
     onLocate(suggestion);
-  };
+  }, [onLocate]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const executeSearch = useCallback(async () => {
     setError(null);
 
     if (!value.trim()) {
@@ -129,6 +128,11 @@ export function SearchBar({
     } finally {
       setLoading(false);
     }
+  }, [handleSelectSuggestion, onLocate, value]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await executeSearch();
   };
 
   const handleUseCurrentLocation = async () => {
@@ -183,7 +187,14 @@ export function SearchBar({
             />
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button type="submit" className="h-12 min-w-[144px] rounded-2xl" disabled={loading}>
+            <Button
+              type="button"
+              className="h-12 min-w-[144px] rounded-2xl"
+              disabled={loading}
+              onClick={() => {
+                void executeSearch();
+              }}
+            >
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

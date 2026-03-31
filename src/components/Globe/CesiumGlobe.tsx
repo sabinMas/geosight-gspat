@@ -72,6 +72,7 @@ export function CesiumGlobe({
   const [viewerReady, setViewerReady] = useState(false);
   const [globeReady, setGlobeReady] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
+  const [pointerInside, setPointerInside] = useState(false);
   const terrainProvider = useMemo(
     () =>
       createWorldTerrainAsync().catch((error) => {
@@ -124,7 +125,9 @@ export function CesiumGlobe({
     const controller = viewer.scene.screenSpaceCameraController;
     controller.minimumZoomDistance = 100;
     controller.maximumZoomDistance = 3e8;
-    controller.enableLook = false;
+    controller.enableInputs = pointerInside;
+    controller.enableTilt = true;
+    controller.enableLook = true;
     controller.enableRotate = true;
     controller.enableTranslate = true;
     if (viewer.scene.skyAtmosphere) {
@@ -135,14 +138,13 @@ export function CesiumGlobe({
     }
     viewer.scene.globe.showGroundAtmosphere = true;
     controller.zoomEventTypes = [CameraEventType.WHEEL];
-    controller.tiltEventTypes = [];
-    controller.lookEventTypes = [];
+    controller.tiltEventTypes = [CameraEventType.RIGHT_DRAG];
     controller.rotateEventTypes = globeRotateMode
       ? [CameraEventType.LEFT_DRAG, CameraEventType.MIDDLE_DRAG]
       : [CameraEventType.MIDDLE_DRAG];
     controller.translateEventTypes = globeRotateMode ? [] : [CameraEventType.LEFT_DRAG];
     viewer.scene.requestRender();
-  }, [globeRotateMode, viewerKey, viewerReady]);
+  }, [globeRotateMode, pointerInside, viewerKey, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -310,7 +312,6 @@ export function CesiumGlobe({
     }
     window.addEventListener("resize", scheduleResize);
     window.addEventListener("orientationchange", scheduleResize);
-    window.addEventListener("scroll", scheduleResize, true);
 
     return () => {
       if (resizeFrameRef.current !== null) {
@@ -321,7 +322,6 @@ export function CesiumGlobe({
       resizeObserver?.disconnect();
       window.removeEventListener("resize", scheduleResize);
       window.removeEventListener("orientationchange", scheduleResize);
-      window.removeEventListener("scroll", scheduleResize, true);
     };
   }, [viewerReady]);
 
@@ -402,6 +402,8 @@ export function CesiumGlobe({
       ref={hostRef}
       className="absolute inset-0 h-full w-full"
       onWheel={(event) => event.stopPropagation()}
+      onPointerEnter={() => setPointerInside(true)}
+      onPointerLeave={() => setPointerInside(false)}
     >
       {!globeReady ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">

@@ -159,6 +159,7 @@ export default function AgentChat() {
   const [ellipsisStep, setEllipsisStep] = useState(0);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const lastReportDraftTemplateRef = useRef<string | null>(null);
 
   const activeThread = threads[activeAgentId];
   const activeDraft = drafts[activeAgentId];
@@ -211,6 +212,32 @@ export default function AgentChat() {
       textareaRef.current?.focus();
     });
   }, [activeAgentId, clearQueuedDraft, queuedDrafts, setDraftForAgent]);
+
+  useEffect(() => {
+    const nextTemplate = uiContext?.reportDraftTemplate?.trim();
+    if (!nextTemplate) {
+      lastReportDraftTemplateRef.current = null;
+      return;
+    }
+
+    setDrafts((current) => {
+      const currentDraft = current["geo-scribe"];
+      const previousTemplate = lastReportDraftTemplateRef.current;
+      const shouldSync =
+        !currentDraft.trim() || (previousTemplate !== null && currentDraft === previousTemplate);
+
+      if (!shouldSync) {
+        return current;
+      }
+
+      return {
+        ...current,
+        "geo-scribe": nextTemplate,
+      };
+    });
+
+    lastReportDraftTemplateRef.current = nextTemplate;
+  }, [uiContext?.reportDraftTemplate]);
 
   const setLoadingState = (agentId: AgentId, value: boolean) => {
     setLoadingByAgent((current) => ({

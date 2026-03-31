@@ -8,6 +8,88 @@ const REDFIN_METRO_MARKET_URL =
 const HOUSING_MARKET_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_SERIES_POINTS = 12;
 
+const US_STATE_NAME_TO_CODE: Record<string, string> = {
+  alabama: "AL",
+  alaska: "AK",
+  arizona: "AZ",
+  arkansas: "AR",
+  california: "CA",
+  colorado: "CO",
+  connecticut: "CT",
+  delaware: "DE",
+  florida: "FL",
+  georgia: "GA",
+  hawaii: "HI",
+  idaho: "ID",
+  illinois: "IL",
+  indiana: "IN",
+  iowa: "IA",
+  kansas: "KS",
+  kentucky: "KY",
+  louisiana: "LA",
+  maine: "ME",
+  maryland: "MD",
+  massachusetts: "MA",
+  michigan: "MI",
+  minnesota: "MN",
+  mississippi: "MS",
+  missouri: "MO",
+  montana: "MT",
+  nebraska: "NE",
+  nevada: "NV",
+  "new hampshire": "NH",
+  "new jersey": "NJ",
+  "new mexico": "NM",
+  "new york": "NY",
+  "north carolina": "NC",
+  "north dakota": "ND",
+  ohio: "OH",
+  oklahoma: "OK",
+  oregon: "OR",
+  pennsylvania: "PA",
+  "rhode island": "RI",
+  "south carolina": "SC",
+  "south dakota": "SD",
+  tennessee: "TN",
+  texas: "TX",
+  utah: "UT",
+  vermont: "VT",
+  virginia: "VA",
+  washington: "WA",
+  "west virginia": "WV",
+  wisconsin: "WI",
+  wyoming: "WY",
+  "district of columbia": "DC",
+};
+
+const COUNTY_STATE_TO_METRO: Record<string, string> = {
+  "king county|WA": "Seattle, WA",
+  "pierce county|WA": "Seattle, WA",
+  "snohomish county|WA": "Seattle, WA",
+  "maricopa county|AZ": "Phoenix, AZ",
+  "multnomah county|OR": "Portland, OR",
+  "washington county|OR": "Portland, OR",
+  "clark county|WA": "Portland, OR",
+  "los angeles county|CA": "Los Angeles, CA",
+  "orange county|CA": "Los Angeles, CA",
+  "cook county|IL": "Chicago, IL",
+  "dallas county|TX": "Dallas, TX",
+  "tarrant county|TX": "Dallas, TX",
+  "collin county|TX": "Dallas, TX",
+  "harris county|TX": "Houston, TX",
+  "fulton county|GA": "Atlanta, GA",
+  "dekalb county|GA": "Atlanta, GA",
+  "denver county|CO": "Denver, CO",
+  "jefferson county|CO": "Denver, CO",
+  "miami dade county|FL": "Miami, FL",
+  "broward county|FL": "Miami, FL",
+  "palm beach county|FL": "Miami, FL",
+  "san francisco county|CA": "San Francisco, CA",
+  "alameda county|CA": "San Francisco, CA",
+  "san mateo county|CA": "San Francisco, CA",
+  "santa clara county|CA": "San Jose, CA",
+};
+
 const MAJOR_METROS = [
   { key: "New York, NY", aliases: ["brooklyn", "queens", "bronx", "manhattan", "staten island", "jersey city", "newark", "long island", "westchester", "nassau", "suffolk"] },
   { key: "Los Angeles, CA", aliases: ["los angeles county", "pasadena", "glendale", "santa monica", "burbank", "long beach", "orange county", "anaheim", "irvine"] },
@@ -96,6 +178,23 @@ function normalizeText(value: string) {
     .replace(/\bcounty\b/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function normalizeStateCode(stateCode: string | null | undefined) {
+  if (!stateCode) {
+    return null;
+  }
+
+  const trimmed = stateCode.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.length === 2) {
+    return trimmed.toUpperCase();
+  }
+
+  return US_STATE_NAME_TO_CODE[normalizeText(trimmed)] ?? trimmed.toUpperCase();
 }
 
 function parseNumber(value: string) {
@@ -263,7 +362,8 @@ function scoreMetroMatch(
   searchTerms: string[],
   stateCode: string,
 ) {
-  if (!normalizeText(metro.key).includes(normalizeText(stateCode))) {
+  const metroStateCode = metro.key.split(",")[1]?.trim().toUpperCase() ?? "";
+  if (metroStateCode !== stateCode) {
     return Number.NEGATIVE_INFINITY;
   }
 
@@ -290,11 +390,29 @@ function scoreMetroMatch(
   return score;
 }
 
+function findMetroByCounty(
+  countyName: string | null | undefined,
+  stateCode: string,
+) {
+  if (!countyName) {
+    return null;
+  }
+
+  const lookupKey = `${countyName.trim().toLowerCase()}|${stateCode}`;
+  const metroKey = COUNTY_STATE_TO_METRO[lookupKey];
+  return metroKey ? MAJOR_METROS.find((metro) => metro.key === metroKey) ?? null : null;
+}
+
 function findBestMetroMatch(
   locationLabel: string,
   countyName: string | null | undefined,
   stateCode: string,
 ) {
+  const countyMetro = findMetroByCounty(countyName, stateCode);
+  if (countyMetro) {
+    return countyMetro;
+  }
+
   const searchTerms = getSearchTerms(locationLabel, countyName);
   const ranked = MAJOR_METROS
     .map((metro) => ({
@@ -312,11 +430,13 @@ export async function getHousingMarket(
   locationLabel: string,
   registryContext: SourceRegistryContext,
 ): Promise<HousingMarketResult> {
-  if (!stateCode || registryContext.countryCode !== "US") {
+  const normalizedStateCode = normalizeStateCode(stateCode);
+
+  if (!normalizedStateCode || registryContext.countryCode !== "US") {
     return buildUnavailableHousingMarket(locationLabel, registryContext);
   }
 
-  const metro = findBestMetroMatch(locationLabel, countyName, stateCode);
+  const metro = findBestMetroMatch(locationLabel, countyName, normalizedStateCode);
   if (!metro) {
     return buildUnavailableHousingMarket(locationLabel, registryContext);
   }

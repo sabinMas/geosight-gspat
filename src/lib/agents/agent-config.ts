@@ -7,6 +7,7 @@ export type GeoSightUiContext = {
   currentRoute?: string;
   viewportClass?: GeoSightViewportClass;
   activeProfile?: string;
+  reportDraftTemplate?: string | null;
   visiblePrimaryCardId?: WorkspaceCardId | null;
   visibleWorkspaceCardIds?: WorkspaceCardId[];
   visibleControlCount?: number;

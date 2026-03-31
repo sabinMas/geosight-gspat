@@ -192,6 +192,7 @@ export function ExploreWorkspace() {
   useEffect(() => {
     setUiContext({
       activeProfile: state.activeProfile.id,
+      reportDraftTemplate: reportPrompt,
       visiblePrimaryCardId: data.activePrimaryCard?.id ?? null,
       visibleWorkspaceCardIds: visibleUiCardIds,
       visibleControlCount,
@@ -211,6 +212,7 @@ export function ExploreWorkspace() {
     data.shellMode,
     data.suggestedCards.length,
     setUiContext,
+    reportPrompt,
     state.activeProfile.id,
     state.locationReady,
     visibleControlCount,
@@ -433,7 +435,11 @@ export function ExploreWorkspace() {
                   region={state.selectedRegion}
                   locationTooltip={state.selectedLocationName}
                   onReset={() => {
-                    state.selectPoint(state.defaultCoordinates, "Starter view", "Starter view");
+                    state.selectPoint(
+                      state.selectedPoint,
+                      state.selectedLocationName,
+                      state.selectedLocationDisplayName,
+                    );
                     data.handleLocationSelection();
                   }}
                 />
