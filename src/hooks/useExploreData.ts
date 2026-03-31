@@ -72,10 +72,6 @@ function laneToAgentId(capabilityId: AnalysisCapabilityId, modelLane: string) {
     return "geo-scribe" as const;
   }
 
-  if (capabilityId === "source-confidence") {
-    return "geo-guide" as const;
-  }
-
   return "geo-analyst" as const;
 }
 

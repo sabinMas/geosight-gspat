@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,8 @@ export function ChatPanel({
   ]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const suggestionPrompts = profile.exampleQuestions.length
     ? profile.exampleQuestions
     : [...STARTER_PROMPTS];
@@ -111,6 +112,18 @@ export function ChatPanel({
     resultsMode === "nearby_places"
       ? "Nearby answers should stay inside live mapped place results plus the local access and amenity context."
       : "Analysis answers should stay inside these live and derived inputs and call out any important gaps.";
+
+  useEffect(() => {
+    const viewport = messagesViewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollTo({
+      top: viewport.scrollHeight,
+      behavior: messages.length > 1 ? "smooth" : "auto",
+    });
+  }, [loading, messages]);
 
   const submitQuestion = useCallback(async (question: string) => {
     const trimmedQuestion = question.trim();
@@ -298,7 +311,10 @@ export function ChatPanel({
           </details>
         </div>
 
-        <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto pr-1">
+        <div
+          ref={messagesViewportRef}
+          className="scrollbar-thin flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1"
+        >
           {messages.map((message) => (
             <div
               key={message.id}

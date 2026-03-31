@@ -10,6 +10,7 @@ import {
   House,
   Info,
   LineChart,
+  Loader2,
   Route,
   ShieldAlert,
   Trees,
@@ -26,9 +27,10 @@ import {
   SURPRISE_ME_LOCATIONS,
 } from "@/lib/landing";
 import { LENS_LABELS, getLensLabel, toPublicLensId } from "@/lib/lenses";
+import { fetchWithTimeout } from "@/lib/network";
 import { PROFILES } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
-import { LandingUseCase } from "@/types";
+import { DiscoveryResponse, LandingUseCase } from "@/types";
 import { buttonVariants } from "../ui/button";
 
 const ICONS = {
@@ -192,7 +194,7 @@ function ExampleCard({
           onClick={onRefreshSurprise}
           className="absolute bottom-4 left-4 z-10 text-[9px] text-neutral-300/80 transition hover:text-white"
         >
-          ✦ Refresh
+          Refresh
         </button>
       ) : null}
     </div>
@@ -206,6 +208,9 @@ export function LandingPage() {
   const [surpriseLocation, setSurpriseLocation] = useState<SurpriseLocation>(() =>
     pickRandomSurpriseLocation(),
   );
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [discoveryResult, setDiscoveryResult] = useState<DiscoveryResponse | null>(null);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   const featuredExamples = useMemo(
     () =>
@@ -237,13 +242,62 @@ export function LandingPage() {
     });
   };
 
-  const openLocation = (profileId: string, locationQuery: string) => {
+  const openLocation = (profileId: string, locationQuery: string, locationLabel?: string) => {
+    setDiscoveryResult(null);
+    setDiscoveryError(null);
     router.push(
       buildExploreHref({
         profileId,
         locationQuery,
+        locationLabel,
       }),
     );
+  };
+
+  const handleDiscoveryFallback = async (query: string) => {
+    setDiscoveryLoading(true);
+    setDiscoveryError(null);
+
+    try {
+      const response = await fetchWithTimeout(
+        "/api/discover",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query,
+            profileId: selectedLens.id,
+          }),
+        },
+        35_000,
+      );
+
+      const payload = (await response.json()) as DiscoveryResponse & { error?: string };
+      if (!response.ok || !payload.intent) {
+        const errorMessage =
+          payload.error ??
+          "GeoSight could not turn that prompt into a discovery shortlist yet.";
+        setDiscoveryResult(null);
+        setDiscoveryError(errorMessage);
+        return { handled: false, error: errorMessage };
+      }
+
+      setDiscoveryResult(payload);
+      setDiscoveryError(null);
+      return { handled: true };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "GeoSight could not turn that prompt into a discovery shortlist yet.";
+      setDiscoveryResult(null);
+      setDiscoveryError(errorMessage);
+      return { handled: false, error: errorMessage };
+    } finally {
+      setDiscoveryLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -335,18 +389,111 @@ export function LandingPage() {
               <SearchBar
                 placeholder={`Search a place - ${activeExampleSuggestion}`}
                 submitLabel="Explore"
+                onSearchFallback={handleDiscoveryFallback}
                 onLocate={(result) => {
                   const locationQuery =
                     result.kind === "coordinates"
                       ? `${result.coordinates.lat.toFixed(6)}, ${result.coordinates.lng.toFixed(6)}`
                       : result.name;
 
-                  openLocation(selectedLens.id, locationQuery);
+                  openLocation(
+                    selectedLens.id,
+                    locationQuery,
+                    result.fullName ?? result.shortName ?? result.name,
+                  );
                 }}
               />
               <div className="mt-3 text-sm text-[var(--muted-foreground)]">
-                Start with a place. Change the lens any time.
+                Start with a place, or type a discovery prompt like &quot;best neighborhoods near Bellevue for a family&quot; or &quot;beginner hikes within 50 miles of Seattle&quot;.
               </div>
+
+              {discoveryLoading ? (
+                <div className="mt-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-4 text-sm text-[var(--foreground-soft)]">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
+                    Building a discovery shortlist from the prompt...
+                  </div>
+                </div>
+              ) : null}
+
+              {discoveryError ? (
+                <div className="mt-4 rounded-2xl border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm leading-6 text-[var(--danger-foreground)]">
+                  {discoveryError}
+                </div>
+              ) : null}
+
+              {discoveryResult ? (
+                <div className="mt-4 space-y-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+                  <div className="space-y-2">
+                    <div className="eyebrow">Discovery shortlist</div>
+                    <div className="text-lg font-semibold text-[var(--foreground)]">
+                      {discoveryResult.intent.title}
+                    </div>
+                    <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                      {discoveryResult.intent.summary}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {discoveryResult.candidates.map((candidate) => (
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        onClick={() =>
+                          openLocation(
+                            candidate.profileId,
+                            candidate.locationQuery,
+                            candidate.locationLabel,
+                          )
+                        }
+                        className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-panel)]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-base font-semibold text-[var(--foreground)]">
+                              {candidate.title}
+                            </div>
+                            <div className="mt-1 text-sm text-[var(--muted-foreground)]">
+                              {candidate.subtitle}
+                            </div>
+                          </div>
+                          {candidate.score !== null ? (
+                            <div className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-1 text-sm font-semibold text-[var(--foreground)]">
+                              {candidate.score}/100
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <p className="mt-3 text-sm leading-6 text-[var(--foreground-soft)]">
+                          {candidate.summary}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {candidate.highlights.map((highlight) => (
+                            <span
+                              key={`${candidate.id}-${highlight}`}
+                              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-1 text-xs text-[var(--muted-foreground)]"
+                            >
+                              {highlight}
+                            </span>
+                          ))}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                      Limits
+                    </div>
+                    <div className="mt-2 space-y-1 text-sm leading-6 text-[var(--muted-foreground)]">
+                      {discoveryResult.limitations.map((limitation) => (
+                        <div key={limitation}>- {limitation}</div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>

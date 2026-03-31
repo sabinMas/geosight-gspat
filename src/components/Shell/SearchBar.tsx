@@ -20,6 +20,7 @@ interface SearchBarProps {
   leadingControl?: React.ReactNode;
   locationButtonLabel?: string;
   onLocate: (result: LocationSearchResult) => void;
+  onSearchFallback?: (query: string) => Promise<{ handled: boolean; error?: string }>;
   placeholder?: string;
   submitLabel?: string;
   syncValue?: string;
@@ -30,6 +31,7 @@ export function SearchBar({
   leadingControl,
   locationButtonLabel = "Use my location",
   onLocate,
+  onSearchFallback,
   placeholder = "Search a place",
   submitLabel = "Explore",
   syncValue,
@@ -118,6 +120,19 @@ export function SearchBar({
       const resolved = await resolveLocationFromQuery(value);
       handleSelectSuggestion(resolved);
     } catch (err) {
+      if (onSearchFallback) {
+        const fallbackResult = await onSearchFallback(value);
+        if (fallbackResult.handled) {
+          setError(null);
+          return;
+        }
+
+        if (fallbackResult.error) {
+          setError(fallbackResult.error);
+          return;
+        }
+      }
+
       setError(
         err instanceof ExternalRequestTimeoutError
           ? "Place lookup timed out. Try a shorter query or retry in a moment."
@@ -128,7 +143,7 @@ export function SearchBar({
     } finally {
       setLoading(false);
     }
-  }, [handleSelectSuggestion, onLocate, value]);
+  }, [handleSelectSuggestion, onLocate, onSearchFallback, value]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

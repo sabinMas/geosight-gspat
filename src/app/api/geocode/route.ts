@@ -2,25 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import { LocationSearchResult } from "@/types";
 
+interface NominatimAddress {
+  country_code?: string;
+  country?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  municipality?: string;
+  county?: string;
+  state?: string;
+  suburb?: string;
+  neighbourhood?: string;
+  hamlet?: string;
+  borough?: string;
+  quarter?: string;
+  city_district?: string;
+  state_district?: string;
+  region?: string;
+  province?: string;
+  national_park?: string;
+}
+
 interface NominatimSearchResult {
   lat: string;
   lon: string;
   display_name: string;
   type?: string;
   addresstype?: string;
-  address?: {
-    country_code?: string;
-    country?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    municipality?: string;
-    county?: string;
-    state?: string;
-    suburb?: string;
-    neighbourhood?: string;
-    hamlet?: string;
-  };
+  address?: NominatimAddress;
 }
 
 interface NominatimReverseResult {
@@ -29,19 +38,7 @@ interface NominatimReverseResult {
   display_name: string;
   type?: string;
   addresstype?: string;
-  address?: {
-    country_code?: string;
-    country?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    municipality?: string;
-    county?: string;
-    state?: string;
-    suburb?: string;
-    neighbourhood?: string;
-    hamlet?: string;
-  };
+  address?: NominatimAddress;
 }
 
 const US_STATE_ABBREVIATIONS: Record<string, string> = {
@@ -103,7 +100,7 @@ function clampLocationLabel(value: string, maxLength = 30) {
     return value;
   }
 
-  return `${value.slice(0, maxLength - 1).trimEnd()}…`;
+  return `${value.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
 function abbreviateUsState(state: string | undefined) {
@@ -152,7 +149,12 @@ function buildPayload(result: NominatimSearchResult | NominatimReverseResult): L
   const district =
     result.address?.neighbourhood ??
     result.address?.suburb ??
+    result.address?.borough ??
+    result.address?.quarter ??
+    result.address?.city_district ??
     result.address?.hamlet ??
+    result.address?.national_park ??
+    result.address?.state_district ??
     result.address?.county ??
     undefined;
 
@@ -212,12 +214,16 @@ export async function GET(request: NextRequest) {
       url.searchParams.set("addressdetails", "1");
     }
 
-    const response = await fetchWithTimeout(url, {
-      headers: {
-        "User-Agent": "GeoSight geospatial search",
+    const response = await fetchWithTimeout(
+      url,
+      {
+        headers: {
+          "User-Agent": "GeoSight geospatial search",
+        },
+        next: { revalidate: 60 * 60 * 24 },
       },
-      next: { revalidate: 60 * 60 * 24 },
-    }, EXTERNAL_TIMEOUTS.standard);
+      EXTERNAL_TIMEOUTS.standard,
+    );
 
     if (!response.ok) {
       throw new Error("Geocoding lookup failed.");

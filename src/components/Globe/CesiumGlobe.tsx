@@ -19,6 +19,7 @@ import {
   Viewer as CesiumViewer,
 } from "cesium";
 import { Entity, ScreenSpaceEvent, ScreenSpaceEventHandler, Viewer } from "resium";
+import { estimateRegionSpanKm } from "@/lib/geospatial";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   Coordinates,
@@ -37,6 +38,23 @@ if (typeof window !== "undefined") {
 const CESIUM_ION_TOKEN = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN?.trim() ?? "";
 
 Ion.defaultAccessToken = CESIUM_ION_TOKEN;
+
+function getFlyToHeight(
+  selectedPoint: Coordinates,
+  selectedRegion: RegionSelection,
+  isFirstTarget: boolean,
+) {
+  const isDefaultTarget =
+    Math.abs(selectedPoint.lat - DEFAULT_GLOBE_VIEW.lat) < 0.000001 &&
+    Math.abs(selectedPoint.lng - DEFAULT_GLOBE_VIEW.lng) < 0.000001;
+
+  if (isFirstTarget && isDefaultTarget) {
+    return DEFAULT_GLOBE_VIEW.height;
+  }
+
+  const spanKm = estimateRegionSpanKm(selectedRegion.bbox);
+  return Math.round(Math.min(Math.max(spanKm * 900, 2500), 24000));
+}
 
 interface CesiumGlobeProps {
   selectedPoint: Coordinates;
@@ -123,7 +141,7 @@ export function CesiumGlobe({
     }
 
     const controller = viewer.scene.screenSpaceCameraController;
-    controller.minimumZoomDistance = 100;
+    controller.minimumZoomDistance = 40;
     controller.maximumZoomDistance = 3e8;
     controller.enableInputs = pointerInside;
     controller.enableTilt = true;
@@ -162,17 +180,19 @@ export function CesiumGlobe({
     }
 
     const isFirstTarget = lastFlyTargetRef.current === null;
+    const flyToHeight = getFlyToHeight(selectedPoint, selectedRegion, isFirstTarget);
+    const regionSpanKm = estimateRegionSpanKm(selectedRegion.bbox);
     lastFlyTargetRef.current = nextTarget;
     try {
       viewer.camera.flyTo({
         destination: Cartesian3.fromDegrees(
           selectedPoint.lng,
           selectedPoint.lat,
-          isFirstTarget ? DEFAULT_GLOBE_VIEW.height : 16000,
+          flyToHeight,
         ),
         orientation: {
           heading: viewer.camera.heading,
-          pitch: -CesiumMath.PI_OVER_TWO,
+          pitch: -CesiumMath.toRadians(regionSpanKm <= 8 ? 68 : 82),
           roll: 0,
         },
         duration: 1.8,
@@ -180,7 +200,7 @@ export function CesiumGlobe({
     } catch (error) {
       console.warn("[cesium-globe] camera flyTo failed", error);
     }
-  }, [selectedPoint, viewerReady]);
+  }, [selectedPoint, selectedRegion, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;

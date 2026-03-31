@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, FileText, Loader2, X } from "lucide-react";
+import { Copy, Download, FileJson, FileText, Loader2, X } from "lucide-react";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Button } from "@/components/ui/button";
+import {
+  buildExportFilename,
+  downloadJsonFile,
+  downloadTextFile,
+} from "@/lib/export";
 
 interface GeoScribeReportPanelProps {
   open: boolean;
@@ -43,6 +48,8 @@ export function GeoScribeReportPanel({
     setCopied(false);
   }, [markdown, open]);
 
+  const exportParts = ["geosight", locationName || "active-location", "report"];
+
   if (!open) {
     return null;
   }
@@ -71,7 +78,51 @@ export function GeoScribeReportPanel({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="rounded-full"
+              disabled={!markdown || loading}
+              onClick={() => {
+                if (!markdown) {
+                  return;
+                }
+
+                downloadTextFile(
+                  markdown,
+                  buildExportFilename(exportParts, "md"),
+                  "text/markdown;charset=utf-8",
+                );
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download .md
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="rounded-full"
+              disabled={!markdown || loading}
+              onClick={() => {
+                if (!markdown) {
+                  return;
+                }
+
+                downloadJsonFile(
+                  {
+                    title: "Site assessment report",
+                    locationName: locationName || "Active location",
+                    exportedAt: new Date().toISOString(),
+                    markdown,
+                  },
+                  buildExportFilename(exportParts, "json"),
+                );
+              }}
+            >
+              <FileJson className="mr-2 h-4 w-4" />
+              Download JSON
+            </Button>
             <Button
               type="button"
               variant="secondary"

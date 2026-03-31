@@ -247,6 +247,7 @@ export interface MissionProfile {
 export interface ExploreInitState {
   profileId?: string;
   locationQuery?: string;
+  locationLabel?: string;
 }
 
 export interface LandingUseCase {
@@ -544,10 +545,43 @@ export interface LocationSearchResult {
   district?: string;
 }
 
+export type DiscoveryMode = "nearby_places" | "scored_regions";
+
+export interface DiscoveryIntent {
+  rawQuery: string;
+  profileId: string;
+  profileName: string;
+  anchorQuery: string;
+  anchorName: string;
+  mode: DiscoveryMode;
+  title: string;
+  summary: string;
+}
+
+export interface DiscoveryCandidate {
+  id: string;
+  title: string;
+  subtitle: string;
+  summary: string;
+  locationQuery: string;
+  locationLabel: string;
+  profileId: string;
+  score: number | null;
+  distanceKm: number | null;
+  highlights: string[];
+}
+
+export interface DiscoveryResponse {
+  intent: DiscoveryIntent;
+  candidates: DiscoveryCandidate[];
+  limitations: string[];
+}
+
 export interface NearbyPlace {
   id: string;
   name: string;
   category: NearbyPlaceCategory;
+  coordinates: Coordinates;
   distanceKm: number | null;
   relativeLocation: string;
   summary: string;

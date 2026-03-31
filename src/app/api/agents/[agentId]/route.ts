@@ -160,12 +160,20 @@ function buildAnalyzePayload(message: string, context?: GeoSightContext): Analyz
 function buildGeoGuideFallback(message: string, context?: GeoSightContext) {
   const normalized = message.toLowerCase();
   const uiContext = context?.uiContext;
+  const dataBundle = getDataBundle(context);
   const profile = getProfileById(context?.profile ?? "data-center");
   const supportingViews = uiContext?.visibleWorkspaceCardIds?.length
     ? uiContext.visibleWorkspaceCardIds.join(", ")
     : "none open yet";
+  const hasLoadedLocationContext = Boolean(
+    uiContext?.locationSelected ||
+      uiContext?.geodataLoaded ||
+      context?.lat !== undefined ||
+      context?.lng !== undefined ||
+      parseOptionalString(dataBundle?.locationName),
+  );
 
-  if (!uiContext?.locationSelected) {
+  if (!hasLoadedLocationContext) {
     return `Start by focusing a place on the globe or with the search bar, then ask your question through the ${profile.name} lens. GeoSight stays in a calmer ${uiContext?.shellMode ?? "minimal"} shell until a location is selected, so the next useful step is to choose a place first.`;
   }
 
@@ -221,8 +229,8 @@ function buildGeoScribeFallback(message: string, context?: GeoSightContext) {
     assessment,
     "",
     "## Report Status",
-    "- Generated in deterministic fallback mode.",
-    "- External report-writing model credentials are currently unavailable or invalid.",
+    "- Generated from GeoSight's structured fallback writer.",
+    "- The external report-writing model is currently unavailable or not configured.",
     "- Review the Source awareness card before treating this as a final export.",
   ].join("\n");
 }
@@ -241,7 +249,7 @@ function buildAgentFallback(agentId: string, message: string, context?: GeoSight
 
   return [
     "# GeoAnalyst",
-    "GeoAnalyst is currently running in deterministic fallback mode because the live model provider is unavailable.",
+    "GeoAnalyst is currently using GeoSight's structured fallback analysis because a live model provider is unavailable.",
     "",
     buildFallbackAssessment(payload, profile),
   ].join("\n\n");
@@ -456,10 +464,12 @@ export async function POST(
     );
 
     if (!response.ok || !response.body) {
-      return NextResponse.json(
-        { error: "The agent could not respond right now." },
-        { status: 502 },
-      );
+      return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
     }
 
     return new Response(createTextStream(response.body), {
@@ -474,9 +484,11 @@ export async function POST(
       error,
     );
 
-    return NextResponse.json(
-      { error: "The agent could not respond right now." },
-      { status: 502 },
-    );
+    return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
   }
 }

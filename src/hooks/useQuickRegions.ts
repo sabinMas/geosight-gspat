@@ -45,12 +45,24 @@ function getDisplayNeighborhood(
   district?: string | null,
   locality?: string | null,
 ) {
-  if (district?.trim()) {
-    return district.trim();
+  const cleanedDistrict = district?.trim();
+  const cleanedName = name?.split(",")[0]?.trim();
+  const looksAdministrative =
+    cleanedDistrict !== undefined &&
+    /improvement district|county|regional district|census division|administrative|municipality|province|region/i.test(
+      cleanedDistrict,
+    );
+
+  if (cleanedDistrict && !looksAdministrative && cleanedDistrict !== locality?.trim()) {
+    return cleanedDistrict;
   }
 
-  if (name?.trim()) {
-    return name.split(",")[0]?.trim() ?? name.trim();
+  if (cleanedName) {
+    return cleanedName;
+  }
+
+  if (cleanedDistrict) {
+    return cleanedDistrict;
   }
 
   return locality?.trim() ?? "Nearby area";
@@ -70,7 +82,7 @@ function toRegionSelection(region: CachedQuickRegion, profileId: string) {
       : region.neighborhoodName;
   const secondaryLabel =
     profileId === "residential"
-      ? `${region.neighborhoodName} · ${region.locality}, ${region.countryName}`
+      ? [region.neighborhoodName, `${region.locality}, ${region.countryName}`].join(" · ")
       : `${region.locality}, ${region.countryName}`;
 
   return buildRegion(region.coordinates, name, secondaryLabel);

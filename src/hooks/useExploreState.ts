@@ -147,7 +147,10 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
       try {
         const result = await resolveLocationQuery(locationQuery);
         if (!cancelled) {
-          selectPoint(result.coordinates, result.fullName ?? result.name, result.shortName);
+          const resolvedLabel = init.locationLabel ?? result.fullName ?? result.name;
+          const resolvedDisplayLabel =
+            init.locationLabel ?? result.shortName ?? result.name;
+          selectPoint(result.coordinates, resolvedLabel, resolvedDisplayLabel);
         }
       } catch (error) {
         if (!cancelled) {
@@ -169,7 +172,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     return () => {
       cancelled = true;
     };
-  }, [init.locationQuery, selectPoint]);
+  }, [init.locationLabel, init.locationQuery, selectPoint]);
 
   return {
     init,

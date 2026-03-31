@@ -1,4 +1,13 @@
+"use client";
+
+import { Download, FileJson } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  buildExportFilename,
+  downloadCsvFile,
+  downloadJsonFile,
+} from "@/lib/export";
 import { SavedSite } from "@/types";
 
 interface CompareTableProps {
@@ -13,17 +22,106 @@ export function CompareTable({
   emptyMessage = "Save sites to compare them here.",
 }: CompareTableProps) {
   const factorColumns = sites[0]?.score.factors.slice(0, 3) ?? [];
+  const exportFactorColumns = sites[0]?.score.factors ?? [];
   const evidenceTone: Record<string, string> = {
     direct_live: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]",
     derived_live: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
     proxy: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]",
   };
 
+  const handleExportCsv = () => {
+    const rows: Array<Array<string | number | null | undefined>> = [
+      [
+        "Site",
+        "Region",
+        "Profile",
+        "Latitude",
+        "Longitude",
+        "Total score",
+        "Recommendation",
+        "Note",
+        ...exportFactorColumns.flatMap((factor) => [
+          `${factor.label} score`,
+          `${factor.label} detail`,
+          `${factor.label} evidence`,
+        ]),
+      ],
+      ...sites.map((site) => [
+        site.name,
+        site.regionName,
+        site.profileId,
+        site.coordinates.lat.toFixed(6),
+        site.coordinates.lng.toFixed(6),
+        site.score.total,
+        site.score.recommendation,
+        site.note ?? "",
+        ...exportFactorColumns.flatMap((factor) => {
+          const match = site.score.factors.find((candidate) => candidate.key === factor.key);
+          return [match?.score ?? "", match?.detail ?? "", match?.evidenceLabel ?? ""];
+        }),
+      ]),
+    ];
+
+    downloadCsvFile(
+      rows,
+      buildExportFilename(["geosight", title, "comparison"], "csv"),
+    );
+  };
+
+  const handleExportJson = () => {
+    downloadJsonFile(
+      {
+        title,
+        exportedAt: new Date().toISOString(),
+        siteCount: sites.length,
+        sites: sites.map((site) => ({
+          id: site.id,
+          name: site.name,
+          regionName: site.regionName,
+          profileId: site.profileId,
+          coordinates: site.coordinates,
+          note: site.note ?? null,
+          score: site.score,
+        })),
+      },
+      buildExportFilename(["geosight", title, "comparison"], "json"),
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="space-y-3">
-        <div className="eyebrow">Comparison board</div>
-        <CardTitle>{title}</CardTitle>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-3">
+            <div className="eyebrow">Comparison board</div>
+            <CardTitle>{title}</CardTitle>
+          </div>
+
+          {sites.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="rounded-full"
+                onClick={handleExportCsv}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="rounded-full"
+                onClick={handleExportJson}
+              >
+                <FileJson className="mr-2 h-4 w-4" />
+                Export JSON
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {factorColumns.length ? (
@@ -73,7 +171,10 @@ export function CompareTable({
               </thead>
               <tbody>
                 {sites.map((site) => (
-                  <tr key={site.id} className="border-t border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--foreground-soft)]">
+                  <tr
+                    key={site.id}
+                    className="border-t border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--foreground-soft)]"
+                  >
                     <td className="px-4 py-3">
                       <div className="font-medium text-[var(--foreground)]">{site.name}</div>
                       <div className="text-xs text-[var(--muted-foreground)]">{site.regionName}</div>

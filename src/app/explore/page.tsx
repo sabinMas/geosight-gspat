@@ -19,6 +19,7 @@ export default async function ExplorePage({
   const initialState: ExploreInitState = {
     profileId: normalizeProfileId(firstValue(params.profile)),
     locationQuery: firstValue(params.location),
+    locationLabel: firstValue(params.label),
   };
 
   return (

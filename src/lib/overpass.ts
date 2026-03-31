@@ -279,6 +279,7 @@ export async function fetchNearbyPlaces(
         id: `${category}-${element.type}-${element.id}`,
         name: tags.name,
         category,
+        coordinates: elementCoords,
         distanceKm,
         relativeLocation: describeRelativeLocation(coords, elementCoords),
         summary: buildSummary(category, tags, locationName),

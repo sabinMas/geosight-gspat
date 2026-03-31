@@ -160,6 +160,9 @@ export function buildExploreHref(init: ExploreInitState) {
   if (init.locationQuery) {
     params.set("location", init.locationQuery);
   }
+  if (init.locationLabel) {
+    params.set("label", init.locationLabel);
+  }
 
   const query = params.toString();
   return query ? `/explore?${query}` : "/explore";

@@ -5,6 +5,7 @@ import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import {
   AnalyzeRequestBody,
   DataTrend,
+  DataSourceMeta,
   GeodataResult,
   MissionProfile,
   NearbyPlace,
@@ -46,6 +47,16 @@ export function formatLocationLabel(payload: Pick<AnalyzeRequestBody, "location"
 
   return payload.locationName ? `${payload.locationName} (${coordinateText})` : coordinateText;
 }
+
+type FallbackQuestionType =
+  | "nearby_places"
+  | "source_confidence"
+  | "school_quality"
+  | "hazard_risk"
+  | "terrain_recreation"
+  | "development_fit"
+  | "infrastructure_fit"
+  | "general_analysis";
 
 function buildResponseGuidance(mode: ReturnType<typeof inferResponseMode>) {
   if (mode === "nearby_places") {
@@ -207,7 +218,7 @@ function buildProfileAssessmentLine(profileId: string, geodata?: GeodataResult) 
     case "hiking":
       return elevation !== null && waterKm !== null
         ? `The recreation signal is strongest where terrain variety, water features, and breathable air align; this site sits around ${elevation} m elevation with water roughly ${waterKm.toFixed(1)} km away.`
-        : "This area may have hiking potential, but the current map data is still too coarse to judge trail quality or scenic value confidently.";
+        : "This area may have hiking potential, but the current map data is still too coarse to assess trail quality or scenic value confidently.";
     case "residential":
       return roadKm !== null && topLandCover
         ? `For neighborhood development, the best early signals are road access at about ${roadKm.toFixed(1)} km, dominant land cover of ${topLandCover.label.toLowerCase()}, and whatever FEMA and broadband context says about risk and readiness.`
@@ -261,31 +272,132 @@ function buildNextQuestions(profileId: string) {
   }
 }
 
-function formatNearbyPlaceLine(place: NearbyPlace) {
-  const distance = place.distanceKm === null ? "distance unavailable" : `${place.distanceKm.toFixed(1)} km`;
-  return `- ${place.name} (${place.category}) - ${distance}, ${place.relativeLocation}. ${place.summary}`;
-}
-
-function formatTrendLine(trend: DataTrend) {
-  return `- ${trend.label}: ${trend.value}. ${trend.detail}`;
-}
-
-function buildFactorEvidenceLines(profile: MissionProfile) {
-  return profile.factors.map((factor) => {
-    const evidence = classifyFactorEvidence(factor);
-    return `- ${factor.label}: ${evidence.label}.`;
-  });
-}
-
-export function buildFallbackAssessment(
+function classifyFallbackQuestion(
   payload: AnalyzeRequestBody,
-  profile: MissionProfile = DEFAULT_PROFILE,
-) {
+  profile: MissionProfile,
+): FallbackQuestionType {
+  const normalized = payload.question.toLowerCase();
   const responseMode = inferResponseMode(payload.question, payload.resultsMode);
-  const locationLabel = formatLocationLabel(payload);
+
+  if (responseMode === "nearby_places") {
+    return "nearby_places";
+  }
+
+  if (
+    includesAny(normalized, [
+      "source",
+      "confidence",
+      "trust",
+      "grounding",
+      "grounded",
+      "provenance",
+      "freshness",
+      "coverage",
+      "fallback",
+    ])
+  ) {
+    return "source_confidence";
+  }
+
+  if (
+    includesAny(normalized, [
+      "school",
+      "district",
+      "family",
+      "families",
+      "children",
+      "child",
+      "kids",
+      "parent",
+      "homebuyer",
+      "young children",
+    ])
+  ) {
+    return "school_quality";
+  }
+
+  if (
+    includesAny(normalized, [
+      "hazard",
+      "risk",
+      "flood",
+      "fema",
+      "earthquake",
+      "seismic",
+      "fire",
+      "wildfire",
+      "contamination",
+      "superfund",
+      "tri",
+      "safe",
+    ])
+  ) {
+    return "hazard_risk";
+  }
+
+  if (
+    profile.id === "hiking" ||
+    includesAny(normalized, [
+      "hike",
+      "trail",
+      "terrain",
+      "slope",
+      "elevation",
+      "view",
+      "scenic",
+      "recreation",
+      "outdoor",
+    ])
+  ) {
+    return "terrain_recreation";
+  }
+
+  if (
+    profile.id === "residential" ||
+    includesAny(normalized, [
+      "neighborhood",
+      "neighbourhood",
+      "residential",
+      "housing",
+      "home",
+      "build",
+      "suburban",
+      "suburb",
+      "community",
+    ])
+  ) {
+    return "development_fit";
+  }
+
+  if (
+    profile.id === "data-center" ||
+    profile.id === "commercial" ||
+    includesAny(normalized, [
+      "data center",
+      "datacenter",
+      "warehouse",
+      "industrial",
+      "commercial",
+      "substation",
+      "power",
+      "broadband",
+      "cooling",
+      "hyperscale",
+      "logistics",
+      "infrastructure",
+    ])
+  ) {
+    return "infrastructure_fit";
+  }
+
+  return "general_analysis";
+}
+
+function buildSupportedFacts(payload: AnalyzeRequestBody) {
   const topLandCover = pickTopLandCover(payload.geodata);
   const nearestGauge = getNearestStreamGauge(payload.geodata);
-  const supportedFacts = [
+
+  return [
     payload.geodata?.elevationMeters !== null && payload.geodata?.elevationMeters !== undefined
       ? `Elevation is about ${payload.geodata.elevationMeters} m.`
       : "Elevation is currently unavailable.",
@@ -337,6 +449,151 @@ export function buildFallbackAssessment(
       ? `Dominant land cover signal: ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",
   ];
+}
+
+function formatSourceConfidenceLine(source: DataSourceMeta | null | undefined) {
+  if (!source) {
+    return "- Source metadata is unavailable for this part of the stack.";
+  }
+
+  return `- ${source.label}: ${source.status}. ${source.confidence} Freshness: ${source.freshness}. Coverage: ${source.coverage}.`;
+}
+
+function buildSourceConfidenceSummary(geodata?: GeodataResult) {
+  if (!geodata) {
+    return "GeoSight cannot explain source confidence yet because the live location context has not finished loading.";
+  }
+
+  const limitedSources = [
+    geodata.sources.school,
+    geodata.sources.groundwater,
+    geodata.sources.soilProfile,
+    geodata.sources.airQuality,
+  ].filter((source) => source.status !== "live");
+
+  if (limitedSources.length > 0) {
+    return `Most of the current read is grounded, but ${limitedSources[0].label.toLowerCase()} is still marked ${limitedSources[0].status}, so conclusions in that area should stay at screening depth.`;
+  }
+
+  return "The current read is mostly supported by live or derived source metadata, so the main caution is normal screening-level diligence rather than a missing-provider problem.";
+}
+
+function buildSchoolSummary(payload: AnalyzeRequestBody) {
+  const schoolContext = payload.geodata?.schoolContext;
+  if (schoolContext?.score !== null && schoolContext?.score !== undefined) {
+    return `GeoSight currently scores the local school context at ${schoolContext.score}/100 (${schoolContext.band}), so there is enough signal for an early family-oriented screen.`;
+  }
+
+  if (schoolContext?.explanation) {
+    return `GeoSight has only partial school-quality coverage here: ${schoolContext.explanation}`;
+  }
+
+  if (
+    payload.geodata?.amenities?.schoolCount !== null &&
+    payload.geodata?.amenities?.schoolCount !== undefined
+  ) {
+    return `GeoSight can see ${payload.geodata.amenities.schoolCount} mapped schools nearby, but direct school-quality coverage is not loaded yet for a stronger answer.`;
+  }
+
+  return "GeoSight does not have enough school context loaded yet to directly rank this place for families.";
+}
+
+function buildHazardSummary(payload: AnalyzeRequestBody) {
+  const isFloodRisk = payload.geodata?.floodZone?.isSpecialFloodHazard;
+  const contaminationCount = payload.geodata?.epaHazards?.superfundCount ?? 0;
+  const recentEarthquakes = payload.geodata?.hazards?.earthquakeCount30d ?? 0;
+  const aqi = payload.geodata?.climate.airQualityIndex;
+
+  if (isFloodRisk || contaminationCount > 0 || (aqi !== null && aqi !== undefined && aqi >= 100)) {
+    return "There are meaningful loaded hazard signals here, so this location should be treated as a review-first site rather than a clean yes/no candidate.";
+  }
+
+  if (recentEarthquakes > 0 || payload.geodata?.floodZone || payload.geodata?.epaHazards) {
+    return "No single loaded hazard dominates yet, but GeoSight does have enough risk context to justify a closer look before making a final decision.";
+  }
+
+  return "GeoSight does not have enough loaded hazard coverage yet to make a strong risk call.";
+}
+
+function buildTerrainSummary(payload: AnalyzeRequestBody) {
+  const elevation = payload.geodata?.elevationMeters;
+  const waterKm = payload.geodata?.nearestWaterBody.distanceKm;
+  const topLandCover = pickTopLandCover(payload.geodata);
+
+  if (elevation !== null && elevation !== undefined && waterKm !== null && waterKm !== undefined) {
+    return `The terrain and recreation signal looks most promising where elevation, vegetation, and water features line up, and this location already has that basic mix loaded.`;
+  }
+
+  if (topLandCover) {
+    return `GeoSight can see a ${topLandCover.label.toLowerCase()} land-cover pattern here, but finer terrain and recreation quality still need a closer map read.`;
+  }
+
+  return "GeoSight does not have enough terrain context loaded yet for a strong recreation or topography answer.";
+}
+
+function buildDevelopmentSummary(payload: AnalyzeRequestBody) {
+  const roadKm = payload.geodata?.nearestRoad.distanceKm;
+  const floodLabel = payload.geodata?.floodZone?.label;
+  const broadbandProviders = payload.geodata?.broadband?.providerCount;
+  const schoolScore = payload.geodata?.schoolContext?.score;
+
+  if (
+    roadKm !== null &&
+    roadKm !== undefined &&
+    broadbandProviders !== null &&
+    broadbandProviders !== undefined
+  ) {
+    const schoolClause =
+      schoolScore !== null && schoolScore !== undefined
+        ? ` School context is ${schoolScore}/100.`
+        : "";
+    return `This location has enough early neighborhood-readiness context to screen access, services, and basic constraints.${schoolClause} ${floodLabel ? `Flood posture is ${floodLabel}.` : ""}`.trim();
+  }
+
+  return "GeoSight can frame some neighborhood-fit signals here, but it still lacks a few of the family and buildability inputs needed for a confident development answer.";
+}
+
+function buildInfrastructureSummary(payload: AnalyzeRequestBody) {
+  const waterKm = payload.geodata?.nearestWaterBody.distanceKm;
+  const powerKm = payload.geodata?.nearestPower.distanceKm;
+  const broadband = payload.geodata?.broadband?.maxDownloadSpeed;
+
+  if (
+    waterKm !== null &&
+    waterKm !== undefined &&
+    powerKm !== null &&
+    powerKm !== undefined
+  ) {
+    return `This location has enough infrastructure context loaded to judge water, power, and access at a screening level${broadband ? `, with broadband currently topping out at ${broadband} Mbps down` : ""}.`;
+  }
+
+  return "GeoSight can only make a partial infrastructure read here until more power, access, or utility context is loaded.";
+}
+
+function formatNearbyPlaceLine(place: NearbyPlace) {
+  const distance = place.distanceKm === null ? "distance unavailable" : `${place.distanceKm.toFixed(1)} km`;
+  return `- ${place.name} (${place.category}) - ${distance}, ${place.relativeLocation}. ${place.summary}`;
+}
+
+function formatTrendLine(trend: DataTrend) {
+  return `- ${trend.label}: ${trend.value}. ${trend.detail}`;
+}
+
+function buildFactorEvidenceLines(profile: MissionProfile) {
+  return profile.factors.map((factor) => {
+    const evidence = classifyFactorEvidence(factor);
+    return `- ${factor.label}: ${evidence.label}.`;
+  });
+}
+
+export function buildFallbackAssessment(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+) {
+  const responseMode = inferResponseMode(payload.question, payload.resultsMode);
+  const questionType = classifyFallbackQuestion(payload, profile);
+  const locationLabel = formatLocationLabel(payload);
+  const supportedFacts = buildSupportedFacts(payload);
 
   const nextQuestions = buildNextQuestions(profile.id);
   const trendLines = payload.dataTrends?.length
@@ -375,13 +632,187 @@ export function buildFallbackAssessment(
     ].join("\n");
   }
 
+  if (questionType === "source_confidence") {
+    return [
+      `Mission profile: ${profile.name}`,
+      `Location: ${locationLabel}`,
+      "Question type: Source confidence",
+      "",
+      "Direct answer:",
+      `- ${buildSourceConfidenceSummary(payload.geodata)}`,
+      "",
+      "Key source signals:",
+      formatSourceConfidenceLine(payload.geodata?.sources.elevation),
+      formatSourceConfidenceLine(payload.geodata?.sources.climate),
+      formatSourceConfidenceLine(payload.geodata?.sources.hazards),
+      formatSourceConfidenceLine(payload.geodata?.sources.school),
+      formatSourceConfidenceLine(payload.geodata?.sources.groundwater),
+      "",
+      "What this means:",
+      "- Treat live or derived sources as usable screening evidence.",
+      "- Treat limited or unavailable sources as areas where GeoSight can suggest next checks but not make a final claim.",
+      "",
+      "Next questions / next zoom levels:",
+      ...nextQuestions.map((question) => `- ${question}`),
+    ].join("\n");
+  }
+
+  if (questionType === "school_quality") {
+    return [
+      `Mission profile: ${profile.name}`,
+      `Location: ${locationLabel}`,
+      "Question type: Family / school context",
+      "",
+      "Direct answer:",
+      `- ${buildSchoolSummary(payload)}`,
+      "",
+      "Relevant signals:",
+      ...supportedFacts
+        .filter((fact) =>
+          fact.includes("School context") ||
+          fact.includes("Mapped amenities") ||
+          fact.includes("Road access") ||
+          fact.includes("Air-quality") ||
+          fact.includes("FEMA flood zone"),
+        )
+        .map((fact) => `- ${fact}`),
+      "",
+      "Data limits:",
+      "- GeoSight can only treat school quality as strong evidence when official accountability or matched school-context data is loaded.",
+      "- Family fit still depends on neighborhood-scale checks like parks, traffic calming, and housing stock, which are not fully modeled here yet.",
+      "",
+      "Next questions / next zoom levels:",
+      ...nextQuestions.map((question) => `- ${question}`),
+    ].join("\n");
+  }
+
+  if (questionType === "hazard_risk") {
+    return [
+      `Mission profile: ${profile.name}`,
+      `Location: ${locationLabel}`,
+      "Question type: Hazard screening",
+      "",
+      "Direct answer:",
+      `- ${buildHazardSummary(payload)}`,
+      "",
+      "Loaded risk signals:",
+      ...supportedFacts
+        .filter((fact) =>
+          fact.includes("FEMA flood zone") ||
+          fact.includes("Recent seismic context") ||
+          fact.includes("Air-quality") ||
+          fact.includes("EPA screening") ||
+          fact.includes("Current weather snapshot"),
+        )
+        .map((fact) => `- ${fact}`),
+      "",
+      "Data limits:",
+      "- This is still a screening-layer risk read, not a substitute for parcel, engineering, insurance, or regulatory diligence.",
+      "- Hazard posture may change once finer wildfire, stormwater, or local regulatory layers are added.",
+      "",
+      "Next questions / next zoom levels:",
+      ...nextQuestions.map((question) => `- ${question}`),
+    ].join("\n");
+  }
+
+  if (questionType === "terrain_recreation") {
+    return [
+      `Mission profile: ${profile.name}`,
+      `Location: ${locationLabel}`,
+      "Question type: Terrain / recreation fit",
+      "",
+      "Direct answer:",
+      `- ${buildTerrainSummary(payload)}`,
+      "",
+      "Relevant terrain signals:",
+      ...supportedFacts
+        .filter((fact) =>
+          fact.includes("Elevation") ||
+          fact.includes("Dominant land cover") ||
+          fact.includes("Nearest mapped water feature") ||
+          fact.includes("Current weather snapshot") ||
+          fact.includes("Air-quality"),
+        )
+        .map((fact) => `- ${fact}`),
+      "",
+      "Data limits:",
+      "- GeoSight can screen terrain character and access, but it does not yet have full trail-condition, scenic-rating, or seasonal closure coverage.",
+      "",
+      "Next questions / next zoom levels:",
+      ...nextQuestions.map((question) => `- ${question}`),
+    ].join("\n");
+  }
+
+  if (questionType === "development_fit") {
+    return [
+      `Mission profile: ${profile.name}`,
+      `Location: ${locationLabel}`,
+      "Question type: Neighborhood / development fit",
+      "",
+      "Direct answer:",
+      `- ${buildDevelopmentSummary(payload)}`,
+      "",
+      "Relevant development signals:",
+      ...supportedFacts
+        .filter((fact) =>
+          fact.includes("Road access") ||
+          fact.includes("Broadband context") ||
+          fact.includes("Mapped amenities") ||
+          fact.includes("School context") ||
+          fact.includes("FEMA flood zone") ||
+          fact.includes("Dominant land cover"),
+        )
+        .map((fact) => `- ${fact}`),
+      "",
+      "Data limits:",
+      "- This does not replace parcel-level entitlement, utilities, or local zoning review.",
+      "- GeoSight can screen neighborhood readiness, but not yet full homebuyer-market fit or parcel-by-parcel build cost.",
+      "",
+      "Next questions / next zoom levels:",
+      ...nextQuestions.map((question) => `- ${question}`),
+    ].join("\n");
+  }
+
+  if (questionType === "infrastructure_fit") {
+    return [
+      `Mission profile: ${profile.name}`,
+      `Location: ${locationLabel}`,
+      "Question type: Infrastructure fit",
+      "",
+      "Direct answer:",
+      `- ${buildInfrastructureSummary(payload)}`,
+      "",
+      "Relevant infrastructure signals:",
+      ...supportedFacts
+        .filter((fact) =>
+          fact.includes("Nearest mapped water feature") ||
+          fact.includes("Nearest mapped power infrastructure") ||
+          fact.includes("Broadband context") ||
+          fact.includes("Road access") ||
+          fact.includes("FEMA flood zone") ||
+          fact.includes("Current weather snapshot"),
+        )
+        .map((fact) => `- ${fact}`),
+      "",
+      "Data limits:",
+      "- GeoSight can screen utility and access posture, but it does not replace utility queue, transmission, or permitting diligence.",
+      "",
+      "Next questions / next zoom levels:",
+      ...nextQuestions.map((question) => `- ${question}`),
+    ].join("\n");
+  }
+
   return [
     `Mission profile: ${profile.name}`,
     `Location: ${locationLabel}`,
-    "Result mode: Analysis",
+    "Question type: General analysis",
     "",
-    "Key factors considered:",
-    ...profile.factors.map((factor) => `- ${factor.label}`),
+    "Direct answer:",
+    `- ${buildProfileAssessmentLine(profile.id, payload.geodata)}`,
+    "",
+    "Key supporting signals:",
+    "",
+    ...supportedFacts.map((fact) => `- ${fact}`),
     "",
     "Evidence mix:",
     ...buildFactorEvidenceLines(profile),
@@ -391,16 +822,9 @@ export function buildFallbackAssessment(
       ? trendLines
       : ["- Structured trend objects are not available yet, so this read relies directly on the raw geospatial context."]),
     "",
-    "Supported observations:",
-    ...supportedFacts.map((fact) => `- ${fact}`),
-    "",
-    "Assessment:",
-    `- ${buildProfileAssessmentLine(profile.id, payload.geodata)}`,
-    "- This is a best-effort fallback response, so anything beyond the listed map signals should be treated as inferred rather than fully verified.",
-    "",
     "Risks and unknowns:",
+    "- This analysis is based on the currently loaded live, derived, and mapped context, so anything beyond those signals should still be treated as a screening-level inference.",
     "- Regulations, parcel ownership, and detailed hazard layers are not yet part of this response unless explicitly provided.",
-    "- Fine-grained viability still depends on closer zoom, local surveys, and any use-case-specific regulations.",
     "",
     "Next questions / next zoom levels:",
     ...nextQuestions.map((question) => `- ${question}`),
