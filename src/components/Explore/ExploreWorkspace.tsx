@@ -244,8 +244,8 @@ export function ExploreWorkspace() {
   );
 
   return (
-    <main className="min-h-screen px-4 py-4 md:px-6">
-      <div className="mx-auto max-w-[1680px] space-y-5">
+    <main className="h-screen overflow-hidden px-4 py-4 md:px-6">
+      <div className="mx-auto flex h-full max-w-[1680px] flex-col gap-5 overflow-hidden">
         <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-xl">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -361,10 +361,11 @@ export function ExploreWorkspace() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="hidden xl:block">{sidebarElement}</div>
+        <section className="flex min-h-0 flex-1 gap-4 overflow-hidden">
+          <div className="hidden h-full flex-shrink-0 xl:block">{sidebarElement}</div>
 
-          <div className="space-y-4">
+          <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
             <SearchBar
               syncValue={
                 state.locationReady
@@ -386,7 +387,7 @@ export function ExploreWorkspace() {
               title="The globe view needs a quick reset"
               message="GeoSight kept the rest of the workspace alive. Retry the globe, switch regions, or keep working from the cards while the globe re-initializes."
             >
-              <section className="relative h-[640px] min-h-[640px] overflow-hidden rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] md:h-[680px] xl:h-[720px]">
+              <section className="relative flex-1 min-h-0 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] md:min-h-[680px] min-h-[640px] xl:min-h-[720px]">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
                 <CesiumGlobe
                   selectedPoint={state.selectedPoint}
@@ -573,6 +574,7 @@ export function ExploreWorkspace() {
                 />
               </>
             )}
+            </div>
           </div>
         </section>
       </div>

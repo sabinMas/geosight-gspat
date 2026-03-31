@@ -99,9 +99,9 @@ export function ProfileSelector({
   if (variant === "sidebar-carousel") {
     return (
       <div className="space-y-3">
-        <div
+      <div
           ref={scrollRef}
-          className="overflow-x-auto overflow-y-hidden pb-1 scrollbar-none"
+          className="flex overflow-x-auto gap-2 pb-1 scrollbar-none"
           style={{ width: `${SIDEBAR_VISIBLE_WIDTH}px` }}
         >
           <div className="flex gap-2">

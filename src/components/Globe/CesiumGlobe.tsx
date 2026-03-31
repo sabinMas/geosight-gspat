@@ -122,12 +122,18 @@ export function CesiumGlobe({
     }
 
     const controller = viewer.scene.screenSpaceCameraController;
-    controller.enableTilt = false;
+    controller.minimumZoomDistance = 100;
+    controller.maximumZoomDistance = 3e8;
     controller.enableLook = false;
     controller.enableRotate = true;
     controller.enableTranslate = true;
-    controller.minimumZoomDistance = 800;
-    controller.maximumZoomDistance = 2_000_000;
+    if (viewer.scene.skyAtmosphere) {
+      viewer.scene.skyAtmosphere.show = true;
+    }
+    if (viewer.scene.skyBox) {
+      viewer.scene.skyBox.show = true;
+    }
+    viewer.scene.globe.showGroundAtmosphere = true;
     controller.zoomEventTypes = [CameraEventType.WHEEL];
     controller.tiltEventTypes = [];
     controller.lookEventTypes = [];
@@ -392,7 +398,11 @@ export function CesiumGlobe({
   }
 
   return (
-    <div ref={hostRef} className="absolute inset-0 h-full w-full">
+    <div
+      ref={hostRef}
+      className="absolute inset-0 h-full w-full"
+      onWheel={(event) => event.stopPropagation()}
+    >
       {!globeReady ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />
@@ -419,7 +429,6 @@ export function CesiumGlobe({
         navigationHelpButton={false}
         infoBox={false}
         shouldAnimate
-        scene3DOnly
       >
         <ScreenSpaceEventHandler>
           <ScreenSpaceEvent
