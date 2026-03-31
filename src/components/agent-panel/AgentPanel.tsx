@@ -11,6 +11,7 @@ function AgentPanelDrawer() {
   const { openDefaultPanel, panelOpen, setPanelOpen, uiContext } = useAgentPanel();
   const canShowPanel =
     uiContext?.currentRoute !== "/" && Boolean(uiContext?.locationSelected);
+  const showFloatingTrigger = canShowPanel && uiContext?.visiblePrimaryCardId !== "chat";
 
   useEffect(() => {
     if (!canShowPanel && panelOpen) {
@@ -79,34 +80,36 @@ function AgentPanelDrawer() {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="secondary"
-        className={cn(
-          "fixed right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
-          panelOpen ? "bottom-[336px]" : "bottom-4",
-        )}
-        onClick={() => {
-          if (panelOpen) {
-            setPanelOpen(false);
-            return;
-          }
+      {showFloatingTrigger ? (
+        <Button
+          type="button"
+          variant="secondary"
+          className={cn(
+            "fixed right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
+            panelOpen ? "bottom-[336px]" : "bottom-4",
+          )}
+          onClick={() => {
+            if (panelOpen) {
+              setPanelOpen(false);
+              return;
+            }
 
-          openDefaultPanel();
-        }}
-        aria-expanded={panelOpen}
-        aria-controls="geosight-agent-panel"
-        aria-label={panelOpen ? "Hide Ask GeoSight" : "Ask GeoSight"}
-        title={panelOpen ? "Hide Ask GeoSight" : "Ask GeoSight"}
-      >
-        <MessageSquareText className="h-4 w-4" />
-        <span className="ml-2 hidden text-sm md:inline">Ask GeoSight</span>
-        {panelOpen ? (
-          <ChevronDown className="ml-2 h-4 w-4" />
-        ) : (
-          <ChevronUp className="ml-2 h-4 w-4" />
-        )}
-      </Button>
+            openDefaultPanel();
+          }}
+          aria-expanded={panelOpen}
+          aria-controls="geosight-agent-panel"
+          aria-label={panelOpen ? "Hide Ask GeoSight" : "Ask GeoSight"}
+          title={panelOpen ? "Hide Ask GeoSight" : "Ask GeoSight"}
+        >
+          <MessageSquareText className="h-4 w-4" />
+          <span className="ml-2 hidden text-sm md:inline">Ask GeoSight</span>
+          {panelOpen ? (
+            <ChevronDown className="ml-2 h-4 w-4" />
+          ) : (
+            <ChevronUp className="ml-2 h-4 w-4" />
+          )}
+        </Button>
+      ) : null}
     </>
   );
 }

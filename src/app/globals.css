@@ -119,7 +119,7 @@ body::after {
   z-index: -1;
   border-radius: 999px;
   filter: blur(110px);
-  opacity: 0.24;
+  opacity: 0.08;
 }
 
 body::before {
@@ -127,7 +127,7 @@ body::before {
   left: -4rem;
   width: 18rem;
   height: 18rem;
-  background: rgba(83, 221, 255, 0.06);
+  background: rgba(83, 221, 255, 0.04);
 }
 
 body::after {
@@ -135,7 +135,7 @@ body::after {
   bottom: 10%;
   width: 16rem;
   height: 16rem;
-  background: rgba(122, 92, 255, 0.05);
+  background: rgba(122, 92, 255, 0.035);
 }
 
 a {

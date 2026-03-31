@@ -118,6 +118,18 @@ export function CesiumGlobe({
       return;
     }
 
+    const controller = viewer.scene.screenSpaceCameraController;
+    controller.enableTilt = false;
+    controller.minimumZoomDistance = 500;
+    viewer.scene.requestRender();
+  }, [viewerKey, viewerReady]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
     if (!Number.isFinite(selectedPoint.lat) || !Number.isFinite(selectedPoint.lng)) {
       return;
     }
@@ -136,6 +148,11 @@ export function CesiumGlobe({
           selectedPoint.lat,
           isFirstTarget ? DEFAULT_GLOBE_VIEW.height : 16000,
         ),
+        orientation: {
+          heading: viewer.camera.heading,
+          pitch: -CesiumMath.PI_OVER_TWO,
+          roll: 0,
+        },
         duration: 1.8,
       });
     } catch (error) {

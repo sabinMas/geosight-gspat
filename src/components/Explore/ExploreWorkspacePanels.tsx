@@ -166,6 +166,9 @@ export function ExplorePrimaryPanel({
         showSourceDetailsCta={data.showSourcePrompt}
         showCompareCta={data.showComparePrompt}
         onOpenCompare={() => onOpenCard("compare")}
+        housingMarket={data.housingMarket}
+        housingMarketLoading={data.housingMarketLoading}
+        housingMarketError={data.housingMarketError}
         analysisCapabilities={data.analysisCapabilities}
         capabilityAnalysisLoading={data.capabilityAnalysisLoading}
         capabilityAnalysisError={data.capabilityAnalysisError}

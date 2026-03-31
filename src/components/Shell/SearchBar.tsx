@@ -22,6 +22,7 @@ interface SearchBarProps {
   onLocate: (result: LocationSearchResult) => void;
   placeholder?: string;
   submitLabel?: string;
+  syncValue?: string;
 }
 
 export function SearchBar({
@@ -29,8 +30,9 @@ export function SearchBar({
   leadingControl,
   locationButtonLabel = "Use my location",
   onLocate,
-  placeholder = "Search a place - Bellevue, WA",
+  placeholder = "Search a place",
   submitLabel = "Explore",
+  syncValue,
 }: SearchBarProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,6 +41,14 @@ export function SearchBar({
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (syncValue === undefined) {
+      return;
+    }
+
+    setValue(syncValue);
+  }, [syncValue]);
 
   useEffect(() => {
     const query = value.trim();

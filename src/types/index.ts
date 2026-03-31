@@ -20,6 +20,7 @@ export type SourceDomain =
   | "weather"
   | "nearby_places"
   | "demographics"
+  | "housing"
   | "hazards"
   | "hydrology"
   | "environmental"
@@ -423,6 +424,30 @@ export interface EPAHazardResult {
   triCount: number;
   nearestSuperfundName: string | null;
   nearestSuperfundDistanceKm: number | null;
+}
+
+export interface HousingMarketSeriesPoint {
+  periodEnd: string;
+  label: string;
+  medianListPrice: number | null;
+  medianDom: number | null;
+  activeListings: number | null;
+}
+
+export interface HousingMarketResult {
+  status: DataSourceStatus;
+  regionLabel: string | null;
+  locationLabel: string;
+  monthLabel: string | null;
+  medianListPrice: number | null;
+  medianDom: number | null;
+  activeListings: number | null;
+  saleToListRatio: number | null;
+  inventoryYoY: number | null;
+  source: DataSourceMeta;
+  notes: string[];
+  marketUrl: string;
+  series: HousingMarketSeriesPoint[];
 }
 
 export interface GeodataResult {

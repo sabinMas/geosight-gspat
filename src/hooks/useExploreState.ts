@@ -5,6 +5,7 @@ import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { resolveLocationQuery } from "@/lib/cesium-search";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
+import { normalizeProfileId } from "@/lib/lenses";
 import { getProfileById } from "@/lib/profiles";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
@@ -64,7 +65,7 @@ function getInitialProfile(profileId?: string) {
     return getProfileById(GENERAL_EXPLORATION_PROFILE_ID);
   }
 
-  return getProfileById(profileId);
+  return getProfileById(normalizeProfileId(profileId) ?? profileId);
 }
 
 export function useExploreState(init: ExploreInitParams): ExploreState {

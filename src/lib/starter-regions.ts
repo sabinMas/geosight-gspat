@@ -56,25 +56,25 @@ export const HIKING_STARTER_REGIONS: StarterRegionSeed[] = [
 
 export const RESIDENTIAL_STARTER_REGIONS: StarterRegionSeed[] = [
   {
-    id: "res-redmond",
-    name: "Redmond Growth Edge",
-    coordinates: { lat: 47.6837, lng: -122.1215 },
+    id: "res-crossroads",
+    name: "Bellevue Crossroads",
+    coordinates: { lat: 47.6185, lng: -122.1307 },
     score: 76,
-    summary: "Eastside suburban growth area with strong access to jobs and services.",
+    summary: "Mixed neighborhood fabric with schools, retail access, and strong Eastside connectivity.",
   },
   {
-    id: "res-vancouver",
-    name: "Vancouver Neighborhood Belt",
-    coordinates: { lat: 45.6387, lng: -122.6615 },
+    id: "res-somerset",
+    name: "Bellevue Somerset",
+    coordinates: { lat: 47.5698, lng: -122.1608 },
     score: 73,
-    summary: "Buildable suburban land with regional access and neighborhood expansion potential.",
+    summary: "Hillside residential area with neighborhood character and regional access tradeoffs.",
   },
   {
-    id: "res-salem",
-    name: "Salem Periphery",
-    coordinates: { lat: 44.9392, lng: -123.0331 },
+    id: "res-newport-hills",
+    name: "Bellevue Newport Hills",
+    coordinates: { lat: 47.5377, lng: -122.1515 },
     score: 70,
-    summary: "Metro-adjacent development area with mixed amenities and permitting considerations.",
+    summary: "South Bellevue neighborhood with established housing stock and nearby amenity access.",
   },
 ];
 

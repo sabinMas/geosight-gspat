@@ -18,6 +18,7 @@ import {
   type WorkspaceIntent,
 } from "@/lib/workspace-intent";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
+import { useHousingMarket } from "@/hooks/useHousingMarket";
 import { useSavedSites } from "@/hooks/useSavedSites";
 import { useSchoolContext } from "@/hooks/useSchoolContext";
 import { useSiteAnalysis } from "@/hooks/useSiteAnalysis";
@@ -95,6 +96,16 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     state.locationReady,
   );
   const { sites, addSite } = useSavedSites(activeProfile.id);
+  const {
+    housingMarket,
+    loading: housingMarketLoading,
+    error: housingMarketError,
+  } = useHousingMarket(
+    activeProfile.id === "residential" && state.locationReady,
+    geodata?.demographics.countyName,
+    geodata?.demographics.stateCode,
+    selectedLocationName,
+  );
   const {
     schoolContext,
     loading: schoolLoading,
@@ -570,6 +581,9 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     loading,
     error,
     schoolContext,
+    housingMarket,
+    housingMarketLoading,
+    housingMarketError,
     schoolLoading,
     schoolError,
     category,

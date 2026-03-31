@@ -4,12 +4,13 @@ import {
   HIKING_STARTER_REGIONS,
   RESIDENTIAL_STARTER_REGIONS,
 } from "@/lib/starter-regions";
+import { getLensLabel, normalizeProfileId } from "@/lib/lenses";
 import { MissionProfile } from "@/types";
 
 export const PROFILES: MissionProfile[] = [
   {
     id: "data-center",
-    name: "Data Center Cooling",
+    name: getLensLabel("data-center"),
     icon: "Server",
     tagline: "Water, power, and thermal efficiency",
     description:
@@ -132,7 +133,7 @@ export const PROFILES: MissionProfile[] = [
   },
   {
     id: "hiking",
-    name: "Hiking / Recreation",
+    name: getLensLabel("hiking"),
     icon: "Trees",
     tagline: "Trails, views, water, and remoteness",
     description:
@@ -215,7 +216,7 @@ export const PROFILES: MissionProfile[] = [
   },
   {
     id: "residential",
-    name: "Residential Development",
+    name: getLensLabel("residential"),
     icon: "House",
     tagline: "Neighborhood viability and buildability",
     description:
@@ -338,7 +339,7 @@ export const PROFILES: MissionProfile[] = [
   },
   {
     id: "commercial",
-    name: "Commercial / Warehouse",
+    name: getLensLabel("commercial"),
     icon: "Warehouse",
     tagline: "Access, demand, and utility readiness",
     description:
@@ -421,5 +422,6 @@ export const PROFILE_MAP = Object.fromEntries(PROFILES.map((profile) => [profile
 >;
 
 export function getProfileById(profileId: string) {
-  return PROFILE_MAP[profileId] ?? DEFAULT_PROFILE;
+  const normalizedProfileId = normalizeProfileId(profileId);
+  return (normalizedProfileId ? PROFILE_MAP[normalizedProfileId] : undefined) ?? DEFAULT_PROFILE;
 }

@@ -1,43 +1,7 @@
 "use client";
 
-import {
-  Cartographic,
-  Ion,
-  IonGeocoderService,
-  Math as CesiumMath,
-  Rectangle,
-} from "cesium";
+import { fetchLocationSuggestions, resolveLocationFromQuery } from "@/lib/location-search";
 import { Coordinates, LocationSearchResult } from "@/types";
-
-let geocoder: IonGeocoderService | null = null;
-
-function ensureCesiumToken() {
-  Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "";
-}
-
-function createGeocoderSceneStub() {
-  return {
-    frameState: {
-      creditDisplay: {
-        addStaticCredit: () => undefined,
-      },
-    },
-  } as never;
-}
-
-function getGeocoder() {
-  if (geocoder) {
-    return geocoder;
-  }
-
-  ensureCesiumToken();
-  geocoder = new IonGeocoderService({
-    scene: createGeocoderSceneStub(),
-    accessToken: process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN ?? "",
-  });
-
-  return geocoder;
-}
 
 export function parseCoordinates(value: string): Coordinates | null {
   const match = value.match(/(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)/);
@@ -55,11 +19,61 @@ export function parseCoordinates(value: string): Coordinates | null {
   return { lat, lng };
 }
 
-function toCoordinates(destination: Cartographic) {
-  return {
-    lat: CesiumMath.toDegrees(destination.latitude),
-    lng: CesiumMath.toDegrees(destination.longitude),
-  };
+const QUERY_SANITY_CHECKS: Record<
+  string,
+  {
+    center: Coordinates;
+    maxDistanceKm: number;
+    retryQuery?: string;
+  }
+> = {
+  "bellevue, wa": {
+    center: { lat: 47.614, lng: -122.192 },
+    maxDistanceKm: 80,
+    retryQuery: "Bellevue, Washington, USA",
+  },
+  "phoenix, az": {
+    center: { lat: 33.4484, lng: -112.074 },
+    maxDistanceKm: 80,
+    retryQuery: "Phoenix, Arizona, USA",
+  },
+  "the dalles, or": {
+    center: { lat: 45.5946, lng: -121.1787 },
+    maxDistanceKm: 80,
+    retryQuery: "The Dalles, Oregon, USA",
+  },
+};
+
+function normalizeQuery(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function distanceKm(a: Coordinates, b: Coordinates) {
+  const earthRadiusKm = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+
+  const haversine =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  return 2 * earthRadiusKm * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
+function selectSanityCheckedMatch(query: string, results: LocationSearchResult[]) {
+  const sanityCheck = QUERY_SANITY_CHECKS[normalizeQuery(query)];
+  if (!sanityCheck || results.length === 0) {
+    return results[0] ?? null;
+  }
+
+  return (
+    results.find(
+      (result) =>
+        distanceKm(result.coordinates, sanityCheck.center) <= sanityCheck.maxDistanceKm,
+    ) ?? null
+  );
 }
 
 export async function resolveLocationQuery(query: string): Promise<LocationSearchResult> {
@@ -74,23 +88,23 @@ export async function resolveLocationQuery(query: string): Promise<LocationSearc
     };
   }
 
-  const results = await getGeocoder().geocode(trimmedQuery);
-  const match = results[0];
+  const matches = await fetchLocationSuggestions(trimmedQuery, undefined, 5);
+  const sanityMatch = selectSanityCheckedMatch(trimmedQuery, matches);
 
-  if (!match) {
-    throw new Error("No results found for that search.");
+  if (sanityMatch) {
+    return sanityMatch;
   }
 
-  const cartographic =
-    match.destination instanceof Rectangle
-      ? Rectangle.center(match.destination)
-      : Cartographic.fromCartesian(match.destination);
+  const retryQuery = QUERY_SANITY_CHECKS[normalizeQuery(trimmedQuery)]?.retryQuery;
+  if (retryQuery) {
+    const retryMatches = await fetchLocationSuggestions(retryQuery, undefined, 5);
+    const retryMatch = selectSanityCheckedMatch(trimmedQuery, retryMatches);
+    if (retryMatch) {
+      return retryMatch;
+    }
+  }
 
-  return {
-    name: match.displayName,
-    coordinates: toCoordinates(cartographic),
-    kind: "ion-geocoder",
-  };
+  return resolveLocationFromQuery(trimmedQuery);
 }
 
 export async function getCurrentCoordinates() {

@@ -42,6 +42,8 @@ const CesiumGlobe = dynamic(
   },
 );
 
+const BOARD_MODE_NOTICE_STORAGE_KEY = "geosight-board-mode-notice-shown";
+
 export function ExploreWorkspace() {
   const init = useExploreInit();
   const { setGeoContext, setUiContext, primeAgent } = useAgentPanel();
@@ -80,6 +82,11 @@ export function ExploreWorkspace() {
       geodata: data.geodata,
       score: data.siteScore,
     });
+
+    setWorkspaceNotice({
+      tone: "info",
+      message: `Saved ${state.selectedLocationName} to your comparison list.`,
+    });
   };
 
   const handleOpenGuidedMode = () => {
@@ -101,10 +108,20 @@ export function ExploreWorkspace() {
 
   const handleOpenBoardMode = () => {
     data.openAdvancedBoard();
-    setWorkspaceNotice({
-      tone: "info",
-      message: "Board mode unlocks the full card workspace and saved layout flow.",
-    });
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const noticeAlreadySeen =
+      window.localStorage.getItem(BOARD_MODE_NOTICE_STORAGE_KEY) === "true";
+    if (!noticeAlreadySeen) {
+      window.localStorage.setItem(BOARD_MODE_NOTICE_STORAGE_KEY, "true");
+      setWorkspaceNotice({
+        tone: "info",
+        message: "Board mode unlocks the full card workspace and saved layout flow.",
+      });
+    }
   };
 
   const openCard = (cardId: WorkspaceCardId) => {
@@ -256,11 +273,7 @@ export function ExploreWorkspace() {
                   <Button
                     type="button"
                     size="sm"
-                    variant={
-                      data.shellMode === "board" && data.viewMode === "board"
-                        ? "default"
-                        : "ghost"
-                    }
+                    variant={data.shellMode === "board" ? "default" : "ghost"}
                     className="rounded-full"
                     onClick={handleOpenBoardMode}
                   >
@@ -348,6 +361,9 @@ export function ExploreWorkspace() {
 
           <div className="space-y-4">
             <SearchBar
+              syncValue={
+                state.locationReady ? state.selectedLocationName : state.init.locationQuery ?? ""
+              }
               onLocate={(result) => {
                 state.setInitError(null);
                 state.selectPoint(result.coordinates, result.name);

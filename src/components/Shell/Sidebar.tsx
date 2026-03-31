@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MissionProfile, RegionSelection } from "@/types";
 import { ProfileSelector } from "./ProfileSelector";
@@ -25,11 +23,6 @@ export function Sidebar({
   return (
     <aside className="glass-panel z-20 flex max-h-[calc(100vh-2rem)] w-full max-w-[320px] flex-col gap-4 overflow-y-auto overscroll-contain rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] scrollbar-thin xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)]">
       <div className="space-y-3">
-        <Link href="/" className="inline-flex">
-          <Badge className="cursor-pointer transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-raised)]">
-            GeoSight
-          </Badge>
-        </Link>
         <div>
           <h2 className="text-xl font-semibold text-[var(--foreground)]">Lens and regions</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">

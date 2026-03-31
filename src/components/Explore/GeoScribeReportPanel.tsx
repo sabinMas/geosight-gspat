@@ -48,7 +48,7 @@ export function GeoScribeReportPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/45 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(4,10,18,0.58)]">
       <button
         type="button"
         className="absolute inset-0"
@@ -56,7 +56,7 @@ export function GeoScribeReportPanel({
         onClick={onClose}
       />
 
-      <aside className="relative flex h-full w-full max-w-[760px] flex-col border-l border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]">
+      <aside className="relative flex h-full w-full max-w-[760px] flex-col border-l border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
         <div className="flex items-start justify-between gap-4 border-b border-[color:var(--border-soft)] px-5 py-4">
           <div className="min-w-0">
             <div className="eyebrow">GeoScribe report</div>
