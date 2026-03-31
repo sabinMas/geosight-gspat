@@ -2,7 +2,7 @@ import { ExploreInitState, LandingUseCase } from "@/types";
 
 export const GENERAL_EXPLORATION_PROFILE_ID = "residential";
 
-export const LANDING_USE_CASES: LandingUseCase[] = [
+export const EXAMPLE_STARTERS: LandingUseCase[] = [
   {
     id: "home-buying",
     title: "Home Buying",
@@ -86,18 +86,6 @@ export function buildExploreHref(init: ExploreInitState) {
   }
   if (init.locationQuery) {
     params.set("location", init.locationQuery);
-  }
-  if (init.demoId) {
-    params.set("demo", init.demoId);
-  }
-  if (init.entrySource) {
-    params.set("entrySource", init.entrySource);
-  }
-  if (init.judgeMode) {
-    params.set("judge", "1");
-  }
-  if (init.missionRunPresetId) {
-    params.set("missionRun", init.missionRunPresetId);
   }
 
   const query = params.toString();

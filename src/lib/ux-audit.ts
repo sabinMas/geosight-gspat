@@ -134,7 +134,7 @@ export function runDeterministicUiAudit(uiContext?: GeoSightUiContext | null): G
   addFinding(
     findings,
     viewportClass === "mobile" &&
-      (visibleWorkspaceCards > 0 || Boolean(uiContext.reportOpen) || Boolean(uiContext.demoOpen))
+      (visibleWorkspaceCards > 0 || Boolean(uiContext.reportOpen))
       ? {
           severity: visibleWorkspaceCards > 1 ? "high" : "medium",
           surface: "mobile explore flow",

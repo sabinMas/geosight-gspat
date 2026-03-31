@@ -30,7 +30,7 @@ export function TerrainViewer({
           </div>
           <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 text-sm text-[var(--foreground-soft)]">
             <Orbit className="mb-2 h-4 w-4 text-[var(--foreground-soft)]" />
-            Orbit mode frames a fly-around narrative for stakeholder demos.
+        Orbit mode frames a smooth fly-around for presentations and review.
           </div>
         </div>
 

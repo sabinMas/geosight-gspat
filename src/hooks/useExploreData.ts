@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   buildCapabilityFallbackResponse,
-  buildDemoCapabilityFallbacks,
   buildCapabilityPrompt,
   deriveSubsurfaceDatasets,
   evaluateAnalysisCapabilities,
 } from "@/lib/analysis-capabilities";
 import { GeoSightContext } from "@/lib/agents/agent-config";
 import { buildLocationTrends } from "@/lib/data-trends";
-import { buildDemoGroundingSources } from "@/lib/demo-fallbacks";
 import { fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
 import {
@@ -82,21 +80,13 @@ function laneToAgentId(capabilityId: AnalysisCapabilityId, modelLane: string) {
 
 export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const {
-    activeDemo,
     activeProfile,
-    coolingDemo,
     imageSummary,
     init,
-    missionRunPreset,
-    pendingDemoLoad,
-    pendingDemoSiteId,
     previewUrl,
     resultsMode,
-    selectPoint,
     selectedLocationName,
     selectedPoint,
-    setPendingDemoLoad,
-    setPendingDemoSiteId,
     uploadedClassification,
   } = state;
   const { geodata, score, loading, error } = useSiteAnalysis(
@@ -104,7 +94,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     activeProfile,
     state.locationReady,
   );
-  const { sites, addSite, loadDemoSites } = useSavedSites(activeProfile.id);
+  const { sites, addSite } = useSavedSites(activeProfile.id);
   const {
     schoolContext,
     loading: schoolLoading,
@@ -186,10 +176,6 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     boardCards.find((card) => card.id === activeCardId) ?? boardCards[0] ?? null;
   const activePrimaryCard =
     primaryCards.find((card) => card.id === activePrimaryCardId) ?? primaryCards[0] ?? null;
-  const coolingDemoSites = useMemo(
-    () => coolingDemo?.preloadedSites ?? [],
-    [coolingDemo?.preloadedSites],
-  );
 
   const showComparePrompt = sites.length >= 2 && !isCardVisible("compare");
   const showImagePrompt = Boolean(previewUrl) && !isCardVisible("land-classifier");
@@ -206,8 +192,6 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const [capabilityAnalysisResult, setCapabilityAnalysisResult] =
     useState<AnalysisCapabilityResult | null>(null);
   const [capabilityPreviewDismissed, setCapabilityPreviewDismissed] = useState(false);
-  const [slowDemoLoading, setSlowDemoLoading] = useState(false);
-  const [demoFallbackDismissed, setDemoFallbackDismissed] = useState(false);
   const analysisCapabilities = useMemo(() => {
     const liveCapabilities = evaluateAnalysisCapabilities({
       geodata,
@@ -218,19 +202,9 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       subsurfaceDatasets,
     }).filter((capability) => capability.available);
 
-    if (liveCapabilities.length > 0) {
-      return liveCapabilities;
-    }
-
-    if (activeDemo && (!geodata || Boolean(error))) {
-      return buildDemoCapabilityFallbacks(activeDemo.id);
-    }
-
-    return [];
+    return liveCapabilities;
   }, [
-    activeDemo,
     activeProfile,
-    error,
     geodata,
     locationTrends,
     selectedLocationName,
@@ -243,7 +217,6 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       lat: selectedPoint.lat,
       lng: selectedPoint.lng,
       profile: activeProfile.id,
-      missionId: missionRunPreset?.id,
       score: geodata ? siteScore?.total : undefined,
       dataBundle: geodata
         ? {
@@ -271,7 +244,6 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       geodata,
       imageSummary,
       locationTrends,
-      missionRunPreset?.id,
       nearbySource,
       places,
       resultsMode,
@@ -287,61 +259,14 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   );
 
   useEffect(() => {
-    if (!missionRunPreset || !init.judgeMode) {
+    if (!state.locationReady || shellMode !== "minimal") {
       return;
     }
 
-    setCardVisible("mission-run", true);
-    setShellMode("board");
-  }, [init.judgeMode, missionRunPreset, setCardVisible, setShellMode]);
-
-  useEffect(() => {
-    if (!pendingDemoLoad || activeProfile.id !== "data-center" || !coolingDemoSites.length) {
-      return;
-    }
-
-    loadDemoSites(coolingDemoSites);
-    const focusSite =
-      coolingDemoSites.find((candidate) => candidate.id === pendingDemoSiteId) ??
-      coolingDemoSites[0];
-
-    if (focusSite) {
-      selectPoint(focusSite.coordinates, `${focusSite.name} cooling demo`);
-    }
-
-    setPendingDemoLoad(false);
-    setPendingDemoSiteId(null);
-  }, [
-    activeProfile.id,
-    coolingDemoSites,
-    loadDemoSites,
-    pendingDemoLoad,
-    pendingDemoSiteId,
-    selectPoint,
-    setPendingDemoLoad,
-    setPendingDemoSiteId,
-  ]);
-
-  useEffect(() => {
-    if (!init.judgeMode || !missionRunPreset) {
-      return;
-    }
-
-    setViewMode("board");
-    setActiveCardId("mission-run");
-  }, [init.judgeMode, missionRunPreset, setActiveCardId, setViewMode]);
-
-  useEffect(() => {
-    if (init.judgeMode || !state.locationReady || shellMode !== "minimal") {
-      return;
-    }
-
-    if (init.locationQuery || activeDemo) {
+    if (init.locationQuery) {
       setShellMode("guided");
     }
   }, [
-    activeDemo,
-    init.judgeMode,
     init.locationQuery,
     setShellMode,
     shellMode,
@@ -409,30 +334,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     subsurfaceDatasets,
   ]);
 
-  useEffect(() => {
-    setSlowDemoLoading(false);
-    setDemoFallbackDismissed(false);
-  }, [activeDemo?.id, selectedPoint.lat, selectedPoint.lng]);
-
-  useEffect(() => {
-    if (!activeDemo || !loading) {
-      setSlowDemoLoading(false);
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setSlowDemoLoading(true);
-    }, 5_000);
-
-    return () => window.clearTimeout(timeout);
-  }, [activeDemo, loading, selectedPoint.lat, selectedPoint.lng]);
-
   const closeReportPanel = useCallback(() => {
     setReportOpen(false);
-  }, []);
-
-  const dismissDemoFallback = useCallback(() => {
-    setDemoFallbackDismissed(true);
   }, []);
 
   const clearCapabilityAnalysis = useCallback(() => {
@@ -598,13 +501,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     ];
   }, [allWorkspaceCards, geodata, lastIntent, pinnedCardIds, previewUrl, sites.length, visibility]);
 
-  const groundingFallbackSources = useMemo(
-    () =>
-      activeDemo && !geodata && (slowDemoLoading || Boolean(error))
-        ? buildDemoGroundingSources(activeDemo.id, selectedLocationName)
-        : [],
-    [activeDemo, error, geodata, selectedLocationName, slowDemoLoading],
-  );
+  const groundingFallbackSources = useMemo(() => [], []);
 
   const openCardFromTray = useCallback((cardId: WorkspaceCardId) => {
     if (!visibility[cardId]) {
@@ -630,11 +527,11 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   }, [setShellMode, setViewMode]);
 
   const handleLocationSelection = useCallback(() => {
-    if (!init.judgeMode && shellMode === "minimal") {
+    if (shellMode === "minimal") {
       setShellMode("guided");
     }
     setActivePrimaryCardId("active-location");
-  }, [init.judgeMode, setActivePrimaryCardId, setShellMode, shellMode]);
+  }, [setActivePrimaryCardId, setShellMode, shellMode]);
 
   const handleQuestionIntent = useCallback((question: string) => {
     const intent = detectWorkspaceIntent(question);
@@ -713,7 +610,6 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     handleQuestionIntent,
     sites,
     addSite,
-    loadDemoSites,
     effectiveClassification,
     locationTrends,
     subsurfaceDatasets,
@@ -733,12 +629,5 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     reportError,
     generateReport,
     closeReportPanel,
-    showDemoFallback:
-      Boolean(activeDemo?.fallbackScreenshot) &&
-      Boolean(activeDemo) &&
-      loading &&
-      slowDemoLoading &&
-      !demoFallbackDismissed,
-    dismissDemoFallback,
   };
 }

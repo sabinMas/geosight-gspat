@@ -12,12 +12,10 @@ export type GeoSightUiContext = {
   visibleControlCount?: number;
   visibleTextBlockCount?: number;
   shellMode?: WorkspaceShellMode;
-  judgeMode?: boolean;
   locationSelected?: boolean;
   geodataLoading?: boolean;
   geodataLoaded?: boolean;
   reportOpen?: boolean;
-  demoOpen?: boolean;
 };
 
 export type AgentConfig = {
@@ -36,7 +34,6 @@ export type GeoSightContext = {
   lat?: number;
   lng?: number;
   profile?: string;
-  missionId?: string;
   score?: number;
   dataBundle?: Record<string, unknown>;
   uiContext?: GeoSightUiContext;

@@ -237,18 +237,6 @@ const CAPABILITY_DEFINITIONS: CapabilityDefinition[] = [
   },
 ];
 
-const CAPABILITY_DEFINITION_MAP = Object.fromEntries(
-  CAPABILITY_DEFINITIONS.map((definition) => [definition.analysisId, definition]),
-) as Record<AnalysisCapabilityId, CapabilityDefinition>;
-
-const DEMO_CAPABILITY_MAP: Partial<Record<string, AnalysisCapabilityId[]>> = {
-  "pnw-cooling": ["hazard-stack", "climate-trends", "source-confidence"],
-  "wa-residential": ["source-confidence", "hazard-stack", "climate-trends"],
-  "tokyo-commercial": ["source-confidence", "climate-trends"],
-  "nyc-residential": ["source-confidence", "hazard-stack"],
-  "colorado-hiking": ["climate-trends", "hazard-stack"],
-};
-
 function buildDataset(
   id: SubsurfaceDatasetId,
   title: string,
@@ -379,39 +367,6 @@ export function evaluateAnalysisCapabilities(
       capability.available || capability.analysisId === "tomography-context",
     )
     .sort((left, right) => Number(right.recommended) - Number(left.recommended));
-}
-
-export function buildDemoCapabilityFallbacks(demoId?: string | null): AnalysisCapability[] {
-  if (!demoId) {
-    return [];
-  }
-
-  const capabilities: AnalysisCapability[] = [];
-
-  (DEMO_CAPABILITY_MAP[demoId] ?? []).forEach((analysisId, index) => {
-      const definition = CAPABILITY_DEFINITION_MAP[analysisId];
-      if (!definition) {
-        return;
-      }
-
-      capabilities.push({
-        analysisId: definition.analysisId,
-        title: definition.title,
-        shortLabel: definition.shortLabel,
-        description: definition.description,
-        triggerMode: definition.triggerMode,
-        outputFormat: definition.outputFormat,
-        modelLane: definition.modelLane,
-        status: "available" as const,
-        recommended: index === 0,
-        available: true,
-        reason:
-          "GeoSight can offer a grounded demo interpretation for this guided story while live geodata finishes loading.",
-        failureMode: definition.failureMode,
-      });
-    });
-
-  return capabilities;
 }
 
 export function buildCapabilityPrompt(

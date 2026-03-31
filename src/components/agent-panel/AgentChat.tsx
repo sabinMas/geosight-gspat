@@ -3,7 +3,7 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { RotateCcw, Send } from "lucide-react";
 import { useAgentPanel } from "@/context/AgentPanelContext";
-import { AgentId, AGENT_CONFIGS, AGENT_IDS } from "@/lib/agents/agent-config";
+import { AgentId, AGENT_IDS } from "@/lib/agents/agent-config";
 import { Button } from "@/components/ui/button";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,36 +30,21 @@ function createAgentRecord<T>(factory: (agentId: AgentId) => T) {
   }, {} as Record<AgentId, T>);
 }
 
-const WELCOME_MESSAGES: Record<AgentId, string> = {
-  "geo-analyst":
-    "I read the active location through GeoSight's live terrain, infrastructure, hazard, and demographic context. Ask for a grounded site assessment once the map analysis has finished loading.",
-  "geo-guide":
-    "I only explain how GeoSight works: cards, panels, scores, filters, and mission profiles. Ask how to use the interface or how to interpret something already on screen.",
-  "geo-scribe":
-    "I turn GeoSight findings into polished, investor-grade writing. Run an analysis first, then ask me for a report, summary, memo, or export-ready narrative.",
-  "geo-usability":
-    "I audit the current GeoSight UI for clutter, overflow, reveal timing, and mobile risk. Ask me to review what is on screen and I will respond with structured findings grounded in the visible interface state.",
-};
-
 const DEFAULT_ERROR_MESSAGE = "This agent could not respond right now.";
 const MAX_TEXTAREA_ROWS = 4;
 const AGENT_CONNECT_TIMEOUT_MS = 20_000;
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 12_000;
+const ASSISTANT_ACCENT = "var(--accent)";
+const ASSISTANT_AVATAR_LABEL = "GS";
+const ASSISTANT_LABEL = "GeoSight";
+const WELCOME_MESSAGE =
+  "Ask about the active place, request a report, interpret source confidence, or get help using the current workspace.";
 
 function formatTime(value: string) {
   return new Date(value).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function getAgentInitials(agentId: AgentId) {
-  return AGENT_CONFIGS[agentId].name
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((segment) => segment[0]?.toUpperCase() ?? "")
-    .join("")
-    .slice(0, 2);
 }
 
 function resizeTextarea(node: HTMLTextAreaElement) {
@@ -179,7 +164,6 @@ export default function AgentChat() {
   const activeDraft = drafts[activeAgentId];
   const activeError = errors[activeAgentId];
   const isLoading = loadingByAgent[activeAgentId];
-  const activeAgent = AGENT_CONFIGS[activeAgentId];
   const loadingEllipsis = [".", "..", "..."][ellipsisStep] ?? "...";
 
   useEffect(() => {
@@ -392,15 +376,13 @@ export default function AgentChat() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="scrollbar-thin h-[148px] overflow-y-auto rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 sm:h-[162px]">
+      <div className="scrollbar-thin h-[148px] overflow-y-auto rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 sm:h-[162px]">
         {activeThread.length ? (
           <div className="space-y-3">
             {activeThread.map((message) => {
               const isAssistant = message.role === "assistant";
-              const accentColor = isAssistant
-                ? activeAgent.accentColor
-                : "var(--border-strong)";
-              const avatarLabel = isAssistant ? getAgentInitials(activeAgentId) : "YU";
+              const accentColor = isAssistant ? ASSISTANT_ACCENT : "var(--border-strong)";
+              const avatarLabel = isAssistant ? ASSISTANT_AVATAR_LABEL : "YU";
 
               return (
                 <div
@@ -439,12 +421,12 @@ export default function AgentChat() {
                         <span
                           className="rounded-full border px-2 py-1 text-[10px]"
                           style={{
-                            borderColor: activeAgent.accentColor,
-                            background: `color-mix(in srgb, ${activeAgent.accentColor} 10%, transparent)`,
-                            color: activeAgent.accentColor,
+                            borderColor: ASSISTANT_ACCENT,
+                            background: `color-mix(in srgb, ${ASSISTANT_ACCENT} 10%, transparent)`,
+                            color: ASSISTANT_ACCENT,
                           }}
                         >
-                          {activeAgent.name}
+                          {ASSISTANT_LABEL}
                         </span>
                       ) : (
                         <span>You</span>
@@ -454,7 +436,7 @@ export default function AgentChat() {
 
                     <div
                       className={cn(
-                        "mt-2 rounded-[1.25rem] border px-4 py-3 text-sm leading-6",
+                        "mt-2 rounded-xl border px-4 py-3 text-sm leading-6",
                         isAssistant
                           ? "border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--foreground-soft)]"
                           : "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]",
@@ -475,18 +457,18 @@ export default function AgentChat() {
           </div>
         ) : (
           <div className="flex h-full items-center justify-center">
-            <div className="max-w-xl rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-5 py-4 text-sm leading-6 text-[var(--foreground-soft)]">
+            <div className="max-w-xl rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-5 py-4 text-sm leading-6 text-[var(--foreground-soft)]">
               <div className="flex items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: activeAgent.accentColor }}
+                  style={{ backgroundColor: ASSISTANT_ACCENT }}
                   aria-hidden="true"
                 />
                 <span className="font-semibold text-[var(--foreground)]">
-                  {activeAgent.name}
+                  {ASSISTANT_LABEL}
                 </span>
               </div>
-              <p className="mt-3">{WELCOME_MESSAGES[activeAgentId]}</p>
+              <p className="mt-3">{WELCOME_MESSAGE}</p>
             </div>
           </div>
         )}
@@ -494,7 +476,7 @@ export default function AgentChat() {
       </div>
 
       {activeError ? (
-        <div className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
           <span>{activeError.message}</span>
           <Button
             type="button"
@@ -521,13 +503,13 @@ export default function AgentChat() {
           value={activeDraft}
           onChange={(event) => setDraftForAgent(activeAgentId, event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Message ${activeAgent.name}`}
+          placeholder="Ask GeoSight about this place"
           className="min-h-[54px] resize-none"
           rows={1}
         />
         <Button
           type="submit"
-          className="h-[54px] shrink-0 rounded-[1.25rem] px-5"
+          className="h-[54px] shrink-0 rounded-xl px-5"
           disabled={isLoading || !activeDraft.trim()}
         >
           <Send className="mr-2 h-4 w-4" />

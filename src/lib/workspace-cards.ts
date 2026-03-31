@@ -68,26 +68,6 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     emptyState: "Switch between map analysis and nearby places for the active location.",
   },
   {
-    id: "mission-run",
-    title: "Mission run",
-    summary: "Run a judge-facing multi-step briefing for the active competition story.",
-    questionAnswered: "What is GeoSight's structured verdict for this prepared demo story?",
-    regionCoverage: "Competition presets only; currently Columbia River, Tokyo, and Washington residential",
-    failureMode: "Falls back to deterministic mission summaries if model providers fail",
-    freshnessWindow: "Live on each mission run",
-    nextActions: ["Open the recommended supporting cards", "Rerun after changing location", "Use judge mode for presentation flow"],
-    icon: "Sparkles",
-    category: "analysis",
-    zone: "workspace",
-    emphasis: "primary",
-    defaultSize: "wide",
-    defaultVisibility: false,
-    defaultOrder: 35,
-    requiredData: ["mission-run"],
-    supportedProfiles: ["data-center", "commercial", "residential"],
-    emptyState: "Open this to run a structured competition briefing for the active story.",
-  },
-  {
     id: "score",
     title: "Mission score",
     summary: "See the weighted suitability score for this mission.",
@@ -135,7 +115,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     regionCoverage: "Global - driven by whatever saved sites the user captured",
     failureMode: "Prompts for more saved sites until at least two are available",
     freshnessWindow: "Updates when saved sites change",
-    nextActions: ["Save another site", "Open source awareness for a compared site", "Use comparison to tell the demo story"],
+    nextActions: ["Save another site", "Open source awareness for a compared site", "Use comparison to shortlist candidates"],
     icon: "Columns3",
     category: "comparison",
     zone: "workspace",
@@ -235,7 +215,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     regionCoverage: "Global - reflects the active source registry context",
     failureMode: "Shows limited and unavailable states explicitly instead of hiding them",
     freshnessWindow: "Updates on geodata change",
-    nextActions: ["Inspect a weak source", "Compare source limits across regions", "Use it to explain confidence in demos"],
+    nextActions: ["Inspect a weak source", "Compare source limits across regions", "Use it to explain confidence gaps"],
     icon: "ShieldCheck",
     category: "context",
     zone: "workspace",
@@ -477,8 +457,6 @@ function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
       return ["ask_reasoning", "location_selected"];
     case "results":
       return ["ask_summary", "location_selected"];
-    case "mission-run":
-      return ["judge_mode"];
     case "score":
       return ["ask_reasoning", "location_selected"];
     case "factor-breakdown":
@@ -558,9 +536,6 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] =
     revealTriggers: getRevealTriggers(card.id),
     summaryVariant: getSummaryVariant(card),
     compactActions: [...card.nextActions.slice(0, 2)],
-    competitionCritical: ["mission-run", "score", "compare", "source-awareness"].includes(
-      card.id,
-    ),
     densityBudget: getDensityBudget(card.id),
   }));
 

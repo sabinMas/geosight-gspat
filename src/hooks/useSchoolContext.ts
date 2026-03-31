@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DEFAULT_VIEW } from "@/lib/demo-data";
 import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
+import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import { Coordinates, SchoolContextResult } from "@/types";
 
 export function useSchoolContext(coords: Coordinates, ready = true) {
@@ -11,7 +11,8 @@ export function useSchoolContext(coords: Coordinates, ready = true) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const isDefaultView = coords.lat === DEFAULT_VIEW.lat && coords.lng === DEFAULT_VIEW.lng;
+    const isDefaultView =
+      coords.lat === DEFAULT_GLOBE_VIEW.lat && coords.lng === DEFAULT_GLOBE_VIEW.lng;
     if (!ready && isDefaultView) {
       setSchoolContext(null);
       setLoading(false);

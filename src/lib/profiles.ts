@@ -1,9 +1,9 @@
 import {
-  COMMERCIAL_DEMO_SITES,
-  DEMO_SITE_SEEDS,
-  HIKING_DEMO_SITES,
-  RESIDENTIAL_DEMO_SITES,
-} from "@/lib/demo-data";
+  COMMERCIAL_STARTER_REGIONS,
+  DATA_CENTER_STARTER_REGIONS,
+  HIKING_STARTER_REGIONS,
+  RESIDENTIAL_STARTER_REGIONS,
+} from "@/lib/starter-regions";
 import { MissionProfile } from "@/types";
 
 export const PROFILES: MissionProfile[] = [
@@ -13,7 +13,7 @@ export const PROFILES: MissionProfile[] = [
     icon: "Server",
     tagline: "Water, power, and thermal efficiency",
     description:
-      "Evaluate sites for data center cooling with an emphasis on water access, power infrastructure, terrain, and climate. This profile preserves the original Pacific Northwest demo logic and scoring.",
+      "Evaluate sites for data center cooling with an emphasis on water access, power infrastructure, terrain, and climate.",
     accentColor: "#00e5ff",
     factors: [
       {
@@ -122,7 +122,7 @@ export const PROFILES: MissionProfile[] = [
       "What cooling risks stand out here?",
       "Would this work for a hyperscale campus?",
     ],
-    demoSites: DEMO_SITE_SEEDS,
+    starterRegions: DATA_CENTER_STARTER_REGIONS,
     recommendationBands: [
       { min: 85, text: "Excellent data-center cooling candidate with strong infrastructure alignment." },
       { min: 70, text: "Promising cooling site with a few constraints to validate in due diligence." },
@@ -205,7 +205,7 @@ export const PROFILES: MissionProfile[] = [
       "How remote does this area feel?",
       "Would this support a scenic trail network?",
     ],
-    demoSites: HIKING_DEMO_SITES,
+    starterRegions: HIKING_STARTER_REGIONS,
     recommendationBands: [
       { min: 85, text: "Outstanding outdoor recreation candidate with strong terrain and scenic signals." },
       { min: 70, text: "Promising hiking area with a few access or climate tradeoffs." },
@@ -328,7 +328,7 @@ export const PROFILES: MissionProfile[] = [
       "How accessible is this to nearby services?",
       "Does this feel more suburban or rural?",
     ],
-    demoSites: RESIDENTIAL_DEMO_SITES,
+    starterRegions: RESIDENTIAL_STARTER_REGIONS,
     recommendationBands: [
       { min: 85, text: "Strong residential candidate with good access and few obvious buildability issues." },
       { min: 70, text: "Promising housing site with some hazard or amenity tradeoffs to review." },
@@ -403,7 +403,7 @@ export const PROFILES: MissionProfile[] = [
       "Does this area look commercially active already?",
       "What operational constraints stand out for retail or logistics?",
     ],
-    demoSites: COMMERCIAL_DEMO_SITES,
+    starterRegions: COMMERCIAL_STARTER_REGIONS,
     recommendationBands: [
       { min: 85, text: "Excellent commercial or logistics candidate with strong access and utility support." },
       { min: 70, text: "Promising commercial site with manageable market or site-readiness tradeoffs." },

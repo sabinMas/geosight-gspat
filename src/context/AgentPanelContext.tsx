@@ -11,16 +11,16 @@ import {
 
 type AgentPanelContextValue = {
   activeAgentId: AgentId;
-  setActiveAgent: (id: AgentId) => void;
-  panelOpen: boolean;
-  setPanelOpen: (open: boolean) => void;
-  geoContext: GeoSightContext | null;
-  setGeoContext: (ctx: GeoSightContext) => void;
-  uiContext: GeoSightUiContext | null;
-  setUiContext: (ctx: Partial<GeoSightUiContext>) => void;
-  queuedDrafts: Partial<Record<AgentId, string>>;
   clearQueuedDraft: (agentId: AgentId) => void;
+  geoContext: GeoSightContext | null;
+  openDefaultPanel: () => void;
+  panelOpen: boolean;
   primeAgent: (agentId: AgentId, draft?: string) => void;
+  queuedDrafts: Partial<Record<AgentId, string>>;
+  setGeoContext: (ctx: GeoSightContext) => void;
+  setPanelOpen: (open: boolean) => void;
+  setUiContext: (ctx: Partial<GeoSightUiContext>) => void;
+  uiContext: GeoSightUiContext | null;
 };
 
 const AgentPanelContext = createContext<AgentPanelContextValue | null>(null);
@@ -54,6 +54,11 @@ export function AgentPanelProvider({
       window.localStorage.setItem("geosight-agent-panel-open", open ? "true" : "false");
     }
   }, []);
+
+  const openDefaultPanel = useCallback(() => {
+    setActiveAgent("geo-analyst");
+    setPanelOpen(true);
+  }, [setPanelOpen]);
 
   useEffect(() => {
     function getViewportClass(width: number): GeoSightViewportClass {
@@ -116,21 +121,22 @@ export function AgentPanelProvider({
   const value = useMemo(
     () => ({
       activeAgentId,
-      setActiveAgent,
-      panelOpen,
-      setPanelOpen,
-      geoContext,
-      setGeoContext,
-      uiContext,
-      setUiContext,
-      queuedDrafts,
       clearQueuedDraft,
+      geoContext,
+      openDefaultPanel,
+      panelOpen,
       primeAgent,
+      queuedDrafts,
+      setGeoContext,
+      setPanelOpen,
+      setUiContext,
+      uiContext,
     }),
     [
       activeAgentId,
       clearQueuedDraft,
       geoContext,
+      openDefaultPanel,
       panelOpen,
       primeAgent,
       queuedDrafts,

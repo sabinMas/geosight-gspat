@@ -18,10 +18,9 @@ import {
   Viewer as CesiumViewer,
 } from "cesium";
 import { Entity, ScreenSpaceEvent, ScreenSpaceEventHandler, Viewer } from "resium";
-import { DEFAULT_VIEW } from "@/lib/demo-data";
+import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   Coordinates,
-  DemoMapOverlay,
   GlobeViewMode,
   RegionSelection,
   SavedSite,
@@ -48,7 +47,6 @@ interface CesiumGlobeProps {
   layers: LayerState;
   subsurfaceDatasets: SubsurfaceDataset[];
   terrainExaggeration: number;
-  demoOverlays?: DemoMapOverlay[];
 }
 
 export function CesiumGlobe({
@@ -61,7 +59,6 @@ export function CesiumGlobe({
   layers,
   subsurfaceDatasets,
   terrainExaggeration,
-  demoOverlays = [],
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -137,7 +134,7 @@ export function CesiumGlobe({
         destination: Cartesian3.fromDegrees(
           selectedPoint.lng,
           selectedPoint.lat,
-          isFirstTarget ? DEFAULT_VIEW.height : 16000,
+          isFirstTarget ? DEFAULT_GLOBE_VIEW.height : 16000,
         ),
         duration: 1.8,
       });
@@ -347,23 +344,6 @@ export function CesiumGlobe({
     [selectedPoint, selectedRegion.polygon],
   );
 
-  const activeOverlayEntities = useMemo(
-    () =>
-      demoOverlays.filter((overlay) => {
-        switch (overlay.layer) {
-          case "water":
-            return layers.water;
-          case "power":
-            return layers.power;
-          case "roads":
-            return layers.roads;
-          default:
-            return false;
-        }
-      }),
-    [demoOverlays, layers.power, layers.roads, layers.water],
-  );
-
   if (!hasCesiumToken) {
     return (
       <div className="flex h-full w-full items-center justify-center rounded-[2rem] border border-[color:var(--danger-border)] bg-[var(--surface-panel)] px-6 text-center shadow-[var(--shadow-panel)]">
@@ -504,19 +484,6 @@ export function CesiumGlobe({
               pixelSize: 10,
               outlineColor: Color.BLACK,
               outlineWidth: 1,
-            }}
-          />
-        ))}
-
-        {activeOverlayEntities.map((overlay) => (
-          <Entity
-            key={overlay.id}
-            polyline={{
-              positions: Cartesian3.fromDegreesArray(
-                overlay.positions.flatMap((point) => [point.lng, point.lat]),
-              ),
-              width: overlay.width,
-              material: Color.fromCssColorString(overlay.color),
             }}
           />
         ))}

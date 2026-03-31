@@ -274,7 +274,7 @@ export function ChatPanel({
             ) : groundingFallbackSources.length ? (
               <div className="mt-3 space-y-3">
                 <div className="rounded-[1rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-2 text-sm text-[var(--warning-foreground)]">
-                  Live grounding is still loading, so GeoSight is showing demo-safe source cards for the active story.
+              Live grounding is still loading, so GeoSight is showing the current source cards while deeper context catches up.
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {groundingFallbackSources.map((source) => (

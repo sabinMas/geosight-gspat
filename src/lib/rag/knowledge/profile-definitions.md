@@ -2,7 +2,7 @@
 
 ## Data Center Cooling (`data-center`)
 
-This profile is for infrastructure teams, utilities, and judges evaluating GeoSight's original Columbia River cooling story. It answers questions such as: "Can this site support cooling-intensive compute infrastructure?", "How close is it to power and water?", and "What subsurface or hazard conditions could complicate development?" It draws from Overpass for roads, power, waterways, land use, and activity context; USGS Water Services for stream gauges and discharge; USGS groundwater wells for water-table depth; NRCS SSURGO for soil drainage and bedrock context; USGS design maps for seismic design values; USGS EPQS or OpenTopoData for elevation; Open-Meteo for weather; Open-Meteo Historical Archive for climate trends; FCC Broadband Map for US connectivity; FEMA NFHL for flood risk; and EPA Envirofacts for contamination screening.
+This profile is for infrastructure teams and utilities evaluating cooling-intensive compute siting. It answers questions such as: "Can this site support cooling-intensive compute infrastructure?", "How close is it to power and water?", and "What subsurface or hazard conditions could complicate development?" It draws from Overpass for roads, power, waterways, land use, and activity context; USGS Water Services for stream gauges and discharge; USGS groundwater wells for water-table depth; NRCS SSURGO for soil drainage and bedrock context; USGS design maps for seismic design values; USGS EPQS or OpenTopoData for elevation; Open-Meteo for weather; Open-Meteo Historical Archive for climate trends; FCC Broadband Map for US connectivity; FEMA NFHL for flood risk; and EPA Envirofacts for contamination screening.
 
 Current factor weights:
 
@@ -21,7 +21,7 @@ Current factor weights:
 
 ## Hiking and Recreation (`hiking`)
 
-This profile is for hikers, travelers, trail planners, and judges testing whether GeoSight can answer everyday place questions as well as technical ones. It answers questions such as: "Does this area feel scenic or rugged?", "Are there water features nearby?", "How remote is it from urban activity?", and "Is the weather and air quality supportive for outdoor use?" It uses Overpass for trailheads, paths, viewpoints, peaks, waterfalls, parks, and tourism features; Open-Meteo for current and forecast weather plus AQI fallback; OpenAQ for station-based PM2.5 and PM10 context; Open-Meteo Historical Archive for decade-scale temperature and precipitation trends; and elevation from USGS or OpenTopoData.
+This profile is for hikers, travelers, and trail planners who want a strong first-pass read on outdoor use. It answers questions such as: "Does this area feel scenic or rugged?", "Are there water features nearby?", "How remote is it from urban activity?", and "Is the weather and air quality supportive for outdoor use?" It uses Overpass for trailheads, paths, viewpoints, peaks, waterfalls, parks, and tourism features; Open-Meteo for current and forecast weather plus AQI fallback; OpenAQ for station-based PM2.5 and PM10 context; Open-Meteo Historical Archive for decade-scale temperature and precipitation trends; and elevation from USGS or OpenTopoData.
 
 Current factor weights:
 

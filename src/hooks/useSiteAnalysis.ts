@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DEFAULT_VIEW } from "@/lib/demo-data";
 import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
+import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import { Coordinates, GeodataResult, MissionProfile, SiteScore } from "@/types";
 
 const GEODATA_REQUEST_TIMEOUT_MS = 18_000;
@@ -88,7 +88,8 @@ export function useSiteAnalysis(coords: Coordinates, profile: MissionProfile, re
   const lastRequestKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const isDefaultView = coords.lat === DEFAULT_VIEW.lat && coords.lng === DEFAULT_VIEW.lng;
+    const isDefaultView =
+      coords.lat === DEFAULT_GLOBE_VIEW.lat && coords.lng === DEFAULT_GLOBE_VIEW.lng;
     if (!ready && isDefaultView) {
       lastRequestKeyRef.current = null;
       setGeodata(null);

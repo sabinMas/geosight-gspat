@@ -99,12 +99,10 @@ function parseUiContext(value: unknown): GeoSightUiContext | undefined {
     visibleControlCount: parseOptionalNumber(value.visibleControlCount),
     visibleTextBlockCount: parseOptionalNumber(value.visibleTextBlockCount),
     shellMode: parseShellMode(value.shellMode),
-    judgeMode: parseOptionalBoolean(value.judgeMode),
     locationSelected: parseOptionalBoolean(value.locationSelected),
     geodataLoading: parseOptionalBoolean(value.geodataLoading),
     geodataLoaded: parseOptionalBoolean(value.geodataLoaded),
     reportOpen: parseOptionalBoolean(value.reportOpen),
-    demoOpen: parseOptionalBoolean(value.demoOpen),
   };
 
   return Object.values(context).some((entry) => entry !== undefined) ? context : undefined;
@@ -119,7 +117,6 @@ function parseGeoSightContext(value: unknown): GeoSightContext | undefined {
     lat: parseOptionalNumber(value.lat),
     lng: parseOptionalNumber(value.lng),
     profile: parseOptionalString(value.profile),
-    missionId: parseOptionalString(value.missionId),
     score: parseOptionalNumber(value.score),
     dataBundle: isRecord(value.dataBundle) ? value.dataBundle : undefined,
     uiContext: parseUiContext(value.uiContext),
@@ -216,7 +213,6 @@ function buildGeoScribeFallback(message: string, context?: GeoSightContext) {
     `- Location: ${locationLabel}`,
     `- Route context: ${context?.uiContext?.currentRoute ?? "Unknown route"}`,
     `- Shell mode: ${context?.uiContext?.shellMode ?? "Unknown shell mode"}`,
-    `- Judge mode: ${context?.uiContext?.judgeMode ? "On" : "Off"}`,
     "",
     "## Current Score Signal",
     `- ${scoreLine}`,

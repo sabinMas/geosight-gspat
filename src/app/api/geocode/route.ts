@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const response = await fetchWithTimeout(url, {
       headers: {
-        "User-Agent": "GeoSight geospatial search demo",
+        "User-Agent": "GeoSight geospatial search",
       },
       next: { revalidate: 60 * 60 * 24 },
     }, EXTERNAL_TIMEOUTS.standard);

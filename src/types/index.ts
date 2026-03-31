@@ -15,9 +15,7 @@ export type UseCaseType =
   | "general_exploration";
 
 export type ResultsMode = "analysis" | "nearby_places";
-export type ExploreEntrySource = "landing" | "demo" | "direct";
-export type DemoOverlayLayerKey = "water" | "power" | "roads";
-export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable" | "demo";
+export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable";
 export type SourceDomain =
   | "weather"
   | "nearby_places"
@@ -73,8 +71,7 @@ export type WorkspaceRevealTrigger =
   | "ask_terrain"
   | "ask_imagery"
   | "ask_schools"
-  | "report_opened"
-  | "judge_mode";
+  | "report_opened";
 export type WorkspaceDataRequirement =
   | "geodata"
   | "score"
@@ -82,13 +79,11 @@ export type WorkspaceDataRequirement =
   | "classification"
   | "image"
   | "source-metadata"
-  | "school-context"
-  | "mission-run";
+  | "school-context";
 export type WorkspaceCardId =
   | "active-location"
   | "chat"
   | "results"
-  | "mission-run"
   | "score"
   | "factor-breakdown"
   | "compare"
@@ -168,7 +163,6 @@ export interface WorkspaceCardDefinition {
   revealTriggers: WorkspaceRevealTrigger[];
   summaryVariant: string;
   compactActions: readonly string[];
-  competitionCritical: boolean;
   densityBudget: WorkspaceCardDensityBudget;
 }
 
@@ -243,7 +237,7 @@ export interface MissionProfile {
     heatmap: boolean;
   };
   exampleQuestions: string[];
-  demoSites?: DemoSiteSeed[];
+  starterRegions?: StarterRegionSeed[];
   recommendationBands: Array<{
     min: number;
     text: string;
@@ -253,10 +247,6 @@ export interface MissionProfile {
 export interface ExploreInitState {
   profileId?: string;
   locationQuery?: string;
-  demoId?: string;
-  entrySource?: ExploreEntrySource;
-  judgeMode?: boolean;
-  missionRunPresetId?: string;
 }
 
 export interface LandingUseCase {
@@ -267,38 +257,6 @@ export interface LandingUseCase {
   accentColor: string;
   icon: string;
   suggestedQuery: string;
-}
-
-export interface DemoOverlay {
-  id: string;
-  name: string;
-  tagline: string;
-  description: string;
-  profileId: string;
-  accentColor: string;
-  icon: string;
-  locationName: string;
-  coordinates: Coordinates;
-  fallbackScreenshot: string;
-  entryMode: "workspace" | "overlay";
-  preloadedSites?: SavedSite[];
-  quickRegionSites?: DemoSiteSeed[];
-  mapOverlays?: DemoMapOverlay[];
-  competition?: {
-    openingScript: string;
-    missionRunPresetId: string;
-    targetCardIds: WorkspaceCardId[];
-    successScreenshotTargets: string[];
-    fallbackNarrative: string;
-  };
-}
-
-export interface DemoMapOverlay {
-  id: string;
-  layer: DemoOverlayLayerKey;
-  positions: Coordinates[];
-  color: string;
-  width: number;
 }
 
 export interface Coordinates {
@@ -628,7 +586,7 @@ export interface SavedSite {
   note?: string;
 }
 
-export interface DemoSiteSeed {
+export interface StarterRegionSeed {
   id: string;
   name: string;
   coordinates: Coordinates;
@@ -648,66 +606,6 @@ export interface AnalyzeRequestBody {
   location?: Coordinates;
   locationName?: string;
   resultsMode?: ResultsMode;
-  geodata?: GeodataResult;
-  nearbyPlaces?: NearbyPlace[];
-  dataTrends?: DataTrend[];
-  imageSummary?: string;
-  classification?: LandCoverBucket[];
-}
-
-export interface MissionRunStepPreset {
-  id: string;
-  title: string;
-  objective: string;
-  question: string;
-}
-
-export interface MissionRunPreset {
-  id: string;
-  title: string;
-  profileId: string;
-  demoId?: string;
-  locationQuery?: string;
-  missionObjective: string;
-  summary: string;
-  steps: MissionRunStepPreset[];
-  successSignals: string[];
-  fallbackNarrative: string;
-  recommendedCards: WorkspaceCardId[];
-}
-
-export interface MissionRunStepResult {
-  id: string;
-  title: string;
-  objective: string;
-  answer: string;
-  model: string;
-}
-
-export interface MissionRunSourceSummary {
-  liveSources: string[];
-  derivedSignals: string[];
-  missingCoverage: string[];
-  regionalProviders: string[];
-}
-
-export interface MissionRunResult {
-  presetId: string;
-  title: string;
-  missionObjective: string;
-  headline: string;
-  summary: string;
-  stepResults: MissionRunStepResult[];
-  recommendedCards: WorkspaceCardId[];
-  sourceSummary: MissionRunSourceSummary;
-  modelTrail: string[];
-}
-
-export interface MissionRunRequestBody {
-  presetId: string;
-  profileId: string;
-  location?: Coordinates;
-  locationName?: string;
   geodata?: GeodataResult;
   nearbyPlaces?: NearbyPlace[];
   dataTrends?: DataTrend[];

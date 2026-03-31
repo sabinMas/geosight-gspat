@@ -2,6 +2,8 @@
 
 :root {
   color-scheme: dark;
+  --radius-container: 1rem;
+  --radius-control: 0.75rem;
   --background: #07111d;
   --background-alt: #091725;
   --background-elevated: #0c1b2b;
@@ -116,24 +118,24 @@ body::after {
   pointer-events: none;
   z-index: -1;
   border-radius: 999px;
-  filter: blur(90px);
-  opacity: 0.7;
+  filter: blur(110px);
+  opacity: 0.24;
 }
 
 body::before {
-  top: 6%;
+  top: 8%;
   left: -4rem;
-  width: 20rem;
-  height: 20rem;
-  background: rgba(83, 221, 255, 0.12);
+  width: 18rem;
+  height: 18rem;
+  background: rgba(83, 221, 255, 0.06);
 }
 
 body::after {
   right: -2rem;
-  bottom: 8%;
-  width: 18rem;
-  height: 18rem;
-  background: rgba(122, 92, 255, 0.12);
+  bottom: 10%;
+  width: 16rem;
+  height: 16rem;
+  background: rgba(122, 92, 255, 0.05);
 }
 
 a {
@@ -154,13 +156,6 @@ textarea {
   backdrop-filter: blur(22px);
 }
 
-.data-grid {
-  background-image:
-    linear-gradient(var(--hero-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--hero-grid) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
 .eyebrow {
   font-size: 11px;
   font-weight: 600;
@@ -174,19 +169,6 @@ textarea {
   background: var(--surface-panel);
   box-shadow: var(--shadow-panel);
   backdrop-filter: blur(22px);
-}
-
-.hero-orbit {
-  position: absolute;
-  inset: auto;
-  width: 18rem;
-  height: 18rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    radial-gradient(circle at center, rgba(83, 221, 255, 0.12), transparent 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent);
-  filter: blur(0.2px);
 }
 
 .metric-chip {

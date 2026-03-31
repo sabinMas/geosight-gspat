@@ -4,7 +4,6 @@ import { createContext, useContext } from "react";
 import { ExploreInitState } from "@/types";
 
 const ExploreInitContext = createContext<ExploreInitState>({
-  entrySource: "direct",
 });
 
 export function ExploreProvider({

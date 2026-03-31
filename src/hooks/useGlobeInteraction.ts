@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { buildRectangle, toBoundingBox } from "@/lib/geospatial";
-import { Coordinates, DemoSiteSeed, RegionSelection } from "@/types";
+import { Coordinates, RegionSelection, StarterRegionSeed } from "@/types";
 
 function buildRegion(center: Coordinates, label?: string): RegionSelection {
   const polygon = buildRectangle(center);
@@ -18,7 +18,7 @@ function buildRegion(center: Coordinates, label?: string): RegionSelection {
 export function useGlobeInteraction(
   initialCoordinates: Coordinates,
   initialLocationName?: string,
-  demoSites: DemoSiteSeed[] = [],
+  starterRegions: StarterRegionSeed[] = [],
 ) {
   const [selectedPoint, setSelectedPoint] = useState<Coordinates>(initialCoordinates);
   const [selectedLocationName, setSelectedLocationName] = useState(
@@ -36,8 +36,8 @@ export function useGlobeInteraction(
 
   const quickRegions = useMemo(
     () => {
-      const seeds = demoSites.length
-        ? demoSites
+      const seeds = starterRegions.length
+        ? starterRegions
         : [
             {
               id: "default-gorge",
@@ -64,7 +64,7 @@ export function useGlobeInteraction(
 
       return seeds.map((site) => buildRegion(site.coordinates, site.name));
     },
-    [demoSites],
+    [starterRegions],
   );
 
   return {

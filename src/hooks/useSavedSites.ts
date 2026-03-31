@@ -40,10 +40,6 @@ export function useSavedSites(activeProfileId: string) {
     });
   }, [activeProfileId]);
 
-  const loadDemoSites = useCallback((demoSites: SavedSite[] = []) => {
-    setSitesForProfile(demoSites.filter((site) => site.profileId === activeProfileId));
-  }, [activeProfileId, setSitesForProfile]);
-
   const sites = useMemo(
     () =>
       allSites
@@ -52,5 +48,5 @@ export function useSavedSites(activeProfileId: string) {
     [activeProfileId, allSites],
   );
 
-  return { sites, addSite, setSites: setSitesForProfile, loadDemoSites };
+  return { sites, addSite, setSites: setSitesForProfile };
 }

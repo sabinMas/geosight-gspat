@@ -28,10 +28,6 @@ A trust signal is any UI cue that tells the user how much to trust a result. In 
 
 Provenance is the trace of where an insight came from. In GeoSight it combines provider name, freshness, coverage, confidence note, evidence kind, and explicit unsupported or unavailable states when relevant.
 
-## Mission run
-
-A mission run is a multi-step, judge-facing briefing built from a preset story. Each mission run has an objective, a list of step prompts, recommended supporting cards, a source summary, and a model trail. Current presets cover Columbia River infrastructure, Tokyo commercial analysis, and Washington residential due diligence.
-
 ## Deterministic score
 
 A deterministic score is the repeatable numeric output from `src/lib/scoring.ts`. It does not depend on model creativity. The same geodata and the same profile produce the same weighted result every time.

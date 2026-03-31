@@ -1,17 +1,14 @@
 "use client";
 
-import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
 import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { resolveLocationQuery } from "@/lib/cesium-search";
-import { DEFAULT_VIEW } from "@/lib/demo-data";
-import { getDemoById } from "@/lib/demos/registry";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
-import { getMissionRunPreset } from "@/lib/mission-run-presets";
 import { getProfileById } from "@/lib/profiles";
+import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   GlobeViewMode,
-  DemoOverlay,
   ExploreInitState,
   LandCoverBucket,
   MissionProfile,
@@ -24,23 +21,11 @@ export type ExploreInitParams = ExploreInitState;
 
 export interface ExploreState {
   init: ExploreInitParams;
-  activeDemo: DemoOverlay | null;
-  coolingDemo: DemoOverlay | null;
-  overlayDemo: DemoOverlay | null;
-  missionRunPreset: ReturnType<typeof getMissionRunPreset>;
   activeProfile: MissionProfile;
   setActiveProfile: Dispatch<SetStateAction<MissionProfile>>;
   initError: string | null;
   setInitError: Dispatch<SetStateAction<string | null>>;
   initStatus: "idle" | "resolving";
-  demoOpen: boolean;
-  setDemoOpen: Dispatch<SetStateAction<boolean>>;
-  openDemoOverlay: () => void;
-  dismissDemoOverlay: () => void;
-  pendingDemoLoad: boolean;
-  setPendingDemoLoad: Dispatch<SetStateAction<boolean>>;
-  pendingDemoSiteId: string | null;
-  setPendingDemoSiteId: Dispatch<SetStateAction<string | null>>;
   defaultCoordinates: {
     lat: number;
     lng: number;
@@ -83,42 +68,21 @@ function getInitialProfile(profileId?: string) {
 }
 
 export function useExploreState(init: ExploreInitParams): ExploreState {
-  const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
-  const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
-  const [overlayDismissed, setOverlayDismissed] = useState(false);
-  const overlayDemo = useMemo(
-    () =>
-      activeDemo?.entryMode === "overlay" && !overlayDismissed ? activeDemo : null,
-    [activeDemo, overlayDismissed],
-  );
-  const missionRunPreset = useMemo(
-    () =>
-      getMissionRunPreset(
-        init.missionRunPresetId ?? activeDemo?.competition?.missionRunPresetId ?? null,
-      ),
-    [activeDemo?.competition?.missionRunPresetId, init.missionRunPresetId],
-  );
-
   const [activeProfile, setActiveProfile] = useState<MissionProfile>(() =>
-    getInitialProfile(init.profileId ?? activeDemo?.profileId),
+    getInitialProfile(init.profileId),
   );
   const [initError, setInitError] = useState<string | null>(null);
   const [initStatus, setInitStatus] = useState<"idle" | "resolving">(
     init.locationQuery ? "resolving" : "idle",
   );
-  const [demoOpen, setDemoOpen] = useState(activeDemo?.entryMode === "overlay");
-  const [pendingDemoLoad, setPendingDemoLoad] = useState(activeDemo?.entryMode === "overlay");
-  const [pendingDemoSiteId, setPendingDemoSiteId] = useState<string | null>(null);
-  const [locationReady, setLocationReady] = useState(Boolean(activeDemo));
+  const [locationReady, setLocationReady] = useState(false);
 
-  const defaultCoordinates = activeDemo?.coordinates ?? {
-    lat: DEFAULT_VIEW.lat,
-    lng: DEFAULT_VIEW.lng,
+  const defaultCoordinates = {
+    lat: DEFAULT_GLOBE_VIEW.lat,
+    lng: DEFAULT_GLOBE_VIEW.lng,
   };
-  const defaultLabel = init.locationQuery
-    ? "Resolving location..."
-    : activeDemo?.locationName ?? "Starter view";
-  const quickRegionSeeds = activeDemo?.quickRegionSites ?? activeProfile.demoSites ?? [];
+  const defaultLabel = init.locationQuery ? "Resolving location..." : "Starter view";
+  const quickRegionSeeds = activeProfile.starterRegions ?? [];
 
   const {
     selectedPoint,
@@ -148,26 +112,10 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [uploadedClassification, setUploadedClassification] = useState<LandCoverBucket[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultsMode, setResultsMode] = useState<ResultsMode>("analysis");
-  const openDemoOverlay = useCallback(() => {
-    setOverlayDismissed(false);
-    setDemoOpen(true);
-  }, []);
-  const dismissDemoOverlay = useCallback(() => {
-    setOverlayDismissed(true);
-    setDemoOpen(false);
-  }, []);
 
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
   }, [activeProfile]);
-
-  useEffect(() => {
-    if (init.locationQuery || !activeDemo || activeDemo.entryMode !== "workspace") {
-      return;
-    }
-
-    selectPoint(activeDemo.coordinates, activeDemo.locationName);
-  }, [activeDemo, init.locationQuery, selectPoint]);
 
   useEffect(() => {
     const locationQuery = init.locationQuery;
@@ -210,23 +158,11 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
 
   return {
     init,
-    activeDemo,
-    coolingDemo,
-    overlayDemo,
-    missionRunPreset,
     activeProfile,
     setActiveProfile,
     initError,
     setInitError,
     initStatus,
-    demoOpen,
-    setDemoOpen,
-    openDemoOverlay,
-    dismissDemoOverlay,
-    pendingDemoLoad,
-    setPendingDemoLoad,
-    pendingDemoSiteId,
-    setPendingDemoSiteId,
     defaultCoordinates,
     defaultLabel,
     locationReady,

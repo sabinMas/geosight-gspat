@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DEFAULT_VIEW } from "@/lib/demo-data";
 import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
 import { NEARBY_PLACE_CATEGORY_LABELS } from "@/lib/nearby-places";
+import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   Coordinates,
   NearbyPlace,
@@ -26,7 +26,8 @@ export function useNearbyPlaces(coords: Coordinates, locationName: string, ready
   }, [locationName]);
 
   useEffect(() => {
-    const isDefaultView = coords.lat === DEFAULT_VIEW.lat && coords.lng === DEFAULT_VIEW.lng;
+    const isDefaultView =
+      coords.lat === DEFAULT_GLOBE_VIEW.lat && coords.lng === DEFAULT_GLOBE_VIEW.lng;
     if (!ready && isDefaultView) {
       setLoading(false);
       setError(null);

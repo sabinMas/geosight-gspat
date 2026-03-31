@@ -43,7 +43,7 @@ async function reverseGeocodeCountry(coords: Coordinates) {
     {
       headers: {
         "Accept-Language": "en",
-        "User-Agent": "GeoSight geospatial demo",
+      "User-Agent": "GeoSight geospatial",
       },
       next: { revalidate: 60 * 60 * 24 },
     },

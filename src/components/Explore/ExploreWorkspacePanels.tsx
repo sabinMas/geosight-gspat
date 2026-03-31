@@ -4,7 +4,6 @@ import { ReactNode } from "react";
 import { ChatPanel } from "@/components/Analysis/ChatPanel";
 import { ImageUpload } from "@/components/Analysis/ImageUpload";
 import { LandClassifier } from "@/components/Analysis/LandClassifier";
-import { MissionRunCard } from "@/components/Competition/MissionRunCard";
 import { ActiveLocationCard } from "@/components/Explore/ActiveLocationCard";
 import { AirQualityCard } from "@/components/Explore/AirQualityCard";
 import { BroadbandCard } from "@/components/Explore/BroadbandCard";
@@ -229,32 +228,6 @@ export function ExploreWorkspacePanel({
   }
 
   switch (cardId) {
-    case "mission-run":
-      return state.missionRunPreset ? (
-        <MissionRunCard
-          preset={state.missionRunPreset}
-          profile={state.activeProfile}
-          location={state.selectedPoint}
-          locationName={state.selectedLocationName}
-          geodata={data.geodata}
-          dataTrends={data.locationTrends}
-          nearbyPlaces={data.places}
-          imageSummary={state.imageSummary}
-          classification={data.effectiveClassification}
-          score={data.siteScore}
-          onOpenCard={onOpenCard}
-          autoRun={state.init.judgeMode}
-        />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Mission run</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm leading-6 text-[var(--muted-foreground)]">
-            Open a competition story or judge-mode deep-link to run a structured GeoSight briefing.
-          </CardContent>
-        </Card>
-      );
     case "score":
       return (
         <ScoreCard
