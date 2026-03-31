@@ -36,18 +36,13 @@ export async function GET(request: NextRequest) {
         ...rateLimitHeaders(rateLimit),
       },
     });
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "GeoSight could not load housing market data right now.";
-
-    return NextResponse.json(
-      { error: message },
-      {
-        status: 500,
-        headers: rateLimitHeaders(rateLimit),
+  } catch {
+    const fallback = await getHousingMarket(null, null, location, registryContext);
+    return NextResponse.json(fallback, {
+      headers: {
+        "Cache-Control": "s-maxage=43200, stale-while-revalidate=86400",
+        ...rateLimitHeaders(rateLimit),
       },
-    );
+    });
   }
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArcGisBaseMapType,
   ArcGisMapServerImageryProvider,
+  CameraEventType,
   Cartesian3,
   Cartographic,
   Color,
@@ -41,6 +42,7 @@ interface CesiumGlobeProps {
   selectedPoint: Coordinates;
   selectedRegion: RegionSelection;
   globeViewMode: GlobeViewMode;
+  globeRotateMode: boolean;
   subsurfaceRenderMode: SubsurfaceRenderMode;
   onPointSelect: (coords: Coordinates) => void;
   savedSites: SavedSite[];
@@ -53,6 +55,7 @@ export function CesiumGlobe({
   selectedPoint,
   selectedRegion,
   globeViewMode,
+  globeRotateMode,
   subsurfaceRenderMode,
   onPointSelect,
   savedSites,
@@ -120,9 +123,20 @@ export function CesiumGlobe({
 
     const controller = viewer.scene.screenSpaceCameraController;
     controller.enableTilt = false;
-    controller.minimumZoomDistance = 500;
+    controller.enableLook = false;
+    controller.enableRotate = true;
+    controller.enableTranslate = true;
+    controller.minimumZoomDistance = 800;
+    controller.maximumZoomDistance = 2_000_000;
+    controller.zoomEventTypes = [CameraEventType.WHEEL];
+    controller.tiltEventTypes = [];
+    controller.lookEventTypes = [];
+    controller.rotateEventTypes = globeRotateMode
+      ? [CameraEventType.LEFT_DRAG, CameraEventType.MIDDLE_DRAG]
+      : [CameraEventType.MIDDLE_DRAG];
+    controller.translateEventTypes = globeRotateMode ? [] : [CameraEventType.LEFT_DRAG];
     viewer.scene.requestRender();
-  }, [viewerKey, viewerReady]);
+  }, [globeRotateMode, viewerKey, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;

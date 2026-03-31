@@ -3,6 +3,7 @@
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
 import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
+import { useQuickRegions } from "@/hooks/useQuickRegions";
 import { resolveLocationQuery } from "@/lib/cesium-search";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
 import { normalizeProfileId } from "@/lib/lenses";
@@ -38,12 +39,20 @@ export interface ExploreState {
     lng: number;
   };
   selectedLocationName: string;
+  selectedLocationDisplayName: string;
   selectedRegion: RegionSelection;
-  selectPoint: (coords: { lat: number; lng: number }, label?: string) => void;
+  selectPoint: (
+    coords: { lat: number; lng: number },
+    label?: string,
+    displayLabel?: string,
+  ) => void;
   setSelectedRegion: Dispatch<SetStateAction<RegionSelection>>;
   quickRegions: RegionSelection[];
+  quickRegionsLoading: boolean;
   globeViewMode: GlobeViewMode;
   setGlobeViewMode: Dispatch<SetStateAction<GlobeViewMode>>;
+  globeRotateMode: boolean;
+  setGlobeRotateMode: Dispatch<SetStateAction<boolean>>;
   layers: LayerState;
   setLayers: Dispatch<SetStateAction<LayerState>>;
   subsurfaceRenderMode: SubsurfaceRenderMode;
@@ -83,27 +92,27 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     lng: DEFAULT_GLOBE_VIEW.lng,
   };
   const defaultLabel = init.locationQuery ? "Resolving location..." : "Starter view";
-  const quickRegionSeeds = activeProfile.starterRegions ?? [];
 
   const {
     selectedPoint,
     selectedLocationName,
+    selectedLocationDisplayName,
     selectedRegion,
     selectPoint: selectGlobePoint,
     setSelectedRegion,
-    quickRegions,
-  } = useGlobeInteraction(defaultCoordinates, defaultLabel, quickRegionSeeds);
+  } = useGlobeInteraction(defaultCoordinates, defaultLabel);
 
   const selectPoint = useCallback(
-    (coords: { lat: number; lng: number }, label?: string) => {
+    (coords: { lat: number; lng: number }, label?: string, displayLabel?: string) => {
       setLocationReady(true);
-      selectGlobePoint(coords, label);
+      selectGlobePoint(coords, label, displayLabel);
     },
     [selectGlobePoint],
   );
 
   const [layers, setLayers] = useState<LayerState>(activeProfile.defaultLayers);
   const [globeViewMode, setGlobeViewMode] = useState<GlobeViewMode>("satellite");
+  const [globeRotateMode, setGlobeRotateMode] = useState(false);
   const [subsurfaceRenderMode, setSubsurfaceRenderMode] =
     useState<SubsurfaceRenderMode>("surface_only");
   const [terrainExaggeration, setTerrainExaggeration] = useState(1.8);
@@ -113,6 +122,11 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [uploadedClassification, setUploadedClassification] = useState<LandCoverBucket[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultsMode, setResultsMode] = useState<ResultsMode>("analysis");
+  const { quickRegions, quickRegionsLoading } = useQuickRegions(
+    selectedPoint,
+    locationReady,
+    activeProfile.id,
+  );
 
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
@@ -133,7 +147,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
       try {
         const result = await resolveLocationQuery(locationQuery);
         if (!cancelled) {
-          selectPoint(result.coordinates, result.name);
+          selectPoint(result.coordinates, result.fullName ?? result.name, result.shortName);
         }
       } catch (error) {
         if (!cancelled) {
@@ -169,12 +183,16 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     locationReady,
     selectedPoint,
     selectedLocationName,
+    selectedLocationDisplayName,
     selectedRegion,
     selectPoint,
     setSelectedRegion,
     quickRegions,
+    quickRegionsLoading,
     globeViewMode,
     setGlobeViewMode,
+    globeRotateMode,
+    setGlobeRotateMode,
     layers,
     setLayers,
     subsurfaceRenderMode,

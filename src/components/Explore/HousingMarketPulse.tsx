@@ -40,14 +40,6 @@ function formatCount(value: number | null) {
   }).format(value);
 }
 
-function formatPercent(value: number | null) {
-  if (value === null) {
-    return "--";
-  }
-
-  return `${(value * 100).toFixed(1)}%`;
-}
-
 function MarketStat({
   label,
   value,
@@ -99,15 +91,16 @@ export function HousingMarketPulse({
   locationName,
   housingMarket,
   loading,
-  error,
+  error: _error,
 }: HousingMarketPulseProps) {
+  void _error;
   const [open, setOpen] = useState(true);
 
-  const listPriceSeries = useMemo(
+  const salePriceSeries = useMemo(
     () =>
       housingMarket?.series.map((point) => ({
         label: point.label,
-        value: point.medianListPrice,
+        value: point.medianSalePrice,
       })) ?? [],
     [housingMarket?.series],
   );
@@ -142,7 +135,7 @@ export function HousingMarketPulse({
             {housingMarket ? <SourceStatusBadge source={housingMarket.source} /> : null}
           </div>
           <div className="mt-1 text-sm text-[var(--muted-foreground)]">
-            County-level residential market context for {locationName}
+            Metro-level residential market context for {locationName}
             {housingMarket?.monthLabel ? ` · ${housingMarket.monthLabel}` : ""}
           </div>
         </div>
@@ -159,11 +152,6 @@ export function HousingMarketPulse({
               {housingMarket?.regionLabel ? (
                 <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
                   {housingMarket.regionLabel}
-                </span>
-              ) : null}
-              {housingMarket?.saleToListRatio !== null && housingMarket?.saleToListRatio !== undefined ? (
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
-                  Sale / list {formatPercent(housingMarket.saleToListRatio)}
                 </span>
               ) : null}
             </div>
@@ -189,17 +177,13 @@ export function HousingMarketPulse({
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading live housing market context...
             </div>
-          ) : error ? (
-            <div className="rounded-xl border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-foreground)]">
-              {error}
-            </div>
           ) : housingMarket?.status === "live" ? (
             <>
               <div className="grid gap-3 md:grid-cols-3">
                 <MarketStat
-                  label="Median list price"
-                  value={formatCurrency(housingMarket.medianListPrice)}
-                  series={listPriceSeries}
+                  label="Median sale price"
+                  value={formatCurrency(housingMarket.medianSalePrice)}
+                  series={salePriceSeries}
                   color="#53ddff"
                 />
                 <MarketStat
@@ -230,10 +214,10 @@ export function HousingMarketPulse({
               </div>
             </>
           ) : (
-            <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-4 text-sm leading-6 text-[var(--muted-foreground)]">
+            <p className="text-sm leading-6 text-[var(--muted-foreground)]">
               {housingMarket?.notes[0] ??
-                "Housing market coverage is not available for this location yet."}
-            </div>
+                "Housing market data is available for US metro areas. This location falls outside coverage."}
+            </p>
           )}
         </div>
       ) : null}

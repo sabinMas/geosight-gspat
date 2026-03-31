@@ -9,6 +9,7 @@ interface SidebarProps {
   onSelectProfile: (profile: MissionProfile) => void;
   onSelectRegion: (region: RegionSelection) => void;
   quickRegions: RegionSelection[];
+  quickRegionsLoading: boolean;
   selectedRegion: RegionSelection;
 }
 
@@ -18,16 +19,15 @@ export function Sidebar({
   onSelectProfile,
   onSelectRegion,
   quickRegions,
+  quickRegionsLoading,
   selectedRegion,
 }: SidebarProps) {
   return (
     <aside className="glass-panel z-20 flex max-h-[calc(100vh-2rem)] w-full max-w-[320px] flex-col gap-4 overflow-y-auto overscroll-contain rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] scrollbar-thin xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)]">
       <div className="space-y-3">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">Lens and regions</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Change the analysis lens or jump to a starter region without crowding the main canvas.
-          </p>
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">Analysis lens</h2>
+          <div className="mt-1 text-[10px] text-neutral-400">Lens · Regions · Theme</div>
         </div>
       </div>
 
@@ -40,6 +40,7 @@ export function Sidebar({
             activeProfileId={activeProfile.id}
             profiles={profiles}
             onSelectProfile={onSelectProfile}
+            variant="sidebar-carousel"
           />
         </CardContent>
       </Card>
@@ -49,6 +50,18 @@ export function Sidebar({
           <CardTitle>Quick regions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {quickRegionsLoading ? (
+            <div className="rounded-xl border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+              Generating nearby regions from the active location...
+            </div>
+          ) : null}
+
+          {!quickRegionsLoading && quickRegions.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+              Select a place to build nearby quick regions.
+            </div>
+          ) : null}
+
           {quickRegions.map((region) => (
             <button
               key={region.id}
@@ -66,6 +79,11 @@ export function Sidebar({
               }
             >
               <div className="text-sm font-medium text-[var(--foreground)]">{region.name}</div>
+              {region.secondaryLabel ? (
+                <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {region.secondaryLabel}
+                </div>
+              ) : null}
               <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                 {region.center.lat.toFixed(3)}, {region.center.lng.toFixed(3)}
               </div>

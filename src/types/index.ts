@@ -238,7 +238,6 @@ export interface MissionProfile {
     heatmap: boolean;
   };
   exampleQuestions: string[];
-  starterRegions?: StarterRegionSeed[];
   recommendationBands: Array<{
     min: number;
     text: string;
@@ -275,6 +274,7 @@ export interface BoundingBox {
 export interface RegionSelection {
   id: string;
   name: string;
+  secondaryLabel?: string;
   center: Coordinates;
   polygon: Coordinates[];
   bbox: BoundingBox;
@@ -429,7 +429,7 @@ export interface EPAHazardResult {
 export interface HousingMarketSeriesPoint {
   periodEnd: string;
   label: string;
-  medianListPrice: number | null;
+  medianSalePrice: number | null;
   medianDom: number | null;
   activeListings: number | null;
 }
@@ -439,7 +439,7 @@ export interface HousingMarketResult {
   regionLabel: string | null;
   locationLabel: string;
   monthLabel: string | null;
-  medianListPrice: number | null;
+  medianSalePrice: number | null;
   medianDom: number | null;
   activeListings: number | null;
   saleToListRatio: number | null;
@@ -534,9 +534,14 @@ export interface GeodataResult {
 
 export interface LocationSearchResult {
   name: string;
+  shortName?: string;
+  fullName?: string;
   coordinates: Coordinates;
   kind?: string;
   countryCode?: string;
+  countryName?: string;
+  locality?: string;
+  district?: string;
 }
 
 export interface NearbyPlace {
@@ -609,14 +614,6 @@ export interface SavedSite {
   score: SiteScore;
   geodata: GeodataResult;
   note?: string;
-}
-
-export interface StarterRegionSeed {
-  id: string;
-  name: string;
-  coordinates: Coordinates;
-  score: number;
-  summary: string;
 }
 
 export interface ChatMessage {

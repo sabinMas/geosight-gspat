@@ -22,6 +22,8 @@ import {
   EXAMPLE_STARTERS,
   GENERAL_EXPLORATION_PROFILE_ID,
   pickRandomSurpriseLocation,
+  SurpriseLocation,
+  SURPRISE_ME_LOCATIONS,
 } from "@/lib/landing";
 import { LENS_LABELS, getLensLabel, toPublicLensId } from "@/lib/lenses";
 import { PROFILES } from "@/lib/profiles";
@@ -47,6 +49,16 @@ const FEATURED_EXAMPLE_IDS = [
   "surprise-me",
 ] as const;
 const GITHUB_DOCS_URL = "https://github.com/sabinMas/geosight-gspat#readme";
+const EXAMPLE_TOOLTIP_COPY: Record<string, string> = {
+  "home-buying":
+    "Screens neighborhoods for terrain, flood risk, seismic exposure, air quality, and school access. Best for first-time buyers and site scouts.",
+  "market-analysis":
+    "Evaluates commercial corridors for road access, utility readiness, and competitive density. Built for site selectors and developers.",
+  infrastructure:
+    "Scores power infrastructure, water proximity, climate, and broadband capacity. Designed for hyperscaler and colocation planning.",
+  "surprise-me":
+    "Drops you into a curated location anywhere on Earth - from Mongolian steppe to Norwegian fjords. Explore what GeoSight sees.",
+};
 
 const LENS_OPTIONS = [
   { id: GENERAL_EXPLORATION_PROFILE_ID, label: LENS_LABELS.residential },
@@ -59,73 +71,131 @@ function getIcon(iconName: (typeof EXAMPLE_STARTERS)[number]["icon"]) {
   return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
 }
 
+function normalizeHue(value: number) {
+  return ((Math.round(value) % 360) + 360) % 360;
+}
+
+function buildSurpriseGradient(location: SurpriseLocation) {
+  const primaryHue = normalizeHue(location.lat);
+  const secondaryHue = normalizeHue(location.lng * 2);
+  const tertiaryHue = normalizeHue(location.lat + location.lng);
+
+  return `linear-gradient(160deg, hsl(${primaryHue} 60% 40%) 0%, hsl(${secondaryHue} 62% 28%) 52%, hsl(${tertiaryHue} 58% 18%) 100%), radial-gradient(circle at 18% 20%, hsl(${secondaryHue} 70% 62% / 0.35), transparent 34%), radial-gradient(circle at 82% 28%, hsl(${tertiaryHue} 72% 58% / 0.28), transparent 32%), linear-gradient(135deg, rgba(255,255,255,0.06), transparent 55%)`;
+}
+
+function splitLocationLabel(locationName: string) {
+  const [cityName, ...rest] = locationName.split(",").map((part) => part.trim());
+  return {
+    cityName: cityName || locationName,
+    countryName: rest.join(", ") || "Curated global drop",
+  };
+}
+
 function ExampleCard({
   example,
   onOpen,
+  surpriseLocation,
+  onRefreshSurprise,
 }: {
   example: LandingUseCase;
   onOpen: (example: LandingUseCase) => void;
+  surpriseLocation?: SurpriseLocation;
+  onRefreshSurprise?: () => void;
 }) {
   const Icon = getIcon(example.icon);
   const lensLabel = getLensLabel(example.profileId ?? GENERAL_EXPLORATION_PROFILE_ID);
   const publicLensId = toPublicLensId(example.profileId ?? GENERAL_EXPLORATION_PROFILE_ID);
+  const tooltipCopy = EXAMPLE_TOOLTIP_COPY[example.id] ?? example.description;
+  const isSurpriseCard = example.id === "surprise-me" && surpriseLocation;
+  const cardLocationLabel = isSurpriseCard ? surpriseLocation.name : example.suggestedQuery;
+  const surpriseLabelParts = isSurpriseCard ? splitLocationLabel(surpriseLocation.name) : null;
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(example)}
-      className="group rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3 text-left transition duration-300 hover:scale-[1.03] hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)]"
-    >
-      <div className="space-y-3">
-        <div
-          className="relative h-[120px] overflow-hidden rounded-xl border border-white/8 p-3"
-          style={{
-            background: `linear-gradient(145deg, ${example.accentColor}55, transparent 68%), linear-gradient(180deg, rgba(7, 17, 29, 0.16), rgba(7, 17, 29, 0.84)), radial-gradient(circle at 18% 22%, ${example.accentColor}40, transparent 34%), linear-gradient(135deg, rgba(255,255,255,0.05), transparent 52%)`,
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), 0 16px 32px ${example.accentColor}16`,
-          }}
-        >
-          <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:24px_24px]" />
-          <div className="absolute inset-x-3 bottom-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 backdrop-blur-[2px]">
-            <div className="text-xs uppercase tracking-[0.18em] text-white/70">{lensLabel}</div>
-            <div className="mt-1 text-lg font-semibold text-white">{example.suggestedQuery}</div>
-          </div>
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={() => onOpen(example)}
+        className="w-full rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3 text-left transition duration-300 hover:scale-[1.03] hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)]"
+      >
+        <div className="space-y-3">
           <div
-            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl border"
+            className="relative h-[120px] overflow-hidden rounded-xl border border-white/8 p-3"
             style={{
-              borderColor: `${example.accentColor}44`,
-              background: `${example.accentColor}22`,
-              color: "#ffffff",
+              backgroundImage: isSurpriseCard
+                ? buildSurpriseGradient(surpriseLocation)
+                : `linear-gradient(145deg, ${example.accentColor}55, transparent 68%), linear-gradient(180deg, rgba(7, 17, 29, 0.16), rgba(7, 17, 29, 0.84)), radial-gradient(circle at 18% 22%, ${example.accentColor}40, transparent 34%), linear-gradient(135deg, rgba(255,255,255,0.05), transparent 52%)`,
+              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), 0 16px 32px ${example.accentColor}16`,
             }}
           >
-            <Icon className="h-5 w-5" />
+            <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:24px_24px]" />
+            <div className="absolute inset-x-3 bottom-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 backdrop-blur-[2px]">
+              {isSurpriseCard && surpriseLabelParts ? (
+                <>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/65">
+                    {surpriseLabelParts.countryName}
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-white">
+                    {surpriseLabelParts.cityName}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xs uppercase tracking-[0.18em] text-white/70">
+                    {lensLabel}
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-white">{cardLocationLabel}</div>
+                </>
+              )}
+            </div>
+            <div
+              className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl border"
+              style={{
+                borderColor: `${example.accentColor}44`,
+                background: `${example.accentColor}22`,
+                color: "#ffffff",
+              }}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
+                {example.title}
+              </div>
+              <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                {publicLensId ? LENS_LABELS[publicLensId] : lensLabel}
+              </div>
+            </div>
+            <span className="relative flex shrink-0 items-start">
+              <span className="group/info relative flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)]">
+                <Info className="h-3.5 w-3.5" />
+                <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[220px] -translate-x-1/2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-left text-xs font-normal normal-case leading-5 text-[var(--foreground)] opacity-0 shadow-[var(--shadow-panel)] transition duration-150 group-hover/info:opacity-100">
+                  {tooltipCopy}
+                </span>
+              </span>
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 text-sm text-[var(--muted-foreground)]">
+            <span className="truncate">{cardLocationLabel}</span>
+            <span className="translate-y-1 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+              Explore {">"}
+            </span>
           </div>
         </div>
-
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
-              {example.title}
-            </div>
-            <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-              {publicLensId ? LENS_LABELS[publicLensId] : lensLabel}
-            </div>
-          </div>
-          <span
-            title={example.description}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)]"
-          >
-            <Info className="h-3.5 w-3.5" />
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 text-sm text-[var(--muted-foreground)]">
-          <span className="truncate">{example.suggestedQuery}</span>
-          <span className="translate-y-1 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-            Explore {">"}
-          </span>
-        </div>
-      </div>
-    </button>
+      </button>
+      {isSurpriseCard && onRefreshSurprise ? (
+        <button
+          type="button"
+          onClick={onRefreshSurprise}
+          className="absolute bottom-4 left-4 z-10 text-[9px] text-neutral-300/80 transition hover:text-white"
+        >
+          ✦ Refresh
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -133,6 +203,9 @@ export function LandingPage() {
   const router = useRouter();
   const { setUiContext } = useAgentPanel();
   const [selectedLensId, setSelectedLensId] = useState<string>(GENERAL_EXPLORATION_PROFILE_ID);
+  const [surpriseLocation, setSurpriseLocation] = useState<SurpriseLocation>(() =>
+    pickRandomSurpriseLocation(),
+  );
 
   const featuredExamples = useMemo(
     () =>
@@ -148,6 +221,21 @@ export function LandingPage() {
   const activeExampleSuggestion =
     EXAMPLE_STARTERS.find((example) => example.profileId === selectedLensId)?.suggestedQuery ??
     "Bellevue, WA";
+
+  const rerollSurpriseLocation = () => {
+    setSurpriseLocation((current) => {
+      if (SURPRISE_ME_LOCATIONS.length <= 1) {
+        return current;
+      }
+
+      let next = current;
+      while (next.name === current.name) {
+        next = pickRandomSurpriseLocation();
+      }
+
+      return next;
+    });
+  };
 
   const openLocation = (profileId: string, locationQuery: string) => {
     router.push(
@@ -283,10 +371,12 @@ export function LandingPage() {
               <ExampleCard
                 key={example.id}
                 example={example}
+                surpriseLocation={example.id === "surprise-me" ? surpriseLocation : undefined}
+                onRefreshSurprise={example.id === "surprise-me" ? rerollSurpriseLocation : undefined}
                 onOpen={(selectedExample) => {
                   const targetLocation =
                     selectedExample.id === "surprise-me"
-                      ? pickRandomSurpriseLocation()
+                      ? surpriseLocation.name
                       : selectedExample.suggestedQuery;
 
                   openLocation(

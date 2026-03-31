@@ -52,6 +52,7 @@ interface LocationSignalCardProps {
   detail: string;
   source?: DataSourceMeta;
   unavailable?: boolean;
+  className?: string;
 }
 
 function LocationSignalCard({
@@ -60,9 +61,12 @@ function LocationSignalCard({
   detail,
   source,
   unavailable = false,
+  className,
 }: LocationSignalCardProps) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] dark:border-neutral-700">
+    <div
+      className={`rounded-xl border border-neutral-200 bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] dark:border-neutral-700 ${className ?? ""}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           {label}
@@ -135,20 +139,6 @@ export function ActiveLocationCard({
         unavailable: geodata?.elevationMeters === null || geodata?.elevationMeters === undefined,
       },
       {
-        id: "water",
-        label: "Nearest water",
-        value:
-          geodata?.nearestWaterBody.distanceKm === null ||
-          geodata?.nearestWaterBody.distanceKm === undefined
-            ? "--"
-            : formatDistanceKm(geodata.nearestWaterBody.distanceKm),
-        detail: geodata?.nearestWaterBody.name ?? "Mapped hydrology unavailable",
-        source: geodata?.sources.infrastructure,
-        unavailable:
-          geodata?.nearestWaterBody.distanceKm === null ||
-          geodata?.nearestWaterBody.distanceKm === undefined,
-      },
-      {
         id: "weather",
         label: "Weather now",
         value:
@@ -177,6 +167,20 @@ export function ActiveLocationCard({
           geodata?.climate.airQualityIndex === null ||
           geodata?.climate.airQualityIndex === undefined,
       },
+      {
+        id: "water",
+        label: "Nearest water",
+        value:
+          geodata?.nearestWaterBody.distanceKm === null ||
+          geodata?.nearestWaterBody.distanceKm === undefined
+            ? "--"
+            : formatDistanceKm(geodata.nearestWaterBody.distanceKm),
+        detail: geodata?.nearestWaterBody.name ?? "Mapped hydrology unavailable",
+        source: geodata?.sources.infrastructure,
+        unavailable:
+          geodata?.nearestWaterBody.distanceKm === null ||
+          geodata?.nearestWaterBody.distanceKm === undefined,
+      },
     ],
     [geodata],
   );
@@ -184,6 +188,8 @@ export function ActiveLocationCard({
   const unavailableSignals = locationSignals.filter((signal) => signal.unavailable);
   const signalsToRender =
     visibleSignals.length > 0 ? visibleSignals : showUnavailableSignals ? unavailableSignals : [];
+  const primarySignalCards = signalsToRender.slice(0, 4);
+  const [elevationSignal, weatherSignal, airQualitySignal, fourthSignal] = primarySignalCards;
 
   return (
     <Card>
@@ -219,17 +225,51 @@ export function ActiveLocationCard({
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {signalsToRender.map((signal) => (
+        <div className="grid min-h-0 gap-3 md:grid-cols-2">
+          {elevationSignal ? (
             <LocationSignalCard
-              key={signal.id}
-              label={signal.label}
-              value={signal.value}
-              detail={signal.detail}
-              source={signal.source}
-              unavailable={signal.unavailable}
+              key={elevationSignal.id}
+              label={elevationSignal.label}
+              value={elevationSignal.value}
+              detail={elevationSignal.detail}
+              source={elevationSignal.source}
+              unavailable={elevationSignal.unavailable}
+              className="h-[110px]"
             />
-          ))}
+          ) : null}
+          {weatherSignal ? (
+            <LocationSignalCard
+              key={weatherSignal.id}
+              label={weatherSignal.label}
+              value={weatherSignal.value}
+              detail={weatherSignal.detail}
+              source={weatherSignal.source}
+              unavailable={weatherSignal.unavailable}
+              className="h-[110px]"
+            />
+          ) : null}
+          {airQualitySignal ? (
+            <LocationSignalCard
+              key={airQualitySignal.id}
+              label={airQualitySignal.label}
+              value={airQualitySignal.value}
+              detail={airQualitySignal.detail}
+              source={airQualitySignal.source}
+              unavailable={airQualitySignal.unavailable}
+              className={fourthSignal ? "h-[80px]" : "h-[80px] md:col-span-2"}
+            />
+          ) : null}
+          {fourthSignal ? (
+            <LocationSignalCard
+              key={fourthSignal.id}
+              label={fourthSignal.label}
+              value={fourthSignal.value}
+              detail={fourthSignal.detail}
+              source={fourthSignal.source}
+              unavailable={fourthSignal.unavailable}
+              className="h-[80px]"
+            />
+          ) : null}
         </div>
 
         {unavailableSignals.length > 0 ? (

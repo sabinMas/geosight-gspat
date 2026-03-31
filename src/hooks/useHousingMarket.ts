@@ -17,7 +17,7 @@ export function useHousingMarket(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !countyName || !stateCode) {
+    if (!enabled) {
       setHousingMarket(null);
       setLoading(false);
       setError(null);
@@ -26,10 +26,14 @@ export function useHousingMarket(
 
     const controller = new AbortController();
     const params = new URLSearchParams({
-      county: countyName,
-      state: stateCode,
       location: locationLabel,
     });
+    if (countyName) {
+      params.set("county", countyName);
+    }
+    if (stateCode) {
+      params.set("state", stateCode);
+    }
 
     setLoading(true);
     setError(null);
@@ -43,7 +47,7 @@ export function useHousingMarket(
         );
 
         if (!response.ok) {
-          throw new Error("GeoSight could not load housing market data right now.");
+          throw new Error("Housing market data unavailable.");
         }
 
         const payload = (await response.json()) as HousingMarketResult;
@@ -53,11 +57,8 @@ export function useHousingMarket(
       } catch (requestError) {
         if (!controller.signal.aborted) {
           setHousingMarket(null);
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : "GeoSight could not load housing market data right now.",
-          );
+          setError(null);
+          console.warn("[housing-market] request failed", requestError);
         }
       } finally {
         if (!controller.signal.aborted) {

@@ -41,9 +41,9 @@ export async function fetchLocationSuggestions(
   return (await response.json()) as LocationSearchResult[];
 }
 
-export async function reverseGeocodeCoordinates(lat: number, lng: number) {
+export async function reverseGeocodeCoordinates(lat: number, lng: number, zoom = 10) {
   const response = await fetchWithTimeout(
-    `/api/geocode?lat=${lat}&lng=${lng}`,
+    `/api/geocode?lat=${lat}&lng=${lng}&zoom=${zoom}`,
     {},
     8_000,
   );

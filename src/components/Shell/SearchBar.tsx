@@ -87,7 +87,7 @@ export function SearchBar({
   }, [value]);
 
   const handleSelectSuggestion = (suggestion: LocationSearchResult) => {
-    setValue(suggestion.name);
+    setValue(suggestion.shortName ?? suggestion.name);
     setSuggestions([]);
     setShowSuggestions(false);
     setError(null);
@@ -139,6 +139,8 @@ export function SearchBar({
       const coordinates = await getCurrentCoordinates();
       let result: LocationSearchResult = {
         name: "Current location",
+        shortName: "Current location",
+        fullName: "Current location",
         coordinates,
         kind: "current_location",
       };
@@ -152,7 +154,7 @@ export function SearchBar({
         // Fall back to the plain current-location label if reverse geocoding fails.
       }
 
-      setValue(result.name);
+      setValue(result.shortName ?? result.name);
       setSuggestions([]);
       setShowSuggestions(false);
       onLocate(result);

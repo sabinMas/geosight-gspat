@@ -229,12 +229,17 @@ export function ExploreWorkspace() {
         setSidebarOpen(false);
       }}
       onSelectRegion={(region) => {
+        const regionLabel =
+          state.activeProfile.id === "residential"
+            ? region.secondaryLabel?.split(" · ")[0] ?? region.name
+            : region.name;
         state.setSelectedRegion(region);
-        state.selectPoint(region.center, region.name);
+        state.selectPoint(region.center, regionLabel, regionLabel);
         data.handleLocationSelection();
         setSidebarOpen(false);
       }}
       quickRegions={state.quickRegions}
+      quickRegionsLoading={state.quickRegionsLoading}
     />
   );
 
@@ -362,11 +367,17 @@ export function ExploreWorkspace() {
           <div className="space-y-4">
             <SearchBar
               syncValue={
-                state.locationReady ? state.selectedLocationName : state.init.locationQuery ?? ""
+                state.locationReady
+                  ? state.selectedLocationDisplayName
+                  : state.init.locationQuery ?? ""
               }
               onLocate={(result) => {
                 state.setInitError(null);
-                state.selectPoint(result.coordinates, result.name);
+                state.selectPoint(
+                  result.coordinates,
+                  result.fullName ?? result.name,
+                  result.shortName,
+                );
                 data.handleLocationSelection();
               }}
             />
@@ -381,6 +392,7 @@ export function ExploreWorkspace() {
                   selectedPoint={state.selectedPoint}
                   selectedRegion={state.selectedRegion}
                   globeViewMode={state.globeViewMode}
+                  globeRotateMode={state.globeRotateMode}
                   subsurfaceRenderMode={state.subsurfaceRenderMode}
                   onPointSelect={(coords) => {
                     state.selectPoint(coords);
@@ -391,6 +403,23 @@ export function ExploreWorkspace() {
                   subsurfaceDatasets={data.subsurfaceDatasets}
                   terrainExaggeration={state.terrainExaggeration}
                 />
+                <div className="absolute right-4 top-4 z-20">
+                  <Button
+                    type="button"
+                    variant={state.globeRotateMode ? "default" : "secondary"}
+                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+                    aria-pressed={state.globeRotateMode}
+                    aria-label={
+                      state.globeRotateMode
+                        ? "Disable 3D explore rotate mode"
+                        : "Enable 3D explore rotate mode"
+                    }
+                    onClick={() => state.setGlobeRotateMode((current) => !current)}
+                  >
+                    <span className="mr-2 text-base leading-none">⊕</span>
+                    {state.globeRotateMode ? "3D explore" : "Rotate mode"}
+                  </Button>
+                </div>
                 <GlobeViewSelector
                   globeViewMode={state.globeViewMode}
                   onChange={state.setGlobeViewMode}
@@ -401,8 +430,9 @@ export function ExploreWorkspace() {
                 ) : null}
                 <RegionSelector
                   region={state.selectedRegion}
+                  locationTooltip={state.selectedLocationName}
                   onReset={() => {
-                    state.selectPoint(state.defaultCoordinates, "Starter view");
+                    state.selectPoint(state.defaultCoordinates, "Starter view", "Starter view");
                     data.handleLocationSelection();
                   }}
                 />
