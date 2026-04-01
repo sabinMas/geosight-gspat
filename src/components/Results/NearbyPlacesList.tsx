@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NearbyPlace, NearbyPlaceCategory, NearbyPlacesSource } from "@/types";
@@ -29,14 +30,13 @@ export function NearbyPlacesList({
       <CardHeader className="space-y-4">
         <div className="eyebrow">Discovery board</div>
         <CardTitle>Nearby places</CardTitle>
+        <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
+          Use this panel to scan real mapped places around the active location. GeoSight leaves the
+          list empty when live mapping is thin instead of fabricating nearby results.
+        </p>
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Browse mapped places around the active location. GeoSight leaves this panel empty when
-          live results are unavailable instead of fabricating sample places.
-        </p>
-
         <div className="flex flex-wrap gap-2">
           {categories.map((option) => (
             <Button
@@ -57,7 +57,7 @@ export function NearbyPlacesList({
             {places.length} result{places.length === 1 ? "" : "s"}
           </span>
           <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--foreground)]">
-            {source === "live" ? "Live OSM data" : "Live data unavailable"}
+            {source === "live" ? "Live OpenStreetMap results" : "Live mapping unavailable"}
           </span>
         </div>
 
@@ -67,22 +67,38 @@ export function NearbyPlacesList({
         </div>
 
         {loading ? (
-          <div className="rounded-[1.5rem] border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--accent-foreground)]">
-            Loading nearby places...
-          </div>
+          <StatePanel
+            tone="loading"
+            eyebrow="Nearby search"
+            title="Loading mapped places around this location"
+            description="GeoSight is waiting on live OpenStreetMap results for the current category."
+            compact
+          />
         ) : null}
 
         {error ? (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm text-[var(--warning-foreground)]">
-            {error}
-          </div>
+          <StatePanel
+            tone="partial"
+            eyebrow="Nearby search"
+            title="GeoSight could not complete this nearby lookup cleanly"
+            description={error}
+            compact
+          />
         ) : null}
 
         <div className="space-y-3">
           {!loading && places.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
-              No nearby places matched this category around the selected location.
-            </div>
+            <StatePanel
+              tone={source === "live" ? "partial" : "unavailable"}
+              eyebrow="Nearby search"
+              title="No mapped places matched this category"
+              description={
+                source === "live"
+                  ? "That does not necessarily mean nothing is there. It means the current live map data did not return a matching place in this category."
+                  : "Live OpenStreetMap coverage for this lookup is unavailable right now, so GeoSight is leaving the list empty instead of guessing."
+              }
+              compact
+            />
           ) : null}
 
           {places.map((place) => (

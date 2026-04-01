@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
+import { rankFactorInsights } from "@/lib/analysis-summary";
 import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 import { MissionProfile, SiteScore } from "@/types";
 
@@ -48,6 +49,9 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
+  const rankedFactors = rankFactorInsights(score);
+  const strongestFactors = [...rankedFactors].sort((a, b) => b.impact - a.impact).slice(0, 2);
+  const mainConstraints = [...rankedFactors].sort((a, b) => b.gap - a.gap).slice(0, 2);
   const directCount = evidenceCounts.direct_live ?? 0;
   const proxyCount = evidenceCounts.proxy ?? 0;
   const evidenceSummary =
@@ -99,6 +103,32 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
               {bandLabel}
             </div>
           ) : null}
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                Biggest lifts
+              </div>
+              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+                {strongestFactors.map((factor) => (
+                  <div key={factor.key}>
+                    {factor.label} is contributing {factor.impact.toFixed(1)} of {factor.maxImpact.toFixed(1)} possible points.
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                Biggest drags
+              </div>
+              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+                {mainConstraints.map((factor) => (
+                  <div key={factor.key}>
+                    {factor.label} is leaving roughly {factor.gap.toFixed(1)} points on the table.
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
             {evidenceCounts.direct_live ? (
               <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.direct_live}`}>
@@ -148,15 +178,20 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
               }}
             >
               <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                Factor weights
+                What this score means
               </div>
-              <div className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--foreground)]">
+              <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
+                GeoSight converts each factor into a 0-100 score, applies the lens weights, and
+                totals the result into a first-pass fit score for this place.
+              </div>
+              <div className="mt-3 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
+                Highest weights:{" "}
                 {profile.factors
+                  .slice()
+                  .sort((a, b) => b.weight - a.weight)
+                  .slice(0, 4)
                   .map((factor) => `${factor.label} ${Math.round(factor.weight * 100)}%`)
                   .join(", ")}
-              </div>
-              <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
-                Open the breakdown to inspect the evidence behind each factor.
               </div>
             </div>
           ) : null}

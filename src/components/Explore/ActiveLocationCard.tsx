@@ -4,9 +4,12 @@ import { useMemo, useState } from "react";
 import { CapabilityLauncher } from "@/components/Analysis/CapabilityLauncher";
 import { HousingMarketPulse } from "@/components/Explore/HousingMarketPulse";
 import { SourceInfoButton } from "@/components/Source/SourceInfoButton";
+import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { StateBadge, StatePanel } from "@/components/Status/StatePanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildAnalysisOverview } from "@/lib/analysis-summary";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import {
   inferSourceRegistryContextFromGeodata,
@@ -20,6 +23,7 @@ import {
   GeodataResult,
   HousingMarketResult,
   MissionProfile,
+  SiteScore,
 } from "@/types";
 
 interface ActiveLocationCardProps {
@@ -30,6 +34,7 @@ interface ActiveLocationCardProps {
   lat: number;
   lng: number;
   profile: MissionProfile;
+  siteScore?: SiteScore | null;
   onSaveSite: () => void;
   onOpenSources: () => void;
   showSourceDetailsCta?: boolean;
@@ -97,6 +102,7 @@ export function ActiveLocationCard({
   lat,
   lng,
   profile,
+  siteScore = null,
   onSaveSite,
   onOpenSources,
   showSourceDetailsCta = false,
@@ -122,6 +128,14 @@ export function ActiveLocationCard({
     : [];
   const registryContext = inferSourceRegistryContextFromGeodata(geodata);
   const coverageLabel = summarizeRegistryContext(registryContext);
+  const overview = buildAnalysisOverview({
+    geodata,
+    score: siteScore,
+    profile,
+    locationName,
+    loading,
+    error,
+  });
   const coverageNotes = geodata
     ? [geodata.sources.demographics.confidence, geodata.sources.school.confidence]
     : [];
@@ -225,6 +239,74 @@ export function ActiveLocationCard({
           </div>
         </div>
 
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <StateBadge tone={overview.tone} />
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
+                  {overview.confidenceLabel}
+                </span>
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
+                  {coverageLabel}
+                </span>
+              </div>
+              <p className="max-w-4xl text-sm leading-7 text-[var(--foreground-soft)]">
+                {overview.summary}
+              </p>
+              <p className="max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+                {overview.statusDetail}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="rounded-full"
+              onClick={onSaveSite}
+            >
+              Save site
+            </Button>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                Strongest signals
+              </div>
+              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+                {overview.strengths.length > 0 ? (
+                  overview.strengths.slice(0, 2).map((item) => <div key={item}>{item}</div>)
+                ) : (
+                  <div>GeoSight will list the strongest verified signals here once the live bundle is ready.</div>
+                )}
+              </div>
+            </div>
+            <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                Watch closely
+              </div>
+              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+                {overview.watchouts.length > 0 ? (
+                  overview.watchouts.slice(0, 2).map((item) => <div key={item}>{item}</div>)
+                ) : (
+                  <div>Any weak or unsupported signals will be called out here instead of being buried.</div>
+                )}
+              </div>
+            </div>
+            <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                Trust notes
+              </div>
+              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground-soft)]">
+                {overview.trustNotes.slice(0, 2).map((item) => (
+                  <div key={item}>{item}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid min-h-0 gap-3 md:grid-cols-2">
           {elevationSignal ? (
             <LocationSignalCard
@@ -273,17 +355,23 @@ export function ActiveLocationCard({
         </div>
 
         {unavailableSignals.length > 0 ? (
-          <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+          <div className="space-y-3">
+            <StatePanel
+              tone="partial"
+              eyebrow="Signal coverage"
+              title={`${unavailableSignals.length} quick-read signal${unavailableSignals.length === 1 ? "" : "s"} not available`}
+              description="GeoSight keeps missing or unsupported signals visible so you can tell the difference between a real reading and a coverage gap."
+              compact
+            />
             <button
               type="button"
-              className="w-full text-left"
+              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
               onClick={() => setShowUnavailableSignals((current) => !current)}
             >
-              {unavailableSignals.length} signals unavailable -{" "}
-              {showUnavailableSignals ? "hide" : "show"}
+              {showUnavailableSignals ? "Hide missing quick-read signals" : "Show missing quick-read signals"}
             </button>
             {showUnavailableSignals ? (
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2">
                 {unavailableSignals.map((signal) => (
                   <LocationSignalCard
                     key={signal.id}
@@ -300,37 +388,63 @@ export function ActiveLocationCard({
         ) : null}
 
         {sourceHighlights.length > 0 || geodata ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
-                Coverage
-              </span>
-              <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
-                {coverageLabel}
-              </span>
+          <div className="space-y-3 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+                  In-context provenance
+                </span>
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
+                  {coverageLabel}
+                </span>
+                {sourceHighlights.map((source) => (
+                  <SourceStatusBadge key={source.id} source={source} />
+                ))}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="rounded-full"
+                onClick={onOpenSources}
+              >
+                Open full source details
+              </Button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
               {sourceHighlights.map((source) => (
-                <SourceStatusBadge key={source.id} source={source} />
+                <SourceInlineSummary
+                  key={`inline-${source.id}`}
+                  source={source}
+                  compact
+                  className="h-full"
+                />
               ))}
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="rounded-full"
-              onClick={onOpenSources}
-            >
-              Open sources
-            </Button>
           </div>
         ) : null}
 
         {loading ? (
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Fetching geospatial context...
-          </p>
+          <StatePanel
+            tone="loading"
+            eyebrow="Location bundle"
+            title="Refreshing live geospatial context"
+            description="GeoSight is still gathering the latest readings and provider responses for this place."
+            compact
+          />
         ) : null}
         {error ? (
-          <p className="text-sm text-[var(--danger-foreground)]">{error}</p>
+          <StatePanel
+            tone={error.toLowerCase().includes("cached") ? "cached" : "error"}
+            eyebrow="Location bundle"
+            title={
+              error.toLowerCase().includes("cached")
+                ? "Showing a recent cached snapshot"
+                : "GeoSight hit a live-data issue"
+            }
+            description={error}
+            compact
+          />
         ) : null}
 
         {showSourceDetailsCta ? (

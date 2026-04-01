@@ -23,6 +23,7 @@ import { CompareTable } from "@/components/Scoring/CompareTable";
 import { FactorBreakdown } from "@/components/Scoring/FactorBreakdown";
 import { ScoreCard } from "@/components/Scoring/ScoreCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
 import { WORKSPACE_CARD_MAP } from "@/lib/workspace-cards";
@@ -62,9 +63,13 @@ function WorkspaceCardPlaceholder({
         <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">{card.summary}</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-          {detail}
-        </div>
+        <StatePanel
+          tone="partial"
+          eyebrow="Card status"
+          title={`${card.title} is waiting on supporting inputs`}
+          description={detail}
+          compact
+        />
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
           <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             What this view answers
@@ -161,6 +166,7 @@ export function ExplorePrimaryPanel({
         lat={state.selectedPoint.lat}
         lng={state.selectedPoint.lng}
         profile={state.activeProfile}
+        siteScore={data.siteScore}
         onSaveSite={onSaveCurrentSite}
         onOpenSources={() => onOpenCard("source-awareness")}
         showSourceDetailsCta={data.showSourcePrompt}

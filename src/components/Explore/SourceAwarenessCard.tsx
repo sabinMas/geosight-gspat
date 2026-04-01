@@ -47,8 +47,80 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Check source status, freshness, and regional limits before acting.
+          Use this panel to verify where each signal came from, how fresh it is, and whether the
+          current result is live, derived, region-limited, or unavailable.
         </p>
+
+        <div className="grid gap-3 lg:grid-cols-4">
+          <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <SourceStatusBadge
+              source={{
+                id: "live",
+                label: "Live",
+                provider: "GeoSight",
+                status: "live",
+                lastUpdated: null,
+                freshness: "",
+                coverage: "",
+                confidence: "",
+              }}
+            />
+            <div className="mt-2 text-sm leading-6 text-[var(--foreground-soft)]">
+              Directly returned from a live source or live lookup.
+            </div>
+          </div>
+          <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <SourceStatusBadge
+              source={{
+                id: "derived",
+                label: "Derived",
+                provider: "GeoSight",
+                status: "derived",
+                lastUpdated: null,
+                freshness: "",
+                coverage: "",
+                confidence: "",
+              }}
+            />
+            <div className="mt-2 text-sm leading-6 text-[var(--foreground-soft)]">
+              Calculated from live inputs rather than taken from one raw feed.
+            </div>
+          </div>
+          <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <SourceStatusBadge
+              source={{
+                id: "limited",
+                label: "Limited",
+                provider: "GeoSight",
+                status: "limited",
+                lastUpdated: null,
+                freshness: "",
+                coverage: "",
+                confidence: "",
+              }}
+            />
+            <div className="mt-2 text-sm leading-6 text-[var(--foreground-soft)]">
+              Partially supported here, often because of provider or region limits.
+            </div>
+          </div>
+          <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+            <SourceStatusBadge
+              source={{
+                id: "unavailable",
+                label: "Unavailable",
+                provider: "GeoSight",
+                status: "unavailable",
+                lastUpdated: null,
+                freshness: "",
+                coverage: "",
+                confidence: "",
+              }}
+            />
+            <div className="mt-2 text-sm leading-6 text-[var(--foreground-soft)]">
+              Not returned or unsupported for this location, so GeoSight leaves the gap visible.
+            </div>
+          </div>
+        </div>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
           <div className="text-sm font-semibold text-[var(--foreground)]">Active regional providers</div>

@@ -4,14 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ArrowRight,
   Building2,
+  CheckCircle2,
   Factory,
   Globe2,
   House,
   Info,
+  Layers3,
   LineChart,
   Loader2,
   Route,
+  ShieldCheck,
   ShieldAlert,
   Trees,
 } from "lucide-react";
@@ -46,10 +50,11 @@ const ICONS = {
 
 const FEATURED_EXAMPLE_IDS = [
   "home-buying",
-  "market-analysis",
   "infrastructure",
-  "surprise-me",
+  "market-analysis",
+  "hiking-rec",
 ] as const;
+const GUIDED_STARTER_IDS = ["home-buying", "infrastructure", "market-analysis"] as const;
 const GITHUB_DOCS_URL = "https://github.com/sabinMas/geosight-gspat#readme";
 const EXAMPLE_TOOLTIP_COPY: Record<string, string> = {
   "home-buying":
@@ -68,6 +73,42 @@ const LENS_OPTIONS = [
   { id: "data-center", label: LENS_LABELS.infrastructure },
   { id: "commercial", label: LENS_LABELS.commercial },
   { id: "hiking", label: LENS_LABELS.hiking },
+] as const;
+
+const QUICK_START_STEPS = [
+  {
+    title: "1. Start with a real place",
+    detail: "Search an address, neighborhood, city, landmark, or coordinates.",
+  },
+  {
+    title: "2. Pick the right lens",
+    detail: "A lens tells GeoSight what to prioritize, from home buying to infrastructure or hiking.",
+  },
+  {
+    title: "3. Read the evidence",
+    detail: "GeoSight explains the score, tradeoffs, and source quality instead of hiding them.",
+  },
+] as const;
+
+const TRUST_PROMISES = [
+  {
+    title: "Observed, derived, or unavailable",
+    detail:
+      "Each result is labeled so you can tell whether it came from a live feed, derived analysis, or a known gap.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Built for real place decisions",
+    detail:
+      "Use it for neighborhood screening, site selection, research, travel planning, or first-pass due diligence.",
+    icon: Layers3,
+  },
+  {
+    title: "Guided first run, deeper tools later",
+    detail:
+      "The first path is opinionated and simple. Board mode and extra cards stay available when you want more depth.",
+    icon: CheckCircle2,
+  },
 ] as const;
 
 function getIcon(iconName: (typeof EXAMPLE_STARTERS)[number]["icon"]) {
@@ -227,6 +268,13 @@ export function LandingPage() {
   const activeExampleSuggestion =
     EXAMPLE_STARTERS.find((example) => example.profileId === selectedLensId)?.suggestedQuery ??
     "Bellevue, WA";
+  const guidedStarters = useMemo(
+    () =>
+      GUIDED_STARTER_IDS.map((exampleId) =>
+        EXAMPLE_STARTERS.find((example) => example.id === exampleId),
+      ).filter((example): example is LandingUseCase => Boolean(example)),
+    [],
+  );
 
   const rerollSurpriseLocation = () => {
     setSurpriseLocation((current) => {
@@ -318,7 +366,7 @@ export function LandingPage() {
 
   return (
     <main className="min-h-screen px-4 py-4 md:px-6">
-      <div className="mx-auto max-w-[1280px] space-y-6">
+      <div className="mx-auto max-w-[1320px] space-y-6">
         <header className="glass-panel flex items-center justify-between rounded-2xl px-5 py-4">
           <Link href="/" className="text-xl font-semibold tracking-tight text-[var(--foreground)]">
             GeoSight
@@ -341,78 +389,191 @@ export function LandingPage() {
         </header>
 
         <section className="glass-panel rounded-2xl px-5 py-8 md:px-8 md:py-10">
-          <div className="mx-auto max-w-5xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-              Search-first spatial intelligence
-            </div>
-            <h1 className="mt-5 text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl md:text-6xl">
-              Investigate any place on Earth
-            </h1>
-            <p className="mx-auto mt-4 max-w-3xl text-base leading-8 text-[var(--muted-foreground)] sm:text-lg">
-              Terrain, infrastructure, hazards, and AI analysis for any location.
-            </p>
-          </div>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(380px,0.9fr)]">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                Live place investigation for planners, researchers, buyers, and travelers
+              </div>
+              <div className="space-y-4">
+                <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl md:text-6xl">
+                  Understand a place before you commit to it
+                </h1>
+                <p className="max-w-3xl text-base leading-8 text-[var(--foreground-soft)] sm:text-lg">
+                  GeoSight helps you investigate a real location with map context, public-data
+                  signals, and lens-specific reasoning for decisions like home buying, site
+                  development, infrastructure siting, commercial analysis, and hiking.
+                </p>
+                <p className="max-w-3xl text-sm leading-7 text-[var(--muted-foreground)]">
+                  The lens system is simple: it changes what GeoSight prioritizes. The same place
+                  can look good for a family move, weak for a warehouse, and promising for a hike.
+                </p>
+              </div>
 
-          <div className="mx-auto mt-8 max-w-5xl space-y-4">
-            <div className="flex flex-wrap justify-center gap-2">
-              {LENS_OPTIONS.map((option) => {
-                const profile = PROFILES.find((entry) => entry.id === option.id) ?? selectedLens;
-                const Icon = getIcon(
-                  EXAMPLE_STARTERS.find((example) => example.profileId === option.id)?.icon ??
-                    "Globe2",
-                );
-
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setSelectedLensId(option.id)}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition duration-300",
-                      selectedLensId === option.id
-                        ? "border-[color:var(--border-strong)] bg-[var(--accent-soft)] text-[var(--foreground)]"
-                        : "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)] hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]",
-                    )}
+              <div className="grid gap-3 md:grid-cols-3">
+                {QUICK_START_STEPS.map((step) => (
+                  <div
+                    key={step.title}
+                    className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]"
                   >
-                    <span
-                      className="flex h-7 w-7 items-center justify-center rounded-full"
-                      style={{ background: `${profile.accentColor}18`, color: profile.accentColor }}
+                    <div className="text-sm font-semibold text-[var(--foreground)]">{step.title}</div>
+                    <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                      {step.detail}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-3">
+                {TRUST_PROMISES.map((promise) => {
+                  const Icon = promise.icon;
+                  return (
+                    <div
+                      key={promise.title}
+                      className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]"
                     >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    {option.label}
-                  </button>
-                );
-              })}
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--accent)]">
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <div className="text-sm font-semibold text-[var(--foreground)]">
+                          {promise.title}
+                        </div>
+                      </div>
+                      <div className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                        {promise.detail}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] md:p-5">
-              <SearchBar
-                placeholder={`Search a place - ${activeExampleSuggestion}`}
-                submitLabel="Explore"
-                onSearchFallback={handleDiscoveryFallback}
-                onLocate={(result) => {
-                  const locationQuery =
-                    result.kind === "coordinates"
-                      ? `${result.coordinates.lat.toFixed(6)}, ${result.coordinates.lng.toFixed(6)}`
-                      : result.name;
+            <div className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-panel)] md:p-5">
+              <div className="space-y-3">
+                <div className="eyebrow">Start with one useful analysis</div>
+                <h2 className="text-2xl font-semibold text-[var(--foreground)]">
+                  Pick a lens and search a place
+                </h2>
+                <p className="text-sm leading-7 text-[var(--muted-foreground)]">
+                  Start simple: choose the question you care about, then search a real place. GeoSight
+                  will open the map, build a location summary, and explain the score with visible
+                  source context.
+                </p>
+              </div>
 
-                  openLocation(
-                    selectedLens.id,
-                    locationQuery,
-                    result.fullName ?? result.shortName ?? result.name,
+              <div className="mt-5 grid gap-2">
+                {LENS_OPTIONS.map((option) => {
+                  const profile = PROFILES.find((entry) => entry.id === option.id) ?? selectedLens;
+                  const Icon = getIcon(
+                    EXAMPLE_STARTERS.find((example) => example.profileId === option.id)?.icon ??
+                      "Globe2",
                   );
-                }}
-              />
-              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
-                Start with a place, or type a discovery prompt like &quot;best neighborhoods near Bellevue for a family&quot; or &quot;beginner hikes within 50 miles of Seattle&quot;.
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setSelectedLensId(option.id)}
+                      className={cn(
+                        "flex w-full items-start gap-3 rounded-[1.25rem] border px-4 py-3 text-left transition duration-300",
+                        selectedLensId === option.id
+                          ? "border-[color:var(--border-strong)] bg-[var(--surface-raised)] text-[var(--foreground)]"
+                          : "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)] hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]",
+                      )}
+                    >
+                      <span
+                        className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        style={{ background: `${profile.accentColor}18`, color: profile.accentColor }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-[var(--foreground)]">
+                          {option.label}
+                        </span>
+                        <span className="mt-1 block text-xs leading-5 text-[var(--muted-foreground)]">
+                          {profile.tagline}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-soft)]">
+                <div className="mb-3 text-sm font-semibold text-[var(--foreground)]">
+                  {selectedLens.name}
+                </div>
+                <div className="mb-4 text-sm leading-6 text-[var(--muted-foreground)]">
+                  {selectedLens.description}
+                </div>
+                <SearchBar
+                  placeholder={`Search a place, address, or coordinates - ${activeExampleSuggestion}`}
+                  submitLabel="Run analysis"
+                  onSearchFallback={handleDiscoveryFallback}
+                  onLocate={(result) => {
+                    const locationQuery =
+                      result.kind === "coordinates"
+                        ? `${result.coordinates.lat.toFixed(6)}, ${result.coordinates.lng.toFixed(6)}`
+                        : result.name;
+
+                    openLocation(
+                      selectedLens.id,
+                      locationQuery,
+                      result.fullName ?? result.shortName ?? result.name,
+                    );
+                  }}
+                />
+                <div className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                  Best for first-time users: start with a place you know. Discovery prompts like
+                  &quot;best neighborhoods near Bellevue for a family&quot; also work when you want help
+                  narrowing the search.
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                    Guided first runs
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {guidedStarters.map((example) => (
+                      <button
+                        key={example.id}
+                        type="button"
+                        onClick={() =>
+                          openLocation(
+                            example.profileId ?? GENERAL_EXPLORATION_PROFILE_ID,
+                            example.suggestedQuery,
+                          )
+                        }
+                        className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--foreground)] transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-panel)]"
+                      >
+                        {example.title}
+                        <ArrowRight className="h-4 w-4 text-[var(--muted-foreground)]" />
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openLocation(
+                          "hiking",
+                          surpriseLocation.name,
+                          surpriseLocation.name,
+                        )
+                      }
+                      className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--foreground)] transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-panel)]"
+                    >
+                      Surprise me
+                      <ArrowRight className="h-4 w-4 text-[var(--muted-foreground)]" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {discoveryLoading ? (
                 <div className="mt-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-4 text-sm text-[var(--foreground-soft)]">
                   <div className="flex items-center gap-3">
                     <Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
-                    Building a discovery shortlist from the prompt...
+                    Building a guided shortlist from the prompt...
                   </div>
                 </div>
               ) : null}
@@ -506,11 +667,12 @@ export function LandingPage() {
                 Try an example
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
-                Jump straight in
+                Try a realistic starting point
               </h2>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-[var(--muted-foreground)]">
-              Pick a lens, open a real place, and let GeoSight reveal the live context.
+              These examples open directly into the explore workflow so you can see the product the
+              way a first-time reviewer would.
             </p>
           </div>
 
@@ -539,14 +701,15 @@ export function LandingPage() {
           <div className="mt-6 flex flex-col items-center gap-3 text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)] md:flex-row md:justify-center">
             <span>Pick a lens</span>
             <span className="hidden h-px w-12 bg-[var(--border-soft)] md:block" />
-            <span>Drop a pin</span>
+            <span>Investigate a place</span>
             <span className="hidden h-px w-12 bg-[var(--border-soft)] md:block" />
-            <span>Read the intelligence</span>
+            <span>Read the evidence</span>
           </div>
         </section>
 
         <footer className="px-2 pb-6 text-center text-sm leading-7 text-[var(--muted-foreground)]">
-          Built with Cesium, OpenStreetMap, USGS, FEMA, FCC, EPA, and Open-Meteo.
+          Built with Cesium, OpenStreetMap, USGS, FEMA, FCC, EPA, Open-Meteo, and a source-aware
+          scoring pipeline that keeps live, derived, and unavailable signals visible.
         </footer>
       </div>
     </main>

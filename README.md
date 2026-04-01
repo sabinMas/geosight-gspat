@@ -1,72 +1,196 @@
 # GeoSight
 
-GeoSight is a live geospatial reasoning platform for asking grounded questions about any place on Earth. It combines a 3D globe, mission-aware AI, deterministic scoring, reusable workspace cards, and explicit provenance so users can investigate infrastructure, hazards, schools, terrain, climate, and nearby places without losing trust.
+GeoSight is a geospatial intelligence app for investigating real places with a 3D globe, live public data, lens-specific scoring, and source-aware reasoning.
 
-## Vision
+It is built for first-pass location decisions:
 
-- Explore terrain, water access, infrastructure, hazards, and climate from a living 3D globe.
-- Blend deterministic geospatial scoring with natural-language analysis and structured report generation.
-- Support multiple evaluation modes on the same geography: infrastructure, outdoor recreation, residential development, commercial logistics, and open-ended exploration.
-- Keep the stack deployable on free tiers wherever possible: Cesium Ion, Groq, Gemini, Open-Meteo, USGS, NRCS, EPA, FEMA, FCC, and OpenStreetMap.
+- buyers comparing neighborhoods
+- planners and developers screening sites
+- infrastructure teams checking access, water, climate, and risk
+- researchers or analysts investigating a place quickly
+- travelers and outdoor users exploring terrain, nearby places, and conditions
 
-## What GeoSight Shows Today
+GeoSight is not "map plus chatbot." The product goal is to help a user search a place, understand what stands out, see why the score moved, and inspect the trustworthiness of the underlying evidence without needing GIS software.
 
-- Cesium globe with a routed explore workspace and mission-aware landing flow
-- Search and click-to-analyze workflow for coordinates and named places
-- Mission profiles for data-center cooling, hiking and recreation, residential development, commercial analysis, and a clearly labeled General Exploration entry that currently uses the residential lens
-- GeoAnalyst chat backed by Groq with Gemini and deterministic fallback
-- GeoScribe report generation that turns the live location bundle into a structured site assessment
-- Deterministic scoring, factor evidence labels, methodology explanations, and saved-site comparison tables
-- Registry-aware source metadata with freshness, confidence, region coverage, and fallback-provider context
-- Climate, hazard, hydrology, terrain, school, contamination, broadband, and amenities cards inside a registry-driven workspace
-- Satellite image upload with client-side MVP land-cover estimation
-- Terrain exaggeration controls and an elevation profile panel
-- Groundwater monitoring well levels and water-table depth from USGS
-- USDA soil profile with drainage class, hydrologic group, depth to water table, and depth to bedrock
-- Site-specific seismic design parameters from USGS design maps (ASCE 7-22)
-- 10-year historical climate trend analysis with warming, cooling, or stable indicators
-- Competition-ready demos for Columbia River infrastructure, Tokyo commercial analysis, and Washington residential due diligence
-- Demo fallback messaging and screenshot-backed competition paths for slow live loads
+## What GeoSight Does
 
-## What GeoSight Does Not Claim Yet
+GeoSight combines:
 
-- It is not a parcel-entitlement engine, hydraulic model, geotechnical report, appraisal system, or formal engineering tool.
-- Several important domains remain US-first today, especially broadband, FEMA flood zones, EPA contamination screening, school intelligence, soil profile, groundwater, and seismic design values.
-- Some score factors still use proxy heuristics where no direct live signal exists yet. Those factors are labeled explicitly in the factor breakdown.
+- a Cesium/Resium 3D globe
+- mission or lens-based analysis profiles
+- deterministic place scoring
+- live and derived geospatial signals
+- reusable workspace cards
+- source freshness and coverage metadata
+- AI-assisted narrative and report generation grounded in the active location bundle
 
-## What Judges Should Try First
+The current product supports lenses for:
 
-1. Open the Columbia River infrastructure story from the landing page or go straight to `/explore?profile=data-center&demo=pnw-cooling&entrySource=demo&judge=1&missionRun=competition-columbia`.
-2. Run the mission briefing, then open the score, comparison, and source-awareness cards to show that the recommendation is both memorable and defensible.
-3. Generate a GeoScribe report from that same location to show that the AI can produce a structured deliverable instead of only chat replies.
-4. Switch to Tokyo to prove the same workflow works outside the Pacific Northwest and to show how GeoSight names global coverage limits honestly.
-5. Search `Bellevue, WA` to show school context, trust signals, and the new subsurface cards together.
+- Home Buying
+- Residential Site Development
+- Data Center Cooling
+- Commercial / Warehouse
+- Hiking / Recreation
 
-## Competition Package
+Each lens changes what GeoSight emphasizes. The same place can read well for one decision and poorly for another.
 
-The competition handoff package lives in [`docs/competition/`](docs/competition/README.md).
+## Main Workflow
 
-- Demo scripts for 90 seconds, 3 minutes, and 5 minutes
-- Pitch deck outline
-- One-page methodology and source sheet
-- Recorded-demo fallback guide
-- Screenshot, GIF, and backup-video capture checklist
+The intended workflow is:
 
-## Screenshots / GIFs
+1. Choose a lens.
+2. Search a real place, address, landmark, or coordinates.
+3. Let GeoSight assemble the live location bundle.
+4. Read the analysis overview for the first-pass story.
+5. Open factor breakdown, source awareness, hazards, schools, climate, or other supporting cards as needed.
+6. Save sites for comparison or generate a GeoScribe report.
 
-Capture targets are defined in the competition docs package. The current package assumes these asset names:
+The app is designed to be usable by first-time visitors without forcing them into board mode or advanced controls immediately.
 
-- `docs/captures/01-landing-hero.png`
-- `docs/captures/02-columbia-river-mission-run.png`
-- `docs/captures/03-columbia-river-comparison.png`
-- `docs/captures/04-tokyo-commercial-mission-run.png`
-- `docs/captures/05-washington-school-context.png`
-- `docs/captures/06-source-provenance.png`
-- `docs/captures/geo-sight-primary-demo.gif`
-- `docs/captures/geo-sight-globality.gif`
-- `docs/captures/geo-sight-backup-demo.mp4`
+## What A First-Time User Sees
 
-## Setup
+On first load, GeoSight should answer three questions quickly:
+
+- What is this?
+  GeoSight is a place-investigation tool for real-world decisions.
+- What can I do here?
+  Search a location and analyze it through a specific lens.
+- What should I do next?
+  Start with one place, read the analysis overview, then inspect score, tradeoffs, and source trust.
+
+## Trust Model
+
+GeoSight follows a strict hierarchy:
+
+- direct live source data
+- derived live analysis from those sources
+- clearly labeled demo overlays only where explicitly intended
+- no fabricated live results in normal flows
+
+The UI distinguishes between:
+
+- live
+- derived
+- limited
+- unavailable
+- cached or partial analysis states where applicable
+
+When a source is unsupported or missing, GeoSight should show the gap instead of guessing.
+
+## What The Product Shows Today
+
+- Routed landing page and `/explore` workspace
+- Search, geocode, and click-to-analyze flows
+- Guided first-run flow with clearer analysis framing
+- Cesium globe with layer toggles, region controls, and terrain tools
+- Lens-aware scoring and factor breakdowns
+- Location overview with tradeoffs, trust notes, and source-aware summaries
+- Nearby places discovery using live OpenStreetMap mapping
+- Source awareness panel with provider freshness, coverage, and regional strategy
+- GeoAnalyst reasoning flow and GeoScribe report generation
+- Saved-site comparison table
+- Registry-driven workspace cards and board mode
+- Housing, hazard, climate, school, broadband, flood, contamination, groundwater, soil, seismic, and air-quality cards
+- Image upload and client-side land-cover estimation
+
+## Major Data Sources And Signals
+
+Core source families currently include:
+
+- Terrain and elevation
+  - USGS EPQS
+  - OpenTopoData fallback
+- Globe and visualization
+  - Cesium Ion
+  - Cesium World Terrain
+- Nearby places and mapped context
+  - OpenStreetMap
+  - Overpass
+- Weather and climate
+  - Open-Meteo forecast
+  - Open-Meteo historical archive
+- Hazards
+  - USGS earthquakes
+  - NASA FIRMS active fire detections
+  - FEMA NFHL flood zones
+- Hydrology and water
+  - mapped water proximity
+  - USGS stream gauges
+  - USGS groundwater wells
+- Environmental context
+  - OpenAQ / Open-Meteo air quality
+  - EPA Envirofacts contamination screening
+- Connectivity and amenities
+  - FCC Broadband Map
+  - OpenStreetMap amenity density
+- Schools
+  - NCES baseline school data
+  - Washington OSPI accountability where available
+- Subsurface and engineering context
+  - USDA NRCS soil profile
+  - USGS seismic design maps
+
+Signals shown in the product include examples such as:
+
+- elevation and terrain practicality
+- nearest road, water, and power context
+- current weather and 10-year climate trends
+- earthquake, fire, and flood context
+- broadband availability
+- school access
+- contamination screening
+- groundwater depth
+- soil drainage and depth to bedrock
+- seismic design parameters
+- mapped nearby places and amenities
+
+## What GeoSight Does Not Claim
+
+- It is not an engineering sign-off tool.
+- It is not a parcel-entitlement system.
+- It is not an appraisal model.
+- It is not a replacement for official due diligence.
+- Some domains remain US-first today, especially broadband, flood, contamination, schools, soil, groundwater, and seismic design.
+- Some score factors still rely on proxy heuristics where direct live signals do not yet exist. Those factors are labeled in the UI.
+
+## Technical Stack
+
+- Next.js App Router
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- Cesium + Resium
+- Recharts
+- Groq and Gemini for AI-assisted reasoning and report generation
+- Vercel-ready API routes under `src/app/api/*`
+
+## Repository Structure
+
+Important entry points and product surfaces:
+
+- App entry
+  - `src/app/page.tsx`
+  - `src/components/Landing/LandingPage.tsx`
+- Explore workspace
+  - `src/app/explore/page.tsx`
+  - `src/components/Explore/ExploreWorkspace.tsx`
+  - `src/components/Explore/ExploreWorkspacePanels.tsx`
+- State and analysis pipeline
+  - `src/hooks/useExploreState.ts`
+  - `src/hooks/useExploreData.ts`
+  - `src/hooks/useSiteAnalysis.ts`
+- Scoring
+  - `src/lib/scoring.ts`
+  - `src/lib/scoring-methodology.ts`
+- Card registry
+  - `src/lib/workspace-cards.ts`
+- Source registry and trust metadata
+  - `src/lib/source-registry.ts`
+  - `src/lib/source-metadata.ts`
+- Main geodata route
+  - `src/app/api/geodata/route.ts`
+
+## Running Locally
 
 1. Install dependencies:
 
@@ -74,90 +198,108 @@ Capture targets are defined in the competition docs package. The current package
 npm install
 ```
 
-2. Create your local environment file:
+2. Create a local environment file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-3. Add credentials:
+3. Add the environment variables you want to enable:
 
-- `NEXT_PUBLIC_CESIUM_ION_TOKEN`: free account at [Cesium Ion](https://cesium.com/ion/)
-- `GROQ_API_KEY`: primary Groq key from [Groq Console](https://console.groq.com/)
-- `GROQ_API_KEY_2`: optional second Groq key to expand the free-tier request pool
-- `GROQ_API_KEY_3`: optional third Groq key to expand the free-tier request pool
-- `GEMINI_API_KEY`: fallback key from [Google AI Studio](https://aistudio.google.com/)
-- `NASA_FIRMS_MAP_KEY`: optional but recommended to enable live global fire detections
-- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`: optional but recommended shared rate-limit store from [Upstash Redis](https://upstash.com/)
+- `NEXT_PUBLIC_CESIUM_ION_TOKEN`
+- `GROQ_API_KEY`
+- `GROQ_API_KEY_2`
+- `GROQ_API_KEY_3`
+- `GEMINI_API_KEY`
+- `NASA_FIRMS_MAP_KEY`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
-4. Start the development server:
+Notes:
+
+- `NEXT_PUBLIC_CESIUM_ION_TOKEN` is the main required token for the globe.
+- `GROQ_API_KEY` and `GEMINI_API_KEY` enable AI reasoning and report generation.
+- `NASA_FIRMS_MAP_KEY` improves fire coverage.
+- Upstash Redis variables are optional but recommended for shared rate limiting.
+
+4. Start the dev server:
 
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000)
+5. Open:
 
-## Deployment on Vercel
+```text
+http://localhost:3000
+```
+
+Useful checks:
+
+```bash
+npm run typecheck
+npm run lint
+```
+
+## Deployment
+
+GeoSight is structured for Vercel deployment.
 
 1. Push the repository to GitHub.
-2. Import the project into [Vercel](https://vercel.com/new).
-3. Add:
-   - `NEXT_PUBLIC_CESIUM_ION_TOKEN`
-   - `GROQ_API_KEY`
-   - `GROQ_API_KEY_2`
-   - `GROQ_API_KEY_3`
-   - `GEMINI_API_KEY`
-   - `NASA_FIRMS_MAP_KEY`
-   - `UPSTASH_REDIS_REST_URL`
-   - `UPSTASH_REDIS_REST_TOKEN`
+2. Import the repo into Vercel.
+3. Add the same environment variables used locally.
 4. Deploy.
 
-The app is structured for Vercel App Router routes under `src/app/api/*`, with extended route durations configured for the heavier geodata and agent flows.
-
-## Architecture
+## Architecture Overview
 
 ```mermaid
 flowchart LR
   User["User"] --> UI["Next.js App Router UI"]
-  UI --> Globe["Cesium + Resium Globe"]
-  UI --> Cards["Workspace Cards + Boards + Report Panel"]
-  UI --> Upload["Client-side Image Upload + Classification"]
-  UI --> APIs["Next.js API Routes"]
-  APIs --> Terrain["USGS EPQS / OpenTopoData"]
-  APIs --> OSM["Overpass / OpenStreetMap"]
-  APIs --> Weather["Open-Meteo Forecast"]
-  APIs --> ClimateArchive["Open-Meteo Historical Archive"]
-  APIs --> EQ["USGS Earthquakes"]
-  APIs --> Gauges["USGS Stream Gauges"]
-  APIs --> Groundwater["USGS Groundwater Levels"]
-  APIs --> Soils["NRCS Soil Data Access"]
-  APIs --> Seismic["USGS Seismic Design Maps"]
-  APIs --> Flood["FEMA NFHL"]
+  UI --> Landing["Landing + Guided First Run"]
+  UI --> Explore["Explore Workspace"]
+  Explore --> Globe["Cesium + Resium Globe"]
+  Explore --> Cards["Primary Panels + Workspace Cards"]
+  Cards --> Score["Deterministic Scoring"]
+  Cards --> Trust["Source Metadata + Registry Guidance"]
+  Explore --> APIs["Next.js API Routes"]
+  APIs --> Terrain["USGS / OpenTopoData"]
+  APIs --> OSM["OpenStreetMap / Overpass"]
+  APIs --> Weather["Open-Meteo"]
+  APIs --> Hazards["USGS / FEMA / NASA FIRMS"]
+  APIs --> Water["USGS Gauges + Groundwater"]
+  APIs --> Soil["NRCS Soil Data"]
   APIs --> Broadband["FCC Broadband Map"]
+  APIs --> School["NCES + WA OSPI"]
   APIs --> EPA["EPA Envirofacts"]
-  APIs --> Schools["NCES + Washington OSPI"]
-  APIs --> Demo["Demo Registry + Fallback Screens"]
-  APIs --> Score["Deterministic Scoring Engine"]
-  APIs --> Sources["Source Registry + Provenance Metadata"]
-  APIs --> Groq["Groq"]
-  APIs --> Gemini["Gemini"]
-  Cards --> Score
-  Cards --> Sources
+  APIs --> AI["Groq + Gemini"]
 ```
 
-## Next Milestones
+## Demo Notes
 
-- Richer live hazard and resilience layers beyond the current earthquake, fire, weather, and FEMA baseline
-- Stronger inline provenance so headline insights carry source, freshness, and confidence without opening a separate panel
-- Formal contract-backed cards and saved user-authored workspace layouts
-- More live non-US provider integrations that turn the source registry from guidance into active regional switching
-- Better travel, development, and research workflows built on the same card substrate
-- Stronger export and share flows beyond the current GeoScribe panel, including reusable due-diligence artifacts
-- LiDAR, National Map, and other advanced observational layers where they add real analytical value
+Good first-run examples:
+
+- `Bellevue, WA` for Home Buying
+- `The Dalles, OR` for Data Center Cooling
+- `Phoenix, AZ` for Commercial / Warehouse
+- `Olympic National Park` for Hiking / Recreation
+
+The public app is deployed at:
+
+- [geosight-gspat.vercel.app](https://geosight-gspat.vercel.app/)
 
 ## Planning Docs
 
 - Backlog and roadmap: [`docs/BACKLOG.md`](docs/BACKLOG.md)
-- Platform and product standards: [`agents.md`](agents.md)
-- Competition submission package: [`docs/competition/README.md`](docs/competition/README.md)
+- Product and platform standards: [`agents.md`](agents.md)
+- Competition package: [`docs/competition/README.md`](docs/competition/README.md)
+
+## Current Gaps
+
+Important next-step opportunities still include:
+
+- broader non-US provider switching beyond the current source-registry scaffolding
+- richer live hazard and resilience layers
+- stronger saved dashboard authoring and layout persistence
+- deeper inline provenance on every headline insight
+- better export and share artifacts beyond the current GeoScribe flow
+- more complete travel, routing, LiDAR, and advanced observational workflows

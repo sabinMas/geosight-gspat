@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
+import { rankFactorInsights } from "@/lib/analysis-summary";
 import { getMethodologyForFactor } from "@/lib/scoring-methodology";
 import { cn } from "@/lib/utils";
 import { Bar, BarChart, Cell, Tooltip, XAxis, YAxis } from "recharts";
@@ -39,6 +40,10 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
+  const rankedFactors = rankFactorInsights(score);
+  const strongestFactors = [...rankedFactors].sort((a, b) => b.impact - a.impact).slice(0, 3);
+  const mainConstraints = [...rankedFactors].sort((a, b) => b.gap - a.gap).slice(0, 3);
+  const orderedFactors = [...rankedFactors].sort((a, b) => b.maxImpact - a.maxImpact);
 
   return (
     <Card>
@@ -82,10 +87,36 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
             </span>
           ) : null}
         </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              Strongest contributors
+            </div>
+            <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+              {strongestFactors.map((factor) => (
+                <div key={factor.key}>
+                  {factor.label}: {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} points delivered.
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              Biggest improvement areas
+            </div>
+            <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+              {mainConstraints.map((factor) => (
+                <div key={factor.key}>
+                  {factor.label}: roughly {factor.gap.toFixed(1)} possible points not yet captured.
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
         <div className="h-72">
           {mounted ? (
             <SafeResponsiveContainer className="h-full">
-              <BarChart data={score.factors}>
+              <BarChart data={orderedFactors}>
                 <XAxis dataKey="label" hide />
                 <YAxis stroke="#6b7d93" />
                 <Tooltip
@@ -97,7 +128,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
                   }}
                 />
                 <Bar dataKey="score" radius={[8, 8, 0, 0]}>
-                  {score.factors.map((factor) => (
+                  {orderedFactors.map((factor) => (
                     <Cell key={factor.key} fill={factor.score > 80 ? "#5be49b" : factor.score > 60 ? "#00e5ff" : "#ffab00"} />
                   ))}
                 </Bar>
@@ -106,7 +137,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
           ) : null}
         </div>
         <div className="space-y-2">
-          {score.factors.map((factor) => (
+          {orderedFactors.map((factor) => (
             <div
               key={factor.key}
               className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3"
@@ -147,6 +178,17 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
                   ) : null}
                   <span className="font-semibold">{factor.score}</span>
                 </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[var(--muted-foreground)]">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
+                  Weight {factor.weightPercent}%
+                </span>
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
+                  Adds {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts
+                </span>
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
+                  Misses {factor.gap.toFixed(1)} pts
+                </span>
               </div>
               <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">{factor.detail}</p>
               {showMethodNotes && factor.evidenceExplanation ? (

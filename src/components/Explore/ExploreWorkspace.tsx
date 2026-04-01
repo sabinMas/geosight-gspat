@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { FileText, MoreHorizontal, PanelLeft, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
+import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
 import {
   ExplorePrimaryPanel,
@@ -18,6 +19,7 @@ import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { ProfileSelector } from "@/components/Shell/ProfileSelector";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
@@ -102,7 +104,7 @@ export function ExploreWorkspace() {
     data.setViewMode("board");
     setWorkspaceNotice({
       tone: "info",
-      message: "Guided mode keeps one primary view open and reveals supporting cards only when you need them.",
+      message: "Focused mode keeps one primary view open and reveals supporting cards only when you need them.",
     });
   };
 
@@ -275,7 +277,7 @@ export function ExploreWorkspace() {
                     className="rounded-full"
                     onClick={handleOpenGuidedMode}
                   >
-                    Guided
+                    Focused
                   </Button>
                   <Button
                     type="button"
@@ -353,14 +355,22 @@ export function ExploreWorkspace() {
         </section>
 
         {state.initStatus === "resolving" ? (
-          <div className="rounded-2xl border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-foreground)]">
-            Resolving {state.init.locationQuery} and positioning the globe...
-          </div>
+          <StatePanel
+            tone="loading"
+            eyebrow="Location setup"
+            title={`Resolving ${state.init.locationQuery} and positioning the globe`}
+            description="GeoSight is turning the requested place into map coordinates and preparing the first live location bundle."
+            compact
+          />
         ) : null}
         {state.initError ? (
-          <div className="rounded-2xl border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
-            {state.initError}
-          </div>
+          <StatePanel
+            tone="error"
+            eyebrow="Location setup"
+            title="GeoSight could not lock onto that place"
+            description={state.initError}
+            compact
+          />
         ) : null}
 
         <section className="flex min-h-0 flex-1 gap-4 overflow-hidden">
@@ -368,22 +378,60 @@ export function ExploreWorkspace() {
 
           <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-            <SearchBar
-              syncValue={
-                state.locationReady
-                  ? state.selectedLocationDisplayName
-                  : state.init.locationQuery ?? ""
-              }
-              onLocate={(result) => {
-                state.setInitError(null);
-                state.selectPoint(
-                  result.coordinates,
-                  result.fullName ?? result.name,
-                  result.shortName,
-                );
-                data.handleLocationSelection();
-              }}
-            />
+            <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-2">
+                  <div className="eyebrow">Search and investigate</div>
+                  <h2 className="text-xl font-semibold text-[var(--foreground)]">
+                    {state.locationReady ? "Update the active place" : "Start with a real place"}
+                  </h2>
+                  <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
+                    {state.locationReady
+                      ? `GeoSight is reading ${state.selectedLocationName} through the ${state.activeProfile.name} lens. Search again to re-run the analysis somewhere else.`
+                      : `Search a city, neighborhood, address, landmark, or coordinates. GeoSight will build the map context, run the ${state.activeProfile.name} lens, and show the evidence behind the result.`}
+                  </p>
+                </div>
+                <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--foreground-soft)] lg:max-w-sm">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                    What the lens changes
+                  </div>
+                  <div className="mt-2">{state.activeProfile.tagline}</div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <SearchBar
+                  submitLabel={state.locationReady ? "Update analysis" : "Run analysis"}
+                  syncValue={
+                    state.locationReady
+                      ? state.selectedLocationDisplayName
+                      : state.init.locationQuery ?? ""
+                  }
+                  onLocate={(result) => {
+                    state.setInitError(null);
+                    state.selectPoint(
+                      result.coordinates,
+                      result.fullName ?? result.name,
+                      result.shortName,
+                    );
+                    data.handleLocationSelection();
+                  }}
+                />
+              </div>
+
+              {!state.locationReady ? (
+                <div className="mt-4 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                    First run tip
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-[var(--foreground-soft)]">
+                    If you want the cleanest first experience, search a place you already know and
+                    scan the analysis overview first. Factor breakdown and board mode stay available
+                    once you have the basics.
+                  </div>
+                </div>
+              ) : null}
+            </section>
 
             <ClientErrorBoundary
               title="The globe view needs a quick reset"
@@ -446,15 +494,28 @@ export function ExploreWorkspace() {
               </section>
             </ClientErrorBoundary>
 
+            {(state.locationReady || data.loading || data.error) ? (
+              <AnalysisOverviewBanner
+                geodata={data.geodata}
+                score={data.siteScore}
+                profile={state.activeProfile}
+                locationName={state.selectedLocationName}
+                loading={data.loading}
+                error={data.error}
+                onOpenFactorBreakdown={() => openCard("factor-breakdown")}
+                onOpenSources={() => openCard("source-awareness")}
+              />
+            ) : null}
+
             <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-2">
                   <h2 className="text-xl font-semibold text-[var(--foreground)]">
-                    Primary focus
+                    Choose your next view
                   </h2>
                   <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
                     {data.activePrimaryCard?.summaryVariant ??
-                      "Switch between the active place, AI reasoning, and result summaries without stacking all three at once."}
+                      "Start with the location summary, then switch to reasoning or nearby discovery as needed."}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

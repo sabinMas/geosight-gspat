@@ -3,6 +3,7 @@
 import { ReactNode, useMemo, useState } from "react";
 import { SourceInfoButton } from "@/components/Source/SourceInfoButton";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTrend } from "@/types";
 
@@ -64,12 +65,20 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
     [trends],
   );
   const trendsToRender = visibleTrends.length > 0 ? visibleTrends : unavailableTrends;
+  const headlineTrends = visibleTrends.slice(0, 3);
+  const summaryText =
+    headlineTrends.length > 0
+      ? headlineTrends.map((trend) => `${trend.label}: ${trend.value}`).join(" • ")
+      : "GeoSight will surface the strongest verified context signals here once the active location bundle is ready.";
 
   return (
     <Card>
       <CardHeader className="space-y-4">
         <div className="eyebrow">Analysis board</div>
-        <CardTitle>Area analysis</CardTitle>
+        <CardTitle>Live context signals</CardTitle>
+        <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
+          {summaryText}
+        </p>
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">
@@ -80,13 +89,20 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
         </div>
 
         {unavailableTrends.length > 0 ? (
-          <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+          <div className="space-y-3">
+            <StatePanel
+              tone={visibleTrends.length > 0 ? "partial" : "unavailable"}
+              eyebrow="Signal coverage"
+              title={`${unavailableTrends.length} signal${unavailableTrends.length === 1 ? "" : "s"} could not be confirmed`}
+              description="Unavailable, unsupported, or delayed signals stay labeled so the current story remains honest."
+              compact
+            />
             <button
               type="button"
-              className="w-full text-left"
+              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
               onClick={() => setShowUnavailable((current) => !current)}
             >
-              {unavailableTrends.length} signals unavailable - {showUnavailable ? "hide" : "show"}
+              {showUnavailable ? "Hide missing signals" : "Show missing signals"}
             </button>
             {showUnavailable ? (
               <div className="mt-3 grid gap-3 md:grid-cols-2">

@@ -5,6 +5,7 @@ import {
   ArcGisBaseMapType,
   ArcGisMapServerImageryProvider,
   CameraEventType,
+  Cartesian2,
   Cartesian3,
   Cartographic,
   Color,
@@ -15,10 +16,11 @@ import {
   Ion,
   IonWorldImageryStyle,
   Math as CesiumMath,
+  PolygonHierarchy,
+  ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Viewer as CesiumViewer,
 } from "cesium";
-import { Entity, ScreenSpaceEvent, ScreenSpaceEventHandler, Viewer } from "resium";
 import { estimateRegionSpanKm } from "@/lib/geospatial";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
@@ -84,6 +86,7 @@ export function CesiumGlobe({
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<CesiumViewer | null>(null);
+  const clickHandlerRef = useRef<ScreenSpaceEventHandler | null>(null);
   const lastFlyTargetRef = useRef<string | null>(null);
   const resizeFrameRef = useRef<number | null>(null);
   const resetTimeoutRef = useRef<number | null>(null);
@@ -91,7 +94,7 @@ export function CesiumGlobe({
   const [globeReady, setGlobeReady] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
   const [pointerInside, setPointerInside] = useState(false);
-  const terrainProvider = useMemo(
+  const terrainProviderPromise = useMemo(
     () =>
       createWorldTerrainAsync().catch((error) => {
         console.warn("[cesium-globe] world terrain unavailable, using ellipsoid terrain", error);
@@ -115,6 +118,14 @@ export function CesiumGlobe({
     return Color.fromCssColorString("#53ddff");
   }, [subsurfaceDatasets]);
 
+  const regionHierarchy = useMemo(
+    () =>
+      (selectedRegion.polygon.length ? selectedRegion.polygon : [selectedPoint]).map((point) =>
+        Cartesian3.fromDegrees(point.lng, point.lat, 120),
+      ),
+    [selectedPoint, selectedRegion.polygon],
+  );
+
   const isViewerUsable = (viewer: CesiumViewer | null): viewer is CesiumViewer =>
     Boolean(viewer && !viewer.isDestroyed());
 
@@ -133,6 +144,70 @@ export function CesiumGlobe({
       setViewerKey((current) => current + 1);
     }, 180);
   };
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) {
+      return;
+    }
+
+    setViewerReady(false);
+    setGlobeReady(false);
+
+    const viewer = new CesiumViewer(host, {
+      terrainProvider: new EllipsoidTerrainProvider(),
+      animation: false,
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      selectionIndicator: false,
+      timeline: false,
+      navigationHelpButton: false,
+      infoBox: false,
+      shouldAnimate: true,
+    });
+
+    viewerRef.current = viewer;
+    setViewerReady(true);
+
+    return () => {
+      if (clickHandlerRef.current && !clickHandlerRef.current.isDestroyed()) {
+        clickHandlerRef.current.destroy();
+        clickHandlerRef.current = null;
+      }
+
+      viewerRef.current = null;
+      setViewerReady(false);
+      setGlobeReady(false);
+
+      if (!viewer.isDestroyed()) {
+        viewer.destroy();
+      }
+    };
+  }, [viewerKey]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void terrainProviderPromise.then((provider) => {
+      if (cancelled || !isViewerUsable(viewer)) {
+        return;
+      }
+
+      viewer.terrainProvider = provider;
+      viewer.scene.requestRender();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [terrainProviderPromise, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -162,7 +237,7 @@ export function CesiumGlobe({
       : [CameraEventType.MIDDLE_DRAG];
     controller.translateEventTypes = globeRotateMode ? [] : [CameraEventType.LEFT_DRAG];
     viewer.scene.requestRender();
-  }, [globeRotateMode, pointerInside, viewerKey, viewerReady]);
+  }, [globeRotateMode, pointerInside, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -183,6 +258,7 @@ export function CesiumGlobe({
     const flyToHeight = getFlyToHeight(selectedPoint, selectedRegion, isFirstTarget);
     const regionSpanKm = estimateRegionSpanKm(selectedRegion.bbox);
     lastFlyTargetRef.current = nextTarget;
+
     try {
       viewer.camera.flyTo({
         destination: Cartesian3.fromDegrees(
@@ -204,12 +280,12 @@ export function CesiumGlobe({
 
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!isViewerUsable(viewer)) {
+    if (!isViewerUsable(viewer) || !viewerReady) {
       return;
     }
 
     viewer.scene.verticalExaggeration = terrainExaggeration;
-  }, [terrainExaggeration]);
+  }, [terrainExaggeration, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -260,16 +336,12 @@ export function CesiumGlobe({
     return () => {
       cancelled = true;
     };
-  }, [globeViewMode, viewerKey, viewerReady]);
+  }, [globeViewMode, viewerReady]);
 
   useEffect(() => {
-    if (!viewerReady) {
-      setGlobeReady(false);
-      return;
-    }
-
     const viewer = viewerRef.current;
-    if (!isViewerUsable(viewer)) {
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      setGlobeReady(false);
       return;
     }
 
@@ -382,6 +454,151 @@ export function CesiumGlobe({
   }, [viewerReady]);
 
   useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    if (clickHandlerRef.current && !clickHandlerRef.current.isDestroyed()) {
+      clickHandlerRef.current.destroy();
+    }
+
+    const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+    clickHandlerRef.current = handler;
+
+    handler.setInputAction((event: { position: Cartesian2 }) => {
+      try {
+        const earthPosition =
+          (viewer.scene.pickPositionSupported
+            ? viewer.scene.pickPosition(event.position)
+            : undefined) ??
+          viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid);
+
+        if (!earthPosition) {
+          return;
+        }
+
+        const cartographic = Cartographic.fromCartesian(earthPosition);
+        onPointSelect({
+          lat: CesiumMath.toDegrees(cartographic.latitude),
+          lng: CesiumMath.toDegrees(cartographic.longitude),
+        });
+      } catch (error) {
+        console.warn("[cesium-globe] point selection failed", error);
+      }
+    }, ScreenSpaceEventType.LEFT_CLICK);
+
+    return () => {
+      if (!handler.isDestroyed()) {
+        handler.destroy();
+      }
+
+      if (clickHandlerRef.current === handler) {
+        clickHandlerRef.current = null;
+      }
+    };
+  }, [onPointSelect, viewerKey, viewerReady]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    viewer.entities.removeAll();
+
+    viewer.entities.add({
+      name: "Selected Site",
+      position: Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220),
+      point: {
+        color: Color.fromCssColorString("#00e5ff"),
+        pixelSize: 14,
+        outlineColor: Color.WHITE,
+        outlineWidth: 2,
+      },
+    });
+
+    viewer.entities.add({
+      name: "Selected region",
+      polygon: {
+        hierarchy: new PolygonHierarchy(regionHierarchy),
+        material: Color.fromCssColorString("#00e5ff").withAlpha(0.15),
+        outline: true,
+        outlineColor: Color.fromCssColorString("#00e5ff"),
+      },
+    });
+
+    if (subsurfaceDatasets.length) {
+      viewer.entities.add({
+        name: "Subsurface footprint",
+        polygon: {
+          hierarchy: new PolygonHierarchy(
+            subsurfaceFootprint.map((point) =>
+              Cartesian3.fromDegrees(point.lng, point.lat, 60),
+            ),
+          ),
+          material: subsurfaceCueColor.withAlpha(
+            subsurfaceRenderMode === "surface_only" ? 0.08 : 0.18,
+          ),
+          outline: true,
+          outlineColor: subsurfaceCueColor.withAlpha(0.8),
+        },
+      });
+
+      viewer.entities.add({
+        name: "Subsurface focus",
+        position: Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 260),
+        point: {
+          color: subsurfaceCueColor,
+          pixelSize: 8,
+          outlineColor: Color.WHITE,
+          outlineWidth: 1,
+        },
+      });
+    }
+
+    savedSites.forEach((site) => {
+      viewer.entities.add({
+        name: site.name,
+        position: Cartesian3.fromDegrees(site.coordinates.lng, site.coordinates.lat, 180),
+        point: {
+          color:
+            site.score.total > 80
+              ? Color.fromCssColorString("#5be49b")
+              : Color.fromCssColorString("#ffab00"),
+          pixelSize: 10,
+          outlineColor: Color.BLACK,
+          outlineWidth: 1,
+        },
+      });
+    });
+
+    if (layers.heatmap) {
+      viewer.entities.add({
+        name: "Heatmap focus",
+        polygon: {
+          hierarchy: new PolygonHierarchy(regionHierarchy),
+          material: Color.fromCssColorString("#ff5d5d").withAlpha(0.18),
+          outline: false,
+        },
+      });
+    }
+
+    viewer.scene.requestRender();
+  }, [
+    layers.heatmap,
+    regionHierarchy,
+    savedSites,
+    selectedPoint.lat,
+    selectedPoint.lng,
+    subsurfaceCueColor,
+    subsurfaceDatasets,
+    subsurfaceFootprint,
+    subsurfaceRenderMode,
+    viewerReady,
+  ]);
+
+  useEffect(() => {
     return () => {
       if (resizeFrameRef.current !== null) {
         cancelAnimationFrame(resizeFrameRef.current);
@@ -389,17 +606,12 @@ export function CesiumGlobe({
       if (resetTimeoutRef.current !== null) {
         window.clearTimeout(resetTimeoutRef.current);
       }
+      if (clickHandlerRef.current && !clickHandlerRef.current.isDestroyed()) {
+        clickHandlerRef.current.destroy();
+      }
       viewerRef.current = null;
     };
   }, []);
-
-  const regionHierarchy = useMemo(
-    () =>
-      (selectedRegion.polygon.length ? selectedRegion.polygon : [selectedPoint]).map((point) =>
-        Cartesian3.fromDegrees(point.lng, point.lat, 120),
-      ),
-    [selectedPoint, selectedRegion.polygon],
-  );
 
   if (!hasCesiumToken) {
     return (
@@ -410,7 +622,8 @@ export function CesiumGlobe({
             Cesium Ion is not configured for this deployment
           </div>
           <p className="text-sm leading-7 text-[var(--muted-foreground)]">
-            Add <code>NEXT_PUBLIC_CESIUM_ION_TOKEN</code> to the active environment and redeploy to restore the 3D globe, satellite basemap, and terrain imagery.
+            Add <code>NEXT_PUBLIC_CESIUM_ION_TOKEN</code> to the active environment and redeploy to
+            restore the 3D globe, satellite basemap, and terrain imagery.
           </p>
         </div>
       </div>
@@ -431,134 +644,6 @@ export function CesiumGlobe({
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">Loading 3D map...</p>
         </div>
       ) : null}
-      <Viewer
-        key={viewerKey}
-        full
-        baseLayer={false}
-        ref={(node) => {
-          const nextViewer = node?.cesiumElement ?? null;
-          viewerRef.current = nextViewer;
-          setViewerReady(Boolean(nextViewer && !nextViewer.isDestroyed()));
-        }}
-        terrainProvider={terrainProvider}
-        animation={false}
-        baseLayerPicker={false}
-        geocoder={false}
-        homeButton={false}
-        sceneModePicker={false}
-        selectionIndicator={false}
-        timeline={false}
-        navigationHelpButton={false}
-        infoBox={false}
-        shouldAnimate
-      >
-        <ScreenSpaceEventHandler>
-          <ScreenSpaceEvent
-            action={(event) => {
-              const viewer = viewerRef.current;
-              if (!isViewerUsable(viewer) || !("position" in event)) {
-                return;
-              }
-
-              try {
-                const earthPosition =
-                  (viewer.scene.pickPositionSupported
-                    ? viewer.scene.pickPosition(event.position)
-                    : undefined) ??
-                  viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid);
-
-                if (!earthPosition) {
-                  return;
-                }
-
-                const cartographic = Cartographic.fromCartesian(earthPosition);
-                onPointSelect({
-                  lat: CesiumMath.toDegrees(cartographic.latitude),
-                  lng: CesiumMath.toDegrees(cartographic.longitude),
-                });
-              } catch (error) {
-                console.warn("[cesium-globe] point selection failed", error);
-              }
-            }}
-            type={ScreenSpaceEventType.LEFT_CLICK}
-          />
-        </ScreenSpaceEventHandler>
-
-        <Entity
-          name="Selected Site"
-          position={Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220)}
-          point={{
-            color: Color.fromCssColorString("#00e5ff"),
-            pixelSize: 14,
-            outlineColor: Color.WHITE,
-            outlineWidth: 2,
-          }}
-        />
-
-        <Entity
-          name="Selected region"
-          polygon={{
-            hierarchy: regionHierarchy,
-            material: Color.fromCssColorString("#00e5ff").withAlpha(0.15),
-            outline: true,
-            outlineColor: Color.fromCssColorString("#00e5ff"),
-          }}
-        />
-
-        {subsurfaceDatasets.length ? (
-          <>
-            <Entity
-              name="Subsurface footprint"
-              polygon={{
-                hierarchy: subsurfaceFootprint.map((point) =>
-                  Cartesian3.fromDegrees(point.lng, point.lat, 60),
-                ),
-                material: subsurfaceCueColor.withAlpha(
-                  subsurfaceRenderMode === "surface_only" ? 0.08 : 0.18,
-                ),
-                outline: true,
-                outlineColor: subsurfaceCueColor.withAlpha(0.8),
-              }}
-            />
-            <Entity
-              name="Subsurface focus"
-              position={Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 260)}
-              point={{
-                color: subsurfaceCueColor,
-                pixelSize: 8,
-                outlineColor: Color.WHITE,
-                outlineWidth: 1,
-              }}
-            />
-          </>
-        ) : null}
-
-        {savedSites.map((site) => (
-          <Entity
-            key={site.id}
-            name={site.name}
-            position={Cartesian3.fromDegrees(site.coordinates.lng, site.coordinates.lat, 180)}
-            point={{
-              color:
-                site.score.total > 80
-                  ? Color.fromCssColorString("#5be49b")
-                  : Color.fromCssColorString("#ffab00"),
-              pixelSize: 10,
-              outlineColor: Color.BLACK,
-              outlineWidth: 1,
-            }}
-          />
-        ))}
-        {layers.heatmap && (
-          <Entity
-            polygon={{
-              hierarchy: regionHierarchy,
-              material: Color.fromCssColorString("#ff5d5d").withAlpha(0.18),
-              outline: false,
-            }}
-          />
-        )}
-      </Viewer>
     </div>
   );
 }
