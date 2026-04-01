@@ -46,12 +46,15 @@ export const GEO_ANALYST_SYSTEM_PROMPT =
 export const GEO_USABILITY_SYSTEM_PROMPT =
   "You are GeoUsability, the internal UX audit agent for GeoSight. You review front-end state for clutter, overflow, discoverability, and hierarchy problems. Always anchor your response in the structured UI findings and UI context already provided. Do not invent visual issues that are not supported by the audit. Format responses as concise audit notes with severity, affected surface, issue type, and a specific recommendation.";
 
+const DEFAULT_AGENT_MODEL = "llama-3.3-70b-versatile";
+const LIGHTWEIGHT_AGENT_MODEL = "llama-3.1-8b-instant";
+
 export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
   "geo-analyst": {
     id: "geo-analyst",
     name: "GeoAnalyst",
     tagline: "Site intelligence & scoring",
-    model: "llama-3.1-70b-versatile",
+    model: DEFAULT_AGENT_MODEL,
     apiKeyEnv: "GROQ_ANALYSIS_KEY",
     temperature: 0.3,
     maxTokens: 2048,
@@ -62,7 +65,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     id: "geo-guide",
     name: "GeoGuide",
     tagline: "Interface help & onboarding",
-    model: "llama-3.1-8b-instant",
+    model: LIGHTWEIGHT_AGENT_MODEL,
     apiKeyEnv: "GROQ_UX_KEY",
     temperature: 0.1,
     maxTokens: 512,
@@ -74,7 +77,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     id: "geo-scribe",
     name: "GeoScribe",
     tagline: "Reports & export writing",
-    model: "mixtral-8x7b-32768",
+    model: DEFAULT_AGENT_MODEL,
     apiKeyEnv: "GROQ_WRITER_KEY",
     temperature: 0.2,
     maxTokens: 4096,
@@ -86,7 +89,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     id: "geo-usability",
     name: "GeoUsability",
     tagline: "Front-end UX audit",
-    model: "llama-3.1-8b-instant",
+    model: LIGHTWEIGHT_AGENT_MODEL,
     apiKeyEnv: "GROQ_UX_KEY",
     temperature: 0.1,
     maxTokens: 1024,
