@@ -20,9 +20,9 @@ const ICONS = {
   Warehouse,
 } as const;
 
-const SIDEBAR_CARD_WIDTH = 88;
+const SIDEBAR_CARD_WIDTH = 98;
 const SIDEBAR_CARD_GAP = 8;
-const SIDEBAR_VISIBLE_WIDTH = SIDEBAR_CARD_WIDTH * 2 + SIDEBAR_CARD_GAP * 2 + SIDEBAR_CARD_WIDTH / 2;
+const SIDEBAR_VISIBLE_WIDTH = SIDEBAR_CARD_WIDTH * 2 + SIDEBAR_CARD_GAP * 2 + SIDEBAR_CARD_WIDTH / 2 + 10;
 
 const PROFILE_ICON_BY_ID = {
   "home-buying": House,
@@ -100,9 +100,9 @@ export function ProfileSelector({
   if (variant === "sidebar-carousel") {
     return (
       <div className="space-y-3">
-      <div
+        <div
           ref={scrollRef}
-          className="flex overflow-x-auto gap-2 pb-1 scrollbar-none"
+          className="flex overflow-x-auto px-1 pb-2 scrollbar-none"
           style={{ width: `${SIDEBAR_VISIBLE_WIDTH}px` }}
         >
           <div className="flex gap-2">
@@ -119,10 +119,10 @@ export function ProfileSelector({
                   type="button"
                   aria-pressed={isActive}
                   onClick={() => onSelectProfile(profile)}
-                  className="shrink-0 overflow-hidden rounded-xl border bg-[var(--surface-raised)] p-3 text-left transition hover:bg-[var(--surface-soft)]"
+                  className="shrink-0 overflow-hidden rounded-xl border bg-[var(--surface-raised)] px-3 py-3 text-left transition hover:bg-[var(--surface-soft)]"
                   style={{
                     width: `${SIDEBAR_CARD_WIDTH}px`,
-                    height: "96px",
+                    minHeight: "104px",
                     borderColor: isActive ? "var(--accent)" : "var(--border-soft)",
                     boxShadow: isActive
                       ? "0 0 0 1px var(--accent-strong), 0 14px 28px color-mix(in srgb, var(--accent) 12%, transparent)"
@@ -137,7 +137,7 @@ export function ProfileSelector({
                   <div className="mt-3 line-clamp-2 text-[11px] font-semibold leading-tight text-[var(--foreground)]">
                     {profile.name}
                   </div>
-                  <div className="mt-1 line-clamp-2 text-[9px] leading-snug text-neutral-400">
+                  <div className="mt-1 line-clamp-2 text-[9px] leading-snug text-[var(--muted-foreground)]">
                     {profile.tagline}
                   </div>
                 </button>

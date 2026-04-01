@@ -65,7 +65,7 @@ function LocationSignalCard({
 }: LocationSignalCardProps) {
   return (
     <div
-      className={`rounded-xl border border-neutral-200 bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] dark:border-neutral-700 ${className ?? ""}`}
+      className={`min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] dark:border-neutral-700 ${className ?? ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
@@ -76,11 +76,11 @@ function LocationSignalCard({
           {source ? <SourceInfoButton source={source} title={`${label} source`} /> : null}
         </div>
       </div>
-      <div className="mt-4 text-4xl font-semibold tracking-tight text-[var(--foreground)]">
+      <div className="mt-4 min-w-0 break-words text-[clamp(2rem,3vw,2.75rem)] font-semibold leading-none tracking-tight text-[var(--foreground)]">
         {value}
       </div>
       <div
-        className={`mt-2 line-clamp-1 text-sm ${unavailable ? "text-[var(--warning-foreground)]" : "text-[var(--muted-foreground)]"}`}
+        className={`mt-2 truncate text-sm ${unavailable ? "text-[var(--warning-foreground)]" : "text-[var(--muted-foreground)]"}`}
         title={detail}
       >
         {detail}
@@ -234,7 +234,7 @@ export function ActiveLocationCard({
               detail={elevationSignal.detail}
               source={elevationSignal.source}
               unavailable={elevationSignal.unavailable}
-              className="h-[110px]"
+              className="min-h-[132px]"
             />
           ) : null}
           {weatherSignal ? (
@@ -245,7 +245,7 @@ export function ActiveLocationCard({
               detail={weatherSignal.detail}
               source={weatherSignal.source}
               unavailable={weatherSignal.unavailable}
-              className="h-[110px]"
+              className="min-h-[132px]"
             />
           ) : null}
           {airQualitySignal ? (
@@ -256,7 +256,7 @@ export function ActiveLocationCard({
               detail={airQualitySignal.detail}
               source={airQualitySignal.source}
               unavailable={airQualitySignal.unavailable}
-              className={fourthSignal ? "h-[80px]" : "h-[80px] md:col-span-2"}
+              className={fourthSignal ? "min-h-[108px]" : "min-h-[108px] md:col-span-2"}
             />
           ) : null}
           {fourthSignal ? (
@@ -267,7 +267,7 @@ export function ActiveLocationCard({
               detail={fourthSignal.detail}
               source={fourthSignal.source}
               unavailable={fourthSignal.unavailable}
-              className="h-[80px]"
+              className="min-h-[108px]"
             />
           ) : null}
         </div>

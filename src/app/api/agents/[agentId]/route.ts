@@ -445,6 +445,19 @@ async function requestGroqCompletion(
   });
 }
 
+function getGroqApiKeyCandidates(config: AgentConfig) {
+  const candidates = [
+    process.env[config.apiKeyEnv],
+    process.env.GROQ_API_KEY,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3,
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(candidates)];
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ agentId: string }> },
@@ -486,8 +499,8 @@ export async function POST(
     });
   }
 
-  const apiKey = process.env[agentConfig.apiKeyEnv]?.trim();
-  if (!apiKey) {
+  const apiKeys = getGroqApiKeyCandidates(agentConfig);
+  if (apiKeys.length === 0) {
     return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -498,43 +511,43 @@ export async function POST(
   }
 
   try {
-    const response = await requestGroqCompletion(
-      agentConfig,
-      apiKey,
-      message,
-      requestContext,
-      messages,
-    );
+    for (const apiKey of apiKeys) {
+      const response = await requestGroqCompletion(
+        agentConfig,
+        apiKey,
+        message,
+        requestContext,
+        messages,
+      );
 
-    if (!response.ok || !response.body) {
-      return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+      if (!response.ok || !response.body) {
+        console.warn(
+          `[agents-route] agent=${AGENT_CONFIGS[rawAgentId].id} provider_failed status=${response.status}`,
+        );
+        continue;
+      }
+
+      return new Response(createTextStream(response.body), {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-store",
-          "X-GeoSight-Mode": "fallback",
+          "X-GeoSight-Mode": "live",
         },
       });
     }
-
-    return new Response(createTextStream(response.body), {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-store",
-        "X-GeoSight-Mode": "live",
-      },
-    });
   } catch (error) {
     console.error(
       `[agents-route] agent=${AGENT_CONFIGS[rawAgentId].id} request_failed`,
       error,
     );
 
-    return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-store",
-        "X-GeoSight-Mode": "fallback",
-      },
-    });
   }
+
+  return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-GeoSight-Mode": "fallback",
+    },
+  });
 }
