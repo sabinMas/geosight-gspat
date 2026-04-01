@@ -2,14 +2,15 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
-import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StateBadge } from "@/components/Status/StatePanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchWithTimeout } from "@/lib/network";
+import { summarizeGeneratedTrust } from "@/lib/source-trust";
 import {
-  ChatMessage,
   ConversationMessage,
   Coordinates,
   DataTrend,
@@ -46,6 +47,15 @@ interface ChatPanelProps {
   onQuestionAsked?: (question: string) => void;
 }
 
+type ChatReplyMode = "live" | "fallback";
+
+interface ChatUiMessage {
+  id: string;
+  role: "system" | "user" | "assistant";
+  content: string;
+  mode?: ChatReplyMode;
+}
+
 export function ChatPanel({
   profile,
   location,
@@ -61,7 +71,7 @@ export function ChatPanel({
   classification,
   onQuestionAsked,
 }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<ChatUiMessage[]>([
     {
       id: "assistant-intro",
       role: "assistant",
@@ -116,6 +126,20 @@ export function ChatPanel({
     resultsMode === "nearby_places"
       ? "Nearby answers should stay inside live mapped place results plus the local access and amenity context."
       : "Analysis answers should stay inside these live and derived inputs and call out any important gaps.";
+  const reasoningSources = groundingSources.length
+    ? groundingSources
+    : groundingFallbackSources;
+  const reasoningSubject =
+    resultsMode === "nearby_places" ? "Nearby-place answers" : "GeoAnalyst answers";
+  const panelTrustSummary = useMemo(
+    () =>
+      summarizeGeneratedTrust(
+        aiStatus?.liveAnalysisAvailable === false ? "fallback" : "live",
+        reasoningSources,
+        reasoningSubject,
+      ),
+    [aiStatus?.liveAnalysisAvailable, reasoningSources, reasoningSubject],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -168,7 +192,7 @@ export function ChatPanel({
       return;
     }
 
-    const nextMessages: ChatMessage[] = [
+    const nextMessages: ChatUiMessage[] = [
       ...messages,
       { id: crypto.randomUUID(), role: "user", content: trimmedQuestion },
     ];
@@ -213,14 +237,16 @@ export function ChatPanel({
         throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
       }
 
-      const assistantReply =
-        data.fallbackMode && aiStatus?.liveAnalysisAvailable === false
-          ? `${data.answer}\n\n> GeoSight is currently in fallback mode because live AI providers are not configured or are unavailable.`
-          : data.answer;
+      const assistantMode: ChatReplyMode = data.fallbackMode ? "fallback" : "live";
 
       setMessages([
         ...nextMessages,
-        { id: crypto.randomUUID(), role: "assistant", content: assistantReply },
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.answer,
+          mode: assistantMode,
+        },
       ]);
     } catch (error) {
       setMessages([
@@ -251,7 +277,6 @@ export function ChatPanel({
     profile.id,
     resultsMode,
     loading,
-    aiStatus?.liveAnalysisAvailable,
   ]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -330,64 +355,71 @@ export function ChatPanel({
               </span>
             ) : null}
           </div>
-
-          <details className="mt-4 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-              Inspect grounding inputs
-            </summary>
-            {groundingSources.length ? (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {groundingSources.map((source) => (
-                  <SourceInlineSummary key={source.id} source={source} compact />
-                ))}
-              </div>
-            ) : groundingFallbackSources.length ? (
-              <div className="mt-3 space-y-3">
-                <div className="rounded-[1rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-2 text-sm text-[var(--warning-foreground)]">
-              Live grounding is still loading, so GeoSight is showing the current source cards while deeper context catches up.
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {groundingFallbackSources.map((source) => (
-                    <SourceInlineSummary key={source.id} source={source} compact />
-                  ))}
-                </div>
-              </div>
-            ) : geodataLoading ? (
-              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
-                GeoSight is still assembling the live and derived context for this place.
-              </div>
-            ) : geodata ? (
-              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
-                This location is loaded, but the current view does not have enough source-rich inputs to show a grounding strip yet.
-              </div>
-            ) : (
-              <div className="mt-3 text-sm text-[var(--muted-foreground)]">
-                Select a place or wait for live context to finish loading before GeoSight can show grounding inputs.
-              </div>
-            )}
-          </details>
+          <TrustSummaryPanel
+            className="mt-4"
+            eyebrow="Reasoning trust"
+            summary={panelTrustSummary}
+            sources={reasoningSources}
+            initialVisibleCount={2}
+            note={
+              groundingSources.length
+                ? "These are the main sources currently grounding the answer surface."
+                : groundingFallbackSources.length
+                  ? "Live grounding is still catching up, so GeoSight is showing the currently loaded source cards instead."
+                  : geodataLoading
+                    ? "GeoSight is still assembling the live and derived context for this place."
+                    : geodata
+                      ? "This location is loaded, but the current view does not yet have enough source-rich inputs to show a broader grounding set."
+                      : "Select a place or wait for live context to finish loading before GeoSight can show grounding inputs."
+            }
+          />
         </div>
 
         <div
           ref={messagesViewportRef}
           className="scrollbar-thin flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1"
         >
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`rounded-[1.5rem] px-4 py-3 text-sm leading-6 ${
-                message.role === "user"
-                  ? "ml-6 border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
-                  : "mr-6 border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground-soft)]"
-              }`}
-            >
-              {message.role === "assistant" ? (
-                <MarkdownContent content={message.content} />
-              ) : (
-                message.content
-              )}
-            </div>
-          ))}
+          {messages.map((message) => {
+            const messageTrust = message.mode
+              ? summarizeGeneratedTrust(
+                  message.mode,
+                  reasoningSources,
+                  reasoningSubject,
+                )
+              : null;
+
+            return (
+              <div
+                key={message.id}
+                className={`rounded-[1.5rem] px-4 py-3 text-sm leading-6 ${
+                  message.role === "user"
+                    ? "ml-6 border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                    : "mr-6 border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground-soft)]"
+                }`}
+              >
+                {message.role === "assistant" ? (
+                  <div className="space-y-3">
+                    <MarkdownContent content={message.content} />
+                    {messageTrust ? (
+                      <div className="border-t border-[color:var(--border-soft)] pt-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StateBadge
+                            tone={messageTrust.tone}
+                            label={messageTrust.badgeLabel}
+                          />
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
+                          {messageTrust.description}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  message.content
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">

@@ -1,5 +1,7 @@
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
@@ -25,6 +27,10 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
   }
 
   const hazards = geodata.epaHazards;
+  const trustSummary = summarizeSourceTrust(
+    [geodata.sources.epaHazards],
+    "Contamination screening",
+  );
 
   return (
     <Card>
@@ -34,9 +40,13 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {geodata.sources.epaHazards.status === "unavailable" ? (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            EPA contamination screening is not supported for this location yet.
-          </div>
+          <StatePanel
+            tone="unavailable"
+            eyebrow="Environmental coverage"
+            title="EPA contamination screening is not supported for this location yet"
+            description={geodata.sources.epaHazards.note ?? "GeoSight cannot currently return Envirofacts contamination context for this point or region."}
+            compact
+          />
         ) : hazards ? (
           <>
             <div className="inline-flex rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
@@ -87,17 +97,20 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
             </details>
           </>
         ) : (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            EPA contamination screening is unavailable for this point.
-          </div>
+          <StatePanel
+            tone="partial"
+            eyebrow="Environmental coverage"
+            title="EPA contamination screening did not return a usable result"
+            description={geodata.sources.epaHazards.note ?? "GeoSight reached the EPA screening path, but the response was incomplete or empty for this point."}
+            compact
+          />
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>EPA Envirofacts</span>
-            <SourceStatusBadge source={geodata.sources.epaHazards} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.epaHazards]}
+          note="This card is a screening layer based on EPA facilities and site inventories. It highlights where deeper environmental due diligence should start, not whether a parcel is clean."
+        />
       </CardContent>
     </Card>
   );

@@ -1,6 +1,7 @@
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatSourceTimestamp } from "@/lib/source-metadata";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { SchoolContextResult } from "@/types";
 
@@ -75,6 +76,13 @@ export function SchoolContextCard({
   loading,
   error,
 }: SchoolContextCardProps) {
+  const sourceSummary = schoolContext
+    ? summarizeSourceTrust(
+        Object.values(schoolContext.sources),
+        "School context",
+      )
+    : null;
+
   return (
     <Card>
       <CardHeader className="space-y-3">
@@ -87,13 +95,33 @@ export function SchoolContextCard({
           score and surfaces Washington&apos;s official accountability metrics where available.
         </p>
 
-        {loading ? <p className="text-sm text-[var(--muted-foreground)]">Loading school context...</p> : null}
-        {error ? <p className="text-sm text-[var(--danger-foreground)]">{error}</p> : null}
+        {loading ? (
+          <StatePanel
+            tone="loading"
+            eyebrow="Education coverage"
+            title="GeoSight is gathering school context"
+            description="Nearby schools, district context, and accountability matches are still loading for this area."
+            compact
+          />
+        ) : null}
+        {error ? (
+          <StatePanel
+            tone="error"
+            eyebrow="Education coverage"
+            title="GeoSight hit a school-context issue"
+            description={error}
+            compact
+          />
+        ) : null}
 
         {schoolContext?.coverageStatus === "outside_us" ? (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm text-[var(--warning-foreground)]">
-            School-quality intelligence is US-first in v1 and is not yet available for this country.
-          </div>
+          <StatePanel
+            tone="partial"
+            eyebrow="Education coverage"
+            title="School-quality intelligence is still US-first"
+            description="GeoSight can show mapped nearby schools outside the United States, but official quality and accountability coverage is not yet available for this country."
+            compact
+          />
         ) : null}
 
         {schoolContext ? (
@@ -143,23 +171,13 @@ export function SchoolContextCard({
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
-              {Object.values(schoolContext.sources).map((source) => (
-                <div key={source.id} className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-[var(--foreground)]">{source.label}</div>
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">{source.provider}</div>
-                    </div>
-                    <SourceStatusBadge source={source} />
-                  </div>
-                  <div className="mt-3 text-xs leading-5 text-[var(--foreground-soft)]">{source.confidence}</div>
-                  <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                    {formatSourceTimestamp(source.lastUpdated)}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {sourceSummary ? (
+              <TrustSummaryPanel
+                summary={sourceSummary}
+                sources={Object.values(schoolContext.sources)}
+                note="Washington accountability fields are official where matched. The overall GeoSight school-context score is a derived interpretation of proximity, school coverage, and any official metrics available."
+              />
+            ) : null}
 
             {schoolContext.schools.length ? (
               <div className="space-y-3">
@@ -173,8 +191,30 @@ export function SchoolContextCard({
                 </div>
               </div>
             ) : null}
+
+            {schoolContext.notes.length ? (
+              <div className="space-y-2 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+                <div className="eyebrow">Coverage notes</div>
+                <div className="space-y-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                  {schoolContext.notes.map((note) => (
+                    <p key={note}>{note}</p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </>
-        ) : null}
+        ) : (
+          !loading &&
+          !error && (
+            <StatePanel
+              tone="unavailable"
+              eyebrow="Education coverage"
+              title="School context has not loaded for this place yet"
+              description="GeoSight needs a successful school-context lookup before it can score nearby schools or show accountability context here."
+              compact
+            />
+          )
+        )}
       </CardContent>
     </Card>
   );

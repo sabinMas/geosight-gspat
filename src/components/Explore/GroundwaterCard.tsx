@@ -1,7 +1,9 @@
 "use client";
 
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
@@ -36,6 +38,10 @@ export function GroundwaterCard({ geodata }: GroundwaterCardProps) {
   }
 
   const nearestWell = geodata.groundwater.nearestWell;
+  const trustSummary = summarizeSourceTrust(
+    [geodata.sources.groundwater],
+    "Groundwater screening",
+  );
 
   return (
     <Card>
@@ -108,17 +114,20 @@ export function GroundwaterCard({ geodata }: GroundwaterCardProps) {
             </div>
           </>
         ) : (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            No USGS groundwater monitoring wells within range.
-          </div>
+          <StatePanel
+            tone={geodata.sources.groundwater.status === "unavailable" ? "unavailable" : "partial"}
+            eyebrow="Monitoring coverage"
+            title="No nearby groundwater monitoring well was returned"
+            description={geodata.sources.groundwater.note ?? "GeoSight searched the current groundwater window but did not find a usable monitoring well close enough to summarize here."}
+            compact
+          />
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>USGS groundwater</span>
-            <SourceStatusBadge source={geodata.sources.groundwater} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.groundwater]}
+          note="Groundwater values come from nearby USGS monitoring wells, not a direct well on the selected parcel, so distance still matters when interpreting the result."
+        />
       </CardContent>
     </Card>
   );

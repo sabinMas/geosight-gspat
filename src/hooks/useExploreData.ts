@@ -28,6 +28,7 @@ import { ExploreState } from "@/hooks/useExploreState";
 import {
   AnalysisCapabilityId,
   AnalysisCapabilityResult,
+  AgentExecutionMode,
   WorkspaceCardId,
 } from "@/types";
 
@@ -192,6 +193,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportMarkdown, setReportMarkdown] = useState("");
   const [reportError, setReportError] = useState<string | null>(null);
+  const [reportMode, setReportMode] = useState<AgentExecutionMode | null>(null);
+  const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(null);
   const [capabilityAnalysisLoading, setCapabilityAnalysisLoading] = useState(false);
   const [capabilityAnalysisError, setCapabilityAnalysisError] = useState<string | null>(
     null,
@@ -289,6 +292,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setReportLoading(false);
     setReportMarkdown("");
     setReportError(null);
+    setReportMode(null);
+    setReportGeneratedAt(null);
     setCapabilityAnalysisLoading(false);
     setCapabilityAnalysisError(null);
     setCapabilityAnalysisResult(null);
@@ -313,20 +318,21 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       return;
     }
 
-    setCapabilityAnalysisResult({
-      analysisId: starterCapability.analysisId,
-      title: starterCapability.title,
-      response: buildCapabilityFallbackResponse(starterCapability.analysisId, {
-        geodata,
+      setCapabilityAnalysisResult({
+        analysisId: starterCapability.analysisId,
+        title: starterCapability.title,
+        response: buildCapabilityFallbackResponse(starterCapability.analysisId, {
+          geodata,
         profile: activeProfile,
         locationName: selectedLocationName,
         selectedRegion: state.selectedRegion,
         dataTrends: locationTrends,
         subsurfaceDatasets,
-      }),
-      model: `${starterCapability.modelLane} starter preview`,
-      generatedAt: new Date().toISOString(),
-    });
+        }),
+        model: `${starterCapability.modelLane} starter preview`,
+        generatedAt: new Date().toISOString(),
+        mode: "deterministic",
+      });
   }, [
     activeProfile,
     analysisCapabilities,
@@ -379,6 +385,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         response: fallbackResponse,
         model: `${capability.modelLane} preview`,
         generatedAt: new Date().toISOString(),
+        mode: "deterministic",
       });
 
       try {
@@ -406,12 +413,15 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         }
 
         const content = (await readResponseTextWithTimeout(response, 12_000)).trim();
+        const responseMode =
+          (response.headers.get("X-GeoSight-Mode") as AgentExecutionMode | null) ?? "live";
         setCapabilityAnalysisResult({
           analysisId,
           title: capability.title,
           response: content || fallbackResponse,
           model: content ? capability.modelLane : `${capability.modelLane} fallback`,
           generatedAt: new Date().toISOString(),
+          mode: content ? responseMode : "deterministic",
         });
       } catch (analysisError) {
         console.warn("[capability-analysis] using deterministic fallback", analysisError);
@@ -421,6 +431,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
           response: fallbackResponse,
           model: `${capability.modelLane} fallback`,
           generatedAt: new Date().toISOString(),
+          mode: "deterministic",
         });
         setCapabilityAnalysisError(null);
       } finally {
@@ -448,6 +459,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setReportLoading(true);
     setReportMarkdown("");
     setReportError(null);
+    setReportMode(null);
+    setReportGeneratedAt(null);
 
     try {
       const response = await fetchWithTimeout(
@@ -458,7 +471,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: `Generate a full site assessment report for ${selectedLocationName} at ${selectedPoint.lat}, ${selectedPoint.lng} using the ${activeProfile.name} mission profile. Use the full context bundle, cite real values with units, and keep the output in markdown.`,
+            message: `Generate a full site assessment report for ${selectedLocationName} at ${selectedPoint.lat}, ${selectedPoint.lng} using the ${activeProfile.name} mission profile. Use the full context bundle, cite real values with units, keep the output in markdown, and include explicit sections for data status, supported findings, limitations, and next diligence steps.`,
             context: agentContext,
           }),
         },
@@ -474,7 +487,11 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         throw new Error("GeoScribe returned an empty report.");
       }
 
+      const responseMode =
+        (response.headers.get("X-GeoSight-Mode") as AgentExecutionMode | null) ?? "live";
       setReportMarkdown(markdown);
+      setReportMode(responseMode);
+      setReportGeneratedAt(new Date().toISOString());
     } catch (reportGenerationError) {
       setReportError(
         reportGenerationError instanceof Error
@@ -637,6 +654,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     reportLoading,
     reportMarkdown,
     reportError,
+    reportMode,
+    reportGeneratedAt,
     generateReport,
     closeReportPanel,
   };

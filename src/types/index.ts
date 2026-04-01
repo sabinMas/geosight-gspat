@@ -132,6 +132,7 @@ export type AnalysisModelLane =
   | "writer"
   | "scientific";
 export type AnalysisCapabilityStatus = "available" | "unavailable";
+export type AgentExecutionMode = "live" | "fallback" | "deterministic";
 export type SubsurfaceDatasetId =
   | "groundwater"
   | "soil-profile"
@@ -189,6 +190,7 @@ export interface AnalysisCapabilityResult {
   response: string;
   model: string;
   generatedAt: string;
+  mode: AgentExecutionMode;
 }
 
 export interface SubsurfaceDataset {

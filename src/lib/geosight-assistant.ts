@@ -66,15 +66,17 @@ Response format guidance:
 - Favor a list-first answer with the most relevant nearby places near the top.
 - For each item, include name, category, relative distance or direction, and why it is relevant.
 - If live nearby-place data is unavailable, say so explicitly instead of inventing places.
-- End with a short summary and 1-2 next questions.
+- Include a short data-status note if nearby-place coverage is partial or unavailable.
+- End with a short summary, the main limitations, and 1-2 next questions.
 `;
   }
 
   return `
 Response format guidance:
 - Lead with a concise summary of the area through the active mission profile.
+- Include one short "Data status" section that explains whether the answer is leaning on live inputs, derived analysis, or partial coverage.
 - Use the available structured data trends and map context to support your reasoning.
-- Present a few concrete findings, then explain pros, cons, and unknowns.
+- Present a few concrete findings, then explain tradeoffs, unknowns, and source gaps.
 - End with next questions or next zoom levels the user should explore.
 `;
 }
@@ -148,10 +150,12 @@ Behavior rules:
 - Restate the active location clearly.
 - Separate supported observations from approximations or inference.
 - When discussing score-style reasoning, explicitly say whether a point comes from a direct live signal, derived live analysis, or a proxy heuristic.
+- If any important source is limited or unavailable, call that out before offering a strong conclusion.
 - Use any structured nearby-place results or trend objects included in the input JSON.
 - If school context is present, distinguish official government accountability fields from GeoSight-derived normalization.
 - If school coverage is outside the current US-first pipeline or unavailable, say that clearly instead of inferring school quality.
 - Never present proxy heuristics as if they were direct measurements.
+- Never let a polished answer hide a missing or unsupported signal.
 - Be concise, practical, and grounded in the active mission profile.
 
 ${buildResponseGuidance(responseMode)}

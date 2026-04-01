@@ -1,7 +1,9 @@
 "use client";
 
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
 interface SeismicDesignCardProps {
@@ -42,6 +44,11 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
     return null;
   }
 
+  const trustSummary = summarizeSourceTrust(
+    [geodata.sources.seismicDesign, geodata.sources.hazards],
+    "Seismic design screening",
+  );
+
   if (!hasSeismicData(geodata)) {
     return (
       <Card>
@@ -49,10 +56,19 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
           <div className="eyebrow">Structural hazard</div>
           <CardTitle>Seismic risk profile</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            Seismic design parameters unavailable for this location.
-          </div>
+        <CardContent className="space-y-4">
+          <StatePanel
+            tone={geodata.sources.seismicDesign.status === "unavailable" ? "unavailable" : "partial"}
+            eyebrow="Structural hazard"
+            title="Seismic design parameters are not fully available for this point"
+            description={geodata.sources.seismicDesign.note ?? "GeoSight could not assemble the design-map shaking values needed for a structural screening read here."}
+            compact
+          />
+          <TrustSummaryPanel
+            summary={trustSummary}
+            sources={[geodata.sources.seismicDesign, geodata.sources.hazards]}
+            note="This card pairs mapped seismic design values with recent earthquake activity so you can distinguish engineering context from short-term event history."
+          />
         </CardContent>
       </Card>
     );
@@ -115,12 +131,11 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
           Source: {seismic.dataSource}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>USGS design maps</span>
-            <SourceStatusBadge source={geodata.sources.seismicDesign} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.seismicDesign, geodata.sources.hazards]}
+          note="Peak ground acceleration, Ss, and S1 come from USGS design maps. They are screening inputs for engineering diligence, not a substitute for structural design."
+        />
       </CardContent>
     </Card>
   );

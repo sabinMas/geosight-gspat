@@ -1,15 +1,24 @@
 "use client";
 
 import { Sparkles, X } from "lucide-react";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Button } from "@/components/ui/button";
-import { AnalysisCapability, AnalysisCapabilityId, AnalysisCapabilityResult } from "@/types";
+import { getCapabilitySources } from "@/lib/analysis-capabilities";
+import { summarizeGeneratedTrust } from "@/lib/source-trust";
+import {
+  AnalysisCapability,
+  AnalysisCapabilityId,
+  AnalysisCapabilityResult,
+  GeodataResult,
+} from "@/types";
 
 interface CapabilityLauncherProps {
   capabilities: AnalysisCapability[];
   loading: boolean;
   error: string | null;
   result: AnalysisCapabilityResult | null;
+  geodata: GeodataResult | null;
   onRun: (analysisId: AnalysisCapabilityId) => void;
   onClear: () => void;
 }
@@ -26,12 +35,18 @@ export function CapabilityLauncher({
   loading,
   error,
   result,
+  geodata,
   onRun,
   onClear,
 }: CapabilityLauncherProps) {
   if (!capabilities.length && !result && !loading && !error) {
     return null;
   }
+
+  const resultSources = result ? getCapabilitySources(result.analysisId, geodata) : [];
+  const resultTrustSummary = result
+    ? summarizeGeneratedTrust(result.mode, resultSources, result.title)
+    : null;
 
   return (
     <div className="space-y-4 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
@@ -105,6 +120,15 @@ export function CapabilityLauncher({
               {result.model} lane | {formatGeneratedAt(result.generatedAt)}
             </div>
           </div>
+          {resultTrustSummary ? (
+            <TrustSummaryPanel
+              className="mt-4"
+              eyebrow="Interpretation status"
+              summary={resultTrustSummary}
+              sources={resultSources}
+              note="GeoSight only exposes these interpretation actions when there is enough supporting context to make the result useful."
+            />
+          ) : null}
           <div className="mt-4 text-sm leading-7 text-[var(--foreground-soft)]">
             <MarkdownContent content={result.response} />
           </div>

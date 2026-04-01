@@ -1,6 +1,7 @@
 import {
   AnalysisCapability,
   AnalysisCapabilityId,
+  DataSourceMeta,
   DataTrend,
   GeodataResult,
   MissionProfile,
@@ -527,5 +528,43 @@ export function buildCapabilityFallbackResponse(
           "No derived trends loaded yet."
         }`,
       ].join("\n");
+  }
+}
+
+export function getCapabilitySources(
+  capabilityId: AnalysisCapabilityId,
+  geodata: GeodataResult | null,
+): DataSourceMeta[] {
+  if (!geodata) {
+    return [];
+  }
+
+  switch (capabilityId) {
+    case "seismic-context":
+      return [geodata.sources.hazards, geodata.sources.seismicDesign];
+    case "groundwater-soil":
+      return [geodata.sources.groundwater, geodata.sources.soilProfile];
+    case "hazard-stack":
+      return [
+        geodata.sources.hazards,
+        geodata.sources.hazardFire,
+        geodata.sources.floodZone,
+        geodata.sources.airQuality,
+        geodata.sources.epaHazards,
+      ];
+    case "climate-trends":
+      return [geodata.sources.climate, geodata.sources.climateHistory];
+    case "source-confidence":
+      return [
+        geodata.sources.elevation,
+        geodata.sources.climate,
+        geodata.sources.hazards,
+        geodata.sources.groundwater,
+        geodata.sources.soilProfile,
+      ];
+    case "tomography-context":
+      return [geodata.sources.soilProfile, geodata.sources.groundwater];
+    default:
+      return [];
   }
 }

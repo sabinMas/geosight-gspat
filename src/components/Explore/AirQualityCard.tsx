@@ -1,5 +1,7 @@
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
@@ -30,6 +32,11 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
   if (!geodata) {
     return null;
   }
+
+  const trustSummary = summarizeSourceTrust(
+    [geodata.sources.airQuality, geodata.sources.climate],
+    "Air-quality screening",
+  );
 
   return (
     <Card>
@@ -74,24 +81,29 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
             </details>
           </>
         ) : (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            {geodata.sources.airQuality.note ??
+          <StatePanel
+            tone={geodata.climate.airQualityIndex === null ? "unavailable" : "partial"}
+            eyebrow="Monitoring coverage"
+            title={
+              geodata.climate.airQualityIndex === null
+                ? "No nearby air-quality station reading is available"
+                : "Station data is missing, so GeoSight is using a broader AQI estimate"
+            }
+            description={
+              geodata.sources.airQuality.note ??
               (geodata.climate.airQualityIndex === null
-                ? "No nearby air-quality station reading is available for this point."
-                : `OpenAQ station unavailable; Open-Meteo currently reports AQI ${geodata.climate.airQualityIndex}.`)}
-          </div>
+                ? "Neither a nearby OpenAQ station nor a usable atmospheric AQI estimate is available for this point."
+                : `OpenAQ station data is unavailable, but Open-Meteo currently reports AQI ${geodata.climate.airQualityIndex}.`)
+            }
+            compact
+          />
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>OpenAQ</span>
-            <SourceStatusBadge source={geodata.sources.airQuality} />
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>Open-Meteo AQI</span>
-            <SourceStatusBadge source={geodata.sources.climate} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.airQuality, geodata.sources.climate]}
+          note="Nearest-station pollutant values are more direct than the broader AQI estimate. When the station is missing, GeoSight labels the result as a wider atmospheric screen instead of a local monitor reading."
+        />
       </CardContent>
     </Card>
   );

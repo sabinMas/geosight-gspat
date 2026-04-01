@@ -1,7 +1,9 @@
 "use client";
 
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
 interface SoilProfileCardProps {
@@ -80,6 +82,11 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
     return null;
   }
 
+  const trustSummary = summarizeSourceTrust(
+    [geodata.sources.soilProfile],
+    "Soil profile screening",
+  );
+
   if (!hasSoilData(geodata)) {
     return (
       <Card>
@@ -87,10 +94,19 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
           <div className="eyebrow">Subsurface geology</div>
           <CardTitle>Soil profile</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            USDA soil survey data unavailable for this location.
-          </div>
+        <CardContent className="space-y-4">
+          <StatePanel
+            tone={geodata.sources.soilProfile.status === "unavailable" ? "unavailable" : "partial"}
+            eyebrow="Subsurface coverage"
+            title="USDA soil survey data is incomplete for this point"
+            description={geodata.sources.soilProfile.note ?? "GeoSight could not load enough SSURGO soil detail at the selected location to build a reliable soil profile summary."}
+            compact
+          />
+          <TrustSummaryPanel
+            summary={trustSummary}
+            sources={[geodata.sources.soilProfile]}
+            note="Soil profile outputs are mapped soil-survey interpretations. They are useful for screening runoff, drainage, and buildability, but they do not replace a geotechnical report."
+          />
         </CardContent>
       </Card>
     );
@@ -194,12 +210,11 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
           </div>
         </details>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>NRCS SSURGO</span>
-            <SourceStatusBadge source={geodata.sources.soilProfile} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.soilProfile]}
+          note="The suitability headline is GeoSight's plain-language interpretation of drainage, hydrologic group, water table, and bedrock depth from the mapped soil unit."
+        />
       </CardContent>
     </Card>
   );

@@ -1,5 +1,7 @@
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult, SiteScore } from "@/types";
 
 interface BroadbandCardProps {
@@ -27,6 +29,7 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
   }
 
   const broadband = geodata.broadband;
+  const trustSummary = summarizeSourceTrust([geodata.sources.broadband], "Broadband coverage");
 
   return (
     <Card>
@@ -106,17 +109,20 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
             </details>
           </>
         ) : (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            FCC broadband availability is not available for this point right now.
-          </div>
+          <StatePanel
+            tone={geodata.sources.broadband.status === "unavailable" ? "unavailable" : "partial"}
+            eyebrow="Connectivity coverage"
+            title="Broadband availability is not fully loaded for this point"
+            description={geodata.sources.broadband.note ?? "GeoSight could not confirm advertised FCC broadband coverage for this exact point right now."}
+            compact
+          />
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>FCC Broadband Map</span>
-            <SourceStatusBadge source={geodata.sources.broadband} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.broadband]}
+          note="FCC broadband data reflects reported provider availability and advertised speeds. It is useful for screening, but installation reality still needs local validation."
+        />
       </CardContent>
     </Card>
   );

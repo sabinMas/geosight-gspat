@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Copy, Download, FileJson, FileText, Loader2, X } from "lucide-react";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +11,8 @@ import {
   downloadJsonFile,
   downloadTextFile,
 } from "@/lib/export";
+import { summarizeGeneratedTrust } from "@/lib/source-trust";
+import { AgentExecutionMode, DataSourceMeta } from "@/types";
 
 interface GeoScribeReportPanelProps {
   open: boolean;
@@ -16,6 +20,10 @@ interface GeoScribeReportPanelProps {
   loading: boolean;
   error: string | null;
   markdown: string;
+  mode: AgentExecutionMode | null;
+  generatedAt: string | null;
+  sources: Array<DataSourceMeta | null | undefined>;
+  sourceNotes: string[];
   onClose: () => void;
 }
 
@@ -25,6 +33,10 @@ export function GeoScribeReportPanel({
   loading,
   error,
   markdown,
+  mode,
+  generatedAt,
+  sources,
+  sourceNotes,
   onClose,
 }: GeoScribeReportPanelProps) {
   const [copied, setCopied] = useState(false);
@@ -49,6 +61,10 @@ export function GeoScribeReportPanel({
   }, [markdown, open]);
 
   const exportParts = ["geosight", locationName || "active-location", "report"];
+  const trustSummary =
+    mode && markdown
+      ? summarizeGeneratedTrust(mode, sources, "GeoScribe report")
+      : null;
 
   if (!open) {
     return null;
@@ -76,6 +92,16 @@ export function GeoScribeReportPanel({
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               {locationName || "Active location"}
             </p>
+            {generatedAt ? (
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                Generated {new Date(generatedAt).toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -114,6 +140,8 @@ export function GeoScribeReportPanel({
                     title: "Site assessment report",
                     locationName: locationName || "Active location",
                     exportedAt: new Date().toISOString(),
+                    generationMode: mode,
+                    generatedAt,
                     markdown,
                   },
                   buildExportFilename(exportParts, "json"),
@@ -164,15 +192,35 @@ export function GeoScribeReportPanel({
               </div>
             </div>
           ) : error ? (
-            <div className="rounded-[1.5rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm leading-6 text-[var(--danger-foreground)]">
-              {error}
-            </div>
+            <StatePanel
+              tone="error"
+              eyebrow="Report generation"
+              title="GeoScribe could not generate the report"
+              description={error}
+            />
           ) : markdown ? (
-            <MarkdownContent content={markdown} className="space-y-4" />
-          ) : (
-            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-3 text-sm leading-6 text-[var(--muted-foreground)]">
-              Generate a report to turn the current geospatial context into a shareable written assessment.
+            <div className="space-y-5">
+              {trustSummary ? (
+                <TrustSummaryPanel
+                  summary={trustSummary}
+                  sources={sources}
+                  eyebrow="Report trust"
+                  note={
+                    sourceNotes.length
+                      ? sourceNotes.slice(0, 2).join(" ")
+                      : "Use this report as a decision-support artifact tied to the current GeoSight context, not as a substitute for final engineering, regulatory, or site diligence."
+                  }
+                />
+              ) : null}
+              <MarkdownContent content={markdown} className="space-y-4" />
             </div>
+          ) : (
+            <StatePanel
+              tone="cached"
+              eyebrow="Report generation"
+              title="Generate a report when you are ready to export the story"
+              description="GeoScribe turns the current geospatial context into a shareable written assessment with an executive summary, findings, caveats, and next diligence steps."
+            />
           )}
         </div>
       </aside>

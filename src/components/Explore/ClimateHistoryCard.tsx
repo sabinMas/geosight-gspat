@@ -9,9 +9,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
 interface ClimateHistoryCardProps {
@@ -53,6 +55,10 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
   }
 
   const climateHistory = geodata.climateHistory;
+  const trustSummary = summarizeSourceTrust(
+    [geodata.sources.climateHistory],
+    "Climate history",
+  );
   if (!climateHistory || !climateHistory.summaries.length) {
     return (
       <Card>
@@ -60,10 +66,19 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
           <div className="eyebrow">Historical weather</div>
           <CardTitle>Climate trends (10-year)</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">
-            Historical climate data unavailable.
-          </div>
+        <CardContent className="space-y-4">
+          <StatePanel
+            tone={geodata.sources.climateHistory.status === "unavailable" ? "unavailable" : "partial"}
+            eyebrow="Trend coverage"
+            title="Historical climate history is not fully available here"
+            description={geodata.sources.climateHistory.note ?? "GeoSight could not assemble the 10-year climate archive for this point, so trend claims should stay conservative."}
+            compact
+          />
+          <TrustSummaryPanel
+            summary={trustSummary}
+            sources={[geodata.sources.climateHistory]}
+            note="This card uses the Open-Meteo archive when long-range weather history is available for the selected point."
+          />
         </CardContent>
       </Card>
     );
@@ -144,12 +159,11 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
           </SafeResponsiveContainer>
         </details>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>Open-Meteo archive</span>
-            <SourceStatusBadge source={geodata.sources.climateHistory} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.climateHistory]}
+          note="GeoSight compares the more recent five-year average against the earlier five-year baseline so the user can tell whether conditions are warming, cooling, or staying roughly stable."
+        />
       </CardContent>
     </Card>
   );

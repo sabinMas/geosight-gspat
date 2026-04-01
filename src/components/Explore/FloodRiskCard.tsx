@@ -1,5 +1,7 @@
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
 interface FloodRiskCardProps {
@@ -43,6 +45,8 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
     return null;
   }
 
+  const trustSummary = summarizeSourceTrust([geodata.sources.floodZone], "Flood screening");
+
   return (
     <Card>
       <CardHeader className="space-y-3">
@@ -54,16 +58,25 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
           Flood risk: {getRiskLabel(geodata)}
         </div>
 
-        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="eyebrow">Plain-language summary</div>
-          <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
-            {geodata.floodZone?.label ??
-              "FEMA did not return a flood-zone designation for this point."}
+        {geodata.floodZone ? (
+          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+            <div className="eyebrow">Plain-language summary</div>
+            <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
+              {geodata.floodZone.label}
+            </div>
+            <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+              GeoSight summarizes the mapped FEMA designation into a simple risk badge first, then keeps the zone code below for technical review.
+            </div>
           </div>
-          <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-            GeoSight summarizes the mapped FEMA designation into a simple risk badge first, then keeps the zone code below for technical review.
-          </div>
-        </div>
+        ) : (
+          <StatePanel
+            tone={geodata.sources.floodZone.status === "unavailable" ? "unavailable" : "partial"}
+            eyebrow="Flood mapping"
+            title="FEMA did not return a flood-zone designation for this point"
+            description={geodata.sources.floodZone.note ?? "This can mean the point falls outside the current mapped coverage or the provider did not return an intersecting flood polygon."}
+            compact
+          />
+        )}
 
         {geodata.floodZone?.isSpecialFloodHazard ? (
           <div className="rounded-[1.5rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] p-4 text-sm leading-6 text-[var(--danger-foreground)]">
@@ -84,12 +97,11 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
           </div>
         </details>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>FEMA NFHL</span>
-            <SourceStatusBadge source={geodata.sources.floodZone} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.floodZone]}
+          note="This card reflects FEMA's mapped floodplain layer. It does not replace local floodplain review, insurance diligence, or engineering-grade stormwater analysis."
+        />
       </CardContent>
     </Card>
   );

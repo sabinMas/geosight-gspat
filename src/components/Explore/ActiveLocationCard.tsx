@@ -483,6 +483,7 @@ export function ActiveLocationCard({
             loading={capabilityAnalysisLoading}
             error={capabilityAnalysisError}
             result={capabilityAnalysisResult}
+            geodata={geodata}
             onRun={onRunCapabilityAnalysis}
             onClear={onClearCapabilityAnalysis}
           />

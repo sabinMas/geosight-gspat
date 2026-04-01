@@ -144,8 +144,24 @@ export function ExploreWorkspace() {
   );
   const reportPrompt = useMemo(
     () =>
-      `Generate a full intelligence report for the ${state.activeProfile.name} lens at ${state.selectedLocationName}. Keep it grounded in the live GeoSight context, call out data gaps explicitly, and structure it for a clear decision-ready briefing.`,
+      `Generate a full intelligence report for the ${state.activeProfile.name} lens at ${state.selectedLocationName}. Keep it grounded in the live GeoSight context, call out data gaps explicitly, and structure it with data status, key findings, limitations, and next diligence steps for a clear decision-ready briefing.`,
     [state.activeProfile.name, state.selectedLocationName],
+  );
+  const reportSources = useMemo(
+    () =>
+      data.geodata
+        ? [
+            data.geodata.sources.climate,
+            data.geodata.sources.hazards,
+            data.geodata.sources.floodZone,
+            data.geodata.sources.broadband,
+            data.geodata.sources.school,
+            data.geodata.sources.groundwater,
+            data.geodata.sources.soilProfile,
+            data.geodata.sources.seismicDesign,
+          ]
+        : [],
+    [data.geodata],
   );
 
   const handleGenerateReport = () => {
@@ -671,6 +687,10 @@ export function ExploreWorkspace() {
         loading={data.reportLoading}
         error={data.reportError}
         markdown={data.reportMarkdown}
+        mode={data.reportMode}
+        generatedAt={data.reportGeneratedAt}
+        sources={reportSources}
+        sourceNotes={data.geodata?.sourceNotes ?? []}
         onClose={data.closeReportPanel}
       />
     </main>

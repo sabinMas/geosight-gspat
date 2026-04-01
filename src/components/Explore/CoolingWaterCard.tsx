@@ -1,5 +1,7 @@
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
+import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
@@ -13,6 +15,10 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
   }
 
   const nearestGauge = getNearestStreamGauge(geodata);
+  const trustSummary = summarizeSourceTrust(
+    [geodata.sources.infrastructure, geodata.sources.water],
+    "Cooling-water screening",
+  );
 
   return (
     <Card>
@@ -67,23 +73,22 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
                 </div>
               </>
             ) : (
-              <div className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-                No nearby USGS discharge gauge was returned within the current search radius.
-              </div>
+              <StatePanel
+                tone={geodata.sources.water.status === "unavailable" ? "unavailable" : "partial"}
+                eyebrow="Hydrology coverage"
+                title="No nearby USGS stream gauge was returned"
+                description={geodata.sources.water.note ?? "GeoSight found mapped water access, but it could not tie this point to a nearby discharge gauge within the current search radius."}
+                compact
+              />
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>OSM waterways</span>
-            <SourceStatusBadge source={geodata.sources.infrastructure} />
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-            <span>USGS Water Services</span>
-            <SourceStatusBadge source={geodata.sources.water} />
-          </div>
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.infrastructure, geodata.sources.water]}
+          note="Mapped water proximity comes from OSM-style infrastructure context, while discharge values come from nearby USGS gauges when a suitable station is available."
+        />
       </CardContent>
     </Card>
   );

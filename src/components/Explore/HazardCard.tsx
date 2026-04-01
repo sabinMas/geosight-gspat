@@ -1,5 +1,6 @@
-import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
+import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
 interface HazardCardProps {
@@ -27,6 +28,10 @@ function HazardMetric({
 export function HazardCard({ geodata }: HazardCardProps) {
   const hazards = geodata?.hazards;
   const climate = geodata?.climate;
+  const hazardSources = geodata
+    ? [geodata.sources.hazards, geodata.sources.hazardFire, geodata.sources.climate]
+    : [];
+  const trustSummary = summarizeSourceTrust(hazardSources, "Hazard screening");
 
   return (
     <Card>
@@ -89,28 +94,11 @@ export function HazardCard({ geodata }: HazardCardProps) {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          {geodata ? (
-            <>
-              <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-                <span>USGS Earthquakes</span>
-                <SourceStatusBadge source={geodata.sources.hazards} />
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-                <span>NASA FIRMS</span>
-                <SourceStatusBadge source={geodata.sources.hazardFire} />
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
-                <span>Open-Meteo</span>
-                <SourceStatusBadge source={geodata.sources.climate} />
-              </div>
-            </>
-          ) : (
-            <div className="text-sm text-[var(--muted-foreground)]">
-              Select a location to load earthquake, fire, and weather hazard context.
-            </div>
-          )}
-        </div>
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={hazardSources}
+          note="Earthquakes and fire detections are live feeds. Weather risk is a GeoSight-derived summary built from the loaded weather codes and forecast context."
+        />
       </CardContent>
     </Card>
   );
