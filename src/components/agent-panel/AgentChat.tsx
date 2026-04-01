@@ -81,6 +81,17 @@ function updateThreadMessage(
   };
 }
 
+function removeThreadMessage(
+  threads: Record<AgentId, AgentChatMessage[]>,
+  agentId: AgentId,
+  messageId: string,
+) {
+  return {
+    ...threads,
+    [agentId]: threads[agentId].filter((message) => message.id !== messageId),
+  };
+}
+
 function finalizeAssistantMessage(
   threads: Record<AgentId, AgentChatMessage[]>,
   agentId: AgentId,
@@ -114,6 +125,10 @@ async function readResponseError(response: Response) {
 
   const text = (await response.text()).trim();
   return text || DEFAULT_ERROR_MESSAGE;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 async function readStreamChunk(
@@ -165,6 +180,10 @@ export default function AgentChat() {
   const threadEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lastReportDraftTemplateRef = useRef<string | null>(null);
+  const requestIdsRef = useRef<Record<AgentId, number>>(createAgentRecord(() => 0));
+  const abortControllersRef = useRef<Record<AgentId, AbortController | null>>(
+    createAgentRecord(() => null),
+  );
 
   const activeThread = threads[activeAgentId];
   const activeDraft = drafts[activeAgentId];
@@ -245,6 +264,18 @@ export default function AgentChat() {
     lastReportDraftTemplateRef.current = nextTemplate;
   }, [uiContext?.reportDraftTemplate]);
 
+  useEffect(() => {
+    const requestIds = requestIdsRef.current;
+    const abortControllers = abortControllersRef.current;
+    return () => {
+      for (const agentId of AGENT_IDS) {
+        requestIds[agentId] += 1;
+        abortControllers[agentId]?.abort();
+        abortControllers[agentId] = null;
+      }
+    };
+  }, []);
+
   const setLoadingState = (agentId: AgentId, value: boolean) => {
     setLoadingByAgent((current) => ({
       ...current,
@@ -281,6 +312,12 @@ export default function AgentChat() {
     const appendUserMessage = options?.appendUserMessage ?? true;
     const assistantMessageId = crypto.randomUUID();
     const createdAt = new Date().toISOString();
+    const requestId = requestIdsRef.current[agentId] + 1;
+    const controller = new AbortController();
+
+    requestIdsRef.current[agentId] = requestId;
+    abortControllersRef.current[agentId]?.abort();
+    abortControllersRef.current[agentId] = controller;
 
     setAgentError(agentId, null);
     setResponseMode(agentId, null);
@@ -337,9 +374,15 @@ export default function AgentChat() {
                   }
                 : undefined,
           }),
+          signal: controller.signal,
         },
         AGENT_CONNECT_TIMEOUT_MS,
       );
+
+      if (requestId !== requestIdsRef.current[agentId] || controller.signal.aborted) {
+        return;
+      }
+
       setResponseMode(
         agentId,
         (response.headers.get("X-GeoSight-Mode") as AgentResponseMode) ?? null,
@@ -359,6 +402,11 @@ export default function AgentChat() {
           break;
         }
 
+        if (requestId !== requestIdsRef.current[agentId] || controller.signal.aborted) {
+          await reader.cancel();
+          return;
+        }
+
         const chunk = decoder.decode(value, { stream: true });
         if (!chunk) {
           continue;
@@ -375,6 +423,11 @@ export default function AgentChat() {
 
       const trailingChunk = decoder.decode();
       if (trailingChunk) {
+        if (requestId !== requestIdsRef.current[agentId] || controller.signal.aborted) {
+          await reader.cancel();
+          return;
+        }
+
         receivedContent = true;
         setThreads((current) =>
           updateThreadMessage(current, agentId, assistantMessageId, (message) => ({
@@ -388,6 +441,14 @@ export default function AgentChat() {
         throw new Error(DEFAULT_ERROR_MESSAGE);
       }
     } catch (error) {
+      if (
+        requestId !== requestIdsRef.current[agentId] ||
+        controller.signal.aborted ||
+        isAbortError(error)
+      ) {
+        return;
+      }
+
       setAgentError(agentId, {
         message:
           error instanceof Error && error.message.trim()
@@ -395,12 +456,18 @@ export default function AgentChat() {
             : DEFAULT_ERROR_MESSAGE,
         prompt: trimmedPrompt,
       });
-      setResponseMode(agentId, "fallback");
     } finally {
       setThreads((current) =>
-        finalizeAssistantMessage(current, agentId, assistantMessageId),
+        requestId === requestIdsRef.current[agentId] && !controller.signal.aborted
+          ? finalizeAssistantMessage(current, agentId, assistantMessageId)
+          : removeThreadMessage(current, agentId, assistantMessageId),
       );
-      setLoadingState(agentId, false);
+      if (requestId === requestIdsRef.current[agentId]) {
+        setLoadingState(agentId, false);
+        if (abortControllersRef.current[agentId] === controller) {
+          abortControllersRef.current[agentId] = null;
+        }
+      }
     }
   };
 

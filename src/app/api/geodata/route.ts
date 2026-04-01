@@ -4,6 +4,7 @@ import { getNearbyGroundwaterWells } from "@/lib/groundwater";
 import { getAirQuality } from "@/lib/air-quality";
 import { fetchCountyDemographics } from "@/lib/census";
 import { getEPAHazards } from "@/lib/epa-envirofacts";
+import { fetchEurostatBroadbandBaseline } from "@/lib/eurostat";
 import { getFloodZone } from "@/lib/fema-flood";
 import { getFCCBroadband } from "@/lib/fcc-broadband";
 import { toBoundingBox } from "@/lib/geospatial";
@@ -15,6 +16,7 @@ import {
   getElementCoordinates,
   OverpassElement,
 } from "@/lib/overpass";
+import { fetchGdacsAlertSummary } from "@/lib/gdacs";
 import { fetchFireHazardSummary, isFireHazardConfigured } from "@/lib/nasa-firms";
 import {
   applyRateLimit,
@@ -45,6 +47,7 @@ const OPTIONAL_PROVIDER_TIMEOUTS = {
   climateHistory: 8_500,
   airQuality: 7_000,
   epaHazards: 7_000,
+  gdacsAlerts: 8_500,
 } as const;
 
 function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -246,6 +249,11 @@ export async function GET(request: NextRequest) {
         "epa hazards",
       )
     : Promise.resolve(null);
+  const gdacsAlertPromise = withSoftTimeout(
+    fetchGdacsAlertSummary({ lat, lng }),
+    OPTIONAL_PROVIDER_TIMEOUTS.gdacsAlerts,
+    "gdacs alerts",
+  );
 
   const [
     elevationResult,
@@ -264,6 +272,7 @@ export async function GET(request: NextRequest) {
     climateHistoryResult,
     airQualityResult,
     epaHazardResult,
+    gdacsAlertResult,
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
@@ -290,6 +299,7 @@ export async function GET(request: NextRequest) {
       ),
       withSoftTimeout(getAirQuality(lat, lng), OPTIONAL_PROVIDER_TIMEOUTS.airQuality, "air quality"),
       epaHazardPromise,
+      gdacsAlertPromise,
     ]);
 
   const infrastructure =
@@ -315,8 +325,39 @@ export async function GET(request: NextRequest) {
     soilProfileResult.status === "fulfilled" ? soilProfileResult.value : null;
   const seismicDesign =
     seismicDesignResult.status === "fulfilled" ? seismicDesignResult.value : null;
+  const effectiveDemographics =
+    demographicsResult.status === "fulfilled"
+      ? demographicsResult.value
+      : {
+          countyName: null,
+          stateCode: null,
+          population: null,
+          medianHouseholdIncome: null,
+          medianHomeValue: null,
+          geographicGranularity: "country" as const,
+          populationReferenceYear: null,
+          incomeReferenceYear: null,
+          incomeDefinition: null,
+        };
   const climateHistory =
     climateHistoryResult.status === "fulfilled" ? climateHistoryResult.value : null;
+  const eurostatBroadband =
+    !isUsPoint &&
+    registryContext.countryCode &&
+    registryContext.scopes.includes("europe")
+      ? await withSoftTimeout(
+          fetchEurostatBroadbandBaseline(
+            registryContext.countryCode,
+            effectiveDemographics.countyName ?? registryContext.countryCode,
+          ),
+          OPTIONAL_PROVIDER_TIMEOUTS.broadband,
+          "eurostat broadband",
+        ).catch(() => null)
+      : null;
+  const broadbandData =
+    isUsPoint && broadbandResult.status === "fulfilled"
+      ? broadbandResult.value
+      : eurostatBroadband;
   const streamGauges =
     isUsPoint && waterGaugeResult.status === "fulfilled"
       ? sanitizeStreamGauges(waterGaugeResult.value)
@@ -335,7 +376,7 @@ export async function GET(request: NextRequest) {
     nearestPower: buildNearestFeature({ lat, lng }, power, "Transmission infrastructure"),
     climate:
       climateResult.status === "fulfilled"
-        ? climateResult.value
+        ? climateResult.value.climate
         : {
             currentTempC: null,
             averageTempC: null,
@@ -347,6 +388,8 @@ export async function GET(request: NextRequest) {
             airQualityIndex: null,
             weatherRiskSummary: null,
           },
+    weatherForecast:
+      climateResult.status === "fulfilled" ? climateResult.value.forecast : [],
     hazards:
       hazardResult.status === "fulfilled"
         ? {
@@ -373,16 +416,7 @@ export async function GET(request: NextRequest) {
                 ? fireHazardResult.value.nearestFireKm
                 : null,
           },
-    demographics:
-      demographicsResult.status === "fulfilled"
-        ? demographicsResult.value
-        : {
-            countyName: null,
-            stateCode: null,
-            population: null,
-            medianHouseholdIncome: null,
-            medianHomeValue: null,
-          },
+    demographics: effectiveDemographics,
     amenities:
       infrastructureResult.status === "fulfilled"
         ? amenitySignals
@@ -395,7 +429,7 @@ export async function GET(request: NextRequest) {
             trailheadCount: null,
             commercialCount: null,
           },
-    broadband: isUsPoint && broadbandResult.status === "fulfilled" ? broadbandResult.value : null,
+    broadband: broadbandData,
     floodZone: isUsPoint && floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
     streamGauges,
     groundwater:
@@ -407,6 +441,7 @@ export async function GET(request: NextRequest) {
     climateHistory,
     airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
     epaHazards: isUsPoint && epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
+    hazardAlerts: gdacsAlertResult.status === "fulfilled" ? gdacsAlertResult.value : null,
     schoolContext:
       schoolResult.status === "fulfilled"
         ? summarizeSchoolContext(schoolResult.value)
@@ -456,8 +491,8 @@ export async function GET(request: NextRequest) {
         context: registryContext,
         status:
           climateResult.status === "fulfilled" &&
-          (climateResult.value.currentTempC !== null || climateResult.value.airQualityIndex !== null)
-            ? climateResult.value.airQualityIndex === null
+          (climateResult.value.climate.currentTempC !== null || climateResult.value.climate.airQualityIndex !== null)
+            ? climateResult.value.climate.airQualityIndex === null
               ? "limited"
               : "live"
             : "unavailable",
@@ -515,8 +550,13 @@ export async function GET(request: NextRequest) {
       demographics: buildRegistryAwareSourceMeta({
         id: "demographics",
         label: "Demographics",
-        provider: registryContext.countryCode && registryContext.countryCode !== "US"
-          ? "World Bank Open Data"
+        provider:
+          registryContext.countryCode &&
+          registryContext.countryCode !== "US" &&
+          registryContext.scopes.includes("europe")
+            ? "Eurostat"
+            : registryContext.countryCode && registryContext.countryCode !== "US"
+              ? "World Bank Open Data"
           : "FCC + US Census ACS 5-year",
         domain: "demographics",
         context: registryContext,
@@ -528,11 +568,23 @@ export async function GET(request: NextRequest) {
               ? "limited"
               : "unavailable",
         lastUpdated: now,
-        freshness: "ACS 5-year estimates, cached 24 hours",
-        coverage: "US county-level via FCC + ACS; national indicators via World Bank for non-US",
+        freshness:
+          effectiveDemographics.geographicGranularity === "country" &&
+          registryContext.scopes.includes("europe")
+            ? "Official Eurostat annual/statistical releases"
+            : "ACS 5-year estimates, cached 24 hours",
+        coverage:
+          registryContext.scopes.includes("europe")
+            ? "US county-level via FCC + ACS; Europe country-level via Eurostat; World Bank fallback elsewhere"
+            : "US county-level via FCC + ACS; national indicators via World Bank for non-US",
         confidence:
           demographicsResult.status === "fulfilled"
-            ? "US locations use county-level demographics; non-US locations use national-level World Bank indicators."
+            ? effectiveDemographics.geographicGranularity === "country" &&
+              registryContext.scopes.includes("europe")
+              ? "European locations use Eurostat country-level population and median equivalised net income. This is official national context, not parcel or city-level demographics."
+              : effectiveDemographics.geographicGranularity === "country"
+                ? "Non-US locations use national-level fallback indicators rather than parcel or city-level demographics."
+                : "US locations use county-level demographics from FCC + ACS."
             : "Demographic coverage is unavailable for this point.",
       }),
       amenities: buildRegistryAwareSourceMeta({
@@ -616,24 +668,41 @@ export async function GET(request: NextRequest) {
       broadband: buildRegistryAwareSourceMeta({
         id: "broadband",
         label: "Broadband availability",
-        provider: "FCC Broadband Map",
+        provider:
+          broadbandData?.kind === "regional_household_baseline"
+            ? "Eurostat"
+            : "FCC Broadband Map",
         domain: "broadband",
         context: registryContext,
         status:
-          !isUsPoint
-            ? "unavailable"
-            : broadbandResult.status === "fulfilled" && broadbandResult.value
-              ? "live"
-              : "limited",
+          broadbandData
+            ? "live"
+            : !isUsPoint && registryContext.scopes.includes("europe")
+              ? "limited"
+              : !isUsPoint
+                ? "unavailable"
+                : "limited",
         lastUpdated: now,
-        freshness: "Cached up to 24 hours",
-        coverage: "United States only",
+        freshness:
+          broadbandData?.kind === "regional_household_baseline"
+            ? "Official annual Eurostat household survey releases"
+            : "Cached up to 24 hours",
+        coverage:
+          broadbandData?.kind === "regional_household_baseline"
+            ? "Europe country-level household broadband baseline"
+            : "United States address-level availability",
         confidence:
-          !isUsPoint
-            ? "FCC broadband availability is only supported for US locations."
-            : broadbandResult.status === "fulfilled" && broadbandResult.value
-              ? "Direct provider availability summary from the FCC Broadband Map."
-              : "Broadband availability could not be confirmed for this point from the FCC public endpoint.",
+          broadbandData?.kind === "regional_household_baseline"
+            ? "Eurostat provides country-level household fixed and mobile broadband percentages. This is a regional baseline, not a point-specific service lookup."
+            : !isUsPoint
+              ? "Point-specific broadband availability is not yet supported for this region."
+              : broadbandResult.status === "fulfilled" && broadbandResult.value
+                ? "Direct provider availability summary from the FCC Broadband Map."
+                : "Broadband availability could not be confirmed for this point from the FCC public endpoint.",
+        note:
+          broadbandData?.kind === "regional_household_baseline"
+            ? `${broadbandData.regionLabel} uses Eurostat household broadband percentages from ${broadbandData.referenceYear ?? "the latest available year"}, so treat this as national connectivity context rather than exact service at the selected point.`
+            : undefined,
       }),
       floodZone: buildRegistryAwareSourceMeta({
         id: "flood-zone",
@@ -787,8 +856,31 @@ export async function GET(request: NextRequest) {
           !isUsPoint
             ? "EPA contamination screening is currently US-only."
             : epaHazardResult.status === "fulfilled"
-              ? "Nearby Superfund and TRI counts are screened from EPA public datasets, then distance-filtered around the selected point."
-              : "EPA contamination-screening results could not be assembled for this point.",
+            ? "Nearby Superfund and TRI counts are screened from EPA public datasets, then distance-filtered around the selected point."
+            : "EPA contamination-screening results could not be assembled for this point.",
+      }),
+      hazardAlerts: buildRegistryAwareSourceMeta({
+        id: "hazard-alerts",
+        label: "Global disaster alerts",
+        provider: "GDACS",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          gdacsAlertResult.status === "fulfilled" && gdacsAlertResult.value
+            ? "live"
+            : "limited",
+        lastUpdated: now,
+        freshness: "Live feed cached up to 15 minutes",
+        coverage: "Global active disaster notifications",
+        accessType: "api",
+        confidence:
+          gdacsAlertResult.status === "fulfilled" && gdacsAlertResult.value
+            ? gdacsAlertResult.value.elevatedCurrentAlerts > 0
+              ? "GDACS is a global alerting feed for major disaster notifications. It complements local hazard layers but does not model parcel-level impact."
+              : "GDACS returned current global alerts, but no Orange or Red escalation is active in the latest feed."
+            : "GDACS alert feed could not be retrieved for this point right now.",
+        note:
+          "GDACS provides broad global disaster notifications for earthquakes, floods, volcanoes, drought, tropical cyclones, and related events.",
       }),
     },
     sourceNotes: [
@@ -800,13 +892,21 @@ export async function GET(request: NextRequest) {
       fireHazardConfigured
         ? "NASA FIRMS VIIRS fire detections summarized within the active region."
         : "NASA FIRMS fire detections are available when NASA_FIRMS_MAP_KEY is configured.",
-      "FCC county lookup with ACS 5-year Census demographics, with World Bank national indicators for non-US locations.",
+      registryContext.scopes.includes("europe")
+        ? "FCC + ACS support US county demographics, while Eurostat provides Europe country-level population and median income baselines."
+        : "FCC county lookup with ACS 5-year Census demographics, with World Bank national indicators for non-US locations.",
+      broadbandData?.kind === "regional_household_baseline"
+        ? `Eurostat household fixed/mobile broadband percentages provide a ${broadbandData.regionLabel} country-level connectivity baseline for ${broadbandData.referenceYear ?? "the latest available year"}.`
+        : null,
       "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
       "NRCS Soil Data Access provides mapped soil drainage, water-table, bedrock, and texture context for US points.",
       "USGS seismic design maps provide ASCE 7-22 ground-shaking parameters for US points.",
       "Open-Meteo historical archive powers the 2015-2024 climate trend summaries.",
+      "GDACS global disaster notifications provide broad alert context for major current events.",
       !isUsPoint
-        ? "FCC Broadband Map, FEMA flood zones, USGS Water Services, groundwater wells, NRCS soils, seismic design maps, and EPA contamination screening are currently US-only."
+        ? registryContext.scopes.includes("europe")
+          ? "Europe currently uses Eurostat for country-level broadband baselines, while flood zones, USGS Water Services, groundwater wells, NRCS soils, seismic design maps, and EPA contamination screening remain US-only."
+          : "Broadband point lookups, FEMA flood zones, USGS Water Services, groundwater wells, NRCS soils, seismic design maps, and EPA contamination screening are currently US-only."
         : null,
     ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };

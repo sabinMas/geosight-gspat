@@ -104,7 +104,9 @@ export type WorkspaceCardId =
   | "groundwater"
   | "soil-profile"
   | "seismic-design"
-  | "climate-history";
+  | "climate-history"
+  | "weather-forecast"
+  | "demographics-context";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -307,6 +309,44 @@ export interface DataSourceMeta {
   fallbackProviders?: string[];
 }
 
+export interface GdacsAlertSummaryItem {
+  eventId: number;
+  episodeId: number;
+  eventType: string;
+  eventLabel: string;
+  alertLevel: string;
+  alertScore: number | null;
+  country: string;
+  description: string;
+  distanceKm: number | null;
+  fromDate: string | null;
+  toDate: string | null;
+  datemodified: string | null;
+  reportUrl: string | null;
+}
+
+export interface GdacsAlertSummary {
+  totalCurrentAlerts: number;
+  elevatedCurrentAlerts: number;
+  redCurrentAlerts: number;
+  orangeCurrentAlerts: number;
+  nearestAlert: GdacsAlertSummaryItem | null;
+  featuredAlerts: GdacsAlertSummaryItem[];
+}
+
+export interface WeatherForecastDay {
+  date: string;
+  dayLabel: string;
+  conditionLabel: string | null;
+  weatherCode: number | null;
+  highTempC: number | null;
+  lowTempC: number | null;
+  precipitationMm: number | null;
+  precipitationProbability: number | null;
+  windSpeedKph: number | null;
+  uvIndex: number | null;
+}
+
 export interface SavedBoard {
   id: string;
   name: string;
@@ -387,13 +427,43 @@ export interface SchoolContextResult extends SchoolContextSummary {
   notes: string[];
 }
 
-export interface BroadbandResult {
+export type BroadbandGranularity = "address" | "country";
+
+interface BroadbandResultBase {
+  kind: "address_availability" | "regional_household_baseline";
+  granularity: BroadbandGranularity;
+  regionLabel: string | null;
+  referenceYear: number | null;
+  technologies: string[];
+}
+
+export interface AddressBroadbandResult extends BroadbandResultBase {
+  kind: "address_availability";
+  granularity: "address";
+  regionLabel: null;
+  referenceYear: null;
   maxDownloadSpeed: number;
   maxUploadSpeed: number;
   providerCount: number;
-  technologies: string[];
   hasFiber: boolean;
+  fixedBroadbandCoveragePercent: null;
+  mobileBroadbandCoveragePercent: null;
 }
+
+export interface RegionalBroadbandBaselineResult extends BroadbandResultBase {
+  kind: "regional_household_baseline";
+  granularity: "country";
+  regionLabel: string;
+  referenceYear: number | null;
+  maxDownloadSpeed: 0;
+  maxUploadSpeed: 0;
+  providerCount: 0;
+  hasFiber: false;
+  fixedBroadbandCoveragePercent: number | null;
+  mobileBroadbandCoveragePercent: number | null;
+}
+
+export type BroadbandResult = AddressBroadbandResult | RegionalBroadbandBaselineResult;
 
 export interface FloodZoneResult {
   floodZone: string;
@@ -492,6 +562,10 @@ export interface GeodataResult {
     population: number | null;
     medianHouseholdIncome: number | null;
     medianHomeValue: number | null;
+    geographicGranularity: "county" | "country";
+    populationReferenceYear: number | null;
+    incomeReferenceYear: number | null;
+    incomeDefinition: string | null;
   };
   amenities: {
     schoolCount: number | null;
@@ -511,6 +585,8 @@ export interface GeodataResult {
   climateHistory: ClimateHistoryResult | null;
   airQuality: AirQualityResult | null;
   epaHazards: EPAHazardResult | null;
+  hazardAlerts: GdacsAlertSummary | null;
+  weatherForecast: WeatherForecastDay[];
   schoolContext: SchoolContextSummary | null;
   landClassification: LandCoverBucket[];
   sources: {
@@ -532,6 +608,7 @@ export interface GeodataResult {
     climateHistory: DataSourceMeta;
     airQuality: DataSourceMeta;
     epaHazards: DataSourceMeta;
+    hazardAlerts: DataSourceMeta;
   };
   sourceNotes: string[];
 }
@@ -628,10 +705,16 @@ export interface SiteFactorScore {
 }
 
 export interface BroadbandScoreSummary {
+  kind: BroadbandResult["kind"];
+  granularity: BroadbandGranularity;
+  regionLabel: string | null;
+  referenceYear: number | null;
   maxDownloadSpeed: number;
   maxUploadSpeed: number;
   providerCount: number;
   technologies: string[];
+  fixedBroadbandCoveragePercent: number | null;
+  mobileBroadbandCoveragePercent: number | null;
   score: number | null;
 }
 

@@ -250,11 +250,11 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
   {
     id: "hazard-context",
     title: "Hazard context",
-    summary: "Earthquakes, active fires, and weather risk signals for the active area.",
+    summary: "Earthquakes, active fires, global disaster alerts, and weather risk signals for the active area.",
     questionAnswered: "What live risk signals stand out at this location right now?",
-    regionCoverage: "Global earthquakes via USGS; global fire via NASA FIRMS; global weather via Open-Meteo",
+    regionCoverage: "Global earthquakes via USGS; global fire via NASA FIRMS; global weather via Open-Meteo; global disaster alerts via GDACS",
     failureMode: "Each signal degrades independently and shows status badge when limited or unavailable",
-    freshnessWindow: "Earthquakes 6h / Fire 3h / Weather 6h",
+    freshnessWindow: "Earthquakes 6h / Fire 3h / Weather 6h / GDACS 15m",
     nextActions: ["Compare hazard signals across saved sites", "Open source awareness for data limits", "Ask GeoSight to interpret the risk profile"],
     icon: "ShieldAlert",
     category: "planning",
@@ -290,11 +290,11 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
   {
     id: "broadband-context",
     title: "Broadband context",
-    summary: "Peak speeds, provider count, and technology mix for the active point.",
+    summary: "Point-level FCC availability in the US, plus Eurostat household broadband baselines in Europe.",
     questionAnswered: "How strong is the fixed-broadband baseline here right now?",
-    regionCoverage: "United States only via FCC Broadband Map",
-    failureMode: "Shows unavailable or limited state explicitly when the FCC endpoint or region is unsupported",
-    freshnessWindow: "Cached up to 24 hours",
+    regionCoverage: "US address-level via FCC Broadband Map; Europe country-level household baseline via Eurostat",
+    failureMode: "Shows unavailable or limited state explicitly when the point lookup or country-level baseline is unsupported",
+    freshnessWindow: "FCC cached up to 24 hours; Eurostat follows official annual releases",
     nextActions: ["Compare another corridor", "Pair with mission score", "Open source awareness for limits"],
     icon: "Wifi",
     category: "planning",
@@ -305,7 +305,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultOrder: 118,
     requiredData: ["geodata", "score"],
     supportedProfiles: ["data-center", "residential"],
-    emptyState: "Select a US location to inspect FCC broadband availability context.",
+    emptyState: "Select a location to inspect broadband context for the active point or region.",
   },
   {
     id: "flood-risk",
@@ -447,6 +447,46 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     supportedProfiles: ["data-center", "residential"],
     emptyState: "Select a US location to inspect nearby EPA contamination-screening context.",
   },
+  {
+    id: "weather-forecast",
+    title: "7-day forecast",
+    summary: "Daily high/low temperatures, precipitation probability, wind, and UV outlook for the week ahead.",
+    questionAnswered: "What weather should I expect at this location over the next week?",
+    regionCoverage: "Global via Open-Meteo",
+    failureMode: "Shows unavailable state if Open-Meteo cannot return a forecast",
+    freshnessWindow: "Cached up to 6 hours",
+    nextActions: ["Compare seasonal climate history", "Check air quality", "Evaluate for outdoor activities"],
+    icon: "CloudSun",
+    category: "context",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "standard",
+    defaultVisibility: true,
+    defaultOrder: 123,
+    requiredData: ["geodata"],
+    supportedProfiles: ["hiking", "residential", "data-center", "commercial"],
+    emptyState: "Select a location to load the 7-day weather forecast.",
+  },
+  {
+    id: "demographics-context",
+    title: "Demographics",
+    summary: "Population, median household income, and home value context for the surrounding area.",
+    questionAnswered: "What does the population and income profile of this area look like?",
+    regionCoverage: "US county-level via ACS; Europe country-level via Eurostat; global via World Bank",
+    failureMode: "Shows coverage gap explicitly when demographic data is unavailable",
+    freshnessWindow: "ACS 5-year estimates updated annually; Eurostat annual statistical releases",
+    nextActions: ["Check school context", "Compare another candidate", "Use with broadband and amenities context"],
+    icon: "Users",
+    category: "context",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "standard",
+    defaultVisibility: false,
+    defaultOrder: 124,
+    requiredData: ["geodata"],
+    supportedProfiles: ["residential", "commercial", "data-center"],
+    emptyState: "Select a location to load area demographics.",
+  },
 ] as const;
 
 function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
@@ -475,6 +515,10 @@ function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
       return ["ask_schools"];
     case "hazard-context":
       return ["ask_hazard"];
+    case "weather-forecast":
+      return ["ask_reasoning", "ask_hazard", "location_selected"];
+    case "demographics-context":
+      return ["ask_reasoning", "location_selected"];
     default:
       return ["ask_reasoning"];
   }
