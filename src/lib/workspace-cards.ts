@@ -605,8 +605,8 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 ) as Record<WorkspaceCardId, WorkspaceCardDefinition>;
 
 const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
-  "data-center": ["active-location", "chat", "results"],
-  hiking: ["active-location", "chat", "results"],
+  "data-center": ["active-location", "chat", "results", "weather-forecast"],
+  hiking: ["active-location", "chat", "results", "weather-forecast"],
   "home-buying": [
     "active-location",
     "chat",
@@ -616,9 +616,18 @@ const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
     "broadband-context",
     "flood-risk",
     "air-quality",
+    "weather-forecast",
+    "demographics-context",
   ],
-  "site-development": ["active-location", "chat", "results", "score"],
-  commercial: ["active-location", "chat", "results"],
+  "site-development": [
+    "active-location",
+    "chat",
+    "results",
+    "score",
+    "weather-forecast",
+    "demographics-context",
+  ],
+  commercial: ["active-location", "chat", "results", "demographics-context"],
 };
 
 export function getWorkspaceCardDefaults(profileId: string) {

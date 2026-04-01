@@ -253,6 +253,14 @@ function payloadBroadbandLine(geodata?: GeodataResult) {
     return "unavailable broadband";
   }
 
+  if (geodata.broadband.kind === "regional_household_baseline") {
+    return `${geodata.broadband.regionLabel} baseline with ${
+      geodata.broadband.fixedBroadbandCoveragePercent === null
+        ? "unknown"
+        : `${geodata.broadband.fixedBroadbandCoveragePercent.toFixed(1)}%`
+    } fixed-broadband households`;
+  }
+
   return geodata.broadband.maxDownloadSpeed <= 0
     ? `${geodata.broadband.providerCount} providers`
     : `${geodata.broadband.maxDownloadSpeed.toLocaleString()} Mbps down across ${geodata.broadband.providerCount} providers`;
@@ -429,6 +437,15 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
     payload.geodata?.climate?.currentTempC !== undefined
       ? `Current weather snapshot: ${payload.geodata.climate.currentTempC.toFixed(1)} C now, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h, AQI ${payload.geodata.climate.airQualityIndex ?? "unknown"}.`
       : "Current weather snapshot is currently unavailable.",
+    payload.geodata?.weatherForecast?.length
+      ? `7-day weather forecast (Open-Meteo, direct live): ${payload.geodata.weatherForecast
+          .slice(0, 7)
+          .map(
+            (day, i) =>
+              `${i === 0 ? "Today" : day.dayLabel} ${day.conditionLabel ?? "—"} ${day.highTempC !== null ? `H ${Math.round(day.highTempC)}C` : ""} ${day.lowTempC !== null ? `L ${Math.round(day.lowTempC)}C` : ""} ${day.precipitationProbability !== null ? `${day.precipitationProbability}% rain` : ""}`.trim(),
+          )
+          .join(" | ")}.`
+      : "7-day weather forecast is currently unavailable.",
     payload.geodata?.nearestWaterBody
       ? `Nearest mapped water feature: ${payload.geodata.nearestWaterBody.name} (${payload.geodata.nearestWaterBody.distanceKm ?? "unknown"} km).`
       : "Water proximity is currently unavailable.",
@@ -439,7 +456,9 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
       ? `Nearest mapped power infrastructure: ${payload.geodata.nearestPower.name} (${payload.geodata.nearestPower.distanceKm ?? "unknown"} km).`
       : "Power access is currently unavailable.",
     payload.geodata?.broadband
-      ? `Broadband context: ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadSpeed || "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadSpeed || "unknown"} Mbps up.`
+      ? payload.geodata.broadband.kind === "regional_household_baseline"
+        ? `Broadband context: ${payload.geodata.broadband.regionLabel} country-level Eurostat baseline with ${payload.geodata.broadband.fixedBroadbandCoveragePercent ?? "unknown"}% fixed-broadband households and ${payload.geodata.broadband.mobileBroadbandCoveragePercent ?? "unknown"}% mobile-broadband households.`
+        : `Broadband context: ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadSpeed || "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadSpeed || "unknown"} Mbps up.`
       : "Broadband context is currently unavailable.",
     payload.geodata?.floodZone
       ? `FEMA flood zone: ${payload.geodata.floodZone.label}.`
@@ -460,6 +479,13 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
     payload.geodata?.hazards?.earthquakeCount30d !== undefined
       ? `Recent seismic context: ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
       : "Recent seismic context is currently unavailable.",
+    payload.geodata?.hazardAlerts
+      ? `Global disaster alerts (GDACS): ${payload.geodata.hazardAlerts.totalCurrentAlerts} current events worldwide; ${payload.geodata.hazardAlerts.elevatedCurrentAlerts} elevated (orange/red); nearest event ${payload.geodata.hazardAlerts.nearestAlert ? `${payload.geodata.hazardAlerts.nearestAlert.eventLabel} at ${payload.geodata.hazardAlerts.nearestAlert.distanceKm ?? "unknown"} km (${payload.geodata.hazardAlerts.nearestAlert.alertLevel})` : "none with known distance"}.`
+      : "Global disaster alert context (GDACS) is currently unavailable.",
+    payload.geodata?.demographics?.population !== null &&
+    payload.geodata?.demographics?.population !== undefined
+      ? `Area demographics (${payload.geodata.demographics.geographicGranularity}-level, ${payload.geodata.demographics.populationReferenceYear ?? "latest"}): ${new Intl.NumberFormat("en-US").format(payload.geodata.demographics.population)} population; median income ${payload.geodata.demographics.medianHouseholdIncome !== null ? `${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(payload.geodata.demographics.medianHouseholdIncome)}` : "unavailable"}${payload.geodata.demographics.medianHomeValue !== null ? `; median home value ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(payload.geodata.demographics.medianHomeValue)}` : ""}. Source: ${payload.geodata.sources.demographics.provider}. ${payload.geodata.demographics.incomeDefinition ?? ""}`
+      : "Area demographics are currently unavailable.",
     payload.geodata?.amenities?.schoolCount !== null &&
     payload.geodata?.amenities?.schoolCount !== undefined
       ? `Mapped amenities: ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, and ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues in the active analysis area.`
@@ -527,12 +553,14 @@ function buildHazardSummary(payload: AnalyzeRequestBody) {
   const contaminationCount = payload.geodata?.epaHazards?.superfundCount ?? 0;
   const recentEarthquakes = payload.geodata?.hazards?.earthquakeCount30d ?? 0;
   const aqi = payload.geodata?.climate.airQualityIndex;
+  const elevatedGdacs = payload.geodata?.hazardAlerts?.elevatedCurrentAlerts ?? 0;
+  const redGdacs = payload.geodata?.hazardAlerts?.redCurrentAlerts ?? 0;
 
-  if (isFloodRisk || contaminationCount > 0 || (aqi !== null && aqi !== undefined && aqi >= 100)) {
+  if (redGdacs > 0 || isFloodRisk || contaminationCount > 0 || (aqi !== null && aqi !== undefined && aqi >= 100)) {
     return "There are meaningful loaded hazard signals here, so this location should be treated as a review-first site rather than a clean yes/no candidate.";
   }
 
-  if (recentEarthquakes > 0 || payload.geodata?.floodZone || payload.geodata?.epaHazards) {
+  if (elevatedGdacs > 0 || recentEarthquakes > 0 || payload.geodata?.floodZone || payload.geodata?.epaHazards) {
     return "No single loaded hazard dominates yet, but GeoSight does have enough risk context to justify a closer look before making a final decision.";
   }
 
@@ -558,14 +586,17 @@ function buildTerrainSummary(payload: AnalyzeRequestBody) {
 function buildDevelopmentSummary(payload: AnalyzeRequestBody) {
   const roadKm = payload.geodata?.nearestRoad.distanceKm;
   const floodLabel = payload.geodata?.floodZone?.label;
-  const broadbandProviders = payload.geodata?.broadband?.providerCount;
+  const broadbandSignal =
+    payload.geodata?.broadband?.kind === "regional_household_baseline"
+      ? payload.geodata.broadband.fixedBroadbandCoveragePercent
+      : payload.geodata?.broadband?.providerCount;
   const schoolScore = payload.geodata?.schoolContext?.score;
 
   if (
     roadKm !== null &&
     roadKm !== undefined &&
-    broadbandProviders !== null &&
-    broadbandProviders !== undefined
+    broadbandSignal !== null &&
+    broadbandSignal !== undefined
   ) {
     const schoolClause =
       schoolScore !== null && schoolScore !== undefined
@@ -580,7 +611,10 @@ function buildDevelopmentSummary(payload: AnalyzeRequestBody) {
 function buildInfrastructureSummary(payload: AnalyzeRequestBody) {
   const waterKm = payload.geodata?.nearestWaterBody.distanceKm;
   const powerKm = payload.geodata?.nearestPower.distanceKm;
-  const broadband = payload.geodata?.broadband?.maxDownloadSpeed;
+  const broadband =
+    payload.geodata?.broadband?.kind === "regional_household_baseline"
+      ? payload.geodata.broadband.fixedBroadbandCoveragePercent
+      : payload.geodata?.broadband?.maxDownloadSpeed;
 
   if (
     waterKm !== null &&
@@ -588,7 +622,13 @@ function buildInfrastructureSummary(payload: AnalyzeRequestBody) {
     powerKm !== null &&
     powerKm !== undefined
   ) {
-    return `This location has enough infrastructure context loaded to judge water, power, and access at a screening level${broadband ? `, with broadband currently topping out at ${broadband} Mbps down` : ""}.`;
+    return `This location has enough infrastructure context loaded to judge water, power, and access at a screening level${
+      broadband
+        ? payload.geodata?.broadband?.kind === "regional_household_baseline"
+          ? `, with a country-level fixed-broadband household baseline around ${broadband}%`
+          : `, with broadband currently topping out at ${broadband} Mbps down`
+        : ""
+    }.`;
   }
 
   return "GeoSight can only make a partial infrastructure read here until more power, access, or utility context is loaded.";
@@ -724,6 +764,7 @@ export function buildFallbackAssessment(
         .filter((fact) =>
           fact.includes("FEMA flood zone") ||
           fact.includes("Recent seismic context") ||
+          fact.includes("Global disaster alerts") ||
           fact.includes("Air-quality") ||
           fact.includes("EPA screening") ||
           fact.includes("Current weather snapshot"),
