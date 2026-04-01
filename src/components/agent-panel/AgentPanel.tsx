@@ -43,12 +43,14 @@ function AgentPanelDrawer() {
       <div
         id="geosight-agent-panel"
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 transform-gpu transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
-          panelOpen ? "translate-y-0" : "pointer-events-none translate-y-full",
+          "fixed bottom-20 right-4 z-40 w-[420px] max-w-[calc(100vw-2rem)] transform-gpu transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6",
+          panelOpen
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-4 opacity-0",
         )}
         aria-hidden={!panelOpen}
       >
-        <div className="h-[320px] border-t border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 pb-4 pt-4 shadow-[var(--shadow-panel)] backdrop-blur-xl md:px-6">
+        <div className="glass-panel h-[480px] max-h-[60vh] rounded-2xl px-4 pb-4 pt-4 md:px-5">
           <div className="flex h-full flex-col gap-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -85,8 +87,8 @@ function AgentPanelDrawer() {
           type="button"
           variant="secondary"
           className={cn(
-            "fixed right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
-            panelOpen ? "bottom-[336px]" : "bottom-4",
+            "fixed bottom-4 right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
+            panelOpen ? "opacity-100" : "opacity-100",
           )}
           onClick={() => {
             if (panelOpen) {

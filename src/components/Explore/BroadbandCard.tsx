@@ -11,6 +11,16 @@ function formatTechnologyLabel(value: string) {
   return value.replaceAll("_", " ");
 }
 
+function getBroadbandSummary(downloadMbps: number, providerCount: number) {
+  if (downloadMbps >= 500 || providerCount >= 4) {
+    return "Excellent";
+  }
+  if (downloadMbps >= 100 || providerCount >= 2) {
+    return "Good";
+  }
+  return "Limited";
+}
+
 export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
   if (!geodata) {
     return null;
@@ -27,6 +37,14 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
       <CardContent className="space-y-4">
         {broadband ? (
           <>
+            <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
+              Internet: {getBroadbandSummary(broadband.maxDownloadSpeed, broadband.providerCount)}
+            </div>
+
+            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
+              GeoSight summarizes internet quality first, then keeps the detailed provider and speed readout below.
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
                 <div className="eyebrow">Max download</div>
@@ -52,8 +70,10 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
               </div>
             </div>
 
-            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-              <div className="eyebrow">Technology mix</div>
+            <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+                Technical details
+              </summary>
               <div className="mt-3 flex flex-wrap gap-2">
                 {broadband.technologies.length ? (
                   broadband.technologies.map((technology) => (
@@ -83,7 +103,7 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
                   </span>
                 </div>
               ) : null}
-            </div>
+            </details>
           </>
         ) : (
           <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">

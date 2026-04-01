@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { fetchWithTimeout } from "@/lib/network";
 import {
   ChatMessage,
+  ConversationMessage,
   Coordinates,
   DataTrend,
   DataSourceMeta,
@@ -70,6 +71,9 @@ export function ChatPanel({
   ]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState<{
+    liveAnalysisAvailable: boolean;
+  } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const suggestionPrompts = profile.exampleQuestions.length
@@ -114,6 +118,39 @@ export function ChatPanel({
       : "Analysis answers should stay inside these live and derived inputs and call out any important gaps.";
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadAiStatus() {
+      try {
+        const response = await fetchWithTimeout("/api/ai-status", {}, 10_000);
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          liveAnalysisAvailable?: boolean;
+        };
+
+        if (!cancelled) {
+          setAiStatus({
+            liveAnalysisAvailable: Boolean(payload.liveAnalysisAvailable),
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setAiStatus(null);
+        }
+      }
+    }
+
+    void loadAiStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const viewport = messagesViewportRef.current;
     if (!viewport) {
       return;
@@ -141,6 +178,10 @@ export function ChatPanel({
     setLoading(true);
 
     try {
+      const conversationMessages: ConversationMessage[] = nextMessages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
       const response = await fetchWithTimeout(
         "/api/analyze",
         {
@@ -149,6 +190,7 @@ export function ChatPanel({
           body: JSON.stringify({
             profileId: profile.id,
             question: trimmedQuestion,
+            messages: conversationMessages,
             location,
             locationName,
             resultsMode,
@@ -162,14 +204,23 @@ export function ChatPanel({
         },
         20_000,
       );
-      const data = (await response.json()) as { answer?: string; error?: string };
+      const data = (await response.json()) as {
+        answer?: string;
+        error?: string;
+        fallbackMode?: boolean;
+      };
       if (!response.ok || !data.answer) {
         throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
       }
 
+      const assistantReply =
+        data.fallbackMode && aiStatus?.liveAnalysisAvailable === false
+          ? `${data.answer}\n\n> GeoSight is currently in fallback mode because live AI providers are not configured or are unavailable.`
+          : data.answer;
+
       setMessages([
         ...nextMessages,
-        { id: crypto.randomUUID(), role: "assistant", content: data.answer },
+        { id: crypto.randomUUID(), role: "assistant", content: assistantReply },
       ]);
     } catch (error) {
       setMessages([
@@ -200,6 +251,7 @@ export function ChatPanel({
     profile.id,
     resultsMode,
     loading,
+    aiStatus?.liveAnalysisAvailable,
   ]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -222,6 +274,11 @@ export function ChatPanel({
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           {profile.name} profile / {resultsMode === "analysis" ? "Analysis" : "Nearby places"}
         </p>
+        {aiStatus?.liveAnalysisAvailable === false ? (
+          <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
+            Fallback mode
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">

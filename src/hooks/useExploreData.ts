@@ -97,7 +97,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     loading: housingMarketLoading,
     error: housingMarketError,
   } = useHousingMarket(
-    activeProfile.id === "residential" && state.locationReady,
+    activeProfile.id === "home-buying" && state.locationReady,
     geodata?.demographics.countyName,
     geodata?.demographics.stateCode,
     selectedLocationName,

@@ -1,7 +1,7 @@
 import { ExploreInitState, LandingUseCase } from "@/types";
 import { toLensParam } from "@/lib/lenses";
 
-export const GENERAL_EXPLORATION_PROFILE_ID = "residential";
+export const GENERAL_EXPLORATION_PROFILE_ID = "home-buying";
 
 export interface SurpriseLocation {
   name: string;
@@ -13,8 +13,8 @@ export const EXAMPLE_STARTERS: LandingUseCase[] = [
   {
     id: "home-buying",
     title: "Home Buying",
-    description: "Screen neighborhoods for access, terrain, amenities, and early risk signals.",
-    profileId: "residential",
+    description: "Screen neighborhoods for schools, amenities, internet quality, and early risk signals.",
+    profileId: "home-buying",
     accentColor: "#ffab00",
     icon: "House",
     suggestedQuery: "Bellevue, WA",
@@ -41,7 +41,7 @@ export const EXAMPLE_STARTERS: LandingUseCase[] = [
     id: "site-development",
     title: "Site Development",
     description: "Check buildability, infrastructure context, hazards, and future development fit.",
-    profileId: "residential",
+    profileId: "site-development",
     accentColor: "#ffab00",
     icon: "Building2",
     suggestedQuery: "Salem, OR",
@@ -68,16 +68,16 @@ export const EXAMPLE_STARTERS: LandingUseCase[] = [
     id: "risk-assessment",
     title: "Risk Assessment",
     description: "Interrogate terrain, water adjacency, and climate context around a location.",
-    profileId: "residential",
+    profileId: "site-development",
     accentColor: "#ffab00",
     icon: "ShieldAlert",
     suggestedQuery: "Sacramento, CA",
   },
   {
     id: "general-exploration",
-    title: "Residential Development",
+    title: "General Exploration",
     description:
-      "Start with a place and explore access, hazards, buildability, and neighborhood context.",
+      "Start with a place and explore neighborhoods, amenities, risks, and place context.",
     profileId: GENERAL_EXPLORATION_PROFILE_ID,
     accentColor: "#00e5ff",
     icon: "Globe2",

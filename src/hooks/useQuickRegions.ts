@@ -77,11 +77,11 @@ function getResidentialLabel(directionId: CachedQuickRegion["directionId"]) {
 
 function toRegionSelection(region: CachedQuickRegion, profileId: string) {
   const name =
-    profileId === "residential"
+    profileId === "home-buying"
       ? getResidentialLabel(region.directionId)
       : region.neighborhoodName;
   const secondaryLabel =
-    profileId === "residential"
+    profileId === "home-buying"
       ? [region.neighborhoodName, `${region.locality}, ${region.countryName}`].join(" · ")
       : `${region.locality}, ${region.countryName}`;
 

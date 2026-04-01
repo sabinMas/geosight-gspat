@@ -14,6 +14,7 @@ import { CoreMessage } from "@/lib/rag/types";
 import { formatUiAuditResult, runDeterministicUiAudit } from "@/lib/ux-audit";
 import {
   AnalyzeRequestBody,
+  AgentConversationMessage,
   DataTrend,
   GeodataResult,
   LandCoverBucket,
@@ -43,6 +44,37 @@ function normalizeMessage(value: unknown) {
 
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function parseConversationMessages(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const normalized: AgentConversationMessage[] = [];
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+
+    const role = entry.role;
+    const content = normalizeMessage(entry.content);
+    if (
+      !content ||
+      (role !== "system" && role !== "user" && role !== "assistant")
+    ) {
+      continue;
+    }
+
+    normalized.push({
+      role,
+      content,
+      createdAt: parseOptionalString(entry.createdAt),
+    });
+  }
+
+  return normalized.slice(-16);
 }
 
 function parseOptionalNumber(value: unknown) {
@@ -129,12 +161,17 @@ function getDataBundle(context?: GeoSightContext) {
   return context?.dataBundle && isRecord(context.dataBundle) ? context.dataBundle : undefined;
 }
 
-function buildAnalyzePayload(message: string, context?: GeoSightContext): AnalyzeRequestBody {
+function buildAnalyzePayload(
+  message: string,
+  context?: GeoSightContext,
+  messages?: AgentConversationMessage[],
+): AnalyzeRequestBody {
   const dataBundle = getDataBundle(context);
 
   return {
     profileId: context?.profile ?? "data-center",
     question: message,
+    messages: messages?.map(({ role, content }) => ({ role, content })),
     location:
       typeof context?.lat === "number" && typeof context?.lng === "number"
         ? { lat: context.lat, lng: context.lng }
@@ -271,6 +308,7 @@ async function buildCompletionMessages(
   config: AgentConfig,
   message: string,
   context?: GeoSightContext,
+  messages: AgentConversationMessage[] = [],
 ): Promise<CoreMessage[]> {
   return injectRagIntoMessages(
     [
@@ -278,10 +316,10 @@ async function buildCompletionMessages(
         role: "system",
         content: buildSystemMessage(config, context),
       },
-      {
-        role: "user",
-        content: message,
-      },
+      ...messages.map((entry) => ({
+        role: entry.role,
+        content: entry.content,
+      })),
     ],
     message,
   );
@@ -384,8 +422,9 @@ async function requestGroqCompletion(
   apiKey: string,
   message: string,
   context?: GeoSightContext,
+  messages: AgentConversationMessage[] = [],
 ) {
-  const messages = await buildCompletionMessages(config, message, context);
+  const completionMessages = await buildCompletionMessages(config, message, context, messages);
 
   return fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -398,7 +437,7 @@ async function requestGroqCompletion(
       temperature: config.temperature,
       max_tokens: config.maxTokens,
       stream: true,
-      messages: messages.map((entry) => ({
+      messages: completionMessages.map((entry) => ({
         role: entry.role,
         content: entry.content,
       })),
@@ -430,6 +469,7 @@ export async function POST(
   if (!message) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
+  const messages = parseConversationMessages(rawBody.messages);
 
   const requestContext = parseGeoSightContext(rawBody.context);
   const agentConfig = getAgentConfig(rawAgentId);
@@ -441,6 +481,7 @@ export async function POST(
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
+        "X-GeoSight-Mode": "deterministic",
       },
     });
   }
@@ -451,6 +492,7 @@ export async function POST(
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
+        "X-GeoSight-Mode": "fallback",
       },
     });
   }
@@ -461,6 +503,7 @@ export async function POST(
       apiKey,
       message,
       requestContext,
+      messages,
     );
 
     if (!response.ok || !response.body) {
@@ -468,6 +511,7 @@ export async function POST(
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-store",
+          "X-GeoSight-Mode": "fallback",
         },
       });
     }
@@ -476,6 +520,7 @@ export async function POST(
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
+        "X-GeoSight-Mode": "live",
       },
     });
   } catch (error) {
@@ -488,6 +533,7 @@ export async function POST(
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
+        "X-GeoSight-Mode": "fallback",
       },
     });
   }

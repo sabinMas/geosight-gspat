@@ -354,7 +354,7 @@ export function ActiveLocationCard({
           </div>
         ) : null}
 
-        {profile.id === "residential" ? (
+        {profile.id === "home-buying" ? (
           <HousingMarketPulse
             locationName={locationName}
             housingMarket={housingMarket}

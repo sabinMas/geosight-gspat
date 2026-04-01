@@ -104,10 +104,10 @@ function inferDiscoveryMode(query: string, preferredProfileId?: string): Discove
       normalized,
     )
   ) {
-    return { mode: "scored_regions", profileId: "residential" };
+    return { mode: "scored_regions", profileId: "home-buying" };
   }
 
-  return { mode: "scored_regions", profileId: preferredProfileId ?? "residential" };
+  return { mode: "scored_regions", profileId: preferredProfileId ?? "home-buying" };
 }
 
 function parseRadiusKm(query: string) {
@@ -278,7 +278,19 @@ function buildRegionHighlights(profile: MissionProfile, geodata: GeodataResult, 
   const broadband = geodata.broadband;
 
   switch (profile.id) {
-    case "residential":
+    case "home-buying":
+      return [
+        geodata.schoolContext?.score !== null && geodata.schoolContext?.score !== undefined
+          ? `Schools ${geodata.schoolContext.score}/100`
+          : geodata.schoolContext?.coverageStatus === "outside_us"
+            ? "Schools limited"
+            : `${geodata.amenities.schoolCount} schools mapped`,
+        geodata.floodZone?.label ?? "Flood context unavailable",
+        geodata.climate.airQualityIndex !== null && geodata.climate.airQualityIndex !== undefined
+          ? `AQI ${geodata.climate.airQualityIndex}`
+          : "AQI unavailable",
+      ];
+    case "site-development":
       return [
         geodata.schoolContext?.score !== null && geodata.schoolContext?.score !== undefined
           ? `Schools ${geodata.schoolContext.score}/100`
@@ -333,7 +345,10 @@ function buildRegionHighlights(profile: MissionProfile, geodata: GeodataResult, 
 
 function buildRegionSummary(profile: MissionProfile, geodata: GeodataResult) {
   switch (profile.id) {
-    case "residential":
+    case "home-buying":
+      return geodata.schoolContext?.explanation ??
+        "GeoSight sampled this nearby subarea for schools, amenities, neighborhood access, and early risk signals.";
+    case "site-development":
       return geodata.schoolContext?.explanation ??
         "GeoSight sampled this nearby subarea for access, schools, hazards, and general neighborhood readiness.";
     case "data-center":

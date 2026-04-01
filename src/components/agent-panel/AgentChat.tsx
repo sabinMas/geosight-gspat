@@ -23,6 +23,8 @@ type AgentErrorState = {
   prompt: string;
 };
 
+type AgentResponseMode = "live" | "fallback" | "deterministic" | null;
+
 function createAgentRecord<T>(factory: (agentId: AgentId) => T) {
   return AGENT_IDS.reduce<Record<AgentId, T>>((acc, agentId) => {
     acc[agentId] = factory(agentId);
@@ -156,6 +158,9 @@ export default function AgentChat() {
   const [errors, setErrors] = useState<Record<AgentId, AgentErrorState | null>>(() =>
     createAgentRecord(() => null),
   );
+  const [responseModeByAgent, setResponseModeByAgent] = useState<Record<AgentId, AgentResponseMode>>(
+    () => createAgentRecord(() => null),
+  );
   const [ellipsisStep, setEllipsisStep] = useState(0);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -165,6 +170,7 @@ export default function AgentChat() {
   const activeDraft = drafts[activeAgentId];
   const activeError = errors[activeAgentId];
   const isLoading = loadingByAgent[activeAgentId];
+  const activeResponseMode = responseModeByAgent[activeAgentId];
   const loadingEllipsis = [".", "..", "..."][ellipsisStep] ?? "...";
 
   useEffect(() => {
@@ -253,6 +259,13 @@ export default function AgentChat() {
     }));
   };
 
+  const setResponseMode = (agentId: AgentId, value: AgentResponseMode) => {
+    setResponseModeByAgent((current) => ({
+      ...current,
+      [agentId]: value,
+    }));
+  };
+
   const sendMessage = async (
     prompt: string,
     options?: {
@@ -270,6 +283,7 @@ export default function AgentChat() {
     const createdAt = new Date().toISOString();
 
     setAgentError(agentId, null);
+    setResponseMode(agentId, null);
     if (appendUserMessage) {
       setDraftForAgent(agentId, "");
     }
@@ -309,6 +323,12 @@ export default function AgentChat() {
           },
           body: JSON.stringify({
             message: trimmedPrompt,
+            messages: [
+              ...activeThread.map(({ role, content, createdAt }) => ({ role, content, createdAt })),
+              ...(appendUserMessage
+                ? [{ role: "user" as const, content: trimmedPrompt, createdAt }]
+                : []),
+            ],
             context:
               geoContext || uiContext
                 ? {
@@ -319,6 +339,10 @@ export default function AgentChat() {
           }),
         },
         AGENT_CONNECT_TIMEOUT_MS,
+      );
+      setResponseMode(
+        agentId,
+        (response.headers.get("X-GeoSight-Mode") as AgentResponseMode) ?? null,
       );
 
       if (!response.ok || !response.body) {
@@ -371,6 +395,7 @@ export default function AgentChat() {
             : DEFAULT_ERROR_MESSAGE,
         prompt: trimmedPrompt,
       });
+      setResponseMode(agentId, "fallback");
     } finally {
       setThreads((current) =>
         finalizeAssistantMessage(current, agentId, assistantMessageId),
@@ -403,7 +428,19 @@ export default function AgentChat() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="scrollbar-thin h-[148px] overflow-y-auto rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 sm:h-[162px]">
+      {activeResponseMode === "fallback" ? (
+        <div className="rounded-xl border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-foreground)]">
+          Fallback mode is active. This reply used GeoSight&apos;s built-in deterministic backup instead of a live model.
+        </div>
+      ) : null}
+
+      {activeResponseMode === "deterministic" ? (
+        <div className="rounded-xl border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-foreground)]">
+          Deterministic mode is active for this agent.
+        </div>
+      ) : null}
+
+      <div className="scrollbar-thin flex-1 min-h-[120px] overflow-y-auto rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
         {activeThread.length ? (
           <div className="space-y-3">
             {activeThread.map((message) => {
@@ -420,13 +457,14 @@ export default function AgentChat() {
                   )}
                 >
                   <div
-                    className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold uppercase"
+                    className={cn(
+                      "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold uppercase",
+                      isAssistant
+                        ? "agent-avatar agent-avatar--assistant"
+                        : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--foreground)]",
+                    )}
                     style={{
-                      borderColor: isAssistant ? accentColor : "var(--border-soft)",
-                      background: isAssistant
-                        ? `color-mix(in srgb, ${accentColor} 12%, transparent)`
-                        : "var(--surface-raised)",
-                      color: isAssistant ? accentColor : "var(--foreground)",
+                      ...(isAssistant ? { color: accentColor } : {}),
                     }}
                   >
                     {avatarLabel}
@@ -446,10 +484,8 @@ export default function AgentChat() {
                     >
                       {isAssistant ? (
                         <span
-                          className="rounded-full border px-2 py-1 text-[10px]"
+                          className="agent-chip agent-chip--assistant rounded-full border px-2 py-1 text-[10px]"
                           style={{
-                            borderColor: ASSISTANT_ACCENT,
-                            background: `color-mix(in srgb, ${ASSISTANT_ACCENT} 10%, transparent)`,
                             color: ASSISTANT_ACCENT,
                           }}
                         >

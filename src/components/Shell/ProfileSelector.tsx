@@ -25,7 +25,8 @@ const SIDEBAR_CARD_GAP = 8;
 const SIDEBAR_VISIBLE_WIDTH = SIDEBAR_CARD_WIDTH * 2 + SIDEBAR_CARD_GAP * 2 + SIDEBAR_CARD_WIDTH / 2;
 
 const PROFILE_ICON_BY_ID = {
-  residential: House,
+  "home-buying": House,
+  "site-development": Building2,
   commercial: BarChart3,
   "data-center": Snowflake,
   hiking: Mountain,
@@ -122,16 +123,16 @@ export function ProfileSelector({
                   style={{
                     width: `${SIDEBAR_CARD_WIDTH}px`,
                     height: "96px",
-                    borderColor: isActive ? "#14b8a6" : "var(--border-soft)",
+                    borderColor: isActive ? "var(--accent)" : "var(--border-soft)",
                     boxShadow: isActive
-                      ? "0 0 0 1px rgba(20,184,166,0.25), 0 14px 28px rgba(20,184,166,0.12)"
+                      ? "0 0 0 1px var(--accent-strong), 0 14px 28px color-mix(in srgb, var(--accent) 12%, transparent)"
                       : undefined,
-                    backgroundColor: isActive ? "rgba(20,184,166,0.08)" : undefined,
+                    backgroundColor: isActive ? "var(--accent-soft)" : undefined,
                   }}
                 >
                   <Icon
                     className="h-4 w-4 shrink-0"
-                    style={{ color: isActive ? "#14b8a6" : "var(--muted-foreground)" }}
+                    style={{ color: isActive ? "var(--accent)" : "var(--muted-foreground)" }}
                   />
                   <div className="mt-3 line-clamp-2 text-[11px] font-semibold leading-tight text-[var(--foreground)]">
                     {profile.name}
@@ -147,7 +148,7 @@ export function ProfileSelector({
 
         <div className="h-[3px] w-full rounded-full bg-[var(--surface-soft)]">
           <div
-            className="h-[3px] rounded-full bg-[#14b8a6] transition-[width] duration-150"
+            className="h-[3px] rounded-full bg-[var(--accent)] transition-[width] duration-150"
             style={{ width: `${scrollProgress * 100}%` }}
           />
         </div>

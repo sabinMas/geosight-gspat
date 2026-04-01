@@ -69,7 +69,11 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${badge.tone}`}>
-          {badge.label}
+          Earthquake risk: {badge.label}
+        </div>
+
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
+          GeoSight leads with a simple earthquake-risk badge for this location. Raw USGS design values remain available below for technical review.
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
@@ -87,20 +91,25 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
           </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <div className="eyebrow">Short-period Ss</div>
-            <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
-              {seismic.ss === null ? "Unavailable" : `${seismic.ss.toFixed(2)} g`}
+        <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+            Technical details
+          </summary>
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Short-period Ss</div>
+              <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
+                {seismic.ss === null ? "Unavailable" : `${seismic.ss.toFixed(2)} g`}
+              </div>
+            </div>
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">1-second S1</div>
+              <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
+                {seismic.s1 === null ? "Unavailable" : `${seismic.s1.toFixed(2)} g`}
+              </div>
             </div>
           </div>
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <div className="eyebrow">1-second S1</div>
-            <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
-              {seismic.s1 === null ? "Unavailable" : `${seismic.s1.toFixed(2)} g`}
-            </div>
-          </div>
-        </div>
+        </details>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
           Source: {seismic.dataSource}

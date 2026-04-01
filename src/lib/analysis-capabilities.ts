@@ -121,7 +121,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDefinition[] = [
 
       return {
         available,
-        recommended: available && ["data-center", "commercial", "residential"].includes(profile.id),
+        recommended: available && ["data-center", "commercial", "site-development"].includes(profile.id),
         reason: available
           ? "Earthquake history or seismic design parameters are available for this location."
           : "Seismic history and design-map inputs are unavailable here.",
@@ -147,7 +147,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDefinition[] = [
 
       return {
         available,
-        recommended: available && ["data-center", "residential", "commercial"].includes(profile.id),
+        recommended: available && ["data-center", "site-development", "commercial"].includes(profile.id),
         reason: available
           ? "Groundwater, soil, or other subsurface signals are available for this place."
           : "Groundwater and soil-profile coverage are unavailable here right now.",

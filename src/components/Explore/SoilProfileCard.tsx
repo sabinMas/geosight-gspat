@@ -56,6 +56,25 @@ function hydrologicExplanation(hydrologicGroup: string | null) {
   return "Hydrologic group explanation unavailable.";
 }
 
+function getBuildabilitySummary(soil: NonNullable<GeodataResult["soilProfile"]>) {
+  const drainage = soil.drainageClass?.toLowerCase() ?? "";
+  const group = soil.hydrologicGroup?.toUpperCase() ?? "";
+
+  if (drainage.includes("well") && (group.startsWith("A") || group.startsWith("B"))) {
+    return "Good";
+  }
+
+  if (drainage.includes("moderately") || group.startsWith("B") || group.startsWith("C")) {
+    return "Fair";
+  }
+
+  if (drainage.includes("poor") || group.startsWith("D")) {
+    return "Poor";
+  }
+
+  return "Review details";
+}
+
 export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
   if (!geodata) {
     return null;
@@ -86,75 +105,94 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
         <CardTitle>Soil profile</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${drainageTone(soil.drainageClass)}`}>
+          Building suitability: {getBuildabilitySummary(soil)}
+        </div>
+
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="eyebrow">Map unit</div>
+          <div className="eyebrow">Plain-language summary</div>
           <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
-            {soil.mapUnitName ?? "Unavailable"}
+            {getBuildabilitySummary(soil)} building suitability
+          </div>
+          <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+            GeoSight summarizes drainage and runoff behavior first, then keeps the mapped soil engineering details below.
           </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-            <div className="eyebrow">Drainage class</div>
-            <div
-              className={`mt-3 inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${drainageTone(
-                soil.drainageClass,
-              )}`}
-            >
-              {soil.drainageClass ?? "Unavailable"}
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-            <div className="eyebrow">Hydrologic group</div>
+        <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+            Technical details
+          </summary>
+          <div className="mt-3 rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+            <div className="eyebrow">Map unit</div>
             <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
-              {soil.hydrologicGroup ?? "Unavailable"}
-            </div>
-            <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              {hydrologicExplanation(soil.hydrologicGroup)}
+              {soil.mapUnitName ?? "Unavailable"}
             </div>
           </div>
-        </div>
 
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <div className="eyebrow">Depth to water table</div>
-            <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
-              {formatDepth(soil.depthToWaterTableCm)}
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Drainage class</div>
+              <div
+                className={`mt-3 inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${drainageTone(
+                  soil.drainageClass,
+                )}`}
+              >
+                {soil.drainageClass ?? "Unavailable"}
+              </div>
             </div>
-          </div>
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <div className="eyebrow">Depth to bedrock</div>
-            <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
-              {formatDepth(soil.depthToBedrockCm)}
-            </div>
-          </div>
-        </div>
 
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <div className="eyebrow">Dominant texture</div>
-            <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
-              {soil.dominantTexture ?? "Unavailable"}
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Hydrologic group</div>
+              <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
+                {soil.hydrologicGroup ?? "Unavailable"}
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                {hydrologicExplanation(soil.hydrologicGroup)}
+              </div>
             </div>
           </div>
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <div className="eyebrow">K factor / water storage</div>
-            <div className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-              K factor:{" "}
-              <span className="text-[var(--foreground)]">
-                {soil.kFactor === null ? "Unavailable" : soil.kFactor.toFixed(2)}
-              </span>
-              <br />
-              Available water storage:{" "}
-              <span className="text-[var(--foreground)]">
-                {soil.availableWaterStorageCm === null
-                  ? "Unavailable"
-                  : `${soil.availableWaterStorageCm.toFixed(1)} cm`}
-              </span>
+
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Depth to water table</div>
+              <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
+                {formatDepth(soil.depthToWaterTableCm)}
+              </div>
+            </div>
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Depth to bedrock</div>
+              <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
+                {formatDepth(soil.depthToBedrockCm)}
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Dominant texture</div>
+              <div className="mt-3 text-base font-semibold text-[var(--foreground)]">
+                {soil.dominantTexture ?? "Unavailable"}
+              </div>
+            </div>
+            <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">K factor / water storage</div>
+              <div className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                K factor:{" "}
+                <span className="text-[var(--foreground)]">
+                  {soil.kFactor === null ? "Unavailable" : soil.kFactor.toFixed(2)}
+                </span>
+                <br />
+                Available water storage:{" "}
+                <span className="text-[var(--foreground)]">
+                  {soil.availableWaterStorageCm === null
+                    ? "Unavailable"
+                    : `${soil.availableWaterStorageCm.toFixed(1)} cm`}
+                </span>
+              </div>
+            </div>
+          </div>
+        </details>
 
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">

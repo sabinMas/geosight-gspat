@@ -9,7 +9,8 @@ export type UseCaseType =
   | "data_center_cooling"
   | "outdoor_recreation"
   | "places_discovery"
-  | "residential_development"
+  | "home_buying"
+  | "site_development"
   | "retail_commercial"
   | "warehouse_logistics"
   | "general_exploration";
@@ -656,9 +657,19 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ConversationMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export interface AgentConversationMessage extends ConversationMessage {
+  createdAt?: string;
+}
+
 export interface AnalyzeRequestBody {
   profileId: string;
   question: string;
+  messages?: ConversationMessage[];
   location?: Coordinates;
   locationName?: string;
   resultsMode?: ResultsMode;

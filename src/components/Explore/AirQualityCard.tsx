@@ -41,17 +41,23 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
         {geodata.airQuality ? (
           <>
             <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${getAqiTone(geodata.airQuality.aqiCategory)}`}>
-              {geodata.airQuality.aqiCategory}
+              Air quality: {geodata.airQuality.aqiCategory}
             </div>
             <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-              <div className="eyebrow">Nearest station</div>
+              <div className="eyebrow">Plain-language summary</div>
               <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
-                {geodata.airQuality.stationName}
+                {geodata.airQuality.aqiCategory}
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                {`${formatDistanceKm(geodata.airQuality.distanceKm, "Distance unavailable")} from the selected point.`}
+                Nearest monitoring station: {geodata.airQuality.stationName}. {formatDistanceKm(geodata.airQuality.distanceKm, "Distance unavailable")} from the selected point.
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            </div>
+
+            <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+                Technical details
+              </summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
                   <div className="eyebrow">PM2.5</div>
                   <div className="mt-2 text-xl font-semibold text-[var(--foreground)]">
@@ -65,7 +71,7 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
                   </div>
                 </div>
               </div>
-            </div>
+            </details>
           </>
         ) : (
           <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm leading-6 text-[var(--warning-foreground)]">

@@ -531,7 +531,15 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] =
     ...card,
     nextActions: [...card.nextActions],
     requiredData: [...card.requiredData],
-    supportedProfiles: [...card.supportedProfiles],
+    supportedProfiles: [
+      ...new Set(
+        card.supportedProfiles.flatMap((profileId) =>
+          profileId === "residential"
+            ? (["home-buying", "site-development"] as const)
+            : [profileId],
+        ),
+      ),
+    ],
     revealTier: getRevealTier(card),
     revealTriggers: getRevealTriggers(card.id),
     summaryVariant: getSummaryVariant(card),
@@ -555,7 +563,17 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
   "data-center": ["active-location", "chat", "results"],
   hiking: ["active-location", "chat", "results"],
-  residential: ["active-location", "chat", "results"],
+  "home-buying": [
+    "active-location",
+    "chat",
+    "results",
+    "score",
+    "school-context",
+    "broadband-context",
+    "flood-risk",
+    "air-quality",
+  ],
+  "site-development": ["active-location", "chat", "results", "score"],
   commercial: ["active-location", "chat", "results"],
 };
 

@@ -13,7 +13,8 @@ const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 const PROFILE_MODEL_MAP: Record<string, string> = {
   "data-center": DEFAULT_GROQ_MODEL,
   hiking: "llama-3.1-8b-instant",
-  residential: DEFAULT_GROQ_MODEL,
+  "home-buying": DEFAULT_GROQ_MODEL,
+  "site-development": DEFAULT_GROQ_MODEL,
   commercial: "llama-3.1-8b-instant",
 };
 

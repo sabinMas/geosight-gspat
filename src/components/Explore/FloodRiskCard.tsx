@@ -28,14 +28,14 @@ function getRiskLabel(geodata: GeodataResult) {
   }
 
   if (geodata.floodZone.isSpecialFloodHazard) {
-    return "High flood caution";
+    return "High";
   }
 
   if (geodata.floodZone.floodZone === "X") {
-    return "Lower mapped flood risk";
+    return "Low";
   }
 
-  return "Review flood context";
+  return "Moderate";
 }
 
 export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
@@ -51,17 +51,17 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${getRiskTone(geodata)}`}>
-          {getRiskLabel(geodata)}
+          Flood risk: {getRiskLabel(geodata)}
         </div>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="eyebrow">Mapped FEMA zone</div>
-          <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-            {geodata.floodZone?.floodZone ?? "--"}
-          </div>
-          <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+          <div className="eyebrow">Plain-language summary</div>
+          <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">
             {geodata.floodZone?.label ??
               "FEMA did not return a flood-zone designation for this point."}
+          </div>
+          <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+            GeoSight summarizes the mapped FEMA designation into a simple risk badge first, then keeps the zone code below for technical review.
           </div>
         </div>
 
@@ -71,6 +71,18 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
             constraint and confirm local floodplain requirements before moving forward.
           </div>
         ) : null}
+
+        <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+            Technical details
+          </summary>
+          <div className="mt-3">
+            <div className="eyebrow">Mapped FEMA zone</div>
+            <div className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
+              {geodata.floodZone?.floodZone ?? "--"}
+            </div>
+          </div>
+        </details>
 
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">

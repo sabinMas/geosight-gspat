@@ -81,10 +81,13 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
         <div
           className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${badge.tone}`}
         >
-          {badge.label}
+          10-year trend: {badge.label}
         </div>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+          <div className="text-sm leading-6 text-[var(--muted-foreground)]">
+            GeoSight summarizes the long-range trend first, then keeps the decade chart below for a deeper climate read.
+          </div>
           <SafeResponsiveContainer className="h-64">
             <LineChart data={climateHistory.summaries}>
               <XAxis dataKey="year" stroke="#6b7d93" />
@@ -119,8 +122,11 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
           </div>
         </div>
 
-        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-          <div className="eyebrow">Annual precipitation context</div>
+        <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+            Technical details
+          </summary>
+          <div className="eyebrow mt-3">Annual precipitation context</div>
           <SafeResponsiveContainer className="mt-3 h-32">
             <BarChart data={climateHistory.summaries}>
               <XAxis dataKey="year" hide />
@@ -136,7 +142,7 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
               <Bar dataKey="totalPrecipitationMm" fill="#38bdf8" name="Precipitation (mm)" />
             </BarChart>
           </SafeResponsiveContainer>
-        </div>
+        </details>
 
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">

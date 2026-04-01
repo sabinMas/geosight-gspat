@@ -10,6 +10,28 @@ import {
 } from "@/lib/request-guards";
 import { AnalyzeRequestBody } from "@/types";
 
+function normalizeConversationMessages(messages: AnalyzeRequestBody["messages"]) {
+  if (!Array.isArray(messages)) {
+    return undefined;
+  }
+
+  const normalized = messages
+    .map((message) => ({
+      role: message?.role,
+      content: normalizeTextInput(message?.content, 4000),
+    }))
+    .filter(
+      (message): message is NonNullable<AnalyzeRequestBody["messages"]>[number] =>
+        Boolean(
+          message.content &&
+            (message.role === "system" || message.role === "user" || message.role === "assistant"),
+        ),
+    )
+    .slice(-12);
+
+  return normalized.length ? normalized : undefined;
+}
+
 export async function POST(request: NextRequest) {
   const rateLimit = await applyRateLimit(request, "analyze", {
     windowMs: 60_000,
@@ -36,6 +58,7 @@ export async function POST(request: NextRequest) {
   const payload: AnalyzeRequestBody = {
     ...body,
     question,
+    messages: normalizeConversationMessages(body.messages),
   };
   const headers = rateLimitHeaders(rateLimit);
   const result = await runAnalysisWithFallback(payload, profile, {
@@ -46,7 +69,11 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(
-    { answer: result.response, model: result.model },
+    {
+      answer: result.response,
+      model: result.model,
+      fallbackMode: result.model === "fallback",
+    },
     {
       headers,
     },

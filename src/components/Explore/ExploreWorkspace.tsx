@@ -232,7 +232,7 @@ export function ExploreWorkspace() {
       }}
       onSelectRegion={(region) => {
         const regionLabel =
-          state.activeProfile.id === "residential"
+          state.activeProfile.id === "home-buying"
             ? region.secondaryLabel?.split(" · ")[0] ?? region.name
             : region.name;
         state.setSelectedRegion(region);

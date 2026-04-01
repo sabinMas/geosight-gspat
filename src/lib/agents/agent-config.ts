@@ -90,7 +90,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     apiKeyEnv: "GROQ_UX_KEY",
     temperature: 0.1,
     maxTokens: 1024,
-    accentColor: "#5be49b",
+    accentColor: "var(--color-success)",
     systemPrompt: GEO_USABILITY_SYSTEM_PROMPT,
   },
 };

@@ -53,7 +53,7 @@ const FEATURED_EXAMPLE_IDS = [
 const GITHUB_DOCS_URL = "https://github.com/sabinMas/geosight-gspat#readme";
 const EXAMPLE_TOOLTIP_COPY: Record<string, string> = {
   "home-buying":
-    "Screens neighborhoods for terrain, flood risk, seismic exposure, air quality, and school access. Best for first-time buyers and site scouts.",
+    "Screens neighborhoods for schools, amenities, internet quality, flood risk, and day-to-day livability. Best for buyers and relocators.",
   "market-analysis":
     "Evaluates commercial corridors for road access, utility readiness, and competitive density. Built for site selectors and developers.",
   infrastructure:
@@ -63,7 +63,8 @@ const EXAMPLE_TOOLTIP_COPY: Record<string, string> = {
 };
 
 const LENS_OPTIONS = [
-  { id: GENERAL_EXPLORATION_PROFILE_ID, label: LENS_LABELS.residential },
+  { id: GENERAL_EXPLORATION_PROFILE_ID, label: LENS_LABELS["home-buying"] },
+  { id: "site-development", label: LENS_LABELS["site-development"] },
   { id: "data-center", label: LENS_LABELS.infrastructure },
   { id: "commercial", label: LENS_LABELS.commercial },
   { id: "hiking", label: LENS_LABELS.hiking },

@@ -4,6 +4,7 @@ import { CoreMessage } from "@/lib/rag/types";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import {
   AnalyzeRequestBody,
+  ConversationMessage,
   DataTrend,
   DataSourceMeta,
   GeodataResult,
@@ -164,6 +165,12 @@ export async function buildGeoSightMessagesWithRag(
   profile: MissionProfile = DEFAULT_PROFILE,
 ): Promise<CoreMessage[]> {
   const { prompt } = buildGeoSightSystemPrompt(payload, profile);
+  const conversationHistory = (payload.messages ?? [])
+    .filter((message): message is ConversationMessage => Boolean(message?.content?.trim()))
+    .map<CoreMessage>((message) => ({
+      role: message.role,
+      content: message.content.trim(),
+    }));
   const serializedPayload = JSON.stringify(
     {
       missionProfile: profile.name,
@@ -180,6 +187,7 @@ export async function buildGeoSightMessagesWithRag(
         role: "system",
         content: prompt,
       },
+      ...conversationHistory,
       {
         role: "user",
         content: serializedPayload,
@@ -219,7 +227,11 @@ function buildProfileAssessmentLine(profileId: string, geodata?: GeodataResult) 
       return elevation !== null && waterKm !== null
         ? `The recreation signal is strongest where terrain variety, water features, and breathable air align; this site sits around ${elevation} m elevation with water roughly ${waterKm.toFixed(1)} km away.`
         : "This area may have hiking potential, but the current map data is still too coarse to assess trail quality or scenic value confidently.";
-    case "residential":
+    case "home-buying":
+      return roadKm !== null && topLandCover
+        ? `For home buying, the clearest early signals are commute access around ${roadKm.toFixed(1)} km, neighborhood-serving amenities, school context, and whatever flood and internet coverage say about daily-life fit.`
+        : "For home buying, school context, flood exposure, internet readiness, and everyday amenities still need closer validation.";
+    case "site-development":
       return roadKm !== null && topLandCover
         ? `For neighborhood development, the best early signals are road access at about ${roadKm.toFixed(1)} km, dominant land cover of ${topLandCover.label.toLowerCase()}, and whatever FEMA and broadband context says about risk and readiness.`
         : "For residential use, access, flood exposure, broadband readiness, and community-serving amenities still need closer validation.";
@@ -254,7 +266,12 @@ function buildNextQuestions(profileId: string) {
         "Switch to nearby places mode to compare trail-style results around this location.",
         "Zoom in on ridgelines, creek corridors, or trailheads for a more detailed recreation read.",
       ];
-    case "residential":
+    case "home-buying":
+      return [
+        "Switch to nearby places mode to compare schools, groceries, parks, and daily-life context around this location.",
+        "Check flood, air quality, and internet context before treating this as a strong home-buying candidate.",
+      ];
+    case "site-development":
       return [
         "Zoom in to parcel scale and compare flatter ground near existing roads and services.",
         "Check flood, wildfire, and school-district layers before treating this as a build-ready neighborhood site.",
@@ -353,13 +370,16 @@ function classifyFallbackQuestion(
   }
 
   if (
-    profile.id === "residential" ||
+    profile.id === "home-buying" ||
+    profile.id === "site-development" ||
     includesAny(normalized, [
       "neighborhood",
       "neighbourhood",
       "residential",
       "housing",
       "home",
+      "buy",
+      "buyer",
       "build",
       "suburban",
       "suburb",

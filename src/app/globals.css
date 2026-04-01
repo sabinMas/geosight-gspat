@@ -4,6 +4,9 @@
   color-scheme: dark;
   --radius-container: 1rem;
   --radius-control: 0.75rem;
+  --radius-card: 1.5rem;
+  --radius-chip: 1rem;
+  --radius-pill: 999px;
   --background: #07111d;
   --background-alt: #091725;
   --background-elevated: #0c1b2b;
@@ -12,6 +15,7 @@
   --muted-foreground: rgba(190, 204, 224, 0.78);
   --color-primary: #53ddff;
   --color-warning: #ffab00;
+  --color-success: #5be49b;
   --color-text-muted: rgba(190, 204, 224, 0.78);
   --accent: #53ddff;
   --accent-strong: rgba(83, 221, 255, 0.34);
@@ -49,6 +53,7 @@ html[data-theme="light"] {
   --muted-foreground: rgba(64, 90, 111, 0.78);
   --color-primary: #0f9fcd;
   --color-warning: #da9200;
+  --color-success: #2f9d69;
   --color-text-muted: rgba(64, 90, 111, 0.78);
   --accent: #0f9fcd;
   --accent-strong: rgba(15, 159, 205, 0.24);
@@ -175,7 +180,17 @@ textarea {
   border: 1px solid var(--border-soft);
   background: var(--surface-soft);
   box-shadow: var(--shadow-soft);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
+}
+
+.agent-avatar--assistant {
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.agent-chip--assistant {
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .scrollbar-thin {
@@ -184,8 +199,8 @@ textarea {
 }
 
 .scrollbar-thin::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {

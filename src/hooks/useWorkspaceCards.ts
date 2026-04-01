@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { normalizeProfileId } from "@/lib/lenses";
 import {
   getWorkspaceCardsForProfile,
   mergeWorkspacePreferences,
@@ -49,16 +50,24 @@ function preferencesToMap(preferences: WorkspaceCardPreference[] = []) {
 }
 
 export function useWorkspaceCards(profileId: string) {
-  const cards = useMemo(() => getWorkspaceCardsForProfile(profileId), [profileId]);
+  const normalizedProfileId = normalizeProfileId(profileId) ?? profileId;
+  const cards = useMemo(() => getWorkspaceCardsForProfile(normalizedProfileId), [normalizedProfileId]);
   const [visibility, setVisibility] = useState<Record<WorkspaceCardId, boolean>>(
-    () => mergeWorkspacePreferences(profileId),
+    () => mergeWorkspacePreferences(normalizedProfileId),
   );
 
   useEffect(() => {
     const stored = readStoredPreferences();
-    const profilePreferences = preferencesToMap(stored.profiles[profileId]);
-    setVisibility(mergeWorkspacePreferences(profileId, profilePreferences));
-  }, [profileId]);
+    const legacyProfileId = normalizedProfileId === "site-development" ? "residential" : profileId;
+    const legacyProfilePreferences = preferencesToMap(stored.profiles[legacyProfileId]);
+    const profilePreferences = preferencesToMap(stored.profiles[normalizedProfileId]);
+    setVisibility(
+      mergeWorkspacePreferences(normalizedProfileId, {
+        ...legacyProfilePreferences,
+        ...profilePreferences,
+      }),
+    );
+  }, [normalizedProfileId, profileId]);
 
   const persist = useCallback(
     (nextVisibility: Record<WorkspaceCardId, boolean>) => {
@@ -70,13 +79,13 @@ export function useWorkspaceCards(profileId: string) {
             : cards.map((card) => card.id),
         profiles: {
           ...stored.profiles,
-          [profileId]: toWorkspaceCardPreferences(nextVisibility),
+          [normalizedProfileId]: toWorkspaceCardPreferences(nextVisibility),
         },
       };
 
       writeStoredPreferences(nextState);
     },
-    [cards, profileId],
+    [cards, normalizedProfileId],
   );
 
   const setCardVisible = useCallback((cardId: WorkspaceCardId, visible: boolean) => {
