@@ -2,6 +2,7 @@ import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { clamp } from "@/lib/utils";
 import {
+  GdacsAlertSummary,
   GeodataResult,
   LandCoverBucket,
   MissionProfile,
@@ -253,6 +254,17 @@ function scoreBroadbandAvailability(
     return 58;
   }
 
+  if (broadband.kind === "regional_household_baseline") {
+    const fixedCoverage = broadband.fixedBroadbandCoveragePercent ?? 0;
+    const mobileCoverage = broadband.mobileBroadbandCoveragePercent ?? 0;
+    const fixedScore = clamp(Math.round((fixedCoverage / 100) * 100), 20, 100);
+    const mobileScore = clamp(Math.round((mobileCoverage / 100) * 100), 20, 100);
+
+    return mode === "data_center"
+      ? clamp(Math.round(fixedScore * 0.8 + mobileScore * 0.2), 20, 100)
+      : clamp(Math.round(fixedScore * 0.65 + mobileScore * 0.35), 20, 100);
+  }
+
   const downloadMbps = broadband.maxDownloadSpeed;
   const uploadMbps = broadband.maxUploadSpeed;
   const providerCount = broadband.providerCount;
@@ -477,6 +489,26 @@ function scoreSoilBuildability(geodata: GeodataResult) {
   return 60;
 }
 
+function scoreHazardAlerts(hazardAlerts: GdacsAlertSummary | null): number {
+  if (hazardAlerts === null) {
+    return 70;
+  }
+
+  if (hazardAlerts.redCurrentAlerts > 0) {
+    return 25;
+  }
+
+  if (hazardAlerts.elevatedCurrentAlerts > 0) {
+    return 50;
+  }
+
+  if (hazardAlerts.totalCurrentAlerts > 10) {
+    return 65;
+  }
+
+  return 85;
+}
+
 function scoreSeismicRisk(geodata: GeodataResult) {
   const pga = geodata.seismicDesign?.pga;
   if (pga === null || pga === undefined) {
@@ -517,6 +549,13 @@ function scoreCustomMetric(
         scoreFromDistance(roadDistance, 6, 0.7, "far") * 0.75 +
           scoreCountSignal(amenitySignals.trailheadCount, 4, 10) * 0.25,
       );
+    case "trailAccess":
+      // Primary signal: OSM-mapped trailheads and named hiking paths in the area.
+      // Secondary: road proximity, since vehicular access is still needed to reach most trailheads.
+      return Math.round(
+        scoreCountSignal(amenitySignals.trailheadCount, 3, 12) * 0.65 +
+          scoreFromDistance(roadDistance, 2, 16) * 0.35,
+      );
     case "schoolAccess":
       return geodata.schoolContext?.score ?? 50;
     case "floodRisk":
@@ -541,6 +580,8 @@ function scoreCustomMetric(
       return scoreAirQualityContext(geodata);
     case "contaminationRisk":
       return scoreContaminationRisk(geodata);
+    case "hazardAlerts":
+      return scoreHazardAlerts(geodata.hazardAlerts);
     case "amenities":
       return Math.round(
         scoreCountSignal(
@@ -653,7 +694,18 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           : "USGS seismic design parameters unavailable.";
       case "broadbandConnectivity":
         if (!geodata.broadband) {
-          return "FCC broadband availability unavailable for this point.";
+          return "Broadband availability unavailable for this point.";
+        }
+        if (geodata.broadband.kind === "regional_household_baseline") {
+          return `${geodata.broadband.regionLabel} country-level Eurostat baseline: ${
+            geodata.broadband.fixedBroadbandCoveragePercent === null
+              ? "fixed broadband share unavailable"
+              : `${geodata.broadband.fixedBroadbandCoveragePercent.toFixed(1)}% of households report fixed broadband`
+          } and ${
+            geodata.broadband.mobileBroadbandCoveragePercent === null
+              ? "mobile broadband share unavailable"
+              : `${geodata.broadband.mobileBroadbandCoveragePercent.toFixed(1)}% report mobile broadband`
+          } (${geodata.broadband.referenceYear ?? "latest available year"}). This is national baseline context, not point-specific service availability.`;
         }
         return `${geodata.broadband.providerCount} providers, up to ${
           geodata.broadband.maxDownloadSpeed > 0
@@ -687,6 +739,17 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
                 : formatDistanceKm(geodata.epaHazards.nearestSuperfundDistanceKm)
             }.`
           : "EPA contamination screening unavailable.";
+      case "hazardAlerts": {
+        const alerts = geodata.hazardAlerts;
+        if (!alerts) {
+          return "GDACS global disaster alert data unavailable for this point.";
+        }
+        const nearest = alerts.nearestAlert;
+        const nearestDesc = nearest
+          ? ` Nearest: ${nearest.eventLabel} (${nearest.alertLevel}) at ${nearest.distanceKm === null ? "unknown distance" : `${nearest.distanceKm.toFixed(0)} km`}.`
+          : "";
+        return `${alerts.totalCurrentAlerts} current global alerts (${alerts.redCurrentAlerts} red, ${alerts.orangeCurrentAlerts} orange).${nearestDesc}`;
+      }
       case "amenities":
         return `${geodata.amenities.foodAndDrinkCount ?? "?"} food/drink venues, ${geodata.amenities.transitStopCount ?? "?"} transit stops, ${geodata.amenities.parkCount ?? "?"} parks.`;
       case "commercialDemand":
@@ -694,6 +757,19 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
         return `${geodata.amenities.commercialCount ?? "?"} mapped commercial venues and ${geodata.amenities.foodAndDrinkCount ?? "?"} food/drink venues nearby.`;
       case "remoteness":
         return `${geodata.amenities.trailheadCount ?? "?"} mapped trailheads or recreation access points in the area.`;
+      case "trailAccess": {
+        const trailheadCount = geodata.amenities.trailheadCount;
+        const roadDist = geodata.nearestRoad.distanceKm;
+        const trailPart =
+          trailheadCount === null
+            ? "No mapped trailheads or named hiking paths found in the OSM query area"
+            : trailheadCount === 0
+              ? "0 mapped trailheads or named hiking paths in the OSM query area"
+              : `${trailheadCount} mapped trailhead${trailheadCount !== 1 ? "s" : ""} or named hiking path${trailheadCount !== 1 ? "s" : ""} in the OSM query area`;
+        const roadPart =
+          roadDist === null ? "road access unknown" : `nearest road ${roadDist.toFixed(1)} km`;
+        return `${trailPart}; ${roadPart}.`;
+      }
       default:
         return factor.description;
     }
@@ -741,11 +817,19 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
       case "broadbandConnectivity":
       case "airQuality":
       case "contaminationRisk":
+      case "trailAccess":
         return {
           evidenceKind: "derived_live",
           evidenceLabel: "Derived live analysis",
           evidenceExplanation:
             "This factor translates one or more live source measurements into a normalized mission score while preserving the underlying source context in the detail text.",
+        };
+      case "hazardAlerts":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from the GDACS live global disaster alert feed, using current alert counts and severity levels at the time of the request.",
         };
       case "terrainVariety":
       case "remoteness":
@@ -851,10 +935,16 @@ export function calculateProfileScore(
     factors,
     broadband: geodata.broadband
       ? {
+          kind: geodata.broadband.kind,
+          granularity: geodata.broadband.granularity,
+          regionLabel: geodata.broadband.regionLabel,
+          referenceYear: geodata.broadband.referenceYear,
           maxDownloadSpeed: geodata.broadband.maxDownloadSpeed,
           maxUploadSpeed: geodata.broadband.maxUploadSpeed,
           providerCount: geodata.broadband.providerCount,
           technologies: geodata.broadband.technologies,
+          fixedBroadbandCoveragePercent: geodata.broadband.fixedBroadbandCoveragePercent,
+          mobileBroadbandCoveragePercent: geodata.broadband.mobileBroadbandCoveragePercent,
           score:
             factors.find((factor) => factor.key === "broadbandConnectivity")?.score ?? null,
         }

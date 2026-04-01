@@ -102,10 +102,18 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "seismicRisk",
         label: "Seismic risk",
-        weight: 0.02,
+        weight: 0.01,
         scoreFn: "custom",
         params: { metric: "seismicRisk" },
         description: "Lower peak ground acceleration reduces structural reinforcement burden for major facilities.",
+      },
+      {
+        key: "hazardAlerts",
+        label: "Regional disaster alerts",
+        weight: 0.01,
+        scoreFn: "custom",
+        params: { metric: "hazardAlerts" },
+        description: "Uses GDACS live global disaster feed to lightly penalize sites in currently elevated-alert regions.",
       },
     ],
     systemPrompt:
@@ -167,11 +175,11 @@ export const PROFILES: MissionProfile[] = [
       },
       {
         key: "trailAccess",
-        label: "Trail access / road proximity",
+        label: "Trail access",
         weight: 0.08,
-        scoreFn: "distance",
-        params: { source: "road", idealKm: 1.5, cutoffKm: 14, direction: "near" },
-        description: "Access is still important for trailheads and day-use logistics.",
+        scoreFn: "custom",
+        params: { metric: "trailAccess" },
+        description: "Blends OSM-mapped trailhead and hiking-path counts with road proximity for day-use logistics.",
       },
       {
         key: "weather",
@@ -404,10 +412,18 @@ export const PROFILES: MissionProfile[] = [
       {
         key: "seismicRisk",
         label: "Seismic risk",
-        weight: 0.02,
+        weight: 0.01,
         scoreFn: "custom",
         params: { metric: "seismicRisk" },
         description: "Lower site shaking potential improves early residential risk screening.",
+      },
+      {
+        key: "hazardAlerts",
+        label: "Regional disaster alerts",
+        weight: 0.01,
+        scoreFn: "custom",
+        params: { metric: "hazardAlerts" },
+        description: "Uses GDACS live global disaster feed to lightly penalize sites in currently elevated-alert regions.",
       },
     ],
     systemPrompt:

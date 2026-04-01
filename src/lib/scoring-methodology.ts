@@ -56,11 +56,11 @@ export const SCORING_METHODOLOGY: Record<string, ScoringMethodologyEntry> = {
   },
   scoreBroadbandAvailability: {
     description:
-      "Combines provider count, peak download and upload speeds, and a technology bonus or penalty for fiber, cable, or fixed wireless service.",
+      "Uses FCC point-level provider and speed data in the US, and falls back to Eurostat country-level household broadband percentages in Europe.",
     calibration:
-      "Data-center mode uses stricter throughput targets than residential mode and gives extra value to fiber-backed service.",
+      "Data-center mode uses stricter throughput targets than residential mode for US point lookups, while Europe-wide baselines score from fixed and mobile household coverage shares instead of pretending to be address-level service.",
     scoreRange: "15-100",
-    nullBehavior: "Returns roughly neutral values between 58 and 60 when FCC broadband data is unavailable or unsupported.",
+    nullBehavior: "Returns roughly neutral values between 58 and 60 when broadband data is unavailable or unsupported.",
   },
   scoreFloodRisk: {
     description:
@@ -117,6 +117,22 @@ export const SCORING_METHODOLOGY: Record<string, ScoringMethodologyEntry> = {
       "The bands roughly separate very low, low-to-moderate, moderate, and high seismic design burden for screening purposes.",
     scoreRange: "30-95",
     nullBehavior: "Returns 60 when seismic design values are unavailable.",
+  },
+  scoreHazardAlerts: {
+    description:
+      "Scores the current regional disaster risk using GDACS live alert counts. Red-level alerts trigger the sharpest penalty; orange/elevated alerts apply a moderate penalty; high global alert volumes apply a light penalty; quiet periods score highest.",
+    calibration:
+      "Thresholds are count-based: any active red alert drops the score to 25, any elevated alert drops it to 50, more than ten total active alerts drop it to 65, and a quiet global period scores 85. Null data returns a neutral 70 rather than tanking the score.",
+    scoreRange: "25-85",
+    nullBehavior: "Returns 70 when GDACS alert data is unavailable, treating the absence of data as a mildly cautious neutral rather than assuming safety or danger.",
+  },
+  hazardAlerts: {
+    description:
+      "Regional disaster alert exposure uses the GDACS live global alert feed. Alert severity and count at the time of analysis are translated into a risk-adjusted score.",
+    calibration:
+      "The factor is intended as a global first-pass hazard signal supplementing site-specific FEMA and seismic data, not as a replacement for local emergency planning or engineering assessment.",
+    scoreRange: "25-85",
+    nullBehavior: "Returns 70 when the GDACS feed is unavailable so the factor does not unfairly penalize locations where the feed timed out.",
   },
   waterProximity: {
     description:
@@ -224,11 +240,11 @@ export const SCORING_METHODOLOGY: Record<string, ScoringMethodologyEntry> = {
   },
   trailAccess: {
     description:
-      "Trail access uses the standard distance scoring function against road proximity because many trailheads still require workable vehicular access.",
+      "Trail access blends OSM-mapped trailhead and named hiking-path counts (65% weight) with road proximity for day-use logistics (35% weight). The trailhead count is a derived live signal from the Overpass/OSM query; road distance is a direct live measurement.",
     calibration:
-      "The ideal distance is close enough for practical access but not so close that every trailhead is assumed to be urban or roadside.",
+      "3 trailheads scores near the ideal; 12+ saturates the count signal. Road proximity is still required because most trailheads involve vehicular access. The blend upgrades this factor from a road-proxy to a live trail-density signal.",
     scoreRange: "15-100",
-    nullBehavior: "Returns 50 when road-distance context is unavailable.",
+    nullBehavior: "Returns 50 when both OSM count and road-distance context are unavailable; count signal alone returns at least 15.",
   },
   weather: {
     description:
