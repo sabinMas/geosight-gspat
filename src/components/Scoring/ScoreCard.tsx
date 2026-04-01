@@ -153,14 +153,25 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
                 Broadband summary
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
-                {score.broadband.providerCount} providers, up to{" "}
-                {score.broadband.maxDownloadSpeed <= 0
-                  ? "unknown download"
-                  : `${score.broadband.maxDownloadSpeed.toLocaleString()} Mbps down`}{" "}
-                /{" "}
-                {score.broadband.maxUploadSpeed <= 0
-                  ? "unknown upload"
-                  : `${score.broadband.maxUploadSpeed.toLocaleString()} Mbps up`}.
+                {score.broadband.kind === "regional_household_baseline"
+                  ? `${score.broadband.regionLabel} baseline: ${
+                      score.broadband.fixedBroadbandCoveragePercent === null
+                        ? "fixed broadband share unavailable"
+                        : `${score.broadband.fixedBroadbandCoveragePercent.toFixed(1)}% fixed-broadband households`
+                    } and ${
+                      score.broadband.mobileBroadbandCoveragePercent === null
+                        ? "mobile broadband share unavailable"
+                        : `${score.broadband.mobileBroadbandCoveragePercent.toFixed(1)}% mobile-broadband households`
+                    } (${score.broadband.referenceYear ?? "latest available year"}).`
+                  : `${score.broadband.providerCount} providers, up to ${
+                      score.broadband.maxDownloadSpeed <= 0
+                        ? "unknown download"
+                        : `${score.broadband.maxDownloadSpeed.toLocaleString()} Mbps down`
+                    } / ${
+                      score.broadband.maxUploadSpeed <= 0
+                        ? "unknown upload"
+                        : `${score.broadband.maxUploadSpeed.toLocaleString()} Mbps up`
+                    }.`}
               </div>
               {score.broadband.score !== null ? (
                 <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">

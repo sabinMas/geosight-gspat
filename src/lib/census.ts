@@ -1,5 +1,6 @@
 import { Coordinates, GeodataResult } from "@/types";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
+import { fetchEurostatDemographics, supportsEurostatCountry } from "@/lib/eurostat";
 
 type FccAreaResponse = {
   results?: Array<{
@@ -93,7 +94,15 @@ async function fetchGlobalDemographics(coords: Coordinates): Promise<GeodataResu
         population: null,
         medianHouseholdIncome: null,
         medianHomeValue: null,
+        geographicGranularity: "country",
+        populationReferenceYear: null,
+        incomeReferenceYear: null,
+        incomeDefinition: null,
       };
+    }
+
+    if (supportsEurostatCountry(country.countryCode)) {
+      return fetchEurostatDemographics(country.countryCode, country.countryName);
     }
 
     const [population, gniPerCapita] = await Promise.all([
@@ -107,6 +116,10 @@ async function fetchGlobalDemographics(coords: Coordinates): Promise<GeodataResu
       population,
       medianHouseholdIncome: gniPerCapita,
       medianHomeValue: null,
+      geographicGranularity: "country",
+      populationReferenceYear: null,
+      incomeReferenceYear: null,
+      incomeDefinition: gniPerCapita ? "World Bank GNI per capita" : null,
     };
   } catch {
     return {
@@ -115,6 +128,10 @@ async function fetchGlobalDemographics(coords: Coordinates): Promise<GeodataResu
       population: null,
       medianHouseholdIncome: null,
       medianHomeValue: null,
+      geographicGranularity: "country",
+      populationReferenceYear: null,
+      incomeReferenceYear: null,
+      incomeDefinition: null,
     };
   }
 }
@@ -151,6 +168,10 @@ export async function fetchCountyDemographics(
       population: null,
       medianHouseholdIncome: null,
       medianHomeValue: null,
+      geographicGranularity: "county",
+      populationReferenceYear: null,
+      incomeReferenceYear: null,
+      incomeDefinition: null,
     };
   }
 
@@ -175,5 +196,9 @@ export async function fetchCountyDemographics(
     population: parseNullableNumber(row?.[1]),
     medianHouseholdIncome: parseNullableNumber(row?.[2]),
     medianHomeValue: parseNullableNumber(row?.[3]),
+    geographicGranularity: "county",
+    populationReferenceYear: 2022,
+    incomeReferenceYear: 2022,
+    incomeDefinition: "ACS 5-year median household income",
   };
 }

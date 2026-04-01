@@ -19,6 +19,7 @@
     "@turf/turf": "^7.2.0",
     "cesium": "^1.133.1",
     "class-variance-authority": "^0.7.1",
+    "claude": "^0.1.1",
     "clsx": "^2.1.1",
     "groq-sdk": "^0.31.0",
     "lucide-react": "^0.542.0",

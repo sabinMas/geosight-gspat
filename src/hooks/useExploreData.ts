@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildCapabilityFallbackResponse,
   buildCapabilityPrompt,
@@ -201,7 +201,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   );
   const [capabilityAnalysisResult, setCapabilityAnalysisResult] =
     useState<AnalysisCapabilityResult | null>(null);
-  const [capabilityPreviewDismissed, setCapabilityPreviewDismissed] = useState(false);
+  const reportRequestIdRef = useRef(0);
+  const reportAbortControllerRef = useRef<AbortController | null>(null);
+  const capabilityRequestIdRef = useRef(0);
+  const capabilityAbortControllerRef = useRef<AbortController | null>(null);
   const analysisCapabilities = useMemo(() => {
     const liveCapabilities = evaluateAnalysisCapabilities({
       geodata,
@@ -288,6 +291,12 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   }, [agentContext, setGeoContext]);
 
   useEffect(() => {
+    reportRequestIdRef.current += 1;
+    reportAbortControllerRef.current?.abort();
+    reportAbortControllerRef.current = null;
+    capabilityRequestIdRef.current += 1;
+    capabilityAbortControllerRef.current?.abort();
+    capabilityAbortControllerRef.current = null;
     setReportOpen(false);
     setReportLoading(false);
     setReportMarkdown("");
@@ -297,65 +306,19 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setCapabilityAnalysisLoading(false);
     setCapabilityAnalysisError(null);
     setCapabilityAnalysisResult(null);
-    setCapabilityPreviewDismissed(false);
   }, [activeProfile.id, selectedPoint.lat, selectedPoint.lng]);
-
-  useEffect(() => {
-    if (
-      capabilityPreviewDismissed ||
-      capabilityAnalysisLoading ||
-      capabilityAnalysisError ||
-      capabilityAnalysisResult ||
-      analysisCapabilities.length === 0
-    ) {
-      return;
-    }
-
-    const starterCapability =
-      analysisCapabilities.find((capability) => capability.recommended) ?? analysisCapabilities[0];
-
-    if (!starterCapability) {
-      return;
-    }
-
-      setCapabilityAnalysisResult({
-        analysisId: starterCapability.analysisId,
-        title: starterCapability.title,
-        response: buildCapabilityFallbackResponse(starterCapability.analysisId, {
-          geodata,
-        profile: activeProfile,
-        locationName: selectedLocationName,
-        selectedRegion: state.selectedRegion,
-        dataTrends: locationTrends,
-        subsurfaceDatasets,
-        }),
-        model: `${starterCapability.modelLane} starter preview`,
-        generatedAt: new Date().toISOString(),
-        mode: "deterministic",
-      });
-  }, [
-    activeProfile,
-    analysisCapabilities,
-    capabilityAnalysisError,
-    capabilityAnalysisLoading,
-    capabilityAnalysisResult,
-    capabilityPreviewDismissed,
-    geodata,
-    locationTrends,
-    selectedLocationName,
-    state.selectedRegion,
-    subsurfaceDatasets,
-  ]);
 
   const closeReportPanel = useCallback(() => {
     setReportOpen(false);
   }, []);
 
   const clearCapabilityAnalysis = useCallback(() => {
+    capabilityRequestIdRef.current += 1;
+    capabilityAbortControllerRef.current?.abort();
+    capabilityAbortControllerRef.current = null;
     setCapabilityAnalysisLoading(false);
     setCapabilityAnalysisError(null);
     setCapabilityAnalysisResult(null);
-    setCapabilityPreviewDismissed(true);
   }, []);
 
   const runCapabilityAnalysis = useCallback(
@@ -375,18 +338,15 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         dataTrends: locationTrends,
         subsurfaceDatasets,
       });
+      const requestId = capabilityRequestIdRef.current + 1;
+      const controller = new AbortController();
 
+      capabilityRequestIdRef.current = requestId;
+      capabilityAbortControllerRef.current?.abort();
+      capabilityAbortControllerRef.current = controller;
       setCapabilityAnalysisLoading(true);
       setCapabilityAnalysisError(null);
-      setCapabilityPreviewDismissed(false);
-      setCapabilityAnalysisResult({
-        analysisId,
-        title: capability.title,
-        response: fallbackResponse,
-        model: `${capability.modelLane} preview`,
-        generatedAt: new Date().toISOString(),
-        mode: "deterministic",
-      });
+      setCapabilityAnalysisResult(null);
 
       try {
         if (!geodata) {
@@ -404,6 +364,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
               message: prompt,
               context: agentContext,
             }),
+            signal: controller.signal,
           },
           25_000,
         );
@@ -413,17 +374,32 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         }
 
         const content = (await readResponseTextWithTimeout(response, 12_000)).trim();
+        if (requestId !== capabilityRequestIdRef.current || controller.signal.aborted) {
+          return;
+        }
+
+        if (!content) {
+          throw new Error("GeoSight returned an empty capability response.");
+        }
+
         const responseMode =
           (response.headers.get("X-GeoSight-Mode") as AgentExecutionMode | null) ?? "live";
         setCapabilityAnalysisResult({
           analysisId,
           title: capability.title,
-          response: content || fallbackResponse,
-          model: content ? capability.modelLane : `${capability.modelLane} fallback`,
+          response: content,
+          model:
+            responseMode === "live"
+              ? capability.modelLane
+              : `${capability.modelLane} ${responseMode}`,
           generatedAt: new Date().toISOString(),
-          mode: content ? responseMode : "deterministic",
+          mode: responseMode,
         });
       } catch (analysisError) {
+        if (requestId !== capabilityRequestIdRef.current || controller.signal.aborted) {
+          return;
+        }
+
         console.warn("[capability-analysis] using deterministic fallback", analysisError);
         setCapabilityAnalysisResult({
           analysisId,
@@ -435,7 +411,12 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         });
         setCapabilityAnalysisError(null);
       } finally {
-        setCapabilityAnalysisLoading(false);
+        if (requestId === capabilityRequestIdRef.current) {
+          setCapabilityAnalysisLoading(false);
+          if (capabilityAbortControllerRef.current === controller) {
+            capabilityAbortControllerRef.current = null;
+          }
+        }
       }
     },
     [
@@ -455,6 +436,12 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       return;
     }
 
+    const requestId = reportRequestIdRef.current + 1;
+    const controller = new AbortController();
+
+    reportRequestIdRef.current = requestId;
+    reportAbortControllerRef.current?.abort();
+    reportAbortControllerRef.current = controller;
     setReportOpen(true);
     setReportLoading(true);
     setReportMarkdown("");
@@ -474,6 +461,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
             message: `Generate a full site assessment report for ${selectedLocationName} at ${selectedPoint.lat}, ${selectedPoint.lng} using the ${activeProfile.name} mission profile. Use the full context bundle, cite real values with units, keep the output in markdown, and include explicit sections for data status, supported findings, limitations, and next diligence steps.`,
             context: agentContext,
           }),
+          signal: controller.signal,
         },
         25_000,
       );
@@ -483,6 +471,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       }
 
       const markdown = (await readResponseTextWithTimeout(response, 15_000)).trim();
+      if (requestId !== reportRequestIdRef.current || controller.signal.aborted) {
+        return;
+      }
+
       if (!markdown) {
         throw new Error("GeoScribe returned an empty report.");
       }
@@ -493,13 +485,22 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       setReportMode(responseMode);
       setReportGeneratedAt(new Date().toISOString());
     } catch (reportGenerationError) {
+      if (requestId !== reportRequestIdRef.current || controller.signal.aborted) {
+        return;
+      }
+
       setReportError(
         reportGenerationError instanceof Error
           ? reportGenerationError.message
           : "GeoScribe could not generate a report right now.",
       );
     } finally {
-      setReportLoading(false);
+      if (requestId === reportRequestIdRef.current) {
+        setReportLoading(false);
+        if (reportAbortControllerRef.current === controller) {
+          reportAbortControllerRef.current = null;
+        }
+      }
     }
   }, [
     activeProfile.name,

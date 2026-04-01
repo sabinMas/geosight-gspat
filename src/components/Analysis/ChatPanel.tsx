@@ -56,6 +56,10 @@ interface ChatUiMessage {
   mode?: ChatReplyMode;
 }
 
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
 export function ChatPanel({
   profile,
   location,
@@ -86,6 +90,8 @@ export function ChatPanel({
   } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
+  const analyzeRequestIdRef = useRef(0);
+  const analyzeAbortControllerRef = useRef<AbortController | null>(null);
   const suggestionPrompts = profile.exampleQuestions.length
     ? profile.exampleQuestions
     : [...STARTER_PROMPTS];
@@ -186,6 +192,21 @@ export function ChatPanel({
     });
   }, [loading, messages]);
 
+  useEffect(() => {
+    analyzeRequestIdRef.current += 1;
+    analyzeAbortControllerRef.current?.abort();
+    analyzeAbortControllerRef.current = null;
+    setLoading(false);
+  }, [location.lat, location.lng, locationName, profile.id, resultsMode]);
+
+  useEffect(() => {
+    return () => {
+      analyzeRequestIdRef.current += 1;
+      analyzeAbortControllerRef.current?.abort();
+      analyzeAbortControllerRef.current = null;
+    };
+  }, []);
+
   const submitQuestion = useCallback(async (question: string) => {
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion || loading) {
@@ -196,6 +217,12 @@ export function ChatPanel({
       ...messages,
       { id: crypto.randomUUID(), role: "user", content: trimmedQuestion },
     ];
+    const requestId = analyzeRequestIdRef.current + 1;
+    const controller = new AbortController();
+
+    analyzeRequestIdRef.current = requestId;
+    analyzeAbortControllerRef.current?.abort();
+    analyzeAbortControllerRef.current = controller;
     onQuestionAsked?.(trimmedQuestion);
     setMessages(nextMessages);
     setDraft("");
@@ -225,6 +252,7 @@ export function ChatPanel({
             imageSummary,
             classification,
           }),
+          signal: controller.signal,
         },
         20_000,
       );
@@ -233,6 +261,10 @@ export function ChatPanel({
         error?: string;
         fallbackMode?: boolean;
       };
+      if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) {
+        return;
+      }
+
       if (!response.ok || !data.answer) {
         throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
       }
@@ -249,6 +281,14 @@ export function ChatPanel({
         },
       ]);
     } catch (error) {
+      if (
+        requestId !== analyzeRequestIdRef.current ||
+        controller.signal.aborted ||
+        isAbortError(error)
+      ) {
+        return;
+      }
+
       setMessages([
         ...nextMessages,
         {
@@ -261,7 +301,12 @@ export function ChatPanel({
         },
       ]);
     } finally {
-      setLoading(false);
+      if (requestId === analyzeRequestIdRef.current) {
+        setLoading(false);
+        if (analyzeAbortControllerRef.current === controller) {
+          analyzeAbortControllerRef.current = null;
+        }
+      }
     }
   }, [
     classification,

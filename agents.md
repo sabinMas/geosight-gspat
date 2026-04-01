@@ -81,6 +81,9 @@ This product should feel alive, fluid, spatial, and premium, not like a pile of 
 7. Free and open data first.
 Prefer free, public, and open data sources. Paid APIs are exceptions, not defaults.
 
+8. No competition language, ever.
+GeoSight is a product, not a competition entry. Do not use "judges", "judged", "judge mode", "judgeMode", "competition", "competition demo", "competition strength", "competition-first", or any related framing in code, tests, docs, comments, or agent prompts. The verb "judge" meaning "to assess" is allowed in normal English. Demo overlays and demo registries are not affected by this rule.
+
 ## Data Truth Hierarchy
 
 All agents must follow this hierarchy when shaping features:

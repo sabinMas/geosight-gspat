@@ -311,8 +311,10 @@ function buildRegionHighlights(profile: MissionProfile, geodata: GeodataResult, 
         geodata.nearestWaterBody.distanceKm !== undefined
           ? `Water ${geodata.nearestWaterBody.distanceKm.toFixed(1)} km`
           : "Water unavailable",
-        broadband && broadband.maxDownloadSpeed > 0
-          ? `${broadband.maxDownloadSpeed.toLocaleString()} Mbps`
+        broadband?.kind === "regional_household_baseline"
+          ? `${broadband.fixedBroadbandCoveragePercent?.toFixed(0) ?? "--"}% fixed broadband`
+          : broadband && broadband.maxDownloadSpeed > 0
+            ? `${broadband.maxDownloadSpeed.toLocaleString()} Mbps`
           : `${score}/100 overall`,
       ];
     case "commercial":
@@ -321,8 +323,10 @@ function buildRegionHighlights(profile: MissionProfile, geodata: GeodataResult, 
           ? `Road ${geodata.nearestRoad.distanceKm.toFixed(1)} km`
           : "Road unavailable",
         `${geodata.amenities.commercialCount ?? 0} commercial venues`,
-        broadband && broadband.providerCount > 0
-          ? `${broadband.providerCount} broadband providers`
+        broadband?.kind === "regional_household_baseline"
+          ? `${broadband.fixedBroadbandCoveragePercent?.toFixed(0) ?? "--"}% fixed broadband`
+          : broadband && broadband.providerCount > 0
+            ? `${broadband.providerCount} broadband providers`
           : `${score}/100 overall`,
       ];
     case "hiking":

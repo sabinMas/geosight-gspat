@@ -56,15 +56,6 @@ test("globe view controls switch basemap mode without leaving the explore shell"
   await expect(page.getByText("Explore workspace")).toBeVisible();
 });
 
-test("judge mode opens the richer board path", async ({ page }) => {
-  await page.goto(
-    "/explore?profile=data-center&demo=pnw-cooling&entrySource=demo&judge=1&missionRun=competition-columbia",
-  );
-
-  await expect(page.getByText(/judge-ready spatial reasoning flow/i)).toBeVisible();
-  await expect(page.getByText(/mission run stays in focus/i)).toBeVisible();
-  await expect(page.getByText(/supporting evidence opens on demand/i)).toBeVisible();
-});
 
 test("capability-aware analysis exposes grounded scientific actions for the active place", async ({
   page,
@@ -98,7 +89,6 @@ test("geo-usability returns deterministic findings from ui context", async ({ re
           visibleControlCount: 16,
           visibleTextBlockCount: 12,
           shellMode: "minimal",
-          judgeMode: false,
           locationSelected: false,
           geodataLoading: false,
           geodataLoaded: true,

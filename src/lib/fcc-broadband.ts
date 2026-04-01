@@ -251,11 +251,17 @@ export async function getFCCBroadband(
     }, 0);
 
     return {
+      kind: "address_availability",
+      granularity: "address",
+      regionLabel: null,
+      referenceYear: null,
       maxDownloadSpeed,
       maxUploadSpeed,
       providerCount,
       technologies,
       hasFiber: technologies.includes("fiber"),
+      fixedBroadbandCoveragePercent: null,
+      mobileBroadbandCoveragePercent: null,
     };
   } catch {
     return null;

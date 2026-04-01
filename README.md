@@ -291,7 +291,6 @@ The public app is deployed at:
 
 - Backlog and roadmap: [`docs/BACKLOG.md`](docs/BACKLOG.md)
 - Product and platform standards: [`agents.md`](agents.md)
-- Competition package: [`docs/competition/README.md`](docs/competition/README.md)
 
 ## Current Gaps
 

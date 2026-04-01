@@ -192,20 +192,38 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       label: "Broadband",
       value:
         broadband
-          ? `${broadband.providerCount} providers`
+          ? broadband.kind === "regional_household_baseline"
+            ? `${broadband.fixedBroadbandCoveragePercent === null ? "--" : `${broadband.fixedBroadbandCoveragePercent.toFixed(1)}%`} fixed households`
+            : `${broadband.providerCount} providers`
           : geodata.sources.broadband.status === "unavailable"
             ? "Unsupported"
             : "Unavailable",
       detail:
         broadband
-          ? `Up to ${broadband.maxDownloadSpeed || "--"} Mbps down / ${broadband.maxUploadSpeed || "--"} Mbps up with ${broadband.technologies.join(", ") || "unclassified"} technologies.`
+          ? broadband.kind === "regional_household_baseline"
+            ? `${broadband.regionLabel} country-level Eurostat baseline: ${
+                broadband.fixedBroadbandCoveragePercent === null
+                  ? "fixed broadband share unavailable"
+                  : `${broadband.fixedBroadbandCoveragePercent.toFixed(1)}% fixed broadband`
+              } / ${
+                broadband.mobileBroadbandCoveragePercent === null
+                  ? "mobile broadband share unavailable"
+                  : `${broadband.mobileBroadbandCoveragePercent.toFixed(1)}% mobile broadband`
+              } (${broadband.referenceYear ?? "latest available year"}).`
+            : `Up to ${broadband.maxDownloadSpeed || "--"} Mbps down / ${broadband.maxUploadSpeed || "--"} Mbps up with ${broadband.technologies.join(", ") || "unclassified"} technologies.`
           : "FCC broadband availability was not returned for this point.",
       direction:
-        broadband && broadband.maxDownloadSpeed >= 300
-          ? "positive"
-          : broadband
-            ? "neutral"
-            : "watch",
+        broadband?.kind === "regional_household_baseline"
+          ? (broadband.fixedBroadbandCoveragePercent ?? 0) >= 85
+            ? "positive"
+            : broadband
+              ? "neutral"
+              : "watch"
+          : broadband && broadband.maxDownloadSpeed >= 300
+            ? "positive"
+            : broadband
+              ? "neutral"
+              : "watch",
       source: geodata.sources.broadband,
     },
     {
@@ -326,15 +344,22 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
     },
     {
       id: "trend-population",
-      label: "County population",
+      label:
+        demographics.geographicGranularity === "country"
+          ? "Country population"
+          : "County population",
       value:
         demographics.population === null
           ? "Unavailable"
           : demographics.population.toLocaleString(),
       detail:
         demographics.countyName === null
-          ? "County demographics are not available for this point yet."
-          : `${demographics.countyName} population from ACS 5-year Census data.`,
+          ? "Demographic coverage is not available for this point yet."
+          : demographics.geographicGranularity === "country"
+            ? `${demographics.countyName} population from ${
+                geodata.sources.demographics.provider
+              }${demographics.populationReferenceYear ? ` (${demographics.populationReferenceYear})` : ""}.`
+            : `${demographics.countyName} population from ACS 5-year Census data.`,
       direction: demographics.population !== null ? "neutral" : "watch",
       source: geodata.sources.demographics,
     },
@@ -355,15 +380,22 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
     },
     {
       id: "trend-income",
-      label: "Median income",
+      label:
+        demographics.geographicGranularity === "country"
+          ? "Income context"
+          : "Median income",
       value:
         demographics.medianHouseholdIncome === null
           ? "Unavailable"
           : `$${demographics.medianHouseholdIncome.toLocaleString()}`,
       detail:
-        demographics.medianHomeValue === null
-          ? "Household income is available, but housing value data is not."
-          : `County median home value: $${demographics.medianHomeValue.toLocaleString()}.`,
+        demographics.geographicGranularity === "country"
+          ? `${demographics.incomeDefinition ?? "Country-level income context"}${
+              demographics.incomeReferenceYear ? ` (${demographics.incomeReferenceYear})` : ""
+            }.`
+          : demographics.medianHomeValue === null
+            ? "Household income is available, but housing value data is not."
+            : `County median home value: $${demographics.medianHomeValue.toLocaleString()}.`,
       direction: demographics.medianHouseholdIncome !== null ? "neutral" : "watch",
       source: geodata.sources.demographics,
     },
