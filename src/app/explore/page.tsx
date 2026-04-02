@@ -1,6 +1,6 @@
 import { ExploreProvider } from "@/components/Explore/ExploreProvider";
 import { ExploreWorkspace } from "@/components/Explore/ExploreWorkspace";
-import { normalizeProfileId } from "@/lib/lenses";
+import { parseAppMode } from "@/lib/app-mode";
 import { ExploreInitState } from "@/types";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -17,9 +17,11 @@ export default async function ExplorePage({
   const params = (await searchParams) ?? {};
 
   const initialState: ExploreInitState = {
-    profileId: normalizeProfileId(firstValue(params.profile)),
+    profileId: firstValue(params.profile),
     locationQuery: firstValue(params.location),
-    locationLabel: firstValue(params.label),
+    demoId: firstValue(params.demo),
+    entrySource: (firstValue(params.entrySource) as ExploreInitState["entrySource"]) ?? "direct",
+    appMode: parseAppMode(firstValue(params.mode) ?? null),
   };
 
   return (

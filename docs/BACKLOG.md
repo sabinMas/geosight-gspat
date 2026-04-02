@@ -58,7 +58,7 @@ This backlog was reconciled against:
 ### Demo hardening
 
 - **User question**: Can the product tell a strong live story and still stay demo-safe when providers are slow?
-- **Current implementation**: Demo registry, mission-run presets, fallback screenshot fields, and a dismissible live-loading banner for slower demo loads.
+- **Current implementation**: Demo registry, fallback screenshot fields, and a dismissible live-loading banner for slower demo loads.
 
 ## Current Gaps
 

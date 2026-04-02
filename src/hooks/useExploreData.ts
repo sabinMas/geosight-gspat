@@ -11,6 +11,7 @@ import { GeoSightContext } from "@/lib/agents/agent-config";
 import { buildLocationTrends } from "@/lib/data-trends";
 import { fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
+import { getVisibleCardsForMode } from "@/lib/app-mode";
 import {
   detectWorkspaceIntent,
   getPrimaryCardForIntent,
@@ -79,6 +80,8 @@ function laneToAgentId(capabilityId: AnalysisCapabilityId, modelLane: string) {
 export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const {
     activeProfile,
+    appMode,
+    activeDemo,
     imageSummary,
     init,
     previewUrl,
@@ -117,16 +120,36 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     error: nearbyError,
     source: nearbySource,
   } = useNearbyPlaces(selectedPoint, selectedLocationName, state.locationReady);
-  const { cards, visibility, primaryCards, workspaceCards, isCardVisible, setCardVisible } =
-    useWorkspaceCards(activeProfile.id);
-  const allWorkspaceCards = useMemo(
+  const {
+    cards: allCards,
+    visibility,
+    primaryCards: allPrimaryCards,
+    workspaceCards: allWorkspaceCards,
+    isCardVisible,
+    setCardVisible,
+  } = useWorkspaceCards(activeProfile.id);
+
+  const cards = useMemo(
+    () => getVisibleCardsForMode(appMode, allCards),
+    [appMode, allCards],
+  );
+  const primaryCards = useMemo(
+    () => getVisibleCardsForMode(appMode, allPrimaryCards),
+    [appMode, allPrimaryCards],
+  );
+  const workspaceCards = useMemo(
+    () => getVisibleCardsForMode(appMode, allWorkspaceCards),
+    [appMode, allWorkspaceCards],
+  );
+
+  const allWorkspaceCardsModeFiltered = useMemo(
     () => cards.filter((card) => card.zone === "workspace"),
     [cards],
   );
 
   const allWorkspaceCardIds = useMemo(
-    () => allWorkspaceCards.map((card) => card.id),
-    [allWorkspaceCards],
+    () => allWorkspaceCardsModeFiltered.map((card) => card.id),
+    [allWorkspaceCardsModeFiltered],
   );
   const visibleWorkspaceCardIds = useMemo(
     () => workspaceCards.map((card) => card.id),
@@ -159,6 +182,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     visiblePrimaryCardIds,
     setCardVisible,
   );
+
 
   const effectiveClassification = useMemo(
     () =>
@@ -231,6 +255,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       lng: selectedPoint.lng,
       profile: activeProfile.id,
       score: geodata ? siteScore?.total : undefined,
+      appMode,
       dataBundle: geodata
         ? {
             locationName: selectedLocationName,
@@ -253,6 +278,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     [
       activeProfile.id,
       analysisCapabilities,
+      appMode,
       effectiveClassification,
       geodata,
       imageSummary,
@@ -276,10 +302,11 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       return;
     }
 
-    if (init.locationQuery) {
+    if (init.locationQuery || activeDemo) {
       setShellMode("guided");
     }
   }, [
+    activeDemo,
     init.locationQuery,
     setShellMode,
     shellMode,
@@ -513,7 +540,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
 
   const suggestedCards = useMemo(() => {
     const suggestions = getSuggestedCardsForShell({
-      cards: allWorkspaceCards,
+      cards: allWorkspaceCardsModeFiltered,
       intent: lastIntent,
       geodataReady: Boolean(geodata),
       hasComparison: sites.length >= 2,
@@ -524,7 +551,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       ...suggestions.filter((card) => pinnedCardIds.includes(card.id)),
       ...suggestions.filter((card) => !pinnedCardIds.includes(card.id)),
     ];
-  }, [allWorkspaceCards, geodata, lastIntent, pinnedCardIds, previewUrl, sites.length, visibility]);
+  }, [allWorkspaceCardsModeFiltered, geodata, lastIntent, pinnedCardIds, previewUrl, sites.length, visibility]);
 
   const groundingFallbackSources = useMemo(() => [], []);
 
@@ -565,7 +592,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setActivePrimaryCardId(getPrimaryCardForIntent(intent));
 
     const suggested = getSuggestedCardsForShell({
-      cards: allWorkspaceCards,
+      cards: allWorkspaceCardsModeFiltered,
       intent,
       geodataReady: Boolean(geodata),
       hasComparison: sites.length >= 2,
@@ -585,7 +612,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setShellMode,
     sites.length,
     visibility,
-    allWorkspaceCards,
+    allWorkspaceCardsModeFiltered,
   ]);
 
   return {

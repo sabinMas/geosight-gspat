@@ -19,13 +19,12 @@ test("landing keeps one dominant start flow across responsive widths", async ({ 
   for (const width of [320, 768, 1280]) {
     await page.setViewportSize({ width, height: 1200 });
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /ask one place/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /see any place clearly/i })).toBeVisible();
     await expect(page.getByText(/why geosight feels different/i)).toHaveCount(0);
-    await expect(page.getByText(/step 2 stays hidden until you choose a mission lens/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /open geosight/i })).toHaveCount(0);
-    await page.getByRole("button", { name: /home buying/i }).click();
-    await expect(page.getByRole("button", { name: /open geosight/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /focus a place with the home buying lens/i })).toBeVisible();
+    await expect(page.getByText(/pick a lens above to get started/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /explore this place/i })).toHaveCount(0);
+    await page.getByRole("button", { name: /trail scout/i }).click();
+    await expect(page.getByRole("button", { name: /explore this place/i })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   }
 });
@@ -33,7 +32,7 @@ test("landing keeps one dominant start flow across responsive widths", async ({ 
 test("explore defaults to the minimal shell and hides advanced board surfaces", async ({ page }) => {
   await page.goto("/explore");
 
-  await expect(page.getByText("Explore workspace")).toBeVisible();
+  await expect(page.getByText("Explorer")).toBeVisible();
   await expect(page.getByRole("button", { name: /ask geosight/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /open advanced board/i })).toBeVisible();
   await expect(page.getByText("Saved layouts")).toHaveCount(0);
@@ -55,7 +54,6 @@ test("globe view controls switch basemap mode without leaving the explore shell"
   await waterTerrainButton.click();
   await expect(page.getByText("Explore workspace")).toBeVisible();
 });
-
 
 test("capability-aware analysis exposes grounded scientific actions for the active place", async ({
   page,

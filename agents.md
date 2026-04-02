@@ -33,7 +33,7 @@ This agent model is grounded in the repository state, not an abstract wishlist.
 - Deterministic scoring with factor evidence labels and methodology explanations
 - Registry-driven workspace cards with profile defaults, board/library behavior, and persisted visibility
 - GeoAnalyst and GeoScribe agent flows, including a structured report panel with copy-to-clipboard
-- Demo registry with guided stories, mission-run presets, and fallback screenshot support
+- Demo registry with guided stories and fallback screenshot support
 - Live integrations with USGS, NRCS, FEMA, EPA, FCC, Open-Meteo, Overpass/OSM, NCES, Washington OSPI, and Cesium Ion
 - New subsurface and climate-history integrations: groundwater, soil profile, seismic design, and 10-year historical climate trends
 - Source-awareness UI with freshness, coverage, confidence, and registry-aware fallback-provider context

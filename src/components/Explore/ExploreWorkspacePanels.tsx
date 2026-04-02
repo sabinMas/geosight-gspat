@@ -14,11 +14,12 @@ import { DemographicsCard } from "@/components/Explore/DemographicsCard";
 import { FloodRiskCard } from "@/components/Explore/FloodRiskCard";
 import { GroundwaterCard } from "@/components/Explore/GroundwaterCard";
 import { HazardCard } from "@/components/Explore/HazardCard";
+import { OutdoorFitCard } from "@/components/Explore/OutdoorFitCard";
 import { SchoolContextCard } from "@/components/Explore/SchoolContextCard";
 import { SeismicDesignCard } from "@/components/Explore/SeismicDesignCard";
 import { SoilProfileCard } from "@/components/Explore/SoilProfileCard";
 import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
-import { WeatherForecastCard } from "@/components/Explore/WeatherForecastCard";
+import { TripSummaryCard } from "@/components/Explore/TripSummaryCard";
 import { AnalysisTrendsPanel } from "@/components/Results/AnalysisTrendsPanel";
 import { NearbyPlacesList } from "@/components/Results/NearbyPlacesList";
 import { CompareTable } from "@/components/Scoring/CompareTable";
@@ -119,8 +120,8 @@ function getDataDependencyPlaceholder(
     "seismic-design",
     "air-quality",
     "contamination-risk",
-    "weather-forecast",
-    "demographics-context",
+    "outdoor-fit",
+    "trip-summary",
   ]);
 
   if (scoreCards.has(cardId) && !data.siteScore) {
@@ -332,10 +333,12 @@ export function ExploreWorkspacePanel({
       return <AirQualityCard geodata={data.geodata} />;
     case "contamination-risk":
       return <ContaminationRiskCard geodata={data.geodata} />;
-    case "weather-forecast":
-      return <WeatherForecastCard geodata={data.geodata} />;
-    case "demographics-context":
-      return <DemographicsCard geodata={data.geodata} />;
+    case "outdoor-fit":
+      return <OutdoorFitCard geodata={data.geodata} />;
+    case "trip-summary":
+      return (
+        <TripSummaryCard geodata={data.geodata} locationName={state.selectedLocationName} />
+      );
     default:
       return null;
   }

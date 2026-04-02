@@ -1,4 +1,6 @@
 import {
+  CardAudience,
+  CardComplexity,
   WorkspaceCardDefinition,
   WorkspaceCardDensityBudget,
   WorkspaceCardId,
@@ -570,8 +572,176 @@ function getSummaryVariant(card: (typeof WORKSPACE_CARD_REGISTRY_BASE)[number]) 
   }
 }
 
-export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] =
-  WORKSPACE_CARD_REGISTRY_BASE.map((card) => ({
+function getModeVisibility(cardId: WorkspaceCardId): { explorer: boolean; pro: boolean } {
+  // Explorer-only
+  if (cardId === "outdoor-fit" || cardId === "trip-summary") return { explorer: true, pro: false };
+
+  // Visible in both modes
+  const bothModes = new Set<WorkspaceCardId>([
+    "active-location",
+    "chat",
+    "results",
+    "compare",
+    "terrain-viewer",
+    "elevation-profile",
+    "hazard-context",
+    "climate-history",
+    "flood-risk",
+    "air-quality",
+  ]);
+  if (bothModes.has(cardId)) return { explorer: true, pro: true };
+
+  // Pro-only (hidden in Explorer)
+  return { explorer: false, pro: true };
+}
+
+function getAudience(cardId: WorkspaceCardId): CardAudience {
+  const proOnly = new Set<WorkspaceCardId>([
+    "score",
+    "factor-breakdown",
+    "image-upload",
+    "land-classifier",
+    "source-awareness",
+    "school-context",
+    "broadband-context",
+    "cooling-water",
+    "groundwater",
+    "soil-profile",
+    "seismic-design",
+    "contamination-risk",
+  ]);
+  if (proOnly.has(cardId)) return "pro";
+  if (cardId === "outdoor-fit" || cardId === "trip-summary") return "public";
+  return "both";
+}
+
+function getComplexity(cardId: WorkspaceCardId): CardComplexity {
+  const advanced = new Set<WorkspaceCardId>([
+    "score",
+    "factor-breakdown",
+    "source-awareness",
+    "school-context",
+    "broadband-context",
+    "cooling-water",
+    "groundwater",
+    "soil-profile",
+    "seismic-design",
+    "contamination-risk",
+    "image-upload",
+    "land-classifier",
+  ]);
+  return advanced.has(cardId) ? "advanced" : "simple";
+}
+
+function getExplorerLabel(cardId: WorkspaceCardId): string | undefined {
+  const labels: Partial<Record<WorkspaceCardId, string>> = {
+    "active-location": "You're here",
+    chat: "Ask anything",
+    results: "Nearby places",
+    compare: "Compare spots",
+    "terrain-viewer": "Terrain view",
+    "elevation-profile": "How steep is it?",
+    "hazard-context": "Risk snapshot",
+    "climate-history": "Weather history",
+    "flood-risk": "Flood zone",
+    "air-quality": "Air quality",
+    "outdoor-fit": "Outdoor fit",
+    "trip-summary": "Trip summary",
+  };
+  return labels[cardId];
+}
+
+function getExplorerSummary(cardId: WorkspaceCardId): string | undefined {
+  const summaries: Partial<Record<WorkspaceCardId, string>> = {
+    "active-location": "See where you are and what's around you.",
+    chat: "Ask a plain-English question about this place.",
+    results: "See what's nearby and what stands out.",
+    compare: "Compare a few spots side by side.",
+    "terrain-viewer": "See the lay of the land.",
+    "elevation-profile": "See how steep the terrain is across this area.",
+    "hazard-context": "Quick look at nearby risks — quakes, fires, weather.",
+    "climate-history": "Ten years of weather trends for this spot.",
+    "flood-risk": "Is this area in a flood zone?",
+    "air-quality": "How clean is the air here?",
+    "outdoor-fit": "Is this place good for outdoor activities?",
+    "trip-summary": "A plain-English overview of what makes this place worth visiting.",
+  };
+  return summaries[cardId];
+}
+
+const EXPLORER_ONLY_CARDS: WorkspaceCardDefinition[] = [
+  {
+    id: "outdoor-fit",
+    title: "Outdoor fit",
+    summary: "A plain-English read on how suitable this location is for outdoor use.",
+    questionAnswered: "Is this place good for hiking, hunting, or general outdoor activities?",
+    regionCoverage: "Global where terrain and climate data are available",
+    failureMode: "Shows partial assessment when some data sources are unavailable",
+    freshnessWindow: "Recomputed on location change",
+    nextActions: [
+      "Check terrain viewer for more detail",
+      "Open elevation profile",
+      "Ask GeoSight a specific question",
+    ],
+    icon: "Trees",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "standard",
+    defaultVisibility: true,
+    defaultOrder: 25,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
+    emptyState: "Select a location to see the outdoor suitability summary.",
+    revealTier: "supporting",
+    revealTriggers: ["location_selected", "ask_terrain"],
+    summaryVariant: "Plain-English outdoor suitability for this place.",
+    compactActions: ["Check terrain viewer", "Open elevation profile"],
+    densityBudget: "medium",
+    audience: "public",
+    complexity: "simple",
+    explorerLabel: "Outdoor fit",
+    explorerSummary: "Is this place good for outdoor activities?",
+    modeVisibility: { explorer: true, pro: false },
+  },
+  {
+    id: "trip-summary",
+    title: "Trip summary",
+    summary: "AI-generated plain-English overview of this location for the active Explorer lens.",
+    questionAnswered: "What makes this place worth visiting — or not?",
+    regionCoverage: "Global — backed by GeoAnalyst with Explorer-mode prompting",
+    failureMode: "Falls back to a deterministic summary when AI is unavailable",
+    freshnessWindow: "Generated on demand per location",
+    nextActions: [
+      "Ask GeoSight a follow-up question",
+      "Open hazard context for risk details",
+      "Open terrain viewer",
+    ],
+    icon: "Sparkles",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: true,
+    defaultOrder: 35,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
+    emptyState: "Select a location to get an AI-generated trip summary.",
+    revealTier: "supporting",
+    revealTriggers: ["location_selected", "ask_summary"],
+    summaryVariant: "Plain-English overview of what makes this place worth a visit.",
+    compactActions: ["Ask a follow-up", "Open hazard context"],
+    densityBudget: "medium",
+    audience: "public",
+    complexity: "simple",
+    explorerLabel: "Trip summary",
+    explorerSummary: "A plain-English overview of this place.",
+    modeVisibility: { explorer: true, pro: false },
+  },
+];
+
+export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] = [
+  ...WORKSPACE_CARD_REGISTRY_BASE.map((card) => ({
     ...card,
     nextActions: [...card.nextActions],
     requiredData: [...card.requiredData],
@@ -589,7 +759,14 @@ export const WORKSPACE_CARD_REGISTRY: WorkspaceCardDefinition[] =
     summaryVariant: getSummaryVariant(card),
     compactActions: [...card.nextActions.slice(0, 2)],
     densityBudget: getDensityBudget(card.id),
-  }));
+    audience: getAudience(card.id),
+    complexity: getComplexity(card.id),
+    explorerLabel: getExplorerLabel(card.id),
+    explorerSummary: getExplorerSummary(card.id),
+    modeVisibility: getModeVisibility(card.id),
+  })),
+  ...EXPLORER_ONLY_CARDS,
+];
 
 export const WORKSPACE_CARD_GROUPS = [
   { key: "context", label: "Core context" },
@@ -605,29 +782,11 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 ) as Record<WorkspaceCardId, WorkspaceCardDefinition>;
 
 const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
-  "data-center": ["active-location", "chat", "results", "weather-forecast"],
-  hiking: ["active-location", "chat", "results", "weather-forecast"],
-  "home-buying": [
-    "active-location",
-    "chat",
-    "results",
-    "score",
-    "school-context",
-    "broadband-context",
-    "flood-risk",
-    "air-quality",
-    "weather-forecast",
-    "demographics-context",
-  ],
-  "site-development": [
-    "active-location",
-    "chat",
-    "results",
-    "score",
-    "weather-forecast",
-    "demographics-context",
-  ],
-  commercial: ["active-location", "chat", "results", "demographics-context"],
+  "data-center": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+  hiking: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+  "home-buying": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+  "site-development": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+  commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
 };
 
 export function getWorkspaceCardDefaults(profileId: string) {

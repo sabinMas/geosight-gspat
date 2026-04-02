@@ -150,6 +150,7 @@ function parseGeoSightContext(value: unknown): GeoSightContext | undefined {
     lng: parseOptionalNumber(value.lng),
     profile: parseOptionalString(value.profile),
     score: parseOptionalNumber(value.score),
+    appMode: value.appMode === "explorer" || value.appMode === "pro" ? value.appMode : undefined,
     dataBundle: isRecord(value.dataBundle) ? value.dataBundle : undefined,
     uiContext: parseUiContext(value.uiContext),
   };
@@ -297,12 +298,18 @@ function buildAgentFallback(agentId: string, message: string, context?: GeoSight
   ].join("\n\n");
 }
 
+const EXPLORER_SYSTEM_PROMPT_SUFFIX =
+  " Keep your response short, practical, and in plain English — no technical jargon. Lead with the most useful thing to know, then 2-3 supporting points. Use a friendly, discovery-focused tone.";
+
 function buildSystemMessage(config: AgentConfig, context?: GeoSightContext) {
+  const modeSuffix = context?.appMode === "explorer" ? EXPLORER_SYSTEM_PROMPT_SUFFIX : "";
+  const basePrompt = `${config.systemPrompt}${modeSuffix}`;
+
   if (!context) {
-    return config.systemPrompt;
+    return basePrompt;
   }
 
-  return `${config.systemPrompt}\n\nCurrent analysis context: ${JSON.stringify(
+  return `${basePrompt}\n\nCurrent analysis context: ${JSON.stringify(
     context,
     null,
     2,

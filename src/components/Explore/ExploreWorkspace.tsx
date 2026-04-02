@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { FileText, MoreHorizontal, PanelLeft, Sparkles, X } from "lucide-react";
+import { FileText, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
@@ -16,10 +16,11 @@ import { DataLayers } from "@/components/Globe/DataLayers";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
-import { ProfileSelector } from "@/components/Shell/ProfileSelector";
+import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
 import { StatePanel } from "@/components/Status/StatePanel";
+import { isExplorerMode } from "@/lib/app-mode";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
@@ -51,7 +52,7 @@ export function ExploreWorkspace() {
   const { setGeoContext, setUiContext, primeAgent } = useAgentPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
-  const [lensPickerOpen, setLensPickerOpen] = useState(false);
+  const inExplorer = isExplorerMode(state.appMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workspaceNotice, setWorkspaceNotice] = useState<{
     tone: "info" | "warning";
@@ -144,7 +145,7 @@ export function ExploreWorkspace() {
   );
   const reportPrompt = useMemo(
     () =>
-      `Generate a full intelligence report for the ${state.activeProfile.name} lens at ${state.selectedLocationName}. Keep it grounded in the live GeoSight context, call out data gaps explicitly, and structure it with data status, key findings, limitations, and next diligence steps for a clear decision-ready briefing.`,
+      `Generate a full intelligence report for the ${state.activeProfile.name} mission at ${state.selectedLocationName}. Keep it grounded in the live GeoSight context, call out data gaps explicitly, and structure it as a professional site assessment briefing.`,
     [state.activeProfile.name, state.selectedLocationName],
   );
   const reportSources = useMemo(
@@ -163,6 +164,10 @@ export function ExploreWorkspace() {
         : [],
     [data.geodata],
   );
+
+  const handleOpenLibraryMode = () => {
+    data.openLibrary();
+  };
 
   const handleGenerateReport = () => {
     if (!data.geodata) {
@@ -203,6 +208,7 @@ export function ExploreWorkspace() {
 
   const visibleTextBlockCount =
     5 +
+    (state.activeDemo ? 1 : 0) +
     (data.activePrimaryCard ? 1 : 0) +
     (data.activeBoardCard ? 1 : 0) +
     data.suggestedCards.length;
@@ -245,7 +251,6 @@ export function ExploreWorkspace() {
       selectedRegion={state.selectedRegion}
       onSelectProfile={(profile) => {
         state.setActiveProfile(profile);
-        setLensPickerOpen(false);
         setSidebarOpen(false);
       }}
       onSelectRegion={(region) => {
@@ -264,96 +269,76 @@ export function ExploreWorkspace() {
   );
 
   return (
-    <main className="h-screen overflow-hidden px-4 py-4 md:px-6">
-      <div className="mx-auto flex h-full max-w-[1680px] flex-col gap-5 overflow-hidden">
-        <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--foreground)]">
-                <span className="font-semibold">GeoSight</span>
-                <span className="text-[var(--muted-foreground)]">/</span>
-                <span>{state.activeProfile.name}</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="rounded-full"
-                  onClick={() => setLensPickerOpen((current) => !current)}
-                >
-                  Change lens
-                </Button>
+    <main className="min-h-screen px-4 py-4 md:px-6">
+      <div className="mx-auto max-w-[1680px] space-y-5">
+        <section className="rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-5 shadow-[var(--shadow-panel)] backdrop-blur-xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  {inExplorer ? "Explorer" : "Pro workspace"}
+                </span>
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  {data.shellMode}
+                </span>
               </div>
-
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={data.shellMode === "board" ? "ghost" : "default"}
-                    className="rounded-full"
-                    onClick={handleOpenGuidedMode}
-                  >
-                    Focused
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={data.shellMode === "board" ? "default" : "ghost"}
-                    className="rounded-full"
-                    onClick={handleOpenBoardMode}
-                  >
-                    Board
-                  </Button>
-                </div>
-
-                <details className="relative">
-                  <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)] shadow-[var(--shadow-soft)]">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </summary>
-                  <div className="absolute right-0 top-11 z-30 w-48 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-2 shadow-[var(--shadow-panel)]">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLensPickerOpen((current) => !current);
-                      }}
-                      className="w-full rounded-xl px-3 py-2 text-left text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-soft)]"
-                    >
-                      Change lens
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSidebarOpen(true)}
-                      className="w-full rounded-xl px-3 py-2 text-left text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-soft)] xl:hidden"
-                    >
-                      Quick regions
-                    </button>
-                  </div>
-                </details>
-
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="rounded-full xl:hidden"
-                  onClick={() => setSidebarOpen(true)}
-                >
-                  <PanelLeft className="mr-2 h-4 w-4" />
-                  Regions
-                </Button>
+              <div className="space-y-2">
+                <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
+                  {inExplorer
+                    ? "Pick a place and see what's there — in plain English"
+                    : "Start with one place, then reveal only the views you need"}
+                </h1>
+                <p className="max-w-3xl text-sm leading-7 text-[var(--muted-foreground)]">
+                  {inExplorer
+                    ? "Explorer mode keeps things simple. Ask questions, check terrain, and discover what makes a place worth visiting."
+                    : "The globe stays live, the first panel stays calm, and deeper cards appear only when the question calls for them."}
+                </p>
               </div>
             </div>
 
-            {lensPickerOpen ? (
-              <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
-                <ProfileSelector
-                  activeProfileId={state.activeProfile.id}
-                  profiles={PROFILES}
-                  onSelectProfile={(profile) => {
-                    state.setActiveProfile(profile);
-                    setLensPickerOpen(false);
-                  }}
-                />
+            <div className="flex flex-wrap items-center gap-3">
+              <ModeSwitcher mode={state.appMode} onSetMode={state.setAppMode} />
+              <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={data.shellMode === "board" ? "ghost" : "default"}
+                  className="rounded-full"
+                  onClick={handleOpenGuidedMode}
+                  title="Guided mode keeps the workspace focused and reveals supporting views on demand."
+                >
+                  Guided
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    data.shellMode === "board" && data.viewMode === "board"
+                      ? "default"
+                      : "ghost"
+                  }
+                  className="rounded-full"
+                  onClick={handleOpenBoardMode}
+                  title="Board mode opens the full advanced workspace."
+                >
+                  Board
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    data.shellMode === "board" && data.viewMode === "library"
+                      ? "default"
+                      : "ghost"
+                  }
+                  className="rounded-full"
+                  onClick={handleOpenLibraryMode}
+                  title="Library mode lets you browse every available GeoSight card."
+                >
+                  Library
+                </Button>
               </div>
-            ) : null}
+            </div>
           </div>
 
           {workspaceNotice ? (
@@ -368,6 +353,20 @@ export function ExploreWorkspace() {
               {workspaceNotice.message}
             </div>
           ) : null}
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {(inExplorer
+              ? ["Plain-English answers", "Terrain and hazard context", "Ask anything about any place"]
+              : ["Prompt-first location flow", "One primary panel at a time", "Advanced board only when you ask for it"]
+            ).map((item) => (
+              <div
+                key={item}
+                className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--muted-foreground)]"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
         </section>
 
         {state.initStatus === "resolving" ? (
@@ -392,62 +391,33 @@ export function ExploreWorkspace() {
         <section className="flex min-h-0 flex-1 gap-4 overflow-hidden">
           <div className="hidden h-full flex-shrink-0 xl:block">{sidebarElement}</div>
 
-          <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-            <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="space-y-2">
-                  <div className="eyebrow">Search and investigate</div>
-                  <h2 className="text-xl font-semibold text-[var(--foreground)]">
-                    {state.locationReady ? "Update the active place" : "Start with a real place"}
-                  </h2>
-                  <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-                    {state.locationReady
-                      ? `GeoSight is reading ${state.selectedLocationName} through the ${state.activeProfile.name} lens. Search again to re-run the analysis somewhere else.`
-                      : `Search a city, neighborhood, address, landmark, or coordinates. GeoSight will build the map context, run the ${state.activeProfile.name} lens, and show the evidence behind the result.`}
-                  </p>
-                </div>
-                <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--foreground-soft)] lg:max-w-sm">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                    What the lens changes
-                  </div>
-                  <div className="mt-2">{state.activeProfile.tagline}</div>
-                </div>
-              </div>
+          <div className="space-y-4">
+            <SearchBar
+              activeLocationName={state.selectedLocationName}
+              onLocate={(result) => {
+                state.setInitError(null);
+                state.selectPoint(result.coordinates, result.name);
+                data.handleLocationSelection();
+              }}
+            />
 
-              <div className="mt-4">
-                <SearchBar
-                  submitLabel={state.locationReady ? "Update analysis" : "Run analysis"}
-                  syncValue={
-                    state.locationReady
-                      ? state.selectedLocationDisplayName
-                      : state.init.locationQuery ?? ""
-                  }
-                  onLocate={(result) => {
-                    state.setInitError(null);
-                    state.selectPoint(
-                      result.coordinates,
-                      result.fullName ?? result.name,
-                      result.shortName,
-                    );
-                    data.handleLocationSelection();
-                  }}
-                />
-              </div>
-
-              {!state.locationReady ? (
-                <div className="mt-4 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                    First run tip
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-[var(--foreground-soft)]">
-                    If you want the cleanest first experience, search a place you already know and
-                    scan the analysis overview first. Factor breakdown and board mode stay available
-                    once you have the basics.
-                  </div>
+            {state.activeDemo && (
+              <details className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4">
+                <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+                  Current story context
+                </summary>
+                <div className="mt-3 space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                  {state.activeDemo ? (
+                    <p>
+                      <span className="font-semibold text-[var(--foreground)]">
+                        {state.activeDemo.name}
+                      </span>{" "}
+                      {state.activeDemo.description}
+                    </p>
+                  ) : null}
                 </div>
-              ) : null}
-            </section>
+              </details>
+            )}
 
             <ClientErrorBoundary
               title="The globe view needs a quick reset"
@@ -657,7 +627,6 @@ export function ExploreWorkspace() {
                 />
               </>
             )}
-            </div>
           </div>
         </section>
       </div>

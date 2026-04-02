@@ -151,6 +151,10 @@ export function pickRandomSurpriseLocation() {
   return SURPRISE_ME_LOCATIONS[Math.floor(Math.random() * SURPRISE_ME_LOCATIONS.length)];
 }
 
+export const LANDING_USE_CASES: LandingUseCase[] = EXAMPLE_STARTERS.filter(
+  (example) => example.id !== "surprise-me",
+);
+
 export function buildExploreHref(init: ExploreInitState) {
   const params = new URLSearchParams();
 
@@ -160,8 +164,14 @@ export function buildExploreHref(init: ExploreInitState) {
   if (init.locationQuery) {
     params.set("location", init.locationQuery);
   }
-  if (init.locationLabel) {
-    params.set("label", init.locationLabel);
+  if (init.demoId) {
+    params.set("demo", init.demoId);
+  }
+  if (init.entrySource) {
+    params.set("entrySource", init.entrySource);
+  }
+  if (init.appMode) {
+    params.set("mode", init.appMode);
   }
 
   const query = params.toString();

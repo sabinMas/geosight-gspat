@@ -34,18 +34,13 @@ The current product supports lenses for:
 
 Each lens changes what GeoSight emphasizes. The same place can read well for one decision and poorly for another.
 
-## Main Workflow
+## Quick Start
 
-The intended workflow is:
-
-1. Choose a lens.
-2. Search a real place, address, landmark, or coordinates.
-3. Let GeoSight assemble the live location bundle.
-4. Read the analysis overview for the first-pass story.
-5. Open factor breakdown, source awareness, hazards, schools, climate, or other supporting cards as needed.
-6. Save sites for comparison or generate a GeoScribe report.
-
-The app is designed to be usable by first-time visitors without forcing them into board mode or advanced controls immediately.
+1. Open the landing page and choose a lens or pick Explorer mode for a simpler first-run experience.
+2. Search a real place — address, neighborhood, landmark, or coordinates.
+3. Read the analysis overview, then open factor breakdown, source awareness, hazards, or other supporting cards as needed.
+4. Generate a GeoScribe report from the same location to produce a structured deliverable instead of only chat replies.
+5. Save sites and use the comparison table to evaluate multiple candidates side by side.
 
 ## What A First-Time User Sees
 
@@ -290,15 +285,4 @@ The public app is deployed at:
 ## Planning Docs
 
 - Backlog and roadmap: [`docs/BACKLOG.md`](docs/BACKLOG.md)
-- Product and platform standards: [`agents.md`](agents.md)
-
-## Current Gaps
-
-Important next-step opportunities still include:
-
-- broader non-US provider switching beyond the current source-registry scaffolding
-- richer live hazard and resilience layers
-- stronger saved dashboard authoring and layout persistence
-- deeper inline provenance on every headline insight
-- better export and share artifacts beyond the current GeoScribe flow
-- more complete travel, routing, LiDAR, and advanced observational workflows
+- Platform and product standards: [`agents.md`](agents.md)

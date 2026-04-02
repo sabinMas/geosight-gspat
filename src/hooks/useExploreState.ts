@@ -1,15 +1,18 @@
 "use client";
 
-import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useQuickRegions } from "@/hooks/useQuickRegions";
 import { resolveLocationQuery } from "@/lib/cesium-search";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
-import { normalizeProfileId } from "@/lib/lenses";
+import { getDemoById } from "@/lib/demos/registry";
 import { getProfileById } from "@/lib/profiles";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
+  AppMode,
+  DemoOverlay,
   GlobeViewMode,
   ExploreInitState,
   LandCoverBucket,
@@ -23,6 +26,11 @@ export type ExploreInitParams = ExploreInitState;
 
 export interface ExploreState {
   init: ExploreInitParams;
+  appMode: AppMode;
+  setAppMode: (mode: AppMode) => void;
+  activeDemo: DemoOverlay | null;
+  coolingDemo: DemoOverlay | null;
+  overlayDemo: DemoOverlay | null;
   activeProfile: MissionProfile;
   setActiveProfile: Dispatch<SetStateAction<MissionProfile>>;
   initError: string | null;
@@ -74,10 +82,33 @@ function getInitialProfile(profileId?: string) {
     return getProfileById(GENERAL_EXPLORATION_PROFILE_ID);
   }
 
-  return getProfileById(normalizeProfileId(profileId) ?? profileId);
+  return getProfileById(profileId);
 }
 
 export function useExploreState(init: ExploreInitParams): ExploreState {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [appMode, setAppModeState] = useState<AppMode>(init.appMode ?? "explorer");
+
+  const setAppMode = useCallback(
+    (mode: AppMode) => {
+      setAppModeState(mode);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("mode", mode);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
+  const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
+  const [overlayDismissed, setOverlayDismissed] = useState(false);
+  const overlayDemo = useMemo(
+    () =>
+      activeDemo?.entryMode === "overlay" && !overlayDismissed ? activeDemo : null,
+    [activeDemo, overlayDismissed],
+  );
   const [activeProfile, setActiveProfile] = useState<MissionProfile>(() =>
     getInitialProfile(init.profileId),
   );
@@ -147,9 +178,8 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
       try {
         const result = await resolveLocationQuery(locationQuery);
         if (!cancelled) {
-          const resolvedLabel = init.locationLabel ?? result.fullName ?? result.name;
-          const resolvedDisplayLabel =
-            init.locationLabel ?? result.shortName ?? result.name;
+          const resolvedLabel = result.fullName ?? result.name;
+          const resolvedDisplayLabel = result.shortName ?? result.name;
           selectPoint(result.coordinates, resolvedLabel, resolvedDisplayLabel);
         }
       } catch (error) {
@@ -172,10 +202,15 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     return () => {
       cancelled = true;
     };
-  }, [init.locationLabel, init.locationQuery, selectPoint]);
+  }, [init.locationQuery, selectPoint]);
 
   return {
     init,
+    appMode,
+    setAppMode,
+    activeDemo,
+    coolingDemo,
+    overlayDemo,
     activeProfile,
     setActiveProfile,
     initError,

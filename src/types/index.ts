@@ -2,8 +2,12 @@ import type { ClimateHistoryResult } from "@/lib/climate-history";
 import type { GroundwaterSummary } from "@/lib/groundwater";
 import type { SeismicDesignParams } from "@/lib/seismic-design";
 import type { SoilProfile } from "@/lib/soil-profile";
+export type { AppMode, CardAudience, CardComplexity } from "./app-mode";
+import type { AppMode, CardAudience, CardComplexity } from "./app-mode";
 
 export type SiteFactorKey = string;
+export type ExploreEntrySource = "landing" | "demo" | "direct";
+export type DemoOverlayLayerKey = "water" | "power" | "roads";
 
 export type UseCaseType =
   | "data_center_cooling"
@@ -105,8 +109,8 @@ export type WorkspaceCardId =
   | "soil-profile"
   | "seismic-design"
   | "climate-history"
-  | "weather-forecast"
-  | "demographics-context";
+  | "outdoor-fit"
+  | "trip-summary";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -169,6 +173,11 @@ export interface WorkspaceCardDefinition {
   summaryVariant: string;
   compactActions: readonly string[];
   densityBudget: WorkspaceCardDensityBudget;
+  audience: CardAudience;
+  complexity: CardComplexity;
+  explorerLabel?: string;
+  explorerSummary?: string;
+  modeVisibility: { explorer: boolean; pro: boolean };
 }
 
 export interface AnalysisCapability {
@@ -252,7 +261,9 @@ export interface MissionProfile {
 export interface ExploreInitState {
   profileId?: string;
   locationQuery?: string;
-  locationLabel?: string;
+  demoId?: string;
+  entrySource?: ExploreEntrySource;
+  appMode?: AppMode;
 }
 
 export interface LandingUseCase {
@@ -263,6 +274,31 @@ export interface LandingUseCase {
   accentColor: string;
   icon: string;
   suggestedQuery: string;
+}
+
+export interface DemoOverlay {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  profileId: string;
+  accentColor: string;
+  icon: string;
+  locationName: string;
+  coordinates: Coordinates;
+  fallbackScreenshot: string;
+  entryMode: "workspace" | "overlay";
+  preloadedSites?: SavedSite[];
+  quickRegionSites?: DemoSiteSeed[];
+  mapOverlays?: DemoMapOverlay[];
+}
+
+export interface DemoMapOverlay {
+  id: string;
+  layer: DemoOverlayLayerKey;
+  positions: Coordinates[];
+  color: string;
+  width: number;
 }
 
 export interface Coordinates {
@@ -764,3 +800,12 @@ export interface AnalyzeRequestBody {
   imageSummary?: string;
   classification?: LandCoverBucket[];
 }
+
+export interface DemoSiteSeed {
+  id: string;
+  name: string;
+  coordinates: Coordinates;
+  score: number;
+  summary: string;
+}
+

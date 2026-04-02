@@ -36,6 +36,7 @@ export type GeoSightContext = {
   lng?: number;
   profile?: string;
   score?: number;
+  appMode?: "explorer" | "pro";
   dataBundle?: Record<string, unknown>;
   uiContext?: GeoSightUiContext;
 };
