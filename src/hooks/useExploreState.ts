@@ -31,6 +31,7 @@ export interface ExploreState {
   activeDemo: DemoOverlay | null;
   coolingDemo: DemoOverlay | null;
   overlayDemo: DemoOverlay | null;
+  dismissOverlayDemo: () => void;
   activeProfile: MissionProfile;
   setActiveProfile: Dispatch<SetStateAction<MissionProfile>>;
   initError: string | null;
@@ -109,6 +110,9 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
       activeDemo?.entryMode === "overlay" && !overlayDismissed ? activeDemo : null,
     [activeDemo, overlayDismissed],
   );
+  const dismissOverlayDemo = useCallback(() => {
+    setOverlayDismissed(true);
+  }, []);
   const [activeProfile, setActiveProfile] = useState<MissionProfile>(() =>
     getInitialProfile(init.profileId),
   );
@@ -158,6 +162,10 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     locationReady,
     activeProfile.id,
   );
+
+  useEffect(() => {
+    setOverlayDismissed(false);
+  }, [activeDemo?.id]);
 
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
@@ -211,6 +219,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     activeDemo,
     coolingDemo,
     overlayDemo,
+    dismissOverlayDemo,
     activeProfile,
     setActiveProfile,
     initError,

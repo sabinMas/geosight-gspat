@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  CloudSun,
   Columns3,
   Droplets,
   Gauge,
@@ -19,6 +20,7 @@ import {
   Trees,
   TrendingUp,
   TriangleAlert,
+  Users,
   Waves,
   Wifi,
   Wind,
@@ -28,6 +30,7 @@ import {
 const ICON_MAP: Record<string, LucideIcon> = {
   Activity,
   BarChart3,
+  CloudSun,
   Columns3,
   Droplets,
   Gauge,
@@ -46,6 +49,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Trees,
   TrendingUp,
   TriangleAlert,
+  Users,
   Waves,
   Wifi,
   Wind,

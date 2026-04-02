@@ -32,27 +32,29 @@ test("landing keeps one dominant start flow across responsive widths", async ({ 
 test("explore defaults to the minimal shell and hides advanced board surfaces", async ({ page }) => {
   await page.goto("/explore");
 
-  await expect(page.getByText("Explorer")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /pick a place and see what's there/i }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /pro workspace/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /ask geosight/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /open advanced board/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^board$/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^library$/i })).toBeVisible();
   await expect(page.getByText("Saved layouts")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /supporting view/i })).toHaveCount(0);
+  await expect(page.getByText("Supporting view", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 });
 
-test("globe view controls switch basemap mode without leaving the explore shell", async ({ page }) => {
+test("globe view controls surface the map style entry point without leaving the explore shell", async ({
+  page,
+}) => {
   await page.goto("/explore");
 
-  const satelliteButton = page.getByRole("button", { name: "Satellite" });
-  const roadButton = page.getByRole("button", { name: "Road" });
-  const waterTerrainButton = page.getByRole("button", { name: "Water / terrain" });
+  const mapStyleButton = page.getByRole("button", { name: "Map Style M", exact: true });
 
-  await expect(satelliteButton).toBeVisible();
-  await expect(roadButton).toBeVisible();
-  await expect(waterTerrainButton).toBeVisible();
-  await roadButton.click();
-  await waterTerrainButton.click();
-  await expect(page.getByText("Explore workspace")).toBeVisible();
+  await expect(mapStyleButton).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /pick a place and see what's there/i }),
+  ).toBeVisible();
 });
 
 test("capability-aware analysis exposes grounded scientific actions for the active place", async ({

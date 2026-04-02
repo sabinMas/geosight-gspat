@@ -20,6 +20,7 @@ import { SeismicDesignCard } from "@/components/Explore/SeismicDesignCard";
 import { SoilProfileCard } from "@/components/Explore/SoilProfileCard";
 import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
 import { TripSummaryCard } from "@/components/Explore/TripSummaryCard";
+import { WeatherForecastCard } from "@/components/Explore/WeatherForecastCard";
 import { AnalysisTrendsPanel } from "@/components/Results/AnalysisTrendsPanel";
 import { NearbyPlacesList } from "@/components/Results/NearbyPlacesList";
 import { CompareTable } from "@/components/Scoring/CompareTable";
@@ -120,6 +121,8 @@ function getDataDependencyPlaceholder(
     "seismic-design",
     "air-quality",
     "contamination-risk",
+    "weather-forecast",
+    "demographics-context",
     "outdoor-fit",
     "trip-summary",
   ]);
@@ -317,6 +320,10 @@ export function ExploreWorkspacePanel({
       return <HazardCard geodata={data.geodata} />;
     case "climate-history":
       return <ClimateHistoryCard geodata={data.geodata} />;
+    case "weather-forecast":
+      return <WeatherForecastCard geodata={data.geodata} />;
+    case "demographics-context":
+      return <DemographicsCard geodata={data.geodata} />;
     case "broadband-context":
       return <BroadbandCard geodata={data.geodata} score={data.siteScore} />;
     case "flood-risk":

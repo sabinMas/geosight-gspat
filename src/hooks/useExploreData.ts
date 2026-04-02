@@ -127,7 +127,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     workspaceCards: allWorkspaceCards,
     isCardVisible,
     setCardVisible,
-  } = useWorkspaceCards(activeProfile.id);
+  } = useWorkspaceCards(activeProfile.id, appMode);
 
   const cards = useMemo(
     () => getVisibleCardsForMode(appMode, allCards),

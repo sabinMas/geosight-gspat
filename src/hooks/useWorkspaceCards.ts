@@ -8,7 +8,7 @@ import {
   toWorkspaceCardPreferences,
   WORKSPACE_CARD_MAP,
 } from "@/lib/workspace-cards";
-import { WorkspaceCardId, WorkspaceCardPreference } from "@/types";
+import { AppMode, WorkspaceCardId, WorkspaceCardPreference } from "@/types";
 
 const STORAGE_KEY = "geosight.workspace-cards.v1";
 
@@ -49,11 +49,11 @@ function preferencesToMap(preferences: WorkspaceCardPreference[] = []) {
   }, {});
 }
 
-export function useWorkspaceCards(profileId: string) {
+export function useWorkspaceCards(profileId: string, appMode: AppMode) {
   const normalizedProfileId = normalizeProfileId(profileId) ?? profileId;
   const cards = useMemo(() => getWorkspaceCardsForProfile(normalizedProfileId), [normalizedProfileId]);
   const [visibility, setVisibility] = useState<Record<WorkspaceCardId, boolean>>(
-    () => mergeWorkspacePreferences(normalizedProfileId),
+    () => mergeWorkspacePreferences(normalizedProfileId, appMode),
   );
 
   useEffect(() => {
@@ -62,12 +62,12 @@ export function useWorkspaceCards(profileId: string) {
     const legacyProfilePreferences = preferencesToMap(stored.profiles[legacyProfileId]);
     const profilePreferences = preferencesToMap(stored.profiles[normalizedProfileId]);
     setVisibility(
-      mergeWorkspacePreferences(normalizedProfileId, {
+      mergeWorkspacePreferences(normalizedProfileId, appMode, {
         ...legacyProfilePreferences,
         ...profilePreferences,
       }),
     );
-  }, [normalizedProfileId, profileId]);
+  }, [appMode, normalizedProfileId, profileId]);
 
   const persist = useCallback(
     (nextVisibility: Record<WorkspaceCardId, boolean>) => {

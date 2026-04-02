@@ -20,7 +20,7 @@ export type UseCaseType =
   | "general_exploration";
 
 export type ResultsMode = "analysis" | "nearby_places";
-export type DataSourceStatus = "live" | "derived" | "limited" | "unavailable";
+export type DataSourceStatus = "live" | "derived" | "limited" | "demo" | "unavailable";
 export type SourceDomain =
   | "weather"
   | "nearby_places"
@@ -109,6 +109,8 @@ export type WorkspaceCardId =
   | "soil-profile"
   | "seismic-design"
   | "climate-history"
+  | "weather-forecast"
+  | "demographics-context"
   | "outdoor-fit"
   | "trip-summary";
 export type SchoolCoverageStatus =
@@ -808,4 +810,3 @@ export interface DemoSiteSeed {
   score: number;
   summary: string;
 }
-
