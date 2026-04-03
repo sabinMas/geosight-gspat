@@ -89,6 +89,7 @@ export function ChatPanel({
     liveAnalysisAvailable: boolean;
   } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showGrounding, setShowGrounding] = useState(false);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const analyzeRequestIdRef = useRef(0);
   const analyzeAbortControllerRef = useRef<AbortController | null>(null);
@@ -337,12 +338,9 @@ export function ChatPanel({
     <Card className="flex min-h-[420px] flex-col">
       <CardHeader className="space-y-3">
         <div className="eyebrow">Reasoning board</div>
-        <CardTitle>Ask a question about this place</CardTitle>
+        <CardTitle>Ask</CardTitle>
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
           Active location: <span className="font-medium text-[var(--foreground)]">{locationName}</span>
-        </p>
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
-          {profile.name} profile / {resultsMode === "analysis" ? "Analysis" : "Nearby places"}
         </p>
         {aiStatus?.liveAnalysisAvailable === false ? (
           <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
@@ -386,38 +384,49 @@ export function ChatPanel({
           ) : null}
         </div>
 
-        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="eyebrow">Current grounding</div>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-                {groundingNote}
-              </p>
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowGrounding((current) => !current)}
+            className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+          >
+            {showGrounding ? "Hide grounding sources" : "View grounding sources"}
+          </button>
+          {showGrounding ? (
+            <div className="mt-3 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="eyebrow">Current grounding</div>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
+                    {groundingNote}
+                  </p>
+                </div>
+                {resultsMode === "nearby_places" ? (
+                  <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1.5 text-xs text-[var(--foreground-soft)]">
+                    {nearbySource === "live" ? "Nearby places: live OSM" : "Nearby places: live data unavailable"}
+                  </span>
+                ) : null}
+              </div>
+              <TrustSummaryPanel
+                className="mt-4"
+                eyebrow="Reasoning trust"
+                summary={panelTrustSummary}
+                sources={reasoningSources}
+                initialVisibleCount={2}
+                note={
+                  groundingSources.length
+                    ? "These are the main sources currently grounding the answer surface."
+                    : groundingFallbackSources.length
+                      ? "Live grounding is still catching up, so GeoSight is showing the currently loaded source cards instead."
+                      : geodataLoading
+                        ? "GeoSight is still assembling the live and derived context for this place."
+                        : geodata
+                          ? "This location is loaded, but the current view does not yet have enough source-rich inputs to show a broader grounding set."
+                          : "Select a place or wait for live context to finish loading before GeoSight can show grounding inputs."
+                }
+              />
             </div>
-            {resultsMode === "nearby_places" ? (
-              <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1.5 text-xs text-[var(--foreground-soft)]">
-                {nearbySource === "live" ? "Nearby places: live OSM" : "Nearby places: live data unavailable"}
-              </span>
-            ) : null}
-          </div>
-          <TrustSummaryPanel
-            className="mt-4"
-            eyebrow="Reasoning trust"
-            summary={panelTrustSummary}
-            sources={reasoningSources}
-            initialVisibleCount={2}
-            note={
-              groundingSources.length
-                ? "These are the main sources currently grounding the answer surface."
-                : groundingFallbackSources.length
-                  ? "Live grounding is still catching up, so GeoSight is showing the currently loaded source cards instead."
-                  : geodataLoading
-                    ? "GeoSight is still assembling the live and derived context for this place."
-                    : geodata
-                      ? "This location is loaded, but the current view does not yet have enough source-rich inputs to show a broader grounding set."
-                      : "Select a place or wait for live context to finish loading before GeoSight can show grounding inputs."
-            }
-          />
+          ) : null}
         </div>
 
         <div
@@ -465,16 +474,6 @@ export function ChatPanel({
               </div>
             );
           })}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void submitQuestion("What's nearby this location — services, water, roads, and hazards?")}
-            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] transition hover:bg-[var(--surface-soft)]"
-          >
-            What&apos;s nearby?
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">

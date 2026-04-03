@@ -56,13 +56,10 @@ export function AnalysisOverviewBanner({
               </span>
             </div>
             <CardTitle className="text-xl sm:text-2xl">
-              What GeoSight is seeing in {locationName}
+              {locationName}
             </CardTitle>
             <p className="max-w-4xl text-sm leading-7 text-[var(--foreground-soft)]">
               {overview.summary}
-            </p>
-            <p className="max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-              {overview.statusDetail}
             </p>
           </div>
 

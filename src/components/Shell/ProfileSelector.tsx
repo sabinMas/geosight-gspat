@@ -136,9 +136,6 @@ export function ProfileSelector({
                   <div className="mt-3 line-clamp-2 text-[11px] font-semibold leading-tight text-[var(--foreground)]">
                     {profile.name}
                   </div>
-                  <div className="mt-1 line-clamp-2 text-[9px] leading-snug text-[var(--muted-foreground)]">
-                    {profile.tagline}
-                  </div>
                 </button>
               );
             })}

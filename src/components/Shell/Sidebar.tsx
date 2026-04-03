@@ -25,10 +25,7 @@ export function Sidebar({
   return (
     <aside className="glass-panel z-20 flex h-full min-w-[280px] w-[280px] flex-col gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
       <div className="space-y-3">
-        <div>
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">Analysis lens</h2>
-          <div className="mt-1 text-[10px] text-neutral-400">Lens · Regions · Theme</div>
-        </div>
+        <h2 className="text-xl font-semibold text-[var(--foreground)]">Lens</h2>
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4">

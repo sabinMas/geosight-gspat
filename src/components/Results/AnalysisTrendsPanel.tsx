@@ -4,7 +4,7 @@ import { ReactNode, useMemo, useState } from "react";
 import { SourceInfoButton } from "@/components/Source/SourceInfoButton";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTrend } from "@/types";
 
 interface AnalysisTrendsPanelProps {
@@ -65,20 +65,11 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
     [trends],
   );
   const trendsToRender = visibleTrends.length > 0 ? visibleTrends : unavailableTrends;
-  const headlineTrends = visibleTrends.slice(0, 3);
-  const summaryText =
-    headlineTrends.length > 0
-      ? headlineTrends.map((trend) => `${trend.label}: ${trend.value}`).join(" • ")
-      : "GeoSight will surface the strongest verified context signals here once the active location bundle is ready.";
 
   return (
     <Card>
       <CardHeader className="space-y-4">
         <div className="eyebrow">Analysis board</div>
-        <CardTitle>Live context signals</CardTitle>
-        <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-          {summaryText}
-        </p>
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">

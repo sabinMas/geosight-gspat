@@ -273,12 +273,8 @@ export function LandingPage() {
           <div className="relative mt-8 space-y-6">
             <div className="space-y-3 text-center">
               <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-6xl">
-                See any place clearly, in plain English
+                See any place clearly.
               </h1>
-              <p className="mx-auto max-w-2xl text-base leading-8 text-[var(--muted-foreground)] sm:text-lg">
-                Pick a starting lens, type a place, and GeoSight tells you what matters — terrain, risks,
-                weather, and what&apos;s nearby.
-              </p>
             </div>
 
             <p className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">

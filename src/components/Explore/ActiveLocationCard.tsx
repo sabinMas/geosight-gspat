@@ -212,13 +212,7 @@ export function ActiveLocationCard({
       <CardHeader className="space-y-3">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="eyebrow">Location summary</div>
-            <CardTitle>Active location</CardTitle>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              Ask what matters here through the{" "}
-              <span style={{ color: profile.accentColor }}>{profile.name}</span>{" "}
-              lens.
-            </p>
+            <CardTitle>{locationName}</CardTitle>
           </div>
           <Button
             type="button"
@@ -232,51 +226,35 @@ export function ActiveLocationCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div>
-          <div className="text-xl font-semibold text-[var(--foreground)]">
-            {locationName}
-          </div>
-          <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
-            {lat.toFixed(4)}, {lng.toFixed(4)}
-          </div>
+        <div className="font-mono text-xs text-[var(--muted-foreground)]">
+          {lat.toFixed(4)}, {lng.toFixed(4)}
         </div>
 
-        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <StateBadge tone={overview.tone} />
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none">
-                  {overview.confidenceLabel}
-                </span>
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none">
-                  {coverageLabel}
-                </span>
-              </div>
-              {geodata?.nearestWaterBody.name && geodata.nearestWaterBody.distanceKm !== null && geodata.nearestWaterBody.distanceKm !== undefined ? (
-                <p className="text-sm font-semibold text-[var(--foreground)]">
-                  Nearest feature: {geodata.nearestWaterBody.name} at {formatDistanceKm(geodata.nearestWaterBody.distanceKm)}.
-                </p>
-              ) : null}
-              <p className="max-w-4xl text-sm leading-7 text-[var(--foreground-soft)]">
-                {overview.summary}
-              </p>
-              <p className="max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-                {overview.statusDetail}
-              </p>
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <StateBadge tone={overview.tone} />
+              <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none">
+                {overview.confidenceLabel}
+              </span>
+              <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none">
+                {coverageLabel}
+              </span>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="rounded-full"
-              onClick={onSaveSite}
-            >
-              Save site
-            </Button>
+            {geodata?.nearestWaterBody.name && geodata.nearestWaterBody.distanceKm !== null && geodata.nearestWaterBody.distanceKm !== undefined ? (
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                Nearest feature: {geodata.nearestWaterBody.name} at {formatDistanceKm(geodata.nearestWaterBody.distanceKm)}.
+              </p>
+            ) : null}
+            <p className="max-w-4xl text-sm leading-7 text-[var(--foreground-soft)]">
+              {overview.summary}
+            </p>
+            <p className="max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+              {overview.statusDetail}
+            </p>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3 lg:grid-cols-3">
             <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-3">
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Strongest signals

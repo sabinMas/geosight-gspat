@@ -558,53 +558,40 @@ export function ExploreWorkspace() {
               />
             ) : null}
 
-            <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold text-[var(--foreground)]">
-                    Choose your next view
-                  </h2>
-                  <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-                    {data.activePrimaryCard?.summaryVariant ??
-                      "Start with the location summary, then switch to reasoning or nearby discovery as needed."}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="rounded-full"
-                    onClick={() => openCard("compare")}
-                  >
-                    ⊕ Compare locations
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="rounded-full"
-                    disabled={data.reportLoading}
-                    onClick={handleGenerateReport}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    {data.reportLoading ? "Generating report..." : "Generate report"}
-                  </Button>
-                  {data.primaryCards.map((card) => (
-                    <Button
-                      key={card.id}
-                      type="button"
-                      size="sm"
-                      variant={
-                        card.id === data.activePrimaryCard?.id ? "default" : "secondary"
-                      }
-                      className="rounded-full"
-                      onClick={() => data.setActivePrimaryCardId(card.id)}
-                    >
-                      {card.title}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </section>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="rounded-full"
+                onClick={() => openCard("compare")}
+              >
+                ⊕ Compare locations
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="rounded-full"
+                disabled={data.reportLoading}
+                onClick={handleGenerateReport}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                {data.reportLoading ? "Generating report..." : "Generate report"}
+              </Button>
+              {data.primaryCards.map((card) => (
+                <Button
+                  key={card.id}
+                  type="button"
+                  size="sm"
+                  variant={
+                    card.id === data.activePrimaryCard?.id ? "default" : "secondary"
+                  }
+                  className="rounded-full"
+                  onClick={() => data.setActivePrimaryCardId(card.id)}
+                >
+                  {card.title}
+                </Button>
+              ))}
+            </div>
 
             {data.activePrimaryCard ? (
               <ExplorePrimaryPanel

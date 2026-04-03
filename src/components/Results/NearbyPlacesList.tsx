@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NearbyPlace, NearbyPlaceCategory, NearbyPlacesSource } from "@/types";
 
@@ -29,11 +29,6 @@ export function NearbyPlacesList({
     <Card>
       <CardHeader className="space-y-4">
         <div className="eyebrow">Discovery board</div>
-        <CardTitle>Nearby places</CardTitle>
-        <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Use this panel to scan real mapped places around the active location. GeoSight leaves the
-          list empty when live mapping is thin instead of fabricating nearby results.
-        </p>
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-4">
@@ -59,11 +54,6 @@ export function NearbyPlacesList({
           <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--foreground)]">
             {source === "live" ? "Live OpenStreetMap results" : "Live mapping unavailable"}
           </span>
-        </div>
-
-        <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 text-sm leading-6 text-[var(--muted-foreground)]">
-          Nearby places come from live OpenStreetMap mapping. Coverage can vary by region and category,
-          and GeoSight will show an honest empty state rather than fabricate fallback places.
         </div>
 
         {loading ? (
