@@ -278,13 +278,13 @@ export function ExploreWorkspace() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
                   {inExplorer ? "Explorer" : "Pro workspace"}
                 </span>
                 {inExplorer && state.activeLensId && (() => {
                   const lens = getExplorerLensById(state.activeLensId);
                   return lens ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-foreground)]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-foreground)] cursor-default select-none">
                       {lens.label}
                       <button
                         type="button"
@@ -297,7 +297,7 @@ export function ExploreWorkspace() {
                     </span>
                   ) : null;
                 })()}
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
                   {data.shellMode}
                 </span>
               </div>
@@ -355,6 +355,16 @@ export function ExploreWorkspace() {
                   title="Library mode lets you browse every available GeoSight card."
                 >
                   Library
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-full"
+                  onClick={() => openCard("compare")}
+                  title="Compare saved locations side by side."
+                >
+                  Compare
                 </Button>
               </div>
             </div>
@@ -560,6 +570,14 @@ export function ExploreWorkspace() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="rounded-full"
+                    onClick={() => openCard("compare")}
+                  >
+                    ⊕ Compare locations
+                  </Button>
                   <Button
                     type="button"
                     variant="secondary"

@@ -15,6 +15,7 @@ export interface AnalysisOverview {
   statusDetail: string;
   strengths: string[];
   watchouts: string[];
+  dataGaps: string[];
   trustNotes: string[];
   nextSteps: string[];
 }
@@ -133,6 +134,7 @@ export function buildAnalysisOverview(args: {
         "The workspace stays usable while live providers respond. Cards will fill in as soon as the current location bundle is ready.",
       strengths: [],
       watchouts: [],
+      dataGaps: [],
       trustNotes: [
         "Loading means GeoSight is still waiting on live providers.",
         "Unavailable signals will be labeled instead of silently omitted.",
@@ -153,6 +155,7 @@ export function buildAnalysisOverview(args: {
         "The workspace is ready, but it needs an active location before scoring, source checks, and result narratives can appear.",
       strengths: [],
       watchouts: [],
+      dataGaps: [],
       trustNotes: [
         "GeoSight does not invent fallback values when a live location bundle is missing.",
       ],
@@ -179,14 +182,23 @@ export function buildAnalysisOverview(args: {
         ? "estimated"
         : "ready";
 
-  const strongest = [...ranked]
+  const UNAVAILABLE_PATTERN = /unavailable|not available|no data|limited/i;
+
+  const allStrengths = [...ranked]
     .sort((a, b) => b.impact - a.impact)
     .slice(0, 3)
     .map((factor) => `${factor.label}: ${factor.shortDetail}`);
-  const watchouts = [...ranked]
+  const allWatchouts = [...ranked]
     .sort((a, b) => b.gap - a.gap)
     .slice(0, 3)
     .map((factor) => `${factor.label}: ${factor.shortDetail}`);
+
+  const strengths = allStrengths.filter((s) => !UNAVAILABLE_PATTERN.test(s));
+  const watchouts = allWatchouts.filter((s) => !UNAVAILABLE_PATTERN.test(s));
+  const dataGaps = [
+    ...allStrengths.filter((s) => UNAVAILABLE_PATTERN.test(s)),
+    ...allWatchouts.filter((s) => UNAVAILABLE_PATTERN.test(s)),
+  ];
 
   return {
     tone,
@@ -209,8 +221,9 @@ export function buildAnalysisOverview(args: {
           : tone === "estimated"
             ? "Most providers responded, but a meaningful share of the score still comes from proxy heuristics and synthesized factors."
             : "The current narrative is grounded in the available live measurements plus derived analysis from those source feeds.",
-    strengths: strongest,
+    strengths,
     watchouts,
+    dataGaps,
     trustNotes: buildTrustNotes(geodata, ranked),
     nextSteps: [
       "Open factor breakdown to see which inputs helped or hurt most.",

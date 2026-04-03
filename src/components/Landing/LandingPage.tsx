@@ -281,6 +281,9 @@ export function LandingPage() {
               </p>
             </div>
 
+            <p className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
+              STEP 1 — CHOOSE A LENS
+            </p>
             <div className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {EXPLORER_LENSES.map((lens) => {
                 const Icon = getIcon(lens.icon);
@@ -340,77 +343,78 @@ export function LandingPage() {
               })}
             </div>
 
-            {/* Location entry — shown when a lens is selected */}
-            {selectedUseCaseId?.startsWith("explorer-") ? (
-              <div ref={explorerStep2Ref} className="step2-appear mx-auto max-w-xl">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setError(null);
-                    const lensId = selectedUseCaseId.replace("explorer-", "");
-                    const lens = EXPLORER_LENSES.find((l) => l.id === lensId);
-                    if (!lens) return;
-                    setSubmitting(true);
-                    router.push(
-                      buildExploreHref({
-                        profileId: lens.profileId,
-                        locationQuery: locationQuery.trim() || undefined,
-                        entrySource: "landing",
-                        appMode: "explorer",
-                        lensId: lens.id,
-                      }),
-                    );
-                  }}
-                  className="space-y-4"
-                >
-                  <Input
-                    value={locationQuery}
-                    onChange={(e) => setLocationQuery(e.target.value)}
-                    placeholder="City, region, or coordinates…"
-                    className="h-12 rounded-[1.5rem]"
-                    autoFocus
-                  />
-                  <div className="flex gap-3">
-                    <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
-                      {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Explore this place
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="h-12 rounded-full"
-                      onClick={async () => {
-                        setError(null);
-                        setLocating(true);
-                        try {
-                          const coords = await getCurrentCoordinates();
-                          setLocationQuery(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
-                        } catch (err) {
-                          setError(
-                            err instanceof Error ? err.message : "Unable to read your location.",
-                          );
-                        } finally {
-                          setLocating(false);
-                        }
-                      }}
-                      disabled={locating}
-                    >
-                      {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Use my location
-                    </Button>
-                  </div>
-                  {error && (
-                    <div className="rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
-                      {error}
-                    </div>
-                  )}
-                </form>
-              </div>
-            ) : (
-              <p className="text-center text-sm text-[var(--muted-foreground)]">
-                Pick a lens above to get started — no account needed.
+            {/* Location entry — always visible, dimmed until a lens is selected */}
+            <div
+              ref={explorerStep2Ref}
+              className={`mx-auto max-w-xl transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100 pointer-events-auto" : "opacity-50 pointer-events-none"}`}
+            >
+              <p className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
+                STEP 2 — ENTER A LOCATION
               </p>
-            )}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setError(null);
+                  if (!selectedUseCaseId?.startsWith("explorer-")) return;
+                  const lensId = selectedUseCaseId.replace("explorer-", "");
+                  const lens = EXPLORER_LENSES.find((l) => l.id === lensId);
+                  if (!lens) return;
+                  setSubmitting(true);
+                  router.push(
+                    buildExploreHref({
+                      profileId: lens.profileId,
+                      locationQuery: locationQuery.trim() || undefined,
+                      entrySource: "landing",
+                      appMode: "explorer",
+                      lensId: lens.id,
+                    }),
+                  );
+                }}
+                className="space-y-4"
+              >
+                <Input
+                  value={locationQuery}
+                  onChange={(e) => setLocationQuery(e.target.value)}
+                  placeholder="City, region, or coordinates…"
+                  className="h-12 rounded-[1.5rem]"
+                  autoFocus={Boolean(selectedUseCaseId?.startsWith("explorer-"))}
+                />
+                <div className="flex gap-3">
+                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
+                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Explore this place
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-12 rounded-full"
+                    onClick={async () => {
+                      setError(null);
+                      setLocating(true);
+                      try {
+                        const coords = await getCurrentCoordinates();
+                        setLocationQuery(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+                      } catch (err) {
+                        setError(
+                          err instanceof Error ? err.message : "Unable to read your location.",
+                        );
+                      } finally {
+                        setLocating(false);
+                      }
+                    }}
+                    disabled={locating}
+                  >
+                    {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Use my location
+                  </Button>
+                </div>
+                {error && selectedUseCaseId?.startsWith("explorer-") ? (
+                  <div className="rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
+                    {error}
+                  </div>
+                ) : null}
+              </form>
+            </div>
           </div>
         </section>
 

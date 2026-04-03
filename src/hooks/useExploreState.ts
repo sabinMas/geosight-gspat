@@ -163,7 +163,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   );
   const [uploadedClassification, setUploadedClassification] = useState<LandCoverBucket[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [resultsMode, setResultsMode] = useState<ResultsMode>("analysis");
+  const [resultsMode, setResultsMode] = useState<ResultsMode>("nearby_places");
   const [earthquakeMarkers, setEarthquakeMarkers] = useState<EarthquakeEvent[]>([]);
   const [activeLensId, setActiveLensId] = useState<string | null>(init.lensId ?? null);
   const [driveMode, setDriveMode] = useState(false);

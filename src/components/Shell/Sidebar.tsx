@@ -32,7 +32,7 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4">
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Lens</CardTitle>
           </CardHeader>

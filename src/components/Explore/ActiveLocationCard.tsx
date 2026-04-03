@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { CapabilityLauncher } from "@/components/Analysis/CapabilityLauncher";
 import { HousingMarketPulse } from "@/components/Explore/HousingMarketPulse";
 import { SourceInfoButton } from "@/components/Source/SourceInfoButton";
@@ -119,6 +120,7 @@ export function ActiveLocationCard({
   onClearCapabilityAnalysis,
 }: ActiveLocationCardProps) {
   const [showUnavailableSignals, setShowUnavailableSignals] = useState(false);
+  const [dataGapsOpen, setDataGapsOpen] = useState(false);
   const sourceHighlights = geodata
     ? [
         geodata.sources.infrastructure,
@@ -229,7 +231,7 @@ export function ActiveLocationCard({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div>
           <div className="text-xl font-semibold text-[var(--foreground)]">
             {locationName}
@@ -244,13 +246,18 @@ export function ActiveLocationCard({
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <StateBadge tone={overview.tone} />
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none">
                   {overview.confidenceLabel}
                 </span>
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none">
                   {coverageLabel}
                 </span>
               </div>
+              {geodata?.nearestWaterBody.name && geodata.nearestWaterBody.distanceKm !== null && geodata.nearestWaterBody.distanceKm !== undefined ? (
+                <p className="text-sm font-semibold text-[var(--foreground)]">
+                  Nearest feature: {geodata.nearestWaterBody.name} at {formatDistanceKm(geodata.nearestWaterBody.distanceKm)}.
+                </p>
+              ) : null}
               <p className="max-w-4xl text-sm leading-7 text-[var(--foreground-soft)]">
                 {overview.summary}
               </p>
@@ -271,7 +278,7 @@ export function ActiveLocationCard({
 
           <div className="mt-4 grid gap-3 lg:grid-cols-3">
             <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Strongest signals
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
@@ -283,7 +290,7 @@ export function ActiveLocationCard({
               </div>
             </div>
             <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Watch closely
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
@@ -295,7 +302,7 @@ export function ActiveLocationCard({
               </div>
             </div>
             <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Trust notes
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground-soft)]">
@@ -305,6 +312,36 @@ export function ActiveLocationCard({
               </div>
             </div>
           </div>
+
+          {overview.dataGaps.length > 0 ? (
+            <div className="mt-3 rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-3">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left"
+                onClick={() => setDataGapsOpen((v) => !v)}
+              >
+                <span className="text-sm text-[var(--warning-foreground)]">
+                  ⚠ {overview.dataGaps.length} signal{overview.dataGaps.length === 1 ? "" : "s"} could not be confirmed
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-[var(--warning-foreground)] transition-transform duration-200 ${dataGapsOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {dataGapsOpen ? (
+                <div className="mt-3 space-y-1">
+                  {overview.dataGaps.map((item) => (
+                    <div
+                      key={item}
+                      className="text-xs italic text-[var(--muted-foreground)]"
+                      title="This means the data source returned no result — not that the risk is low or absent."
+                    >
+                      — {item}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="grid min-h-0 gap-3 md:grid-cols-2">

@@ -82,7 +82,7 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {trendsToRender.map((trend) => (
             <TrendSignalCard key={trend.id} trend={trend} />
           ))}

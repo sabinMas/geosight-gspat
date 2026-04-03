@@ -102,8 +102,7 @@ export function ProfileSelector({
       <div className="space-y-3">
         <div
           ref={scrollRef}
-          className="flex overflow-x-auto px-1 pb-2 scrollbar-none"
-          style={{ width: `${SIDEBAR_VISIBLE_WIDTH}px` }}
+          className="flex w-full overflow-x-auto px-1 pb-2 scrollbar-none"
         >
           <div className="flex gap-2">
             {orderedProfiles.map((profile) => {

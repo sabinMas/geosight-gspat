@@ -114,7 +114,7 @@ export function NearbyPlacesList({
                   </div>
                 </div>
                 <div className="text-right text-xs text-[var(--muted-foreground)]">
-                  <div>{place.distanceKm?.toFixed(1) ?? "--"} km</div>
+                  <div className="text-base font-semibold text-[var(--foreground)]">{place.distanceKm?.toFixed(1) ?? "--"} km</div>
                   <div className="mt-1">{place.relativeLocation}</div>
                 </div>
               </div>

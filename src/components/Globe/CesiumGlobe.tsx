@@ -748,14 +748,15 @@ export function CesiumGlobe({
       posRef.val = vehiclePos;
       oriRef.val = Transforms.headingPitchRollQuaternion(
         vehiclePos,
-        new HeadingPitchRoll(heading, 0, 0),
+        // Offset by -π/2 so the box's long axis (local X) faces the movement direction
+        new HeadingPitchRoll(heading - Math.PI / 2, 0, 0),
       );
 
       // ── Camera follow ──────────────────────────────────────────────────────
       viewer.camera.lookAt(
         vehiclePos,
         new HeadingPitchRange(
-          heading + Math.PI, // behind the vehicle
+          heading, // behind the vehicle (Cesium HPR heading=0 → camera south of target)
           CesiumMath.toRadians(-14),
           58,
         ),

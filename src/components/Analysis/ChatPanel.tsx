@@ -467,6 +467,16 @@ export function ChatPanel({
           })}
         </div>
 
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void submitQuestion("What's nearby this location — services, water, roads, and hazards?")}
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)] transition hover:bg-[var(--surface-soft)]"
+          >
+            What&apos;s nearby?
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <Textarea
             value={draft}
