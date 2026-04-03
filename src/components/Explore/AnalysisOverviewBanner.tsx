@@ -17,6 +17,10 @@ interface AnalysisOverviewBannerProps {
   error: string | null;
   onOpenFactorBreakdown: () => void;
   onOpenSources: () => void;
+  /** When true, suppresses the signal grid and data-gaps section. Use when a
+   *  detail panel (e.g. ActiveLocationCard) is already open below, so the same
+   *  grid is not rendered twice in the same scroll context. */
+  compact?: boolean;
 }
 
 export function AnalysisOverviewBanner({
@@ -28,6 +32,7 @@ export function AnalysisOverviewBanner({
   error,
   onOpenFactorBreakdown,
   onOpenSources,
+  compact = false,
 }: AnalysisOverviewBannerProps) {
   const [dataGapsOpen, setDataGapsOpen] = useState(false);
   const [trustOpen, setTrustOpen] = useState(false);
@@ -86,6 +91,7 @@ export function AnalysisOverviewBanner({
         </div>
       </CardHeader>
 
+      {!compact ? (
       <CardContent className="space-y-5">
         <div className="grid gap-5 lg:grid-cols-3">
           <div className="rounded-[1.5rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
@@ -167,6 +173,7 @@ export function AnalysisOverviewBanner({
           </div>
         ) : null}
       </CardContent>
+      ) : null}
     </Card>
   );
 }

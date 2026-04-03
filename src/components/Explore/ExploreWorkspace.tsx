@@ -534,6 +534,7 @@ export function ExploreWorkspace() {
                 error={data.error}
                 onOpenFactorBreakdown={() => openCard("factor-breakdown")}
                 onOpenSources={() => openCard("source-awareness")}
+                compact={Boolean(data.activePrimaryCard)}
               />
             ) : null}
 

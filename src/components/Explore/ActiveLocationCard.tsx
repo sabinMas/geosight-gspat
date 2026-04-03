@@ -91,6 +91,11 @@ function LocationSignalCard({
       >
         {detail}
       </div>
+      {source ? (
+        <div className="mt-1 text-[11px] text-[var(--muted-foreground)] opacity-70">
+          {source.provider}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -106,16 +106,16 @@ export function formatSourceStatusLabel(status: DataSourceStatus) {
 export function getSourceStatusTone(status: DataSourceStatus) {
   switch (status) {
     case "live":
-      return "border-emerald-300/20 bg-emerald-400/8 text-emerald-50";
+      return "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]";
     case "derived":
       return "border-cyan-300/20 bg-cyan-400/8 text-cyan-50";
     case "limited":
-      return "border-amber-300/20 bg-amber-400/10 text-amber-50";
+      return "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]";
     case "demo":
-      return "border-sky-300/20 bg-sky-400/10 text-sky-50";
+      return "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)]";
     case "unavailable":
-      return "border-rose-300/20 bg-rose-400/10 text-rose-50";
+      return "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-foreground)]";
     default:
-      return "border-white/10 bg-white/5 text-slate-100";
+      return "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)]";
   }
 }

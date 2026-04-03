@@ -49,6 +49,9 @@ function TrendSignalCard({
       >
         {trend.detail}
       </div>
+      <div className="mt-2 text-[11px] text-[var(--muted-foreground)] opacity-70">
+        {trend.source.provider}
+      </div>
     </div>
   );
 }
