@@ -481,8 +481,10 @@ export function ExploreWorkspace() {
                   subsurfaceDatasets={data.subsurfaceDatasets}
                   terrainExaggeration={state.terrainExaggeration}
                   earthquakeMarkers={state.earthquakeMarkers}
+                  driveMode={state.driveMode}
+                  onExitDriveMode={() => state.setDriveMode(false)}
                 />
-                <div className="absolute right-4 top-4 z-20">
+                <div className="absolute right-4 top-4 z-20 flex flex-col gap-2">
                   <Button
                     type="button"
                     variant={state.globeRotateMode ? "default" : "secondary"}
@@ -497,6 +499,17 @@ export function ExploreWorkspace() {
                   >
                     <span className="mr-2 text-base leading-none">⊕</span>
                     {state.globeRotateMode ? "3D explore" : "Rotate mode"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={state.driveMode ? "default" : "secondary"}
+                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+                    aria-pressed={state.driveMode}
+                    aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
+                    onClick={() => state.setDriveMode((current) => !current)}
+                  >
+                    <span className="mr-2 text-base leading-none">🚗</span>
+                    {state.driveMode ? "Driving" : "Drive"}
                   </Button>
                 </div>
                 <GlobeViewSelector

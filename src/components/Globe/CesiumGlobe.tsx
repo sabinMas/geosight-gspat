@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArcGisBaseMapType,
   ArcGisMapServerImageryProvider,
+  CallbackProperty,
   CameraEventType,
   Cartesian2,
   Cartesian3,
@@ -11,14 +12,20 @@ import {
   Color,
   createWorldImageryAsync,
   createWorldTerrainAsync,
+  CustomDataSource,
   EllipsoidTerrainProvider,
+  HeadingPitchRange,
+  HeadingPitchRoll,
   ImageryLayer,
   Ion,
   IonWorldImageryStyle,
   Math as CesiumMath,
+  Matrix4,
   PolygonHierarchy,
+  Quaternion,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  Transforms,
   Viewer as CesiumViewer,
 } from "cesium";
 import { estimateRegionSpanKm } from "@/lib/geospatial";
@@ -71,6 +78,8 @@ interface CesiumGlobeProps {
   subsurfaceDatasets: SubsurfaceDataset[];
   terrainExaggeration: number;
   earthquakeMarkers?: EarthquakeEvent[];
+  driveMode?: boolean;
+  onExitDriveMode?: () => void;
 }
 
 export function CesiumGlobe({
@@ -85,6 +94,8 @@ export function CesiumGlobe({
   subsurfaceDatasets,
   terrainExaggeration,
   earthquakeMarkers = [],
+  driveMode = false,
+  onExitDriveMode,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -97,6 +108,8 @@ export function CesiumGlobe({
   const [globeReady, setGlobeReady] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
   const [pointerInside, setPointerInside] = useState(false);
+  const driveHudSpeedRef = useRef<HTMLSpanElement | null>(null);
+  const driveHudAltRef = useRef<HTMLSpanElement | null>(null);
   const terrainProviderPromise = useMemo(
     () =>
       createWorldTerrainAsync().catch((error) => {
@@ -621,6 +634,161 @@ export function CesiumGlobe({
     viewerReady,
   ]);
 
+  // ── Drive mode ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!driveMode || !isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    const EARTH_RADIUS = 6_371_000; // metres
+    const VEHICLE_CLEARANCE = 2.8;  // metres above terrain
+    const MAX_SPEED = 55;           // m/s (~200 km/h)
+    const MAX_REVERSE = 15;         // m/s
+    const ACCEL = 15;               // m/s²
+    const BRAKE = 25;               // m/s²
+    const FRICTION = 0.72;          // fraction remaining per second (natural stop ~2-3 s)
+    const TURN_RATE = 1.5;          // rad/s at full speed
+
+    // Capture starting position once — intentionally not in deps array
+    let lat = selectedPoint.lat * (Math.PI / 180);
+    let lng = selectedPoint.lng * (Math.PI / 180);
+    let height = 200;  // start above terrain; snaps down on first frame
+    let heading = 0;   // radians, Cesium convention: 0 = north
+    let speed = 0;     // m/s
+
+    // Live position/orientation refs for CallbackProperty (avoids React re-renders)
+    const posRef = { val: Cartesian3.fromRadians(lng, lat, height) };
+    const oriRef = { val: Quaternion.IDENTITY.clone() };
+
+    // Separate data source so viewer.entities.removeAll() doesn't wipe the car
+    const ds = new CustomDataSource("drive-vehicle");
+    void viewer.dataSources.add(ds);
+
+    ds.entities.add({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      position: new CallbackProperty(() => posRef.val, false) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      orientation: new CallbackProperty(() => oriRef.val, false) as any,
+      box: {
+        dimensions: new Cartesian3(4.6, 2.2, 1.6),
+        material: Color.fromCssColorString("#ff4422"),
+        outline: true,
+        outlineColor: Color.fromCssColorString("#ff8866"),
+        outlineWidth: 1,
+      },
+    });
+
+    // Disable default camera controls while driving
+    viewer.scene.screenSpaceCameraController.enableInputs = false;
+
+    // Keyboard input
+    const keys = new Set<string>();
+    const onKeyDown = (e: KeyboardEvent) => {
+      keys.add(e.code);
+      // Prevent page scroll while driving
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.code);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+
+    let rafId: number | null = null;
+    let lastT: number | null = null;
+    let hudFrame = 0;
+
+    const step = (timestamp: number) => {
+      if (!isViewerUsable(viewer)) return;
+
+      const dt = lastT !== null ? Math.min((timestamp - lastT) / 1000, 0.05) : 0.016;
+      lastT = timestamp;
+
+      // ── Input ──────────────────────────────────────────────────────────────
+      const forward = keys.has("KeyW") || keys.has("ArrowUp");
+      const back    = keys.has("KeyS") || keys.has("ArrowDown");
+      const left    = keys.has("KeyA") || keys.has("ArrowLeft");
+      const right   = keys.has("KeyD") || keys.has("ArrowRight");
+
+      if (forward) speed = Math.min(speed + ACCEL * dt, MAX_SPEED);
+      if (back)    speed = Math.max(speed - BRAKE * dt, -MAX_REVERSE);
+
+      // Rolling friction
+      speed *= Math.pow(FRICTION, dt);
+
+      // Steering — proportional to normalised speed
+      const steerScale = Math.min(Math.abs(speed) / MAX_SPEED, 1);
+      const turn = TURN_RATE * steerScale * dt;
+      if (left)  heading -= turn;
+      if (right) heading += turn;
+
+      // ── Move (ENU displacement) ────────────────────────────────────────────
+      // heading 0 = north (+lat), π/2 = east (+lng)
+      const dNorth = Math.cos(heading) * speed * dt; // metres
+      const dEast  = Math.sin(heading) * speed * dt;
+      lat += dNorth / EARTH_RADIUS;
+      lng += dEast  / (EARTH_RADIUS * Math.cos(lat));
+
+      // ── Terrain height ─────────────────────────────────────────────────────
+      const carto = new Cartographic(lng, lat);
+      const terrainH = viewer.scene.globe.getHeight(carto) ?? 0;
+      const targetH = terrainH + VEHICLE_CLEARANCE;
+
+      if (height > targetH + 8) {
+        // Falling — apply gravity
+        height = Math.max(height - 30 * dt, targetH);
+      } else {
+        // Soft snap to terrain surface
+        height += (targetH - height) * Math.min(10 * dt, 1);
+      }
+
+      // ── Entity update ──────────────────────────────────────────────────────
+      const vehiclePos = Cartesian3.fromRadians(lng, lat, height);
+      posRef.val = vehiclePos;
+      oriRef.val = Transforms.headingPitchRollQuaternion(
+        vehiclePos,
+        new HeadingPitchRoll(heading, 0, 0),
+      );
+
+      // ── Camera follow ──────────────────────────────────────────────────────
+      viewer.camera.lookAt(
+        vehiclePos,
+        new HeadingPitchRange(
+          heading + Math.PI, // behind the vehicle
+          CesiumMath.toRadians(-14),
+          58,
+        ),
+      );
+
+      viewer.scene.requestRender();
+
+      // ── HUD update (every 4 frames) ────────────────────────────────────────
+      hudFrame++;
+      if (hudFrame % 4 === 0) {
+        const kph = Math.abs(Math.round(speed * 3.6));
+        const altM = Math.round(height);
+        if (driveHudSpeedRef.current) driveHudSpeedRef.current.textContent = `${kph}`;
+        if (driveHudAltRef.current)   driveHudAltRef.current.textContent   = `${altM}`;
+      }
+
+      rafId = requestAnimationFrame(step);
+    };
+
+    rafId = requestAnimationFrame(step);
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      void viewer.dataSources.remove(ds, true);
+      // Release camera lookAt lock
+      viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+      viewer.scene.screenSpaceCameraController.enableInputs = pointerInside;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [driveMode, viewerReady]);
+
   useEffect(() => {
     return () => {
       if (resizeFrameRef.current !== null) {
@@ -665,6 +833,51 @@ export function CesiumGlobe({
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">Loading 3D map...</p>
+        </div>
+      ) : null}
+
+      {driveMode ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center pb-5">
+          {/* Speed + alt bar */}
+          <div className="pointer-events-auto flex items-end gap-6 rounded-2xl border border-white/10 bg-black/60 px-6 py-3 backdrop-blur-md">
+            <div className="flex flex-col items-center leading-none">
+              <span
+                ref={driveHudSpeedRef}
+                className="text-4xl font-bold tabular-nums text-white"
+              >
+                0
+              </span>
+              <span className="mt-1 text-[10px] uppercase tracking-widest text-white/50">
+                km/h
+              </span>
+            </div>
+            <div className="flex flex-col items-center leading-none">
+              <span
+                ref={driveHudAltRef}
+                className="text-2xl font-semibold tabular-nums text-white/70"
+              >
+                0
+              </span>
+              <span className="mt-1 text-[10px] uppercase tracking-widest text-white/50">
+                m alt
+              </span>
+            </div>
+            <div className="ml-4 grid grid-cols-3 gap-0.5 text-center text-[10px] leading-tight text-white/40 select-none">
+              <span />
+              <span className="rounded bg-white/10 px-1.5 py-0.5 text-white/70">W</span>
+              <span />
+              <span className="rounded bg-white/10 px-1.5 py-0.5 text-white/70">A</span>
+              <span className="rounded bg-white/10 px-1.5 py-0.5 text-white/70">S</span>
+              <span className="rounded bg-white/10 px-1.5 py-0.5 text-white/70">D</span>
+            </div>
+            <button
+              type="button"
+              onClick={onExitDriveMode}
+              className="ml-4 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/20"
+            >
+              Exit drive
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

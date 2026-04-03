@@ -81,6 +81,8 @@ export interface ExploreState {
   setEarthquakeMarkers: Dispatch<SetStateAction<EarthquakeEvent[]>>;
   activeLensId: string | null;
   setActiveLensId: Dispatch<SetStateAction<string | null>>;
+  driveMode: boolean;
+  setDriveMode: Dispatch<SetStateAction<boolean>>;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -164,6 +166,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [resultsMode, setResultsMode] = useState<ResultsMode>("analysis");
   const [earthquakeMarkers, setEarthquakeMarkers] = useState<EarthquakeEvent[]>([]);
   const [activeLensId, setActiveLensId] = useState<string | null>(init.lensId ?? null);
+  const [driveMode, setDriveMode] = useState(false);
   const { quickRegions, quickRegionsLoading } = useQuickRegions(
     selectedPoint,
     locationReady,
@@ -265,5 +268,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setEarthquakeMarkers,
     activeLensId,
     setActiveLensId,
+    driveMode,
+    setDriveMode,
   };
 }
