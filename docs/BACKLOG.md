@@ -14,6 +14,7 @@ This backlog was reconciled against:
 
 - `README.md`
 - `agents.md`
+- `CLAUDE.md`
 - `src/app/api/geodata/route.ts`
 - `src/lib/profiles.ts`
 - `src/lib/scoring.ts`
@@ -22,6 +23,8 @@ This backlog was reconciled against:
 - `src/lib/source-registry.ts`
 - `src/lib/demos/registry.ts`
 - `src/lib/agents/agent-config.ts`
+
+Last updated: 2026-04-03 — post Userbrain round 1 & 2, minimalist UX audit, drive mode, and lens overflow fixes.
 
 ## Shipped Foundation
 
@@ -60,31 +63,55 @@ This backlog was reconciled against:
 - **User question**: Can the product tell a strong live story and still stay demo-safe when providers are slow?
 - **Current implementation**: Demo registry, fallback screenshot fields, and a dismissible live-loading banner for slower demo loads.
 
+### Userbrain UX round 1 & 2
+
+- **User question**: Can first-time users correctly read unavailable signals, find the search bar and compare feature, see nearby context prominently, and avoid clicking static labels?
+- **Current implementation**: Five confirmed issues fixed across 9 files. Unavailable data now filtered from strengths/watchouts into a collapsible `dataGaps` row. Search is always visible (dimmed until a lens is chosen) with STEP 1 / STEP 2 labels. Default results tab changed to Nearby. Compare button added to workspace. Static labels (`confidenceLabel`, `coverageLabel`, mode badges) marked `cursor-default pointer-events-none select-none`. Source: `src/lib/analysis-summary.ts`, `AnalysisOverviewBanner.tsx`, `ActiveLocationCard.tsx`, `LandingPage.tsx`, `ExploreWorkspace.tsx`, `NearbyPlacesList.tsx`.
+
+### Minimalist UX audit (two passes)
+
+- **User question**: Does the interface feel calm and focused or cluttered and noisy?
+- **Current implementation**: Audited all major UI surfaces against minimalist principles. Removed hero subtitle, step labels added, collapsed "Trust and next steps" by default, collapsed grounding sources panel, removed card header boilerplate descriptions, reduced heading density (`text-[11px]` → `text-xs` throughout), trend signals rendered in a responsive 2/3/4-col grid, always-visible OSM boilerplate removed from NearbyPlacesList, ChatPanel title shortened to "Ask", spacing loosened to `space-y-6`. Result: significantly reduced line count across the explore workspace with no functional regression.
+
+### 3D drive mode
+
+- **User question**: Can a user drive across the terrain in first-person view with W/up moving forward?
+- **Current implementation**: Drive mode added to `CesiumGlobe.tsx`. Camera placed behind the vehicle using Cesium's `HeadingPitchRange` (heading=0 is south-of-target in Cesium, so no `+Math.PI` offset needed). Vehicle orientation corrected with `heading - Math.PI / 2` to align the box long-axis with the direction of travel.
+
+### Lens carousel overflow fix
+
+- **User question**: Can the lens profile selector fit cleanly inside the sidebar card without overflowing?
+- **Current implementation**: Removed hardcoded `style={{ width: "271px" }}` from the carousel container in `ProfileSelector.tsx`. Replaced with `w-full`. Added `overflow-hidden` to the Lens card in `Sidebar.tsx`. The carousel now adapts to the ~200px content area inside the 280px sidebar.
+
 ## Current Gaps
 
 ### Inline provenance is not universal yet
 
-- Source-awareness is strong, but headline cards and AI/report outputs still do not all surface provider, freshness, and confidence inline.
+- Source-awareness is strong at the signal and source-awareness-panel level. Headline analysis text in `AnalysisOverviewBanner` and AI/report outputs still do not consistently surface provider name, freshness, and confidence inline.
 
 ### Hazard stack is still early
 
-- GeoSight has earthquakes, fire detections, FEMA flood zones, and weather risk summary, but not yet a mature multi-hazard resilience stack.
+- GeoSight has earthquakes, fire detections, FEMA flood zones, and weather risk summary, but not yet a mature multi-hazard resilience stack. No compound risk scoring across domains.
 
 ### Regional provider switching is scaffolded more than fully operational
 
-- The source registry knows about regional candidates, but many non-US alternatives are still cataloged rather than actively wired into live routes.
+- The source registry knows about regional candidates, but most non-US alternatives are still cataloged rather than actively wired into live routes.
 
 ### User-authored dashboard composition is still limited
 
-- Cards and local persistence exist, but there are no named saved workspaces, drag-and-drop layouting, or multi-board composition flows.
+- Registry-driven cards and local persistence exist. No named saved workspaces, drag-and-drop layout editing, or multi-board composition flows yet.
 
 ### Proxy-heavy factors still need stronger direct replacements
 
-- Commercial demand, land-cost indicators, remoteness, and similar factors still rely on proxy heuristics even though they are now labeled honestly.
+- Commercial demand, land-cost indicators, remoteness, and similar factors still rely on proxy heuristics even though labeled honestly in the UI.
 
 ### Global coverage is still uneven by domain
 
 - Broadband, flood zones, EPA screening, groundwater, soil profile, seismic design values, and school intelligence remain mostly US-first.
+
+### Drive mode lacks full terrain interaction
+
+- Drive mode moves across the Cesium terrain visually, but the vehicle does not yet snap to the actual terrain elevation — it moves at a fixed altitude reference.
 
 ## Next Highest-Value Milestones
 
