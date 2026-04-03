@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Car, FileText, Globe, Plus, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
@@ -13,6 +13,7 @@ import {
 import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
 import { WorkspaceLibrary } from "@/components/Explore/WorkspaceLibrary";
 import { DataLayers } from "@/components/Globe/DataLayers";
+import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
@@ -28,7 +29,7 @@ import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
 import { PROFILES } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
-import { WorkspaceCardId } from "@/types";
+import { DrawnShape, WorkspaceCardId } from "@/types";
 import { Button } from "../ui/button";
 import { useExploreInit } from "./ExploreProvider";
 
@@ -189,6 +190,14 @@ export function ExploreWorkspace() {
     primeAgent("geo-scribe", reportPrompt);
     void data.generateReport();
   };
+
+  const handleShapeComplete = useCallback((shape: DrawnShape) => {
+    state.setDrawnShapes((prev) => [...prev, shape]);
+    // Single-shot tools auto-reset; marker stays active for multi-pin workflows
+    if (shape.type !== "marker") {
+      state.setDrawingTool("none");
+    }
+  }, [state]);
 
   const visibleUiCardIds = useMemo(
     () =>
@@ -472,6 +481,9 @@ export function ExploreWorkspace() {
                   earthquakeMarkers={state.earthquakeMarkers}
                   driveMode={state.driveMode}
                   onExitDriveMode={() => state.setDriveMode(false)}
+                  drawingTool={state.drawingTool}
+                  drawnShapes={state.drawnShapes}
+                  onShapeComplete={handleShapeComplete}
                 />
                 <div className="absolute right-4 top-4 z-20 flex flex-col gap-2">
                   <Button
@@ -520,6 +532,12 @@ export function ExploreWorkspace() {
                     );
                     data.handleLocationSelection();
                   }}
+                />
+                <DrawingToolbar
+                  drawingTool={state.drawingTool}
+                  onSelectTool={state.setDrawingTool}
+                  drawnShapes={state.drawnShapes}
+                  onClearAll={() => state.setDrawnShapes([])}
                 />
               </section>
             </ClientErrorBoundary>

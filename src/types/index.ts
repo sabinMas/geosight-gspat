@@ -20,6 +20,17 @@ export type UseCaseType =
   | "general_exploration";
 
 export type ResultsMode = "analysis" | "nearby_places";
+export type DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle";
+
+export interface DrawnShape {
+  id: string;
+  type: Exclude<DrawingTool, "none">;
+  coordinates: Array<{ lat: number; lng: number }>;
+  label?: string;
+  measurementLabel?: string;
+  color: string;
+}
+
 export type DataSourceStatus = "live" | "derived" | "limited" | "demo" | "unavailable";
 export type SourceDomain =
   | "weather"

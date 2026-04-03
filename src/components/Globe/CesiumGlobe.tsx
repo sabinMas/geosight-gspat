@@ -32,6 +32,8 @@ import { estimateRegionSpanKm } from "@/lib/geospatial";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   Coordinates,
+  DrawnShape,
+  DrawingTool,
   EarthquakeEvent,
   GlobeViewMode,
   RegionSelection,
@@ -39,6 +41,7 @@ import {
   SubsurfaceDataset,
   SubsurfaceRenderMode,
 } from "@/types";
+import { useGlobeDrawing, useGlobeDrawnShapes } from "@/hooks/useGlobeDrawing";
 import { LayerState } from "./DataLayers";
 
 if (typeof window !== "undefined") {
@@ -80,6 +83,9 @@ interface CesiumGlobeProps {
   earthquakeMarkers?: EarthquakeEvent[];
   driveMode?: boolean;
   onExitDriveMode?: () => void;
+  drawingTool?: DrawingTool;
+  drawnShapes?: DrawnShape[];
+  onShapeComplete?: (shape: DrawnShape) => void;
 }
 
 export function CesiumGlobe({
@@ -96,6 +102,9 @@ export function CesiumGlobe({
   earthquakeMarkers = [],
   driveMode = false,
   onExitDriveMode,
+  drawingTool = "none",
+  drawnShapes = [],
+  onShapeComplete,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -483,6 +492,9 @@ export function CesiumGlobe({
     clickHandlerRef.current = handler;
 
     handler.setInputAction((event: { position: Cartesian2 }) => {
+      // Yield to drawing mode — drawing hook has its own handler
+      if (drawingTool !== "none") return;
+
       try {
         const earthPosition =
           (viewer.scene.pickPositionSupported
@@ -513,7 +525,7 @@ export function CesiumGlobe({
         clickHandlerRef.current = null;
       }
     };
-  }, [onPointSelect, viewerKey, viewerReady]);
+  }, [drawingTool, onPointSelect, viewerKey, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -804,6 +816,16 @@ export function CesiumGlobe({
       viewerRef.current = null;
     };
   }, []);
+
+  // ── Drawing hooks ────────────────────────────────────────────────────────────
+  useGlobeDrawing({
+    viewerRef,
+    viewerReady,
+    drawingTool,
+    onShapeComplete: onShapeComplete ?? (() => undefined),
+  });
+
+  useGlobeDrawnShapes({ viewerRef, viewerReady, drawnShapes });
 
   if (!hasCesiumToken) {
     return (

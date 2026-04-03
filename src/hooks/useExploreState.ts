@@ -13,6 +13,8 @@ import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   AppMode,
   DemoOverlay,
+  DrawnShape,
+  DrawingTool,
   EarthquakeEvent,
   GlobeViewMode,
   ExploreInitState,
@@ -83,6 +85,10 @@ export interface ExploreState {
   setActiveLensId: Dispatch<SetStateAction<string | null>>;
   driveMode: boolean;
   setDriveMode: Dispatch<SetStateAction<boolean>>;
+  drawingTool: DrawingTool;
+  setDrawingTool: Dispatch<SetStateAction<DrawingTool>>;
+  drawnShapes: DrawnShape[];
+  setDrawnShapes: Dispatch<SetStateAction<DrawnShape[]>>;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -167,6 +173,8 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [earthquakeMarkers, setEarthquakeMarkers] = useState<EarthquakeEvent[]>([]);
   const [activeLensId, setActiveLensId] = useState<string | null>(init.lensId ?? null);
   const [driveMode, setDriveMode] = useState(false);
+  const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
+  const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);
   const { quickRegions, quickRegionsLoading } = useQuickRegions(
     selectedPoint,
     locationReady,
@@ -270,5 +278,9 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setActiveLensId,
     driveMode,
     setDriveMode,
+    drawingTool,
+    setDrawingTool,
+    drawnShapes,
+    setDrawnShapes,
   };
 }
