@@ -380,7 +380,7 @@ export function ActiveLocationCard({
               className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
               onClick={() => setShowUnavailableSignals((current) => !current)}
             >
-              {showUnavailableSignals ? "Hide missing quick-read signals" : "Show missing quick-read signals"}
+              {showUnavailableSignals ? "Hide unavailable" : "Show unavailable"}
             </button>
             {showUnavailableSignals ? (
               <div className="grid gap-3 md:grid-cols-2">

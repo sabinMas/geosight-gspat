@@ -28,7 +28,7 @@ export function NearbyPlacesList({
   return (
     <Card>
       <CardHeader className="space-y-4">
-        <div className="eyebrow">Discovery board</div>
+        <div className="eyebrow">Nearby places</div>
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-4">
@@ -112,19 +112,18 @@ export function NearbyPlacesList({
                 {place.summary}
               </p>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {place.attributes.map((attribute) => (
-                  <span
-                    key={attribute}
-                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] text-[var(--foreground-soft)]"
-                  >
-                    {attribute}
-                  </span>
-                ))}
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] text-[var(--foreground-soft)]">
-                  OSM live
-                </span>
-              </div>
+              {place.attributes.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {place.attributes.map((attribute) => (
+                    <span
+                      key={attribute}
+                      className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] text-[var(--foreground-soft)]"
+                    >
+                      {attribute}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

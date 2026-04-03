@@ -338,10 +338,7 @@ export function ChatPanel({
     <Card className="flex min-h-[420px] flex-col">
       <CardHeader className="space-y-3">
         <div className="eyebrow">Reasoning board</div>
-        <CardTitle>Ask</CardTitle>
-        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Active location: <span className="font-medium text-[var(--foreground)]">{locationName}</span>
-        </p>
+        <CardTitle>{locationName}</CardTitle>
         {aiStatus?.liveAnalysisAvailable === false ? (
           <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
             Fallback mode
@@ -388,7 +385,7 @@ export function ChatPanel({
           <button
             type="button"
             onClick={() => setShowGrounding((current) => !current)}
-            className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
           >
             {showGrounding ? "Hide grounding sources" : "View grounding sources"}
           </button>

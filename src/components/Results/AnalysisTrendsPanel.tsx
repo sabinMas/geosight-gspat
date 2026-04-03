@@ -68,7 +68,7 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
   return (
     <Card>
       <CardHeader className="space-y-4">
-        <div className="eyebrow">Analysis board</div>
+        <div className="eyebrow">Data signals</div>
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">

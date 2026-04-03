@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { FileText, Sparkles, X } from "lucide-react";
+import { Car, FileText, Globe, Plus, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
@@ -30,7 +30,6 @@ import { PROFILES } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
 import { WorkspaceCardId } from "@/types";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useExploreInit } from "./ExploreProvider";
 
 const CesiumGlobe = dynamic(
@@ -487,7 +486,7 @@ export function ExploreWorkspace() {
                     }
                     onClick={() => state.setGlobeRotateMode((current) => !current)}
                   >
-                    <span className="mr-2 text-base leading-none">⊕</span>
+                    <Globe className="mr-2 h-4 w-4" />
                     {state.globeRotateMode ? "3D explore" : "Rotate mode"}
                   </Button>
                   <Button
@@ -498,7 +497,7 @@ export function ExploreWorkspace() {
                     aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
                     onClick={() => state.setDriveMode((current) => !current)}
                   >
-                    <span className="mr-2 text-base leading-none">🚗</span>
+                    <Car className="mr-2 h-4 w-4" />
                     {state.driveMode ? "Driving" : "Drive"}
                   </Button>
                 </div>
@@ -545,7 +544,8 @@ export function ExploreWorkspace() {
                 className="rounded-full"
                 onClick={() => openCard("compare")}
               >
-                ⊕ Compare locations
+                <Plus className="mr-2 h-4 w-4" />
+                Compare locations
               </Button>
               <Button
                 type="button"
@@ -613,24 +613,16 @@ export function ExploreWorkspace() {
                       />
                     </div>
                   ) : (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Calm board mode</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4 text-sm leading-6 text-[var(--muted-foreground)]">
-                        <p>
-                          Your board is currently focused on the globe, active location,
-                          questions, and primary results only.
-                        </p>
-                        <Button
-                          type="button"
-                          className="rounded-full"
-                          onClick={data.openLibrary}
-                        >
-                          Open card library
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    <div className="flex min-h-[120px] items-center justify-center">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="rounded-full"
+                        onClick={data.openLibrary}
+                      >
+                        Open card library
+                      </Button>
+                    </div>
                   )}
                 </WorkspaceBoard>
               ) : (

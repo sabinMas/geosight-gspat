@@ -24,10 +24,6 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="glass-panel z-20 flex h-full min-w-[280px] w-[280px] flex-col gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold text-[var(--foreground)]">Lens</h2>
-      </div>
-
       <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4">
         <Card className="overflow-hidden">
           <CardHeader>
@@ -93,9 +89,6 @@ export function Sidebar({
         <div className="flex items-center justify-between rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3">
           <div>
             <div className="text-sm font-medium text-[var(--foreground)]">Theme</div>
-            <div className="text-xs text-[var(--muted-foreground)]">
-              Switch the workspace appearance.
-            </div>
           </div>
           <ThemeToggle compact />
         </div>
