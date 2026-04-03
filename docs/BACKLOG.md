@@ -24,7 +24,7 @@ This backlog was reconciled against:
 - `src/lib/demos/registry.ts`
 - `src/lib/agents/agent-config.ts`
 
-Last updated: 2026-04-03 — post Userbrain round 1 & 2, minimalist UX audit, drive mode, and lens overflow fixes.
+Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (3 passes), drive mode camera, and lens overflow fixes.
 
 ## Shipped Foundation
 
@@ -68,10 +68,12 @@ Last updated: 2026-04-03 — post Userbrain round 1 & 2, minimalist UX audit, dr
 - **User question**: Can first-time users correctly read unavailable signals, find the search bar and compare feature, see nearby context prominently, and avoid clicking static labels?
 - **Current implementation**: Five confirmed issues fixed across 9 files. Unavailable data now filtered from strengths/watchouts into a collapsible `dataGaps` row. Search is always visible (dimmed until a lens is chosen) with STEP 1 / STEP 2 labels. Default results tab changed to Nearby. Compare button added to workspace. Static labels (`confidenceLabel`, `coverageLabel`, mode badges) marked `cursor-default pointer-events-none select-none`. Source: `src/lib/analysis-summary.ts`, `AnalysisOverviewBanner.tsx`, `ActiveLocationCard.tsx`, `LandingPage.tsx`, `ExploreWorkspace.tsx`, `NearbyPlacesList.tsx`.
 
-### Minimalist UX audit (two passes)
+### Minimalist UX audit (three passes)
 
 - **User question**: Does the interface feel calm and focused or cluttered and noisy?
-- **Current implementation**: Audited all major UI surfaces against minimalist principles. Removed hero subtitle, step labels added, collapsed "Trust and next steps" by default, collapsed grounding sources panel, removed card header boilerplate descriptions, reduced heading density (`text-[11px]` → `text-xs` throughout), trend signals rendered in a responsive 2/3/4-col grid, always-visible OSM boilerplate removed from NearbyPlacesList, ChatPanel title shortened to "Ask", spacing loosened to `space-y-6`. Result: significantly reduced line count across the explore workspace with no functional regression.
+- **Current implementation**: Three full audits against minimalist principles across all major surfaces.
+  - Pass 1 & 2: Hero subtitle removed, step labels added to landing, "Trust and next steps" collapsed by default, grounding sources panel collapsed, card header boilerplate descriptions removed, heading density reduced (`text-[11px]` → `text-xs`), trend signals in responsive 2/3/4-col grid, OSM boilerplate removed from NearbyPlacesList, ChatPanel title shortened.
+  - Pass 3: Duplicate "Lens" sidebar heading removed; duplicate "Guided demos" eyebrow removed; NearbyPlacesList eyebrow "Discovery board" → "Nearby places"; AnalysisTrendsPanel eyebrow "Analysis board" → "Data signals"; ChatPanel location name promoted into CardTitle, grounding toggle elevated to pill button; board empty state collapsed to a single centered button; emoji icons (🚗, ⊕) replaced with Lucide `Car`/`Globe`/`Plus`; ActiveLocationCard toggle copy simplified.
 
 ### 3D drive mode
 

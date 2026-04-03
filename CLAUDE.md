@@ -212,7 +212,7 @@ These are decisions that have been tested and should not be undone:
 
 1. **Unavailable data must never appear in green/amber signal boxes.** `buildAnalysisOverview` filters these to `dataGaps[]`. The UI renders them only in a collapsible "⚠ N signals could not be confirmed" row.
 
-2. **Card titles are names, not sentences.** `ActiveLocationCard` title = location name. `AnalysisOverviewBanner` title = location name. `ChatPanel` title = "Ask".
+2. **Card titles are names, not sentences.** `ActiveLocationCard` title = location name. `AnalysisOverviewBanner` title = location name. `ChatPanel` title = location name. Eyebrows provide category context that the title does not — if the eyebrow and title would say the same thing, remove the eyebrow.
 
 3. **Trust / grounding is collapsed by default.** The "View grounding sources" toggle in ChatPanel defaults to `false`. "Trust details & next steps" in the banner defaults to `false`.
 
@@ -223,6 +223,10 @@ These are decisions that have been tested and should not be undone:
 6. **No permanent boilerplate.** OSM coverage disclaimers, "GeoSight won't fabricate" paragraphs, and similar copy belong only in empty states — not as always-visible furniture on full-data views.
 
 7. **Step labels on landing.** The Explorer hero section shows "STEP 1 — CHOOSE A LENS" and "STEP 2 — ENTER A LOCATION". The search form is always rendered but `opacity-50 pointer-events-none` until a lens is selected.
+
+8. **Icons use Lucide throughout.** No emoji in interactive controls. The `Car`, `Globe`, `Plus`, `FileText`, `Sparkles`, `X` imports cover the workspace toolbar. If you add a new button, pick the closest Lucide icon — do not use Unicode symbols or emoji.
+
+9. **Empty states resolve, not explain.** Board mode with no card shows one centered button ("Open card library") — not a title + paragraph describing what is visible. If the user can already see it, don't describe it.
 
 ---
 
