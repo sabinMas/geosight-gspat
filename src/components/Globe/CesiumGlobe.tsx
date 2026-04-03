@@ -757,8 +757,8 @@ export function CesiumGlobe({
         vehiclePos,
         new HeadingPitchRange(
           heading, // behind the vehicle (Cesium HPR heading=0 → camera south of target)
-          CesiumMath.toRadians(-14),
-          58,
+          CesiumMath.toRadians(-22),
+          38,
         ),
       );
 
