@@ -449,6 +449,46 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     supportedProfiles: ["data-center", "residential"],
     emptyState: "Select a US location to inspect nearby EPA contamination-screening context.",
   },
+  {
+    id: "earthquake-history",
+    title: "Earthquake history",
+    summary: "5-year USGS ComCat seismic record — event count by year, M4+ events list, and max magnitude.",
+    questionAnswered: "How seismically active has this area been over the past five years?",
+    regionCoverage: "Global — USGS ComCat covers all recorded earthquakes worldwide",
+    failureMode: "Shows unavailable state when USGS does not respond or returns no events",
+    freshnessWindow: "Cached 24 hours per coordinate",
+    nextActions: ["Review seismic design profile", "Compare hazard context", "Check terrain stability"],
+    icon: "Activity",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 125,
+    requiredData: ["geodata"],
+    supportedProfiles: ["hiking", "residential", "data-center", "commercial"],
+    emptyState: "Select a location to see the 5-year earthquake history.",
+  },
+  {
+    id: "fire-history",
+    title: "Wildfire history",
+    summary: "Annual NASA FIRMS fire detection archive — season intensity by year and elevated-activity flags.",
+    questionAnswered: "Has this area experienced elevated wildfire activity in recent years?",
+    regionCoverage: "Global — NASA VIIRS_SNPP archive where the FIRMS API key is configured",
+    failureMode: "Returns zero-count years when FIRMS key is absent; shows unavailable state on API failure",
+    freshnessWindow: "Cached 24 hours per coordinate",
+    nextActions: ["Check hazard context for current fire alerts", "Review air quality", "Use with outdoor fit"],
+    icon: "Flame",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 126,
+    requiredData: ["geodata"],
+    supportedProfiles: ["hiking", "residential"],
+    emptyState: "Select a location to see the wildfire history for this area.",
+  },
 ] as const;
 
 function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
@@ -477,6 +517,9 @@ function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
       return ["ask_schools"];
     case "hazard-context":
       return ["ask_hazard"];
+    case "earthquake-history":
+    case "fire-history":
+      return ["ask_hazard", "location_selected"];
     case "outdoor-fit":
       return ["ask_reasoning", "ask_hazard", "location_selected"];
     case "trip-summary":
@@ -548,6 +591,8 @@ function getModeVisibility(cardId: WorkspaceCardId): { explorer: boolean; pro: b
     "climate-history",
     "flood-risk",
     "air-quality",
+    "earthquake-history",
+    "fire-history",
   ]);
   if (bothModes.has(cardId)) return { explorer: true, pro: true };
 
@@ -607,6 +652,8 @@ function getExplorerLabel(cardId: WorkspaceCardId): string | undefined {
     "air-quality": "Air quality",
     "outdoor-fit": "Outdoor fit",
     "trip-summary": "Trip summary",
+    "earthquake-history": "Quake history",
+    "fire-history": "Fire history",
   };
   return labels[cardId];
 }
@@ -625,6 +672,8 @@ function getExplorerSummary(cardId: WorkspaceCardId): string | undefined {
     "air-quality": "How clean is the air here?",
     "outdoor-fit": "Is this place good for outdoor activities?",
     "trip-summary": "A plain-English overview of what makes this place worth visiting.",
+    "earthquake-history": "How many quakes has this area seen in the last 5 years?",
+    "fire-history": "Has this area had bad wildfire seasons recently?",
   };
   return summaries[cardId];
 }

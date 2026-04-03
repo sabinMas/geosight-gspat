@@ -21,6 +21,7 @@ import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { isExplorerMode } from "@/lib/app-mode";
+import { getExplorerLensById } from "@/lib/explorer-lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
@@ -278,6 +279,22 @@ export function ExploreWorkspace() {
                 <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                   {inExplorer ? "Explorer" : "Pro workspace"}
                 </span>
+                {inExplorer && state.activeLensId && (() => {
+                  const lens = getExplorerLensById(state.activeLensId);
+                  return lens ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-foreground)]">
+                      {lens.label}
+                      <button
+                        type="button"
+                        onClick={() => state.setActiveLensId(null)}
+                        className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-[color:var(--accent-strong)]/20"
+                        aria-label="Clear lens filter"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ) : null;
+                })()}
                 <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                   {data.shellMode}
                 </span>
@@ -439,6 +456,7 @@ export function ExploreWorkspace() {
                   layers={state.layers}
                   subsurfaceDatasets={data.subsurfaceDatasets}
                   terrainExaggeration={state.terrainExaggeration}
+                  earthquakeMarkers={state.earthquakeMarkers}
                 />
                 <div className="absolute right-4 top-4 z-20">
                   <Button

@@ -9,6 +9,8 @@ import { AirQualityCard } from "@/components/Explore/AirQualityCard";
 import { BroadbandCard } from "@/components/Explore/BroadbandCard";
 import { ClimateHistoryCard } from "@/components/Explore/ClimateHistoryCard";
 import { ContaminationRiskCard } from "@/components/Explore/ContaminationRiskCard";
+import { EarthquakeHistoryCard } from "@/components/Explore/EarthquakeHistoryCard";
+import { FireHistoryCard } from "@/components/Explore/FireHistoryCard";
 import { CoolingWaterCard } from "@/components/Explore/CoolingWaterCard";
 import { FloodRiskCard } from "@/components/Explore/FloodRiskCard";
 import { GroundwaterCard } from "@/components/Explore/GroundwaterCard";
@@ -121,6 +123,8 @@ function getDataDependencyPlaceholder(
     "contamination-risk",
     "outdoor-fit",
     "trip-summary",
+    "earthquake-history",
+    "fire-history",
   ]);
 
   if (scoreCards.has(cardId) && !data.siteScore) {
@@ -337,6 +341,25 @@ export function ExploreWorkspacePanel({
     case "trip-summary":
       return (
         <TripSummaryCard geodata={data.geodata} locationName={state.selectedLocationName} />
+      );
+    case "earthquake-history":
+      return (
+        <EarthquakeHistoryCard
+          geodata={data.geodata}
+          lat={state.selectedPoint.lat}
+          lng={state.selectedPoint.lng}
+          appMode={state.appMode}
+          onMarkersChange={state.setEarthquakeMarkers}
+        />
+      );
+    case "fire-history":
+      return (
+        <FireHistoryCard
+          geodata={data.geodata}
+          lat={state.selectedPoint.lat}
+          lng={state.selectedPoint.lng}
+          appMode={state.appMode}
+        />
       );
     default:
       return null;

@@ -173,6 +173,9 @@ export function buildExploreHref(init: ExploreInitState) {
   if (init.appMode) {
     params.set("mode", init.appMode);
   }
+  if (init.lensId) {
+    params.set("lens", init.lensId);
+  }
 
   const query = params.toString();
   return query ? `/explore?${query}` : "/explore";

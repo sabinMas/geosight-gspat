@@ -22,6 +22,7 @@ export default async function ExplorePage({
     demoId: firstValue(params.demo),
     entrySource: (firstValue(params.entrySource) as ExploreInitState["entrySource"]) ?? "direct",
     appMode: parseAppMode(firstValue(params.mode) ?? null),
+    lensId: firstValue(params.lens),
   };
 
   return (

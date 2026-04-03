@@ -13,6 +13,7 @@ import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   AppMode,
   DemoOverlay,
+  EarthquakeEvent,
   GlobeViewMode,
   ExploreInitState,
   LandCoverBucket,
@@ -76,6 +77,10 @@ export interface ExploreState {
   setPreviewUrl: Dispatch<SetStateAction<string | null>>;
   resultsMode: ResultsMode;
   setResultsMode: Dispatch<SetStateAction<ResultsMode>>;
+  earthquakeMarkers: EarthquakeEvent[];
+  setEarthquakeMarkers: Dispatch<SetStateAction<EarthquakeEvent[]>>;
+  activeLensId: string | null;
+  setActiveLensId: Dispatch<SetStateAction<string | null>>;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -154,6 +159,8 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [uploadedClassification, setUploadedClassification] = useState<LandCoverBucket[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultsMode, setResultsMode] = useState<ResultsMode>("analysis");
+  const [earthquakeMarkers, setEarthquakeMarkers] = useState<EarthquakeEvent[]>([]);
+  const [activeLensId, setActiveLensId] = useState<string | null>(init.lensId ?? null);
   const { quickRegions, quickRegionsLoading } = useQuickRegions(
     selectedPoint,
     locationReady,
@@ -247,5 +254,9 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setPreviewUrl,
     resultsMode,
     setResultsMode,
+    earthquakeMarkers,
+    setEarthquakeMarkers,
+    activeLensId,
+    setActiveLensId,
   };
 }

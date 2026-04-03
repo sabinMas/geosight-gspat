@@ -357,6 +357,7 @@ export function LandingPage() {
                         locationQuery: locationQuery.trim() || undefined,
                         entrySource: "landing",
                         appMode: "explorer",
+                        lensId: lens.id,
                       }),
                     );
                   }}

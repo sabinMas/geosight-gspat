@@ -12,6 +12,7 @@ import { buildLocationTrends } from "@/lib/data-trends";
 import { fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
 import { getVisibleCardsForMode } from "@/lib/app-mode";
+import { getExplorerLensById } from "@/lib/explorer-lenses";
 import {
   detectWorkspaceIntent,
   getPrimaryCardForIntent,
@@ -137,10 +138,19 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     () => getVisibleCardsForMode(appMode, allPrimaryCards),
     [appMode, allPrimaryCards],
   );
-  const workspaceCards = useMemo(
+  const modeWorkspaceCards = useMemo(
     () => getVisibleCardsForMode(appMode, allWorkspaceCards),
     [appMode, allWorkspaceCards],
   );
+
+  const workspaceCards = useMemo(() => {
+    const { activeLensId } = state;
+    if (appMode !== "explorer" || !activeLensId) return modeWorkspaceCards;
+    const lens = getExplorerLensById(activeLensId);
+    if (!lens) return modeWorkspaceCards;
+    const lensCardSet = new Set(lens.defaultCards);
+    return modeWorkspaceCards.filter((card) => lensCardSet.has(card.id));
+  }, [appMode, modeWorkspaceCards, state]);
 
   const allWorkspaceCardsModeFiltered = useMemo(
     () => cards.filter((card) => card.zone === "workspace"),

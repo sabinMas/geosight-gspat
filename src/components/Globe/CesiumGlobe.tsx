@@ -25,6 +25,7 @@ import { estimateRegionSpanKm } from "@/lib/geospatial";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   Coordinates,
+  EarthquakeEvent,
   GlobeViewMode,
   RegionSelection,
   SavedSite,
@@ -69,6 +70,7 @@ interface CesiumGlobeProps {
   layers: LayerState;
   subsurfaceDatasets: SubsurfaceDataset[];
   terrainExaggeration: number;
+  earthquakeMarkers?: EarthquakeEvent[];
 }
 
 export function CesiumGlobe({
@@ -82,6 +84,7 @@ export function CesiumGlobe({
   layers,
   subsurfaceDatasets,
   terrainExaggeration,
+  earthquakeMarkers = [],
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -584,8 +587,28 @@ export function CesiumGlobe({
       });
     }
 
+    for (const eq of earthquakeMarkers) {
+      if (!Number.isFinite(eq.lat) || !Number.isFinite(eq.lng)) continue;
+      const mag = eq.mag;
+      const pixelSize = Math.max(4, Math.min(14, (mag - 2) * 3));
+      // hue: 0.33 (green) for small, 0 (red) for large (M6.5+)
+      const hue = Math.max(0, 0.33 - ((mag - 2.5) / 4.5) * 0.33);
+      const markerColor = Color.fromHsl(hue, 0.9, 0.55);
+      viewer.entities.add({
+        name: `M${mag.toFixed(1)} — ${eq.place}`,
+        position: Cartesian3.fromDegrees(eq.lng, eq.lat, 100),
+        point: {
+          color: markerColor,
+          pixelSize,
+          outlineColor: Color.BLACK.withAlpha(0.6),
+          outlineWidth: 1,
+        },
+      });
+    }
+
     viewer.scene.requestRender();
   }, [
+    earthquakeMarkers,
     layers.heatmap,
     regionHierarchy,
     savedSites,

@@ -110,7 +110,9 @@ export type WorkspaceCardId =
   | "seismic-design"
   | "climate-history"
   | "outdoor-fit"
-  | "trip-summary";
+  | "trip-summary"
+  | "earthquake-history"
+  | "fire-history";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -264,6 +266,7 @@ export interface ExploreInitState {
   demoId?: string;
   entrySource?: ExploreEntrySource;
   appMode?: AppMode;
+  lensId?: string;
 }
 
 export interface LandingUseCase {
@@ -807,5 +810,37 @@ export interface DemoSiteSeed {
   coordinates: Coordinates;
   score: number;
   summary: string;
+}
+
+export interface EarthquakeEvent {
+  mag: number;
+  depth: number | null;
+  distanceKm: number;
+  time: string;
+  place: string;
+  lat: number;
+  lng: number;
+}
+
+export interface EarthquakeHistorySummary {
+  events: EarthquakeEvent[];
+  countByYear: Record<string, number>;
+  maxMag: number | null;
+  totalCount: number;
+  yearsSearched: number;
+}
+
+export interface FireSeasonYear {
+  year: number;
+  detectionCount: number;
+  maxBrightnessK: number | null;
+  gdacsAlerts: number;
+}
+
+export interface FireHistorySummary {
+  byYear: FireSeasonYear[];
+  hotYears: number[];
+  totalDetections: number;
+  yearsSearched: number;
 }
 
