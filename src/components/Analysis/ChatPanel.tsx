@@ -480,7 +480,7 @@ export function ChatPanel({
           <Textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask a question about this location (schools, trails, neighborhoods, freight, hazards, and more)..."
+            placeholder="Ask anything about this place…"
           />
           <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
             <Send className="mr-2 h-4 w-4" />

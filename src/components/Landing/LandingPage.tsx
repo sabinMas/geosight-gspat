@@ -423,8 +423,7 @@ export function LandingPage() {
                 For analysts, planners, and site teams
               </h2>
               <p className="max-w-2xl text-sm leading-7 text-[var(--muted-foreground)]">
-                Factor scoring, source awareness, comparison tables, and full data provenance — the
-                complete analyst workspace.
+                Factor scoring, source awareness, and full data provenance.
               </p>
             </div>
             <Button
@@ -515,11 +514,8 @@ export function LandingPage() {
             <div className="space-y-2">
               <div className="eyebrow">Guided demos</div>
               <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-                Three strong stories, kept secondary to the main flow
+                Guided demos
               </h2>
-              <p className="max-w-3xl text-sm leading-7 text-[var(--muted-foreground)]">
-                Infrastructure depth, global proof, and everyday usefulness — each story starts with a live place and expands as you need it.
-              </p>
             </div>
           </div>
 

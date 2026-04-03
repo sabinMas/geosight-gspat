@@ -24,7 +24,7 @@ type: project
 3. `--surface-raised` — rgba(10, 22, 36, 0.9) — chips, badges, secondary surfaces
 4. `--surface-overlay` — rgba(6, 14, 24, 0.64) — overlay gradient masks
 
-**Known token bypass bug:** `LocationSignalCard` and `TrendSignalCard` both use `border-neutral-200 dark:border-neutral-700` instead of `border-[color:var(--border-soft)]`. This is a copy-paste error across two components.
+**Token bypass bug — FIXED (2026-04-03):** `LocationSignalCard` and `TrendSignalCard` both previously used `border-neutral-200 dark:border-neutral-700`. Both have been corrected to `border-[color:var(--border-soft)]`.
 
 ## Typography
 

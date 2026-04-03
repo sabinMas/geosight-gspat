@@ -89,7 +89,7 @@ export function ExploreWorkspace() {
 
     setWorkspaceNotice({
       tone: "info",
-      message: `Saved ${state.selectedLocationName} to your comparison list.`,
+      message: `${state.selectedLocationName} saved.`,
     });
   };
 
@@ -97,7 +97,7 @@ export function ExploreWorkspace() {
     if (!state.locationReady) {
       setWorkspaceNotice({
         tone: "warning",
-        message: "Focus a place first to unlock guided mode.",
+        message: "Select a location first.",
       });
       return;
     }
@@ -106,7 +106,7 @@ export function ExploreWorkspace() {
     data.setViewMode("board");
     setWorkspaceNotice({
       tone: "info",
-      message: "Focused mode keeps one primary view open and reveals supporting cards only when you need them.",
+      message: "Focused mode active.",
     });
   };
 
@@ -123,7 +123,7 @@ export function ExploreWorkspace() {
       window.localStorage.setItem(BOARD_MODE_NOTICE_STORAGE_KEY, "true");
       setWorkspaceNotice({
         tone: "info",
-        message: "Board mode unlocks the full card workspace and saved layout flow.",
+        message: "Board mode active.",
       });
     }
   };
@@ -182,7 +182,7 @@ export function ExploreWorkspace() {
     if (data.loading) {
       setWorkspaceNotice({
         tone: "warning",
-        message: "GeoSight is still gathering the live context for this place. Report generation unlocks when the main analysis finishes.",
+        message: "Analysis still loading — try again shortly.",
       });
       return;
     }
@@ -301,18 +301,11 @@ export function ExploreWorkspace() {
                   {data.shellMode}
                 </span>
               </div>
-              <div className="space-y-2">
-                <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
-                  {inExplorer
-                    ? "Pick a place and see what's there — in plain English"
-                    : "Start with one place, then reveal only the views you need"}
-                </h1>
-                <p className="max-w-3xl text-sm leading-7 text-[var(--muted-foreground)]">
-                  {inExplorer
-                    ? "Explorer mode keeps things simple. Ask questions, check terrain, and discover what makes a place worth visiting."
-                    : "The globe stays live, the first panel stays calm, and deeper cards appear only when the question calls for them."}
-                </p>
-              </div>
+              <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
+                {inExplorer
+                  ? "Pick a place and see what's there — in plain English"
+                  : "Start with one place, then reveal only the views you need"}
+              </h1>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -383,19 +376,6 @@ export function ExploreWorkspace() {
             </div>
           ) : null}
 
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            {(inExplorer
-              ? ["Plain-English answers", "Terrain and hazard context", "Ask anything about any place"]
-              : ["Prompt-first location flow", "One primary panel at a time", "Advanced board only when you ask for it"]
-            ).map((item) => (
-              <div
-                key={item}
-                className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--muted-foreground)]"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
         </section>
 
         {state.initStatus === "resolving" ? (

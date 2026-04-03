@@ -48,10 +48,10 @@ export function NearbyPlacesList({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-foreground)]">
-          <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--foreground)]">
+          <span className="cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--muted-foreground)]">
             {places.length} result{places.length === 1 ? "" : "s"}
           </span>
-          <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--foreground)]">
+          <span className="cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[var(--muted-foreground)]">
             {source === "live" ? "Live OpenStreetMap results" : "Live mapping unavailable"}
           </span>
         </div>

@@ -71,7 +71,7 @@ function LocationSignalCard({
 }: LocationSignalCardProps) {
   return (
     <div
-      className={`min-w-0 overflow-hidden rounded-xl border border-neutral-200 bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] dark:border-neutral-700 ${className ?? ""}`}
+      className={`min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${className ?? ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
@@ -248,9 +248,6 @@ export function ActiveLocationCard({
             ) : null}
             <p className="max-w-4xl text-sm leading-7 text-[var(--foreground-soft)]">
               {overview.summary}
-            </p>
-            <p className="max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-              {overview.statusDetail}
             </p>
           </div>
 

@@ -6,35 +6,45 @@ type: project
 
 ## ExploreWorkspace.tsx
 
-- P1: Header section (lines 277–399) is a marketing block — remove h1, description, and feature-bullet chips
+- DONE: Description paragraph removed from header
+- DONE: Feature-bullet chips grid removed from header
+- DONE: "Choose your next view" section/card collapsed to bare button row
+- DONE: All workspace notice strings trimmed to minimal form
 - P1: Two separate mode hierarchies (AppMode + ShellMode) shown at same visual level in toolbar
 - P2: "Current story context" demo banner is 4 layers of copy for a dismissible banner
 - P2: Globe overlay buttons use Unicode ⊕ symbol and emoji car — replace with Lucide icons
-- P2: "Choose your next view" card is a third heading area below the globe — flatten into the toolbar
 
 ## ActiveLocationCard.tsx
 
-- P1: "Save site" button rendered twice simultaneously (CardHeader line 223, overview panel line 268)
-- P1: 5-level card nesting exceeds 4-level surface token hierarchy
-- P1: border-neutral-200 dark:border-neutral-700 token bypass (line 74) — fix to border-[color:var(--border-soft)]
-- P2: coverageLabel chip and SourceStatusBadge list both appear twice (lines 248-254 and 427-462)
+- DONE: Duplicate "Save site" button removed (kept in CardHeader only)
+- DONE: Inner overview wrapper flattened from rounded/bordered surface to plain div
+- DONE: CardTitle changed to locationName; eyebrow "Location summary" removed
+- DONE: Description paragraph ("Ask what matters here...") removed from CardHeader
+- DONE: overview.statusDetail paragraph removed — summary is sufficient
+- DONE: border-neutral-200 dark:border-neutral-700 token bypass fixed to border-[color:var(--border-soft)]
+- P2: coverageLabel chip and SourceStatusBadge list both appear twice (overview badges and provenance section)
 - P2: Success-green "Strongest signals" box renders with placeholder copy during loading state
-- P3: Eyebrow "Location summary" + CardTitle "Active location" — CardTitle should be the location name
 
 ## AnalysisOverviewBanner.tsx
 
+- DONE: CardTitle changed from sentence to {locationName}
+- DONE: overview.statusDetail paragraph removed
+- DONE: overview.nextSteps removed from expanded trust section — trustNotes only
 - P1: Structurally duplicates ActiveLocationCard's three-column grid — should not both be visible at once
-- P2: CardTitle "What GeoSight is seeing in {locationName}" is a sentence, not a heading — use location name only
-- P2: ⚠ Unicode character in data gaps banner (line 154) — replace with Lucide AlertTriangle + aria-label
-- P2: Success-green box renders with placeholder copy during loading state (same as ActiveLocationCard)
+- P2: ⚠ Unicode character in data gaps banner — replace with Lucide AlertTriangle + aria-label
+- P2: Success-green box renders with placeholder copy during loading state
 
 ## LandingPage.tsx
 
+- DONE: h1 trimmed to "See any place clearly." — "in plain English" qualifier removed
+- DONE: Hero subtitle paragraph removed
+- DONE: Pro section description shortened
+- DONE: Demos section h2 changed to "Guided demos"
+- DONE: Demos section description paragraph removed
 - P1: Three parallel onboarding flows on one screen (Explorer, Pro, Guided Demos)
 - P2: Active state on use-case cards uses 4 simultaneous signals (border + bg + shadow + check) — reduce to 2
 - P2: opacity-50 disable treatment on Step 2 causes low-contrast readability issue for placeholder
 - P2: Duplicate eyebrow style variants — inline `text-xs uppercase tracking-widest` vs `.eyebrow` class
-- P3: Demo section heading "Three strong stories, kept secondary to the main flow" is internal design rationale
 
 ## Sidebar.tsx
 
@@ -54,20 +64,25 @@ type: project
 
 ## NearbyPlacesList.tsx
 
-- P1: Permanent source-disclosure box (lines 64–67) is always visible even when results are populated — remove
-- P2: Two separate status chips communicate one combined status — consolidate to single chip
+- DONE: Permanent source-disclosure box removed
+- DONE: CardTitle and description paragraph removed
+- DONE: Status chip text colour changed from foreground to muted-foreground; cursor-default select-none added
+- P2: Two separate status chips still communicate one combined status — could consolidate further to single chip
 
 ## AnalysisTrendsPanel.tsx
 
-- P1: border-neutral-200 dark:border-neutral-700 token bypass (line 33) — same bug as ActiveLocationCard
-- P2: Panel description renders text summary of the grid values above the grid that already shows them — remove
+- DONE: border-neutral-200 dark:border-neutral-700 token bypass fixed to border-[color:var(--border-soft)]
+- DONE: Panel description (summaryText) and CardTitle removed
+- DONE: StatePanel in unavailable section replaced with minimal inline `<p>` text
+- DONE: StatePanel import removed (no longer used in file)
 
 ## ChatPanel.tsx
 
-- P1: 7 content sections render before the message thread — suggested questions and grounding boxes should default collapsed
-- P2: Orphaned "What's nearby?" hardcoded button (lines 471–478) between thread and compose form — move into starter prompts array
-- P2: CardTitle "Ask a question about this place" duplicates textarea placeholder — cut to "Ask"
-- P3: profile.name + resultsMode line (344–346) is unactionable status metadata — move into grounding section
+- DONE: Grounding block collapsed by default behind "View grounding sources" text toggle
+- DONE: Orphaned "What's nearby?" hardcoded button removed
+- DONE: CardTitle changed to "Ask"
+- DONE: profile.name + resultsMode status line removed from CardHeader
+- DONE: Textarea placeholder shortened to "Ask anything about this place…"
 
 ## Why: Full audit conducted 2026-04-03 across 11 primary UI files.
 ## How to apply: Use this as a checklist when working on any of these components. P1 items are bugs or usability blockers. P2 are high-impact improvements. P3 are polish.

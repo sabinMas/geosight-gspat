@@ -132,9 +132,6 @@ export function AnalysisOverviewBanner({
                 {overview.trustNotes.map((item) => (
                   <div key={item}>{item}</div>
                 ))}
-                {overview.nextSteps.map((item) => (
-                  <div key={item}>{item}</div>
-                ))}
               </div>
             ) : null}
           </div>

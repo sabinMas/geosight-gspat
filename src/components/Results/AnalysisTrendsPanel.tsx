@@ -3,7 +3,6 @@
 import { ReactNode, useMemo, useState } from "react";
 import { SourceInfoButton } from "@/components/Source/SourceInfoButton";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
-import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTrend } from "@/types";
 
@@ -30,7 +29,7 @@ function TrendSignalCard({
 }) {
   return (
     <div
-      className={`rounded-xl border border-neutral-200 bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] dark:border-neutral-700 ${muted ? "opacity-80" : ""}`}
+      className={`rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${muted ? "opacity-80" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
@@ -81,13 +80,9 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
 
         {unavailableTrends.length > 0 ? (
           <div className="space-y-3">
-            <StatePanel
-              tone={visibleTrends.length > 0 ? "partial" : "unavailable"}
-              eyebrow="Signal coverage"
-              title={`${unavailableTrends.length} signal${unavailableTrends.length === 1 ? "" : "s"} could not be confirmed`}
-              description="Unavailable, unsupported, or delayed signals stay labeled so the current story remains honest."
-              compact
-            />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              {unavailableTrends.length} signal{unavailableTrends.length === 1 ? "" : "s"} unavailable
+            </p>
             <button
               type="button"
               className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
