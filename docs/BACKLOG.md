@@ -24,7 +24,7 @@ This backlog was reconciled against:
 - `src/lib/demos/registry.ts`
 - `src/lib/agents/agent-config.ts`
 
-Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (3 passes), drive mode camera, lens overflow, banner deduplication, and inline trust provenance.
+Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, minimalist UX audits (3 passes), drive mode + camera angle, lens carousel overflow, AnalysisOverviewBanner compact mode, inline trust provenance + badge token alignment, and QGIS-style drawing tools (Draw area, Drop pin, Measure, Radius circle).
 
 ## Shipped Foundation
 
@@ -85,6 +85,26 @@ Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (
 - **User question**: Can the lens profile selector fit cleanly inside the sidebar card without overflowing?
 - **Current implementation**: Removed hardcoded `style={{ width: "271px" }}` from the carousel container in `ProfileSelector.tsx`. Replaced with `w-full`. Added `overflow-hidden` to the Lens card in `Sidebar.tsx`. The carousel now adapts to the ~200px content area inside the 280px sidebar.
 
+### UX audit pass 3 — visual hierarchy and icon consistency
+
+- **User question**: Are there any duplicate headings, jargon labels, or emoji icons breaking the visual system?
+- **Current implementation**: 8 targeted fixes across 7 files. Removed duplicate "Lens" h2 in Sidebar and duplicate "Guided demos" eyebrow on landing. Renamed eyebrows: "Discovery board" → "Nearby places", "Analysis board" → "Data signals". ChatPanel: location name promoted into CardTitle, "Active location:" prose removed, grounding toggle elevated to pill button. Board empty state collapsed to a single centered button. Emoji icons (🚗, ⊕) replaced with Lucide `Car`/`Globe`/`Plus`. ActiveLocationCard toggle copy shortened to "Show/Hide unavailable".
+
+### AnalysisOverviewBanner compact mode
+
+- **User question**: Why does the user see the same strength/tradeoff grid twice when a detail card is open?
+- **Current implementation**: `AnalysisOverviewBanner` now accepts a `compact` prop. When `compact=true`, `CardContent` (the 3-col signal grid and data-gaps section) is suppressed. `ExploreWorkspace` passes `compact={Boolean(data.activePrimaryCard)}` so the grid only renders once when `ActiveLocationCard` or any other primary panel is visible below the banner.
+
+### Inline trust provenance + badge token alignment
+
+- **User question**: Can users tell who produced a signal and how trustworthy it is without opening a separate panel?
+- **Current implementation**: `source.provider` (e.g. "USGS", "Open-Meteo") now renders as dim `text-[11px]` at the bottom of every `TrendSignalCard` and `LocationSignalCard`. `getSourceStatusTone()` in `source-metadata.ts` now uses CSS design tokens (`--success-border/soft`, `--warning-border/soft/foreground`, `--danger-border/soft/foreground`) instead of raw Tailwind palette values. `limited` is now visually distinct from `unavailable` — warning-amber vs danger-red.
+
+### QGIS-style drawing tools
+
+- **User question**: Can users draw on the map, measure distances, and define custom areas — in a way that doesn't require GIS expertise?
+- **Current implementation**: Four tools accessible from `DrawingToolbar` above the globe: Draw area (polygon), Drop pin (marker), Measure distance, Radius circle. All built on raw Cesium imperative API. Two hooks: `useGlobeDrawing` handles active interaction (ScreenSpaceEventHandler + CallbackProperty live preview in `CustomDataSource("drawing-preview")`); `useGlobeDrawnShapes` rebuilds `CustomDataSource("drawing-shapes")` when `drawnShapes` changes. Measurement labels rendered as Cesium 3D labels with `disableDepthTestDistance: Infinity`. State: `drawingTool: DrawingTool` and `drawnShapes: DrawnShape[]` in `useExploreState`. Normal globe click-to-analyze is gated on `drawingTool === "none"`.
+
 ## Current Gaps
 
 ### Inline provenance is not universal yet
@@ -111,13 +131,17 @@ Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (
 
 - Broadband, flood zones, EPA screening, groundwater, soil profile, seismic design values, and school intelligence remain mostly US-first.
 
-### Drive mode lacks full terrain interaction
+### Drive mode lacks terrain elevation snapping
 
-- Drive mode moves across the Cesium terrain visually, but the vehicle does not yet snap to the actual terrain elevation — it moves at a fixed altitude reference.
+- Drive mode moves across the Cesium terrain visually but the vehicle does not snap to the actual terrain elevation — it moves at a fixed altitude reference. Cesium's `sampleTerrainMostDetailed` API can resolve this but requires async height sampling on each animation frame.
 
-### AnalysisOverviewBanner grid vs ActiveLocationCard grid
+### Drawing tools lack editing and export
 
-- **Shipped partial fix**: `AnalysisOverviewBanner` now accepts a `compact` prop that hides the 3-col signal grid. It is passed `compact={Boolean(data.activePrimaryCard)}` in ExploreWorkspace. Remaining gap: when no primary card is open, the user could still open `active-location` and then close it, leaving the grid visible in both places momentarily. Full resolution would be to make the banner always compact and promote the signal grid exclusively to ActiveLocationCard.
+- Shapes can be placed and cleared but not individually edited after placement. No vertex drag, no rename for pin labels, no GeoJSON/KML export, no undo/redo stack. See "Remaining drawing gaps" in P2 below.
+
+### Banner signal grid still visible with no primary panel open
+
+- When `activePrimaryCard` is null, `AnalysisOverviewBanner` renders its full 3-col grid. If the user opens then closes `ActiveLocationCard`, both grids are briefly visible. Full fix: always render the banner in compact mode and remove the signal grid from the banner entirely, making `ActiveLocationCard` the only place it appears.
 
 ## Next Highest-Value Milestones
 
@@ -145,9 +169,15 @@ Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (
 
 ### P2: Advanced Spatial Tools
 
-- ~~Polygon drawing~~ — **shipped**: Draw area, Drop pin, Measure distance, Radius circle tools live on the globe (`DrawingToolbar`, `useGlobeDrawing`, `useGlobeDrawnShapes`)
-- Remaining drawing gaps: vertex drag-editing of existing shapes, named pin labels (editable), shape export (GeoJSON), snap-to-grid, undo/redo stack
-- LiDAR and National Map layers
+- ~~Polygon drawing~~ — **shipped**: Draw area, Drop pin, Measure distance, Radius circle. See `src/hooks/useGlobeDrawing.ts`, `src/components/Globe/DrawingToolbar.tsx`
+- **Remaining drawing gaps** (good first tasks for a new engineer):
+  - Editable pin labels — tap a placed marker to rename it
+  - Individual shape deletion — remove one shape without clearing all
+  - GeoJSON export — download `drawnShapes` as a standard GeoJSON file
+  - Undo/redo — `undoStack` in state, Ctrl+Z support
+  - Terrain snap for drive mode — `sampleTerrainMostDetailed` on each animation tick
+  - Snap-to-existing-vertices when drawing
+- LiDAR and National Map tile layers
 - Deeper subsurface and geology overlays
 - Stronger export and share workflows beyond the current GeoScribe panel
 

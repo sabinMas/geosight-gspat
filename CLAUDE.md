@@ -60,8 +60,11 @@ src/
       ChatPanel.tsx                 # GeoAnalyst chat
       CapabilityLauncher.tsx        # Structured capability analysis
     Globe/
-      CesiumGlobe.tsx               # Globe + drive mode
+      CesiumGlobe.tsx               # Globe + drive mode + drawing hooks entry point
       DataLayers.tsx                # Layer toggles (heatmap, etc.)
+      DrawingToolbar.tsx            # Draw area / Drop pin / Measure / Radius toolbar
+      GlobeViewSelector.tsx         # Satellite / road / hillshade basemap switcher
+      RegionSelector.tsx            # Active region display + reset
     Shell/
       Sidebar.tsx                   # Left sidebar — lens selector + quick regions
       ProfileSelector.tsx           # Carousel of mission profiles
@@ -74,10 +77,11 @@ src/
       TrustSummaryPanel.tsx         # Trust summary with source list
 
   hooks/
-    useExploreState.ts              # All globe/UI state (mode, point, layers, etc.)
+    useExploreState.ts              # All globe/UI state (mode, point, layers, drawing, etc.)
     useExploreData.ts               # Geodata fetch, scoring, cards, sites, report
     useSiteAnalysis.ts              # Scoring orchestration
     useWorkspaceCards.ts            # Card registry, visibility, board layout
+    useGlobeDrawing.ts              # Drawing tools — active interaction + persisted shape rendering
     useNearbyPlaces.ts              # OSM nearby fetch
     useHousingMarket.ts             # Housing market data fetch
 
@@ -202,7 +206,20 @@ Sources have `status: "live" | "derived" | "limited" | "unavailable" | "cached"`
 ### Drive mode
 Implemented in `CesiumGlobe.tsx`. WASD + arrow keys. Important conventions:
 - Camera offset uses `heading` (not `heading + Math.PI`) because Cesium's `HeadingPitchRange` heading=0 places the camera **south** of target (not north)
+- Camera pitch is `-22°`, range `38m` — behind-the-shoulder perspective
 - Vehicle box uses `heading - Math.PI/2` in `HeadingPitchRollQuaternion` to align the box's long axis (local X) with the movement direction
+
+### Drawing tools
+Four tools built on raw Cesium API (not Resium). State lives in `useExploreState` (`drawingTool`, `drawnShapes`). Two hooks in `src/hooks/useGlobeDrawing.ts`:
+
+- **`useGlobeDrawing`** — registers `ScreenSpaceEventHandler` per tool. Uses `CallbackProperty` for live shape preview while drawing. All in-progress geometry lives in `CustomDataSource("drawing-preview")`.
+- **`useGlobeDrawnShapes`** — rebuilds `CustomDataSource("drawing-shapes")` when `drawnShapes` changes. Shapes survive `viewer.entities.removeAll()` because they are in a separate datasource.
+
+Tool colours: polygon=`#a78bfa`, marker=`#fb923c`, measure=`#34d399`, circle=`#f472b6`.
+
+Interaction: LEFT_CLICK adds vertices; RIGHT_CLICK closes polygon; single LEFT_CLICK completes marker/measure/circle second point. The existing globe click-to-analyze handler is gated on `drawingTool === "none"` so drawing mode suppresses location lookup.
+
+`DrawnShape` type is in `src/types/index.ts`. `DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle"`.
 
 ---
 
@@ -252,6 +269,13 @@ These are decisions that have been tested and should not be undone:
 4. Wire into `src/app/api/geodata/route.ts`
 5. Add the `DataSourceMeta` key to `GeodataResult.sources` in `src/types/index.ts`
 
+### Adding a new drawing tool
+1. Add the new tool ID to the `DrawingTool` union in `src/types/index.ts`
+2. Add a colour entry to `TOOL_COLORS` in `src/hooks/useGlobeDrawing.ts`
+3. Add an interaction block inside `useGlobeDrawing` (click handlers, preview entity via `CallbackProperty`)
+4. Add a render block inside `useGlobeDrawnShapes` to rebuild the persisted entity
+5. Add a button entry to the `TOOLS` array in `src/components/Globe/DrawingToolbar.tsx`
+
 ---
 
 ## Environment Variables
@@ -294,6 +318,9 @@ Vercel preview deploys automatically on every push to `main`.
 - Do not add boilerplate "GeoSight doesn't fabricate results" copy to views that have live data — put it in empty states only
 - Do not make static label spans look interactive — add `cursor-default pointer-events-none select-none`
 - Do not set `variant="outline"` on `<Button>` — it is not in the variant list; use `"secondary"`
+- Do not add drawing entities to `viewer.entities` — they will be wiped by `viewer.entities.removeAll()` on every state update. Always use a named `CustomDataSource`
+- Do not use Resium JSX components (`<Viewer>`, `<Entity>`, etc.) — the codebase uses the direct Cesium imperative API via `viewerRef`
+- Do not re-add boilerplate copy to card headers — if a description paragraph was removed, it was removed intentionally (see UX conventions)
 
 ---
 
