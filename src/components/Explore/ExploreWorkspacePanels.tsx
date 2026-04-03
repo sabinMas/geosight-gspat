@@ -10,7 +10,6 @@ import { BroadbandCard } from "@/components/Explore/BroadbandCard";
 import { ClimateHistoryCard } from "@/components/Explore/ClimateHistoryCard";
 import { ContaminationRiskCard } from "@/components/Explore/ContaminationRiskCard";
 import { CoolingWaterCard } from "@/components/Explore/CoolingWaterCard";
-import { DemographicsCard } from "@/components/Explore/DemographicsCard";
 import { FloodRiskCard } from "@/components/Explore/FloodRiskCard";
 import { GroundwaterCard } from "@/components/Explore/GroundwaterCard";
 import { HazardCard } from "@/components/Explore/HazardCard";

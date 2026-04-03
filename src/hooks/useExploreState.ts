@@ -31,6 +31,7 @@ export interface ExploreState {
   activeDemo: DemoOverlay | null;
   coolingDemo: DemoOverlay | null;
   overlayDemo: DemoOverlay | null;
+  dismissOverlayDemo: () => void;
   activeProfile: MissionProfile;
   setActiveProfile: Dispatch<SetStateAction<MissionProfile>>;
   initError: string | null;
@@ -211,6 +212,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     activeDemo,
     coolingDemo,
     overlayDemo,
+    dismissOverlayDemo: () => setOverlayDismissed(true),
     activeProfile,
     setActiveProfile,
     initError,

@@ -167,7 +167,6 @@ export function LandingPage() {
       geodataLoaded: false,
       geodataLoading: false,
       reportOpen: false,
-      demoOpen: false,
     });
   }, [selectedUseCase?.profileId, selectedUseCase, setUiContext]);
 

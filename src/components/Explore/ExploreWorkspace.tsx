@@ -393,7 +393,7 @@ export function ExploreWorkspace() {
 
           <div className="space-y-4">
             <SearchBar
-              activeLocationName={state.selectedLocationName}
+              syncValue={state.selectedLocationName}
               onLocate={(result) => {
                 state.setInitError(null);
                 state.selectPoint(result.coordinates, result.name);

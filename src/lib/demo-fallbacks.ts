@@ -10,7 +10,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-water",
         label: "Cooling water context",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Columbia River infrastructure story",
         confidence:
@@ -21,7 +21,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-power",
         label: "Power and access",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Columbia River infrastructure story",
         confidence:
@@ -31,7 +31,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-trust",
         label: "Trust framing",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Columbia River infrastructure story",
         confidence:
@@ -43,7 +43,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-tokyo-access",
         label: "Corridor access",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Tokyo commercial corridor story",
         confidence:
@@ -54,7 +54,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-tokyo-coverage",
         label: "Global coverage limits",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Tokyo commercial corridor story",
         confidence:
@@ -64,7 +64,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-tokyo-activity",
         label: "Mapped activity pattern",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Tokyo commercial corridor story",
         confidence:
@@ -76,7 +76,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-wa-neighborhood",
         label: "Neighborhood fit",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Washington residential story",
         confidence:
@@ -87,7 +87,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-wa-schools",
         label: "School context",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Washington residential story",
         confidence:
@@ -97,7 +97,7 @@ function getGroundingFallbackCatalog(locationName: string) {
         id: "demo-grounding-wa-risk",
         label: "Early risk framing",
         provider: "GeoSight demo fallback",
-        status: "demo",
+        status: "limited",
         freshness: "Demo-safe fallback",
         coverage: "Washington residential story",
         confidence:
