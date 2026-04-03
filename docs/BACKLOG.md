@@ -145,7 +145,8 @@ Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (
 
 ### P2: Advanced Spatial Tools
 
-- Polygon drawing and spatial editing
+- ~~Polygon drawing~~ — **shipped**: Draw area, Drop pin, Measure distance, Radius circle tools live on the globe (`DrawingToolbar`, `useGlobeDrawing`, `useGlobeDrawnShapes`)
+- Remaining drawing gaps: vertex drag-editing of existing shapes, named pin labels (editable), shape export (GeoJSON), snap-to-grid, undo/redo stack
 - LiDAR and National Map layers
 - Deeper subsurface and geology overlays
 - Stronger export and share workflows beyond the current GeoScribe panel

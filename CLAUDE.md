@@ -318,7 +318,8 @@ See `docs/BACKLOG.md` for full detail. Short version:
 - Richer multi-hazard resilience stack
 
 **P2 — spatial tools**
-- Polygon drawing
+- ~~Polygon drawing~~ — shipped: Draw area, Drop pin, Measure, Radius circle. See `src/hooks/useGlobeDrawing.ts` and `DrawingToolbar.tsx`.
+- Remaining: editable pin labels, GeoJSON export, undo/redo, snap
 - LiDAR / National Map layers
 - Export and share beyond GeoScribe panel
 
