@@ -209,7 +209,7 @@ export function ExploreWorkspace() {
 
   const visibleTextBlockCount =
     5 +
-    (state.activeDemo ? 1 : 0) +
+    (state.overlayDemo ? 1 : 0) +
     (data.activePrimaryCard ? 1 : 0) +
     (data.activeBoardCard ? 1 : 0) +
     data.suggestedCards.length;
@@ -227,6 +227,7 @@ export function ExploreWorkspace() {
       geodataLoading: data.loading,
       geodataLoaded: Boolean(data.geodata),
       reportOpen: data.reportOpen,
+      demoOpen: Boolean(state.overlayDemo),
     });
   }, [
     data.activeBoardCard,
@@ -239,6 +240,7 @@ export function ExploreWorkspace() {
     setUiContext,
     reportPrompt,
     state.activeProfile.id,
+    state.overlayDemo,
     state.locationReady,
     visibleControlCount,
     visibleTextBlockCount,
@@ -410,31 +412,53 @@ export function ExploreWorkspace() {
 
           <div className="space-y-4">
             <SearchBar
-              syncValue={state.selectedLocationName}
+              submitLabel={state.locationReady ? "Update analysis" : "Run analysis"}
+              syncValue={
+                state.locationReady
+                  ? state.selectedLocationDisplayName
+                  : state.init.locationQuery ?? ""
+              }
               onLocate={(result) => {
                 state.setInitError(null);
-                state.selectPoint(result.coordinates, result.name);
+                state.selectPoint(
+                  result.coordinates,
+                  result.fullName ?? result.name,
+                  result.shortName,
+                );
                 data.handleLocationSelection();
               }}
             />
 
-            {state.activeDemo && (
-              <details className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-                  Current story context
-                </summary>
-                <div className="mt-3 space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
-                  {state.activeDemo ? (
-                    <p>
-                      <span className="font-semibold text-[var(--foreground)]">
-                        {state.activeDemo.name}
-                      </span>{" "}
-                      {state.activeDemo.description}
-                    </p>
-                  ) : null}
+            {state.overlayDemo ? (
+              <section className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="eyebrow">Current story context</div>
+                    <div>
+                      <h2 className="text-base font-semibold text-[var(--foreground)]">
+                        {state.overlayDemo.name}
+                      </h2>
+                      <p className="mt-1 text-sm text-[var(--foreground-soft)]">
+                        {state.overlayDemo.tagline}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={state.dismissOverlayDemo}
+                    aria-label="Dismiss demo story context"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-              </details>
-            )}
+                <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                  {state.overlayDemo.description}
+                </p>
+              </section>
+            ) : null}
 
             <ClientErrorBoundary
               title="The globe view needs a quick reset"

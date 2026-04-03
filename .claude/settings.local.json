@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(cd:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit 2>&1 | head -120)",
+      "Bash(cmd.exe /c \"node_modules\\\\.bin\\\\tsc --noEmit 2>&1\" | head -100)",
+      "Bash(cmd.exe /c \"npm run typecheck 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat && npm run typecheck 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat && npm run typecheck > C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat\\\\typecheck-out.txt 2>&1 && echo SUCCESS || echo FAILED\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat'; npm run typecheck 2>&1 | Out-File 'C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat\\\\typecheck-out.txt' -Encoding utf8; if \\($LASTEXITCODE -eq 0\\) { 'SUCCESS' } else { 'FAILED with exit code ' + $LASTEXITCODE }\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat'; npm run typecheck 2>&1 | Out-File 'tc-out.txt' -Encoding utf8\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat'; node_modules\\\\.bin\\\\tsc --noEmit 2>&1 | Out-File 'tc-out.txt' -Encoding utf8\")",
+      "Bash(powershell.exe -Command \"Test-Path 'C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat\\\\node_modules'\")",
+      "Bash(powershell.exe -Command \"Set-Location 'C:\\\\Users\\\\mason\\\\Documents\\\\GitHub\\\\geosight-gspat'; node_modules/.bin/next lint --max-warnings=0 2>&1 | Out-File 'lint-out.txt' -Encoding utf8\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)",
+      "Bash(node_modules/.bin/next build:*)",
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git rm:*)",
+      "Bash(git show:*)",
+      "Bash(GIT_EDITOR=\"true\" git rebase --continue 2>&1)"
+    ]
+  }
+}

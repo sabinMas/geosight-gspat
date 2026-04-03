@@ -1,4 +1,5 @@
 import {
+  AppMode,
   CardAudience,
   CardComplexity,
   WorkspaceCardDefinition,
@@ -614,6 +615,8 @@ function getAudience(cardId: WorkspaceCardId): CardAudience {
     "soil-profile",
     "seismic-design",
     "contamination-risk",
+    "weather-forecast",
+    "demographics-context",
   ]);
   if (proOnly.has(cardId)) return "pro";
   if (cardId === "outdoor-fit" || cardId === "trip-summary") return "public";
@@ -790,17 +793,44 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
   WORKSPACE_CARD_REGISTRY.map((card) => [card.id, card]),
 ) as Record<WorkspaceCardId, WorkspaceCardDefinition>;
 
-const PROFILE_VISIBLE_CARD_DEFAULTS: Record<string, WorkspaceCardId[]> = {
-  "data-center": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
-  hiking: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
-  "home-buying": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
-  "site-development": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
-  commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+const VISIBLE_CARDS_BY_PROFILE: Record<AppMode, Record<string, WorkspaceCardId[]>> = {
+  explorer: {
+    "data-center": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+    hiking: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+    "home-buying": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+    "site-development": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+    commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+  },
+  pro: {
+    "data-center": ["active-location", "chat", "results", "weather-forecast"],
+    hiking: ["active-location", "chat", "results", "weather-forecast"],
+    "home-buying": [
+      "active-location",
+      "chat",
+      "results",
+      "score",
+      "school-context",
+      "broadband-context",
+      "flood-risk",
+      "air-quality",
+      "weather-forecast",
+      "demographics-context",
+    ],
+    "site-development": [
+      "active-location",
+      "chat",
+      "results",
+      "score",
+      "weather-forecast",
+      "demographics-context",
+    ],
+    commercial: ["active-location", "chat", "results", "demographics-context"],
+  },
 };
 
-export function getWorkspaceCardDefaults(profileId: string) {
+export function getWorkspaceCardDefaults(profileId: string, mode: AppMode) {
   const visibleSet = new Set(
-    PROFILE_VISIBLE_CARD_DEFAULTS[profileId] ?? PROFILE_VISIBLE_CARD_DEFAULTS.commercial,
+    VISIBLE_CARDS_BY_PROFILE[mode][profileId] ?? VISIBLE_CARDS_BY_PROFILE[mode].commercial,
   );
 
   return WORKSPACE_CARD_REGISTRY.reduce<Record<WorkspaceCardId, boolean>>((acc, card) => {
@@ -817,9 +847,10 @@ export function getWorkspaceCardsForProfile(profileId: string) {
 
 export function mergeWorkspacePreferences(
   profileId: string,
+  mode: AppMode,
   preferences: Partial<Record<WorkspaceCardId, boolean>> = {},
 ) {
-  const defaults = getWorkspaceCardDefaults(profileId);
+  const defaults = getWorkspaceCardDefaults(profileId, mode);
 
   return Object.keys(defaults).reduce<Record<WorkspaceCardId, boolean>>((acc, key) => {
     const cardId = key as WorkspaceCardId;

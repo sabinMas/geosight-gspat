@@ -94,6 +94,8 @@ export function formatSourceStatusLabel(status: DataSourceStatus) {
       return "Derived";
     case "limited":
       return "Limited";
+    case "demo":
+      return "Demo";
     case "unavailable":
       return "Unavailable";
     default:
@@ -109,6 +111,8 @@ export function getSourceStatusTone(status: DataSourceStatus) {
       return "border-cyan-300/20 bg-cyan-400/8 text-cyan-50";
     case "limited":
       return "border-amber-300/20 bg-amber-400/10 text-amber-50";
+    case "demo":
+      return "border-sky-300/20 bg-sky-400/10 text-sky-50";
     case "unavailable":
       return "border-rose-300/20 bg-rose-400/10 text-rose-50";
     default:

@@ -17,6 +17,7 @@ export type GeoSightUiContext = {
   geodataLoading?: boolean;
   geodataLoaded?: boolean;
   reportOpen?: boolean;
+  demoOpen?: boolean;
 };
 
 export type AgentConfig = {
