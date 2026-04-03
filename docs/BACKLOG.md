@@ -24,7 +24,7 @@ This backlog was reconciled against:
 - `src/lib/demos/registry.ts`
 - `src/lib/agents/agent-config.ts`
 
-Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (3 passes), drive mode camera, and lens overflow fixes.
+Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (3 passes), drive mode camera, lens overflow, banner deduplication, and inline trust provenance.
 
 ## Shipped Foundation
 
@@ -115,13 +115,17 @@ Last updated: 2026-04-03 — post Userbrain rounds 1 & 2, minimalist UX audits (
 
 - Drive mode moves across the Cesium terrain visually, but the vehicle does not yet snap to the actual terrain elevation — it moves at a fixed altitude reference.
 
+### AnalysisOverviewBanner grid vs ActiveLocationCard grid
+
+- **Shipped partial fix**: `AnalysisOverviewBanner` now accepts a `compact` prop that hides the 3-col signal grid. It is passed `compact={Boolean(data.activePrimaryCard)}` in ExploreWorkspace. Remaining gap: when no primary card is open, the user could still open `active-location` and then close it, leaving the grid visible in both places momentarily. Full resolution would be to make the banner always compact and promote the signal grid exclusively to ActiveLocationCard.
+
 ## Next Highest-Value Milestones
 
 ### P0: Trust + Wow
 
 - Richer live hazard and resilience layers
-- Inline provenance in headline outputs
-- Standardized `direct live` / `derived live` / `proxy heuristic` language across score, cards, chat, and reports
+- ~~Inline provenance in headline outputs~~ — **shipped**: provider name now inline in TrendSignalCard and LocationSignalCard; badge colors use design tokens
+- Standardized `direct live` / `derived live` / `proxy heuristic` language across score, cards, chat, and reports (partial — status labels and colors are now token-aligned; proxy heuristic as a distinct type is not yet surfaced)
 
 ### P1: Card Platform
 

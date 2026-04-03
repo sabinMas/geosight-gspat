@@ -302,8 +302,8 @@ Vercel preview deploys automatically on every push to `main`.
 See `docs/BACKLOG.md` for full detail. Short version:
 
 **P0 — trust and data quality**
-- Inline provenance in every headline output (not just dedicated trust panels)
-- Standardise `direct live` / `derived live` / `proxy heuristic` labeling throughout
+- ~~Inline provenance~~ — shipped: `source.provider` now inline in `TrendSignalCard` and `LocationSignalCard`; badge colors token-aligned
+- Standardise `direct live` / `derived live` / `proxy heuristic` labeling throughout (partial — see BACKLOG.md)
 
 **P1 — card platform**
 - Saved named dashboard layouts
