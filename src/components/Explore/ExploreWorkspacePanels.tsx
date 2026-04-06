@@ -16,6 +16,12 @@ import { CoolingWaterCard } from "@/components/Explore/CoolingWaterCard";
 import { FloodRiskCard } from "@/components/Explore/FloodRiskCard";
 import { GroundwaterCard } from "@/components/Explore/GroundwaterCard";
 import { HazardCard } from "@/components/Explore/HazardCard";
+import { HousingMarketCard } from "@/components/Explore/HousingMarketCard";
+import { InfrastructureAccessCard } from "@/components/Explore/InfrastructureAccessCard";
+import { LocalAccessCard } from "@/components/Explore/LocalAccessCard";
+import { SiteReadinessCard } from "@/components/Explore/SiteReadinessCard";
+import { MultiHazardResilienceCard } from "@/components/Explore/MultiHazardResilienceCard";
+import { HazardDetailsCard } from "@/components/Explore/HazardDetailsCard";
 import { OutdoorFitCard } from "@/components/Explore/OutdoorFitCard";
 import { SchoolContextCard } from "@/components/Explore/SchoolContextCard";
 import { SeismicDesignCard } from "@/components/Explore/SeismicDesignCard";
@@ -77,11 +83,11 @@ function WorkspaceCardPlaceholder({
           compact
         />
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+          <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             What this view answers
           </div>
           <p className="mt-2 text-sm leading-6 text-[var(--foreground)]">{card.questionAnswered}</p>
-          <div className="mt-4 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+          <div className="mt-4 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             Next best moves
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -127,8 +133,13 @@ function getDataDependencyPlaceholder(
     "demographics-context",
     "outdoor-fit",
     "trip-summary",
+    "local-access",
     "earthquake-history",
     "fire-history",
+    "multi-hazard-resilience",
+    "site-readiness",
+    "infrastructure-access",
+    "hazard-details",
   ]);
 
   if (scoreCards.has(cardId) && !data.siteScore) {
@@ -184,9 +195,6 @@ export function ExplorePrimaryPanel({
         showSourceDetailsCta={data.showSourcePrompt}
         showCompareCta={data.showComparePrompt}
         onOpenCompare={() => onOpenCard("compare")}
-        housingMarket={data.housingMarket}
-        housingMarketLoading={data.housingMarketLoading}
-        housingMarketError={data.housingMarketError}
         analysisCapabilities={data.analysisCapabilities}
         capabilityAnalysisLoading={data.capabilityAnalysisLoading}
         capabilityAnalysisError={data.capabilityAnalysisError}
@@ -243,6 +251,17 @@ export function ExploreWorkspacePanel({
   data,
   onOpenCard,
 }: SharedPanelProps) {
+  const housingMarketCards = new Set<WorkspaceCardId>(["housing-market"]);
+
+  if (housingMarketCards.has(cardId) && !data.housingMarket && !data.housingMarketLoading) {
+    return (
+      <WorkspaceCardPlaceholder
+        cardId={cardId}
+        detail="Housing market data is available for US metro areas. Select a US location to see residential market context."
+      />
+    );
+  }
+
   const dataDependencyPlaceholder = getDataDependencyPlaceholder(cardId, state, data);
   if (dataDependencyPlaceholder) {
     return dataDependencyPlaceholder;
@@ -367,6 +386,25 @@ export function ExploreWorkspacePanel({
           lat={state.selectedPoint.lat}
           lng={state.selectedPoint.lng}
           appMode={state.appMode}
+        />
+      );
+    case "local-access":
+      return <LocalAccessCard geodata={data.geodata} />;
+    case "site-readiness":
+      return <SiteReadinessCard geodata={data.geodata} />;
+    case "infrastructure-access":
+      return <InfrastructureAccessCard geodata={data.geodata} />;
+    case "multi-hazard-resilience":
+      return <MultiHazardResilienceCard geodata={data.geodata} />;
+    case "hazard-details":
+      return <HazardDetailsCard geodata={data.geodata} />;
+    case "housing-market":
+      return (
+        <HousingMarketCard
+          locationName={state.selectedLocationName}
+          housingMarket={data.housingMarket}
+          loading={data.housingMarketLoading}
+          error={data.housingMarketError}
         />
       );
     default:

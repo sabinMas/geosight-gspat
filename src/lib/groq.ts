@@ -51,16 +51,21 @@ export async function runGroqAnalysis(
   const messages = await buildAnalysisProviderMessages(payload, profile);
   const groq = new Groq({ apiKey });
 
+  const signal = AbortSignal.timeout(25_000);
+
   let completion;
   try {
-    completion = await groq.chat.completions.create({
-      model,
-      temperature: 0.2,
-      messages: messages.map((message) => ({
-        role: message.role,
-        content: message.content,
-      })),
-    });
+    completion = await groq.chat.completions.create(
+      {
+        model,
+        temperature: 0.2,
+        messages: messages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      },
+      { signal },
+    );
   } catch (error) {
     throw normalizeProviderError(error, "groq");
   }
@@ -74,4 +79,40 @@ export async function runGroqAnalysis(
     response,
     model: completion.model ?? model,
   };
+}
+
+export async function runGroqAnalysisStream(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+): Promise<ReadableStream<Uint8Array>> {
+  const apiKey = pickGroqKey();
+  const model = resolveModel(profile.id);
+  const messages = await buildAnalysisProviderMessages(payload, profile);
+  const groq = new Groq({ apiKey });
+  const signal = AbortSignal.timeout(25_000);
+
+  const completion = await groq.chat.completions.create(
+    {
+      model,
+      temperature: 0.2,
+      stream: true,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    },
+    { signal },
+  );
+
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for await (const chunk of completion) {
+          const delta = chunk.choices[0]?.delta?.content ?? "";
+          if (delta) controller.enqueue(encoder.encode(delta));
+        }
+        controller.close();
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+  });
 }

@@ -100,7 +100,7 @@ export function GlobeViewSelector({
         >
           <Satellite className="mr-2 h-4 w-4" />
           Map Style
-          <kbd className="ml-2 rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+          <kbd className="ml-2 rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs text-[var(--muted-foreground)]">
             M
           </kbd>
         </Button>
@@ -119,7 +119,7 @@ export function GlobeViewSelector({
               </div>
               <div className="flex items-center gap-2">
                 <div
-                  className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]"
+                  className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]"
                   title="Surface only disables subsurface datasets and terrain exaggeration for a cleaner globe view."
                 >
                   {subsurfaceRenderMode.replace("_", " ")}

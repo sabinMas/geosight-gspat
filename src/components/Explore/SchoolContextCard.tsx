@@ -28,7 +28,7 @@ function SchoolRow({ school }: { school: SchoolContextResult["schools"][number] 
           </div>
         </div>
         {school.officialMetrics ? (
-          <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-[var(--foreground)]">
+          <div className="rounded-full border border-[color:var(--success-border)] bg-[var(--success-soft)] px-2 py-1 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
             WA official
           </div>
         ) : null}
@@ -90,11 +90,6 @@ export function SchoolContextCard({
         <CardTitle>School context</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Public K-12 school context for the active area. GeoSight shows a derived school-context
-          score and surfaces Washington&apos;s official accountability metrics where available.
-        </p>
-
         {loading ? (
           <StatePanel
             tone="loading"

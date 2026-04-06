@@ -4,6 +4,9 @@ import { clamp } from "@/lib/utils";
 import {
   GdacsAlertSummary,
   GeodataResult,
+  HazardDomainScore,
+  HazardResilienceSummary,
+  HazardRiskTier,
   LandCoverBucket,
   MissionProfile,
   ScoringFactor,
@@ -954,4 +957,123 @@ export function calculateProfileScore(
 
 export function calculateSiteScore(geodata: GeodataResult): SiteScore {
   return calculateProfileScore(geodata, DEFAULT_PROFILE);
+}
+
+function scoreFireRisk(geodata: GeodataResult): number {
+  const count = geodata.hazards.activeFireCount7d;
+  const nearestKm = geodata.hazards.nearestFireKm;
+  if (count === null) return 70;
+  if (count === 0) return 95;
+  let score = count >= 20 ? 20 : count >= 10 ? 35 : count >= 5 ? 50 : 65;
+  if (nearestKm !== null && nearestKm < 5) score = Math.min(score, 25);
+  return score;
+}
+
+function getHazardTier(score: number): HazardRiskTier {
+  if (score >= 75) return "low";
+  if (score >= 55) return "moderate";
+  if (score >= 35) return "elevated";
+  return "critical";
+}
+
+export function buildHazardResilienceSummary(geodata: GeodataResult): HazardResilienceSummary {
+  const domains: HazardDomainScore[] = [
+    {
+      domain: "seismic",
+      label: "Seismic",
+      score: scoreSeismicRisk(geodata),
+      tier: getHazardTier(scoreSeismicRisk(geodata)),
+      detail: geodata.seismicDesign?.pga != null
+        ? `USGS PGA ${geodata.seismicDesign.pga.toFixed(2)}g`
+        : "No seismic design data — US-only coverage",
+      available: geodata.seismicDesign?.pga != null,
+      coverage: "us_only",
+    },
+    {
+      domain: "flood",
+      label: "Flood",
+      score: scoreFloodRisk(geodata),
+      tier: getHazardTier(scoreFloodRisk(geodata)),
+      detail: geodata.floodZone?.floodZone
+        ? `FEMA zone ${geodata.floodZone.floodZone}${geodata.floodZone.label ? ` — ${geodata.floodZone.label}` : ""}`
+        : "No FEMA flood zone data — US-only coverage",
+      available: geodata.sources.floodZone.status !== "unavailable",
+      coverage: "us_only",
+    },
+    {
+      domain: "fire",
+      label: "Fire",
+      score: scoreFireRisk(geodata),
+      tier: getHazardTier(scoreFireRisk(geodata)),
+      detail: geodata.hazards.activeFireCount7d === null
+        ? "NASA FIRMS fire detections unavailable"
+        : geodata.hazards.activeFireCount7d === 0
+          ? "No active fire detections within the analysis region (7d)"
+          : `${geodata.hazards.activeFireCount7d} VIIRS detections in the last 7 days${geodata.hazards.nearestFireKm !== null ? `; nearest ${geodata.hazards.nearestFireKm.toFixed(1)} km` : ""}`,
+      available: geodata.hazards.activeFireCount7d !== null,
+      coverage: "global",
+    },
+    {
+      domain: "alerts",
+      label: "Disaster alerts",
+      score: scoreHazardAlerts(geodata.hazardAlerts),
+      tier: getHazardTier(scoreHazardAlerts(geodata.hazardAlerts)),
+      detail: geodata.hazardAlerts === null
+        ? "GDACS global disaster alert feed unavailable"
+        : geodata.hazardAlerts.totalCurrentAlerts === 0
+          ? "No active GDACS alerts in the current feed"
+          : `${geodata.hazardAlerts.totalCurrentAlerts} active alerts — ${geodata.hazardAlerts.elevatedCurrentAlerts} elevated (Orange/Red)`,
+      available: geodata.hazardAlerts !== null,
+      coverage: "global",
+    },
+    {
+      domain: "air",
+      label: "Air quality",
+      score: scoreAirQualityContext(geodata),
+      tier: getHazardTier(scoreAirQualityContext(geodata)),
+      detail: geodata.airQuality
+        ? `${geodata.airQuality.aqiCategory} — PM2.5 ${geodata.airQuality.pm25 ?? "--"} μg/m³`
+        : geodata.climate.airQualityIndex !== null
+          ? `Open-Meteo AQI ${geodata.climate.airQualityIndex}`
+          : "Air quality data unavailable",
+      available: geodata.airQuality !== null || geodata.climate.airQualityIndex !== null,
+      coverage: "global",
+    },
+    {
+      domain: "contamination",
+      label: "Contamination",
+      score: scoreContaminationRisk(geodata),
+      tier: getHazardTier(scoreContaminationRisk(geodata)),
+      detail: geodata.epaHazards === null
+        ? "EPA contamination screening unavailable — US-only coverage"
+        : `${geodata.epaHazards.superfundCount} Superfund / ${geodata.epaHazards.triCount} TRI sites${geodata.epaHazards.nearestSuperfundDistanceKm !== null ? `; nearest ${geodata.epaHazards.nearestSuperfundDistanceKm.toFixed(1)} km` : ""}`,
+      available: geodata.sources.epaHazards.status !== "unavailable",
+      coverage: "us_only",
+    },
+  ];
+
+  const weights: Record<string, number> = {
+    seismic: 0.20,
+    flood: 0.20,
+    fire: 0.20,
+    alerts: 0.15,
+    air: 0.15,
+    contamination: 0.10,
+  };
+
+  const compoundScore = Math.round(
+    domains.reduce((acc, d) => acc + d.score * (weights[d.domain] ?? 0), 0),
+  );
+
+  const worstDomain = domains.reduce<HazardDomainScore | null>(
+    (worst, d) => (worst === null || d.score < worst.score ? d : worst),
+    null,
+  );
+
+  return {
+    compoundScore,
+    tier: getHazardTier(compoundScore),
+    domains,
+    worstDomain,
+  };
 }

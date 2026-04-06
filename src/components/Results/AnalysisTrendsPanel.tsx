@@ -4,12 +4,24 @@ import { ReactNode, useMemo, useState } from "react";
 import { SourceInfoButton } from "@/components/Source/SourceInfoButton";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { DataTrend } from "@/types";
+import { DataTrend, ScoreEvidenceKind } from "@/types";
 
 interface AnalysisTrendsPanelProps {
   trends: DataTrend[];
   headerContent?: ReactNode;
 }
+
+const EVIDENCE_LABEL: Record<ScoreEvidenceKind, string> = {
+  direct_live: "direct",
+  derived_live: "derived",
+  proxy: "proxy",
+};
+
+const EVIDENCE_CLS: Record<ScoreEvidenceKind, string> = {
+  direct_live: "text-[var(--evidence-direct-fg)]",
+  derived_live: "text-[var(--evidence-derived-fg)]",
+  proxy: "text-[var(--evidence-proxy-fg)]",
+};
 
 function isUnavailableTrend(trend: DataTrend) {
   return (
@@ -32,7 +44,7 @@ function TrendSignalCard({
       className={`rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${muted ? "opacity-80" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+        <div className="min-w-0 text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           {trend.label}
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -49,8 +61,13 @@ function TrendSignalCard({
       >
         {trend.detail}
       </div>
-      <div className="mt-2 text-[11px] text-[var(--muted-foreground)] opacity-70">
-        {trend.source.provider}
+      <div className="mt-2 flex items-center gap-2 text-xs">
+        <span className="text-[var(--muted-foreground)] opacity-70">{trend.source.provider}</span>
+        {trend.evidenceKind ? (
+          <span className={`font-medium ${EVIDENCE_CLS[trend.evidenceKind]}`}>
+            {EVIDENCE_LABEL[trend.evidenceKind]}
+          </span>
+        ) : null}
       </div>
     </div>
   );

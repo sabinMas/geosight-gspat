@@ -24,9 +24,9 @@ export function CompareTable({
   const factorColumns = sites[0]?.score.factors.slice(0, 3) ?? [];
   const exportFactorColumns = sites[0]?.score.factors ?? [];
   const evidenceTone: Record<string, string> = {
-    direct_live: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]",
-    derived_live: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
-    proxy: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]",
+    direct_live: "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]",
+    derived_live: "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--foreground)]",
+    proxy: "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--foreground)]",
   };
 
   const handleExportCsv = () => {
@@ -126,13 +126,13 @@ export function CompareTable({
       <CardContent className="space-y-4">
         {factorColumns.length ? (
           <div className="flex flex-wrap gap-2">
-            <span className={`rounded-full border px-3 py-1 text-[11px] ${evidenceTone.direct_live}`}>
+            <span className={`rounded-full border px-3 py-1 text-xs ${evidenceTone.direct_live}`}>
               Direct live
             </span>
-            <span className={`rounded-full border px-3 py-1 text-[11px] ${evidenceTone.derived_live}`}>
+            <span className={`rounded-full border px-3 py-1 text-xs ${evidenceTone.derived_live}`}>
               Derived live
             </span>
-            <span className={`rounded-full border px-3 py-1 text-[11px] ${evidenceTone.proxy}`}>
+            <span className={`rounded-full border px-3 py-1 text-xs ${evidenceTone.proxy}`}>
               Proxy heuristic
             </span>
           </div>
@@ -157,7 +157,7 @@ export function CompareTable({
                         <div className="line-clamp-2 min-w-0">{factor.label}</div>
                         {factor.evidenceLabel ? (
                           <span
-                            className={`inline-flex whitespace-normal rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                            className={`inline-flex whitespace-normal rounded-full border px-2 py-1 text-xs uppercase tracking-[0.16em] ${
                               evidenceTone[factor.evidenceKind ?? "derived_live"]
                             }`}
                           >

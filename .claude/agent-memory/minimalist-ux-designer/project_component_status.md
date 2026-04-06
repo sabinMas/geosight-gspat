@@ -22,17 +22,22 @@ type: project
 - DONE: Description paragraph ("Ask what matters here...") removed from CardHeader
 - DONE: overview.statusDetail paragraph removed — summary is sufficient
 - DONE: border-neutral-200 dark:border-neutral-700 token bypass fixed to border-[color:var(--border-soft)]
-- P2: coverageLabel chip and SourceStatusBadge list both appear twice (overview badges and provenance section)
-- P2: Success-green "Strongest signals" box renders with placeholder copy during loading state
+- DONE: Evidence count pills (direct / derived / proxy) added below tone badges — uses raw Tailwind colors (emerald-300/30, cyan-300/30, amber-300/30) bypassing the token system
+- P1: Evidence count pills use raw Tailwind color classes, not design tokens — violates CLAUDE.md "Never use raw Tailwind color classes" rule
+- P1: The "In-context provenance" section renders coverageLabel chip AND SourceStatusBadge list a second time — both already appear in the header badges row above the summary
+- P2: Success-green "Strongest signals" box renders with placeholder copy during loading state — should use neutral surface until data confirmed
+- P2: Nearest water body rendered as bold sentence ("Nearest feature: ... at ...") sitting between the evidence pills and the summary paragraph — interrupts the reading flow; consider surfacing as a signal card instead
 
 ## AnalysisOverviewBanner.tsx
 
 - DONE: CardTitle changed from sentence to {locationName}
 - DONE: overview.statusDetail paragraph removed
 - DONE: overview.nextSteps removed from expanded trust section — trustNotes only
-- P1: Structurally duplicates ActiveLocationCard's three-column grid — should not both be visible at once
-- P2: ⚠ Unicode character in data gaps banner — replace with Lucide AlertTriangle + aria-label
-- P2: Success-green box renders with placeholder copy during loading state
+- DONE: Inline amber proxy warning added (proxyWeight >= 0.3 triggers warning paragraph)
+- P1: Structurally duplicates ActiveLocationCard's three-column grid — should not both be visible at once (compact prop is a partial fix; full fix is always-compact banner + grid lives only in ActiveLocationCard)
+- P1: Proxy warning uses raw ⚠ Unicode + inline `<p>` — should use Lucide AlertTriangle icon + proper warning surface (warning-soft bg + warning-border border, not just colored text)
+- P2: Success-green box renders with placeholder copy during loading state — neutral surface until data confirmed
+- P2: Two action buttons ("Why this score" + "Check trust signals") compete with identical weight — one should be primary, one ghost
 
 ## LandingPage.tsx
 
@@ -75,6 +80,9 @@ type: project
 - DONE: Panel description (summaryText) and CardTitle removed
 - DONE: StatePanel in unavailable section replaced with minimal inline `<p>` text
 - DONE: StatePanel import removed (no longer used in file)
+- DONE: Colored evidence label added next to provider name (direct / derived / proxy) — uses raw Tailwind color classes (emerald-600, cyan-600, amber-600) not design tokens
+- P1: EVIDENCE_CLS uses raw Tailwind color classes — violates token system; should use semantic token variables or be moved to globals.css
+- P2: Evidence label opacity is set to 70% via parent wrapper then overridden with opacity-100 on the label span — fragile; restructure the footer row to not apply blanket opacity
 
 ## ChatPanel.tsx
 

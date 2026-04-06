@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://geosight-gspat.vercel.app/sitemap.xml

@@ -133,7 +133,7 @@ export function ProfileSelector({
                     className="h-4 w-4 shrink-0"
                     style={{ color: isActive ? "var(--accent)" : "var(--muted-foreground)" }}
                   />
-                  <div className="mt-3 line-clamp-2 text-[11px] font-semibold leading-tight text-[var(--foreground)]">
+                  <div className="mt-3 line-clamp-2 text-xs font-semibold leading-tight text-[var(--foreground)]">
                     {profile.name}
                   </div>
                 </button>
@@ -180,7 +180,7 @@ export function ProfileSelector({
               style={{ color: isActive ? profile.accentColor : "#cbd5e1" }}
             />
             <div className="mt-3 text-sm font-semibold text-[var(--foreground)]">{profile.name}</div>
-            <div className="mt-1 text-[11px] leading-4 text-[var(--muted-foreground)]">{profile.tagline}</div>
+            <div className="mt-1 text-xs leading-4 text-[var(--muted-foreground)]">{profile.tagline}</div>
           </button>
         );
       })}

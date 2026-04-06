@@ -17,6 +17,7 @@ import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
+import { AuthButton } from "@/components/Shell/AuthButton";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
@@ -192,12 +193,46 @@ export function ExploreWorkspace() {
   };
 
   const handleShapeComplete = useCallback((shape: DrawnShape) => {
-    state.setDrawnShapes((prev) => [...prev, shape]);
+    state.addDrawnShape(shape);
     // Single-shot tools auto-reset; marker stays active for multi-pin workflows
     if (shape.type !== "marker") {
       state.setDrawingTool("none");
     }
   }, [state]);
+
+  const handleExportGeoJSON = useCallback(() => {
+    const features = state.drawnShapes.map((shape) => {
+      const props: Record<string, unknown> = { label: shape.label ?? shape.type };
+      if (shape.measurementLabel) props.measurement = shape.measurementLabel;
+
+      if (shape.type === "marker") {
+        const c = shape.coordinates[0];
+        return { type: "Feature", properties: props, geometry: { type: "Point", coordinates: [c.lng, c.lat] } };
+      }
+      if (shape.type === "measure") {
+        return { type: "Feature", properties: props, geometry: { type: "LineString", coordinates: shape.coordinates.map((c) => [c.lng, c.lat]) } };
+      }
+      if (shape.type === "circle") {
+        const center = shape.coordinates[0];
+        props.radiusKm = shape.coordinates.length > 1
+          ? Math.sqrt(Math.pow(shape.coordinates[1].lat - center.lat, 2) + Math.pow(shape.coordinates[1].lng - center.lng, 2)) * 111
+          : 0;
+        return { type: "Feature", properties: props, geometry: { type: "Point", coordinates: [center.lng, center.lat] } };
+      }
+      // polygon — close ring
+      const ring = [...shape.coordinates, shape.coordinates[0]].map((c) => [c.lng, c.lat]);
+      return { type: "Feature", properties: props, geometry: { type: "Polygon", coordinates: [ring] } };
+    });
+
+    const geojson = { type: "FeatureCollection", features };
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/geo+json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "geosight-shapes.geojson";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state.drawnShapes]);
 
   const visibleUiCardIds = useMemo(
     () =>
@@ -286,13 +321,13 @@ export function ExploreWorkspace() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
                   {inExplorer ? "Explorer" : "Pro workspace"}
                 </span>
                 {inExplorer && state.activeLensId && (() => {
                   const lens = getExplorerLensById(state.activeLensId);
                   return lens ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-foreground)] cursor-default select-none">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-foreground)] cursor-default select-none">
                       {lens.label}
                       <button
                         type="button"
@@ -305,19 +340,26 @@ export function ExploreWorkspace() {
                     </span>
                   ) : null;
                 })()}
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
                   {data.shellMode}
                 </span>
               </div>
-              <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-[var(--foreground)] md:text-4xl">
-                {inExplorer
-                  ? "Pick a place and see what's there — in plain English"
-                  : "Start with one place, then reveal only the views you need"}
+              <h1 className="max-w-4xl text-2xl font-semibold tracking-tight text-[var(--foreground)] sm:text-3xl md:text-4xl">
+                <span className="sm:hidden">
+                  {inExplorer ? "Explore any place" : "Spatial workspace"}
+                </span>
+                <span className="hidden sm:inline">
+                  {inExplorer
+                    ? "Pick a place and see what's there — in plain English"
+                    : "Start with one place, then reveal only the views you need"}
+                </span>
               </h1>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <AuthButton />
               <ModeSwitcher mode={state.appMode} onSetMode={state.setAppMode} />
+              <div className="max-w-full overflow-x-auto">
               <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]">
                 <Button
                   type="button"
@@ -367,6 +409,7 @@ export function ExploreWorkspace() {
                 >
                   Compare
                 </Button>
+              </div>
               </div>
             </div>
           </div>
@@ -462,7 +505,7 @@ export function ExploreWorkspace() {
               title="The globe view needs a quick reset"
               message="GeoSight kept the rest of the workspace alive. Retry the globe, switch regions, or keep working from the cards while the globe re-initializes."
             >
-              <section className="relative flex-1 min-h-0 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] md:min-h-[680px] min-h-[640px] xl:min-h-[720px]">
+              <section className="relative flex-1 min-h-0 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] min-h-[320px] sm:min-h-[480px] md:min-h-[640px] xl:min-h-[720px]">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
                 <CesiumGlobe
                   selectedPoint={state.selectedPoint}
@@ -484,8 +527,9 @@ export function ExploreWorkspace() {
                   drawingTool={state.drawingTool}
                   drawnShapes={state.drawnShapes}
                   onShapeComplete={handleShapeComplete}
+                  onVertexDrag={state.updateDrawnShapeVertex}
                 />
-                <div className="absolute right-4 top-4 z-20 flex flex-col gap-2">
+                <div className="absolute right-4 top-4 z-20 hidden sm:flex flex-col gap-2">
                   <Button
                     type="button"
                     variant={state.globeRotateMode ? "default" : "secondary"}
@@ -538,6 +582,12 @@ export function ExploreWorkspace() {
                   onSelectTool={state.setDrawingTool}
                   drawnShapes={state.drawnShapes}
                   onClearAll={() => state.setDrawnShapes([])}
+                  canUndo={state.canUndo}
+                  canRedo={state.canRedo}
+                  onUndo={state.undoDrawing}
+                  onRedo={state.redoDrawing}
+                  onRenameShape={state.renameShape}
+                  onExportGeoJSON={handleExportGeoJSON}
                 />
               </section>
             </ClientErrorBoundary>
@@ -552,7 +602,6 @@ export function ExploreWorkspace() {
                 error={data.error}
                 onOpenFactorBreakdown={() => openCard("factor-breakdown")}
                 onOpenSources={() => openCard("source-awareness")}
-                compact={Boolean(data.activePrimaryCard)}
               />
             ) : null}
 
@@ -610,6 +659,7 @@ export function ExploreWorkspace() {
                   activeCardId={data.activeBoardCard?.id ?? null}
                   onSelectCard={data.setActiveCardId}
                   onOpenLibrary={data.openLibrary}
+                  onReorderCards={data.reorderCards}
                   savedBoards={data.savedBoards}
                   onSaveBoard={data.saveCurrentBoard}
                   onRestoreBoard={data.restoreBoard}

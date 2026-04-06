@@ -11,7 +11,7 @@ interface SourceStatusBadgeProps {
 export function SourceStatusBadge({ source }: SourceStatusBadgeProps) {
   return (
     <span
-      className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getSourceStatusTone(
+      className={`rounded-full border px-2 py-1 text-xs uppercase tracking-[0.18em] ${getSourceStatusTone(
         source.status,
       )}`}
     >

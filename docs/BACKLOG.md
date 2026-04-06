@@ -24,7 +24,7 @@ This backlog was reconciled against:
 - `src/lib/demos/registry.ts`
 - `src/lib/agents/agent-config.ts`
 
-Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, minimalist UX audits (3 passes), drive mode + camera angle, lens carousel overflow, AnalysisOverviewBanner compact mode, inline trust provenance + badge token alignment, and QGIS-style drawing tools (Draw area, Drop pin, Measure, Radius circle).
+Last updated: 2026-04-06 — GeoScribe streaming: `generateReport` now reads the agents route stream incrementally; panel renders markdown as it arrives with blinking cursor instead of blocking on the full response. Also shipped this session: Redis geodata caching (1h TTL, 3dp coordinate key); HTML5 drag-to-reorder card chips in board mode; inline evidence kind tags in strengths/watchouts; HazardDetailsCard (seismic ASCE 7-22, earthquake history, FEMA flood, FIRMS fire, GDACS alerts, AQI, EPA); design token sweep (all text-[10px]/[11px] → text-xs, all raw emerald/rose/neutral colors → CSS var tokens); drive mode hard-floor terrain collision clamp; HousingMarketCard workspace card; vertex drag-editing on drawn shapes.
 
 ## Shipped Foundation
 
@@ -56,7 +56,7 @@ Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, mini
 ### Agent and report layer
 
 - **User question**: Can GeoSight produce both conversational analysis and a structured written deliverable from the same live context?
-- **Current implementation**: GeoAnalyst powers mission-aware analysis; GeoScribe generates structured site assessment reports in-product.
+- **Current implementation**: GeoAnalyst powers mission-aware analysis; GeoScribe generates structured site assessment reports in-product. Both ChatPanel and GeoScribeReportPanel now stream — content renders as chunks arrive with a blinking accent cursor; no blocking wait for full response.
 
 ### Demo hardening
 
@@ -85,35 +85,44 @@ Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, mini
 - **User question**: Can the lens profile selector fit cleanly inside the sidebar card without overflowing?
 - **Current implementation**: Removed hardcoded `style={{ width: "271px" }}` from the carousel container in `ProfileSelector.tsx`. Replaced with `w-full`. Added `overflow-hidden` to the Lens card in `Sidebar.tsx`. The carousel now adapts to the ~200px content area inside the 280px sidebar.
 
-### UX audit pass 3 — visual hierarchy and icon consistency
-
-- **User question**: Are there any duplicate headings, jargon labels, or emoji icons breaking the visual system?
-- **Current implementation**: 8 targeted fixes across 7 files. Removed duplicate "Lens" h2 in Sidebar and duplicate "Guided demos" eyebrow on landing. Renamed eyebrows: "Discovery board" → "Nearby places", "Analysis board" → "Data signals". ChatPanel: location name promoted into CardTitle, "Active location:" prose removed, grounding toggle elevated to pill button. Board empty state collapsed to a single centered button. Emoji icons (🚗, ⊕) replaced with Lucide `Car`/`Globe`/`Plus`. ActiveLocationCard toggle copy shortened to "Show/Hide unavailable".
-
-### AnalysisOverviewBanner compact mode
+### AnalysisOverviewBanner deduplication
 
 - **User question**: Why does the user see the same strength/tradeoff grid twice when a detail card is open?
-- **Current implementation**: `AnalysisOverviewBanner` now accepts a `compact` prop. When `compact=true`, `CardContent` (the 3-col signal grid and data-gaps section) is suppressed. `ExploreWorkspace` passes `compact={Boolean(data.activePrimaryCard)}` so the grid only renders once when `ActiveLocationCard` or any other primary panel is visible below the banner.
+- **Current implementation**: `compact` prop removed entirely; dead code stripped; data gaps now surface as an inline info pill in the compact header. Signal grid lives only in `ActiveLocationCard`.
 
 ### Inline trust provenance + badge token alignment
 
 - **User question**: Can users tell who produced a signal and how trustworthy it is without opening a separate panel?
-- **Current implementation**: `source.provider` (e.g. "USGS", "Open-Meteo") now renders as dim `text-[11px]` at the bottom of every `TrendSignalCard` and `LocationSignalCard`. `getSourceStatusTone()` in `source-metadata.ts` now uses CSS design tokens (`--success-border/soft`, `--warning-border/soft/foreground`, `--danger-border/soft/foreground`) instead of raw Tailwind palette values. `limited` is now visually distinct from `unavailable` — warning-amber vs danger-red.
+- **Current implementation**: `source.provider` (e.g. "USGS", "Open-Meteo") renders inline in every `TrendSignalCard` and `LocationSignalCard`. `getSourceStatusTone()` uses CSS design tokens (`--success-border/soft`, `--warning-border/soft/foreground`, `--danger-border/soft/foreground`) instead of raw Tailwind palette values. `evidenceTag()` in `analysis-summary.ts` appends `· direct live / · derived live / · proxy heuristic` to each strength and watchout item. `limited` is visually distinct from `unavailable` — warning-amber vs danger-red.
 
 ### QGIS-style drawing tools
 
 - **User question**: Can users draw on the map, measure distances, and define custom areas — in a way that doesn't require GIS expertise?
-- **Current implementation**: Four tools accessible from `DrawingToolbar` above the globe: Draw area (polygon), Drop pin (marker), Measure distance, Radius circle. All built on raw Cesium imperative API. Two hooks: `useGlobeDrawing` handles active interaction (ScreenSpaceEventHandler + CallbackProperty live preview in `CustomDataSource("drawing-preview")`); `useGlobeDrawnShapes` rebuilds `CustomDataSource("drawing-shapes")` when `drawnShapes` changes. Measurement labels rendered as Cesium 3D labels with `disableDepthTestDistance: Infinity`. State: `drawingTool: DrawingTool` and `drawnShapes: DrawnShape[]` in `useExploreState`. Normal globe click-to-analyze is gated on `drawingTool === "none"`.
+- **Current implementation**: Four tools in `DrawingToolbar`: Draw area (polygon), Drop pin (marker), Measure distance, Radius circle. Inline editable pin labels. GeoJSON export. Undo/redo stack (`addDrawnShape` / `undoDrawing` / `redoDrawing` in `useExploreState`). Vertex drag-editing: white handle entities per vertex (polygon + measure), ScreenSpaceEventHandler drag, `updateDrawnShapeVertex` in `useExploreState`. Normal globe click-to-analyze gated on `drawingTool === "none"`.
+
+### Deployment hardening
+
+- **User question**: Is GeoSight production-ready for national traffic with proper error monitoring, metadata, and mobile support?
+- **Current implementation**: Dynamic OG image via `ImageResponse` edge function; Sentry error monitoring wired with `withSentryConfig`; `robots.txt` + dynamic `sitemap.ts`; Groq SDK calls capped at 25s with `AbortSignal.timeout`; mobile layout pass (globe 320px min, header collapses, mode buttons scroll, drive/3D controls hidden on xs); geocode route rate-limited.
+
+### Backend persistence + auth
+
+- **User question**: Can users save sites and have them sync across devices without requiring a backend database?
+- **Current implementation**: Optional Auth.js v5 OAuth (Google + GitHub) with JWT sessions (no DB). Upstash Redis stores `StoredSite[]` (geodata stripped) keyed by `gs:user:{email}:sites`. `useSavedSites` fetches cloud sites on sign-in (cloud wins) and fires-and-forgets `PUT /api/user-data` on every mutation. `AuthButton` in workspace header. Gracefully degrades to localStorage-only when not signed in or Upstash not configured. Redis also caches full geodata bundles for 1 hour (`gs:geodata:{lat}:{lng}`) — repeated hits return with `X-Cache: HIT` and skip all provider calls.
 
 ## Current Gaps
 
-### Inline provenance is not universal yet
+### ~~Inline provenance is not universal yet~~ — fully shipped
 
-- Source-awareness is strong at the signal and source-awareness-panel level. Headline analysis text in `AnalysisOverviewBanner` and AI/report outputs still do not consistently surface provider name, freshness, and confidence inline.
+- ~~Source-awareness signals~~ — shipped: provider name inline in TrendSignalCard and LocationSignalCard; badge colors token-aligned.
+- ~~Chat/report provenance~~ — shipped: all 17 `buildSupportedFacts` lines now carry `(provider, evidence kind)` tags; GeoScribe prompt updated to use `direct live / derived live / proxy heuristic` vocabulary.
+- ~~Strengths/watchouts provenance~~ — shipped: `evidenceTag()` appends `· direct live / · derived live / · proxy heuristic` to each item; `buildSummaryFromScore` tags top factors in prose.
+- GeoAnalyst free-form responses: system prompt already instructs explicit tier distinction; runtime enforcement is not feasible beyond prompt guidance.
 
 ### Hazard stack is still early
 
-- GeoSight has earthquakes, fire detections, FEMA flood zones, and weather risk summary, but not yet a mature multi-hazard resilience stack. No compound risk scoring across domains.
+- ~~No compound risk scoring~~ — shipped: `MultiHazardResilienceCard` with 6-domain compound score (`buildHazardResilienceSummary`).
+- ~~Research-grade parameters~~ — shipped: `HazardDetailsCard` with raw seismic ASCE 7-22 values, 30-day earthquake history, FEMA flood zone, NASA FIRMS fire counts, GDACS alert list, and air quality readings. Visible in pro data-center mode.
 
 ### Regional provider switching is scaffolded more than fully operational
 
@@ -121,7 +130,9 @@ Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, mini
 
 ### User-authored dashboard composition is still limited
 
-- Registry-driven cards and local persistence exist. No named saved workspaces, drag-and-drop layout editing, or multi-board composition flows yet.
+- ~~Named saved workspaces~~ — shipped: inline name input + restore/delete chip UI in `WorkspaceBoard.tsx`; layouts persist in localStorage.
+- ~~Drag-and-drop card reordering~~ — shipped: HTML5 drag API on board chip row, `GripVertical` handle, order written to `globalOrder` in localStorage.
+- Remaining gap: multi-board composition flows.
 
 ### Proxy-heavy factors still need stronger direct replacements
 
@@ -133,15 +144,16 @@ Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, mini
 
 ### Drive mode lacks terrain elevation snapping
 
-- Drive mode moves across the Cesium terrain visually but the vehicle does not snap to the actual terrain elevation — it moves at a fixed altitude reference. Cesium's `sampleTerrainMostDetailed` API can resolve this but requires async height sampling on each animation frame.
+- ~~Fixed-altitude fallback~~ — shipped: `sampleTerrainMostDetailed` async sampler fires every 12 frames; `cachedTerrainH` used as fallback when GPU tile cache misses; last resort holds current altitude instead of snapping to sea level.
+- ~~Terrain collision~~ — shipped: hard-floor clamp (`height = Math.max(height, terrainH + VEHICLE_CLEARANCE)`) + urgent async sample when height delta >15m.
 
-### Drawing tools lack editing and export
+### Drawing tools lack snap-to-grid
 
-- Shapes can be placed and cleared but not individually edited after placement. No vertex drag, no rename for pin labels, no GeoJSON/KML export, no undo/redo stack. See "Remaining drawing gaps" in P2 below.
-
-### Banner signal grid still visible with no primary panel open
-
-- When `activePrimaryCard` is null, `AnalysisOverviewBanner` renders its full 3-col grid. If the user opens then closes `ActiveLocationCard`, both grids are briefly visible. Full fix: always render the banner in compact mode and remove the signal grid from the banner entirely, making `ActiveLocationCard` the only place it appears.
+- ~~Banner/card grid duplication~~ — **shipped**: `compact` prop removed entirely; dead code stripped; data gaps now surface as an inline info pill in the compact header.
+- ~~Vertex drag-editing~~ — **shipped**: white handle entities, ScreenSpaceEventHandler drag, `updateDrawnShapeVertex` in state.
+- ~~GeoJSON export~~ — **shipped**.
+- ~~Undo/redo~~ — **shipped**.
+- Remaining: snap-to-existing-vertices when drawing.
 
 ## Next Highest-Value Milestones
 
@@ -149,12 +161,13 @@ Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, mini
 
 - Richer live hazard and resilience layers
 - ~~Inline provenance in headline outputs~~ — **shipped**: provider name now inline in TrendSignalCard and LocationSignalCard; badge colors use design tokens
-- Standardized `direct live` / `derived live` / `proxy heuristic` language across score, cards, chat, and reports (partial — status labels and colors are now token-aligned; proxy heuristic as a distinct type is not yet surfaced)
+- ~~Standardized provenance labeling~~ — **shipped**: `direct live` / `derived live` / `proxy heuristic` now in score cards, trend signals, all `buildSupportedFacts` lines, GeoScribe prompt, and GeoAnalyst prompt.
 
 ### P1: Card Platform
 
 - Formal universal card contract
-- Saved dashboard layouts and multi-workspace composition
+- ~~Saved named dashboard layouts~~ — **shipped**: inline name + restore/delete in `WorkspaceBoard.tsx`; cloud sync via `useSavedSites` + Redis when signed in
+- ~~Drag-and-drop card reordering in board mode~~ — **shipped**: HTML5 drag API on board chip row, `GripVertical` handle, `ring-2 ring-accent` on drag target, order written to `globalOrder` in localStorage
 
 ### P1: Global Coverage
 
@@ -163,21 +176,19 @@ Last updated: 2026-04-03 — full session complete. Userbrain rounds 1 & 2, mini
 
 ### P1: High-Value Domain Expansion
 
-- Travel and trip-planning cards
-- Development and infrastructure card families
+- ~~Travel and trip-planning cards~~ — **shipped**: `TripSummaryCard` overhauled (structured conditions + amenity chips); `LocalAccessCard` added (derived walkability proxy score, 4-domain breakdown, OSM-sourced)
+- ~~Development and infrastructure card families~~ — **shipped**: `SiteReadinessCard` (6-signal go/caution/risk screen: road, power, broadband, flood, soil, seismic) + `InfrastructureAccessCard` (raw proximity measurements, no thresholds). Both wired for site-development and data-center pro mode.
 - Research-grade hazard and resilience cards
 
 ### P2: Advanced Spatial Tools
 
-- ~~Polygon drawing~~ — **shipped**: Draw area, Drop pin, Measure distance, Radius circle. See `src/hooks/useGlobeDrawing.ts`, `src/components/Globe/DrawingToolbar.tsx`
-- **Remaining drawing gaps** (good first tasks for a new engineer):
-  - Editable pin labels — tap a placed marker to rename it
-  - Individual shape deletion — remove one shape without clearing all
-  - GeoJSON export — download `drawnShapes` as a standard GeoJSON file
-  - Undo/redo — `undoStack` in state, Ctrl+Z support
-  - Terrain snap for drive mode — `sampleTerrainMostDetailed` on each animation tick
-  - Snap-to-existing-vertices when drawing
-- LiDAR and National Map tile layers
+- ~~Polygon drawing~~ — **shipped**: Draw area, Drop pin, Measure distance, Radius circle tools live on the globe (`DrawingToolbar`, `useGlobeDrawing`, `useGlobeDrawnShapes`)
+- ~~Named pin labels~~ — **shipped**: inline editable label editor per marker in `DrawingToolbar`
+- ~~GeoJSON export~~ — **shipped**: Export button downloads `geosight-shapes.geojson` with correct geometry types
+- ~~Undo/redo stack~~ — **shipped**: `addDrawnShape` / `undoDrawing` / `redoDrawing` in `useExploreState`; Undo/Redo buttons in toolbar
+- ~~Vertex drag-editing~~ — **shipped**: white handle entities per vertex (polygon + measure), ScreenSpaceEventHandler drag interaction, `updateDrawnShapeVertex` in `useExploreState`.
+- Remaining drawing gaps: snap-to-grid
+- LiDAR and National Map layers
 - Deeper subsurface and geology overlays
 - Stronger export and share workflows beyond the current GeoScribe panel
 

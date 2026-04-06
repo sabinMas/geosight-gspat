@@ -130,13 +130,13 @@ export function ElevationProfile({
         </div>
 
         {loading ? (
-          <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/8 p-4 text-sm text-[var(--foreground)]">
+          <div className="rounded-2xl border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] p-4 text-sm text-[var(--foreground)]">
             Loading elevation samples...
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-2xl border border-amber-300/15 bg-amber-400/10 p-4 text-sm text-[var(--foreground)]">
+          <div className="rounded-2xl border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4 text-sm text-[var(--foreground)]">
             {error}
           </div>
         ) : null}

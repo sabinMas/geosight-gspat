@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, ChevronDown, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, Info, ShieldCheck } from "lucide-react";
 import { StateBadge } from "@/components/Status/StatePanel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildAnalysisOverview } from "@/lib/analysis-summary";
 import { GeodataResult, MissionProfile, SiteScore } from "@/types";
 
@@ -17,10 +16,6 @@ interface AnalysisOverviewBannerProps {
   error: string | null;
   onOpenFactorBreakdown: () => void;
   onOpenSources: () => void;
-  /** When true, suppresses the signal grid and data-gaps section. Use when a
-   *  detail panel (e.g. ActiveLocationCard) is already open below, so the same
-   *  grid is not rendered twice in the same scroll context. */
-  compact?: boolean;
 }
 
 export function AnalysisOverviewBanner({
@@ -32,10 +27,7 @@ export function AnalysisOverviewBanner({
   error,
   onOpenFactorBreakdown,
   onOpenSources,
-  compact = false,
 }: AnalysisOverviewBannerProps) {
-  const [dataGapsOpen, setDataGapsOpen] = useState(false);
-  const [trustOpen, setTrustOpen] = useState(false);
   const overview = buildAnalysisOverview({
     geodata,
     score,
@@ -66,6 +58,20 @@ export function AnalysisOverviewBanner({
             <p className="max-w-4xl text-sm leading-7 text-[var(--foreground-soft)]">
               {overview.summary}
             </p>
+            <div className="flex flex-wrap gap-2">
+              {overview.proxyWeight >= 0.3 ? (
+                <div className="flex items-center gap-2 rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1.5 text-xs text-[var(--warning-foreground)]">
+                  <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                  {Math.round(overview.proxyWeight * 100)}% proxy-estimated — screening only, not direct measurement.
+                </div>
+              ) : null}
+              {overview.dataGaps.length > 0 ? (
+                <div className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)]">
+                  <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                  {overview.dataGaps.length} signal{overview.dataGaps.length === 1 ? "" : "s"} unavailable — open source awareness for details.
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -90,90 +96,6 @@ export function AnalysisOverviewBanner({
           </div>
         </div>
       </CardHeader>
-
-      {!compact ? (
-      <CardContent className="space-y-5">
-        <div className="grid gap-5 lg:grid-cols-3">
-          <div className="rounded-[1.5rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
-            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-              Strongest signals
-            </div>
-            <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--foreground)]">
-              {overview.strengths.length > 0 ? (
-                overview.strengths.map((item) => <div key={item}>{item}</div>)
-              ) : (
-                <div>GeoSight will highlight the strongest verified signals once the active location bundle is ready.</div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
-            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-              Main tradeoffs
-            </div>
-            <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--foreground)]">
-              {overview.watchouts.length > 0 ? (
-                overview.watchouts.map((item) => <div key={item}>{item}</div>)
-              ) : (
-                <div>Any missing or weak factors will be listed here instead of being buried in the UI.</div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-2 text-left"
-              onClick={() => setTrustOpen((v) => !v)}
-            >
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                ⓘ Trust details & next steps
-              </div>
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 text-[var(--muted-foreground)] transition-transform duration-200 ${trustOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-            {trustOpen ? (
-              <div className="mt-3 space-y-2 text-sm leading-6 text-[var(--foreground-soft)]">
-                {overview.trustNotes.map((item) => (
-                  <div key={item}>{item}</div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {overview.dataGaps.length > 0 ? (
-          <div className="rounded-[1.5rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-3">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-2 text-left"
-              onClick={() => setDataGapsOpen((v) => !v)}
-            >
-              <span className="text-sm text-[var(--warning-foreground)]">
-                ⚠ {overview.dataGaps.length} signal{overview.dataGaps.length === 1 ? "" : "s"} could not be confirmed
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 text-[var(--warning-foreground)] transition-transform duration-200 ${dataGapsOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-            {dataGapsOpen ? (
-              <div className="mt-3 space-y-1">
-                {overview.dataGaps.map((item) => (
-                  <div
-                    key={item}
-                    className="text-xs italic text-[var(--muted-foreground)]"
-                    title="This means the data source returned no result — not that the risk is low or absent."
-                  >
-                    — {item}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </CardContent>
-      ) : null}
     </Card>
   );
 }

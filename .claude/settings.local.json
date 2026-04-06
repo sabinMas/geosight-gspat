@@ -28,7 +28,11 @@
       "Bash(git pull:*)",
       "Bash(git rm:*)",
       "Bash(git show:*)",
-      "Bash(GIT_EDITOR=\"true\" git rebase --continue 2>&1)"
+      "Bash(GIT_EDITOR=\"true\" git rebase --continue 2>&1)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(git rebase:*)",
+      "Bash(GIT_EDITOR=true git rebase --continue)",
+      "Bash(git -c core.editor=true rebase --continue)"
     ]
   }
 }

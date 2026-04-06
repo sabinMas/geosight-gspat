@@ -12,7 +12,49 @@ import {
   inferSourceRegistryContextFromGeodata,
   SOURCE_DOMAIN_LABELS,
 } from "@/lib/source-registry";
-import { GeodataResult } from "@/types";
+import { DataSourceMeta, DataSourceStatus, GeodataResult } from "@/types";
+
+const STATUS_ORDER: DataSourceStatus[] = ["live", "derived", "limited", "unavailable"];
+
+function CoverageAtAGlance({ sources }: { sources: Record<string, DataSourceMeta> }) {
+  const grouped = STATUS_ORDER.map((status) => ({
+    status,
+    items: Object.values(sources).filter((s) => s.status === status),
+  })).filter((g) => g.items.length > 0);
+
+  const statusDot: Record<DataSourceStatus, string> = {
+    live: "bg-[var(--success-border)]",
+    derived: "bg-[var(--accent)]",
+    limited: "bg-[var(--warning-border)]",
+    unavailable: "bg-[var(--muted-foreground)] opacity-40",
+    demo: "bg-[var(--muted-foreground)] opacity-40",
+  };
+
+  return (
+    <div className="space-y-3">
+      {grouped.map(({ status, items }) => (
+        <div key={status}>
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${statusDot[status]}`} />
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-foreground)] capitalize">
+              {status} ({items.length})
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {items.map((s) => (
+              <span
+                key={s.id}
+                className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1 text-xs text-[var(--foreground)]"
+              >
+                {s.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface SourceAwarenessCardProps {
   geodata: GeodataResult | null;
@@ -20,6 +62,7 @@ interface SourceAwarenessCardProps {
 
 export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
   const [showRegistryStrategy, setShowRegistryStrategy] = useState(false);
+  const [showSourceDetails, setShowSourceDetails] = useState(false);
 
   if (!geodata) {
     return null;
@@ -46,10 +89,10 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
         <CardTitle>Source awareness</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Use this panel to verify where each signal came from, how fresh it is, and whether the
-          current result is live, derived, region-limited, or unavailable.
-        </p>
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+          <div className="mb-3 text-sm font-semibold text-[var(--foreground)]">Coverage at a glance</div>
+          <CoverageAtAGlance sources={geodata.sources} />
+        </div>
 
         <div className="grid gap-3 lg:grid-cols-4">
           <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
@@ -132,7 +175,7 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
               >
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+                    <div className="text-xs uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
                       {source.label}
                     </div>
                     <div className="mt-1 line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
@@ -151,61 +194,77 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
           </div>
         </div>
 
-        <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-            Open detailed source cards
-          </summary>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {Object.values(geodata.sources).map((source) => (
-              <div
-                key={source.id}
-                className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-soft)]"
-              >
-                <div className="flex min-w-0 items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-[var(--foreground)]">
-                      {source.label}
-                    </div>
-                    <div className="mt-1 line-clamp-3 text-xs text-[var(--muted-foreground)]">
-                      {summarizeSourceMeta(source)}
-                    </div>
-                  </div>
-                  <SourceStatusBadge source={source} />
-                </div>
-
-                <div className="mt-3 text-xs leading-5 text-[var(--foreground-soft)]">
-                  {source.confidence}
-                </div>
-                {source.note ? (
-                  <div className="mt-2 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
-                    {source.note}
-                  </div>
-                ) : null}
-
-                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--muted-foreground)]">
-                  {source.accessType ? (
-                    <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
-                      {source.accessType.replaceAll("_", " ")}
-                    </span>
-                  ) : null}
-                  {source.regionScopes?.length ? (
-                    <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
-                      {formatSourceRegionScopes(source.regionScopes)}
-                    </span>
-                  ) : null}
-                  <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
-                    {formatSourceTimestamp(source.lastUpdated)}
-                  </span>
-                  {source.fallbackProviders?.length ? (
-                    <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
-                      Fallbacks: {source.fallbackProviders.join(", ")}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-semibold text-[var(--foreground)]">Detailed source cards</div>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="rounded-full"
+              onClick={() => setShowSourceDetails((v) => !v)}
+            >
+              {showSourceDetails ? "Hide" : "Show"}
+              {showSourceDetails ? (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              )}
+            </Button>
           </div>
-        </details>
+          {showSourceDetails && (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {Object.values(geodata.sources).map((source) => (
+                <div
+                  key={source.id}
+                  className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4 shadow-[var(--shadow-soft)]"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-[var(--foreground)]">
+                        {source.label}
+                      </div>
+                      <div className="mt-1 line-clamp-3 text-xs text-[var(--muted-foreground)]">
+                        {summarizeSourceMeta(source)}
+                      </div>
+                    </div>
+                    <SourceStatusBadge source={source} />
+                  </div>
+
+                  <div className="mt-3 text-xs leading-5 text-[var(--foreground-soft)]">
+                    {source.confidence}
+                  </div>
+                  {source.note ? (
+                    <div className="mt-2 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
+                      {source.note}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)]">
+                    {source.accessType ? (
+                      <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                        {source.accessType.replaceAll("_", " ")}
+                      </span>
+                    ) : null}
+                    {source.regionScopes?.length ? (
+                      <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                        {formatSourceRegionScopes(source.regionScopes)}
+                      </span>
+                    ) : null}
+                    <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                      {formatSourceTimestamp(source.lastUpdated)}
+                    </span>
+                    {source.fallbackProviders?.length ? (
+                      <span className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1">
+                        Fallbacks: {source.fallbackProviders.join(", ")}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]">
           <div className="flex items-start justify-between gap-3">
@@ -240,7 +299,7 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
                   key={guidance.domain}
                   className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3"
                 >
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                     {SOURCE_DOMAIN_LABELS[guidance.domain]}
                   </div>
                   <div className="mt-2 text-sm font-semibold text-[var(--foreground)]">

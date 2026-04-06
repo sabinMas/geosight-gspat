@@ -234,53 +234,81 @@ export function ChatPanel({
         role: message.role,
         content: message.content,
       }));
-      const response = await fetchWithTimeout(
-        "/api/analyze",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            profileId: profile.id,
-            question: trimmedQuestion,
-            messages: conversationMessages,
-            location,
-            locationName,
-            resultsMode,
-            geodata,
-            nearbyPlaces,
-            nearbySource,
-            dataTrends,
-            imageSummary,
-            classification,
-          }),
-          signal: controller.signal,
-        },
-        20_000,
-      );
-      const data = (await response.json()) as {
-        answer?: string;
-        error?: string;
-        fallbackMode?: boolean;
-      };
-      if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) {
-        return;
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stream: true,
+          profileId: profile.id,
+          question: trimmedQuestion,
+          messages: conversationMessages,
+          location,
+          locationName,
+          resultsMode,
+          geodata,
+          nearbyPlaces,
+          nearbySource,
+          dataTrends,
+          imageSummary,
+          classification,
+        }),
+        signal: controller.signal,
+      });
+
+      if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) return;
+
+      if (!response.ok) {
+        const errData = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errData.error ?? "GeoSight couldn't analyze this request right now.");
       }
 
-      if (!response.ok || !data.answer) {
-        throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
+      const contentType = response.headers.get("Content-Type") ?? "";
+
+      if (contentType.includes("text/plain") && response.body) {
+        // Streaming path
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = "";
+
+        // Add placeholder streaming message
+        setMessages([...nextMessages, { id: "streaming", role: "assistant", content: "" }]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) {
+            await reader.cancel();
+            return;
+          }
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          setMessages((prev) =>
+            prev.map((m) => (m.id === "streaming" ? { ...m, content: accumulated } : m)),
+          );
+        }
+
+        // Commit with a real ID
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === "streaming"
+              ? { ...m, id: crypto.randomUUID(), mode: "live" as ChatReplyMode }
+              : m,
+          ),
+        );
+      } else {
+        // JSON fallback path
+        const data = (await response.json()) as {
+          answer?: string;
+          error?: string;
+          fallbackMode?: boolean;
+        };
+        if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) return;
+        if (!data.answer) throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
+        const assistantMode: ChatReplyMode = data.fallbackMode ? "fallback" : "live";
+        setMessages([
+          ...nextMessages,
+          { id: crypto.randomUUID(), role: "assistant", content: data.answer, mode: assistantMode },
+        ]);
       }
-
-      const assistantMode: ChatReplyMode = data.fallbackMode ? "fallback" : "live";
-
-      setMessages([
-        ...nextMessages,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: data.answer,
-          mode: assistantMode,
-        },
-      ]);
     } catch (error) {
       if (
         requestId !== analyzeRequestIdRef.current ||
@@ -340,7 +368,7 @@ export function ChatPanel({
         <div className="eyebrow">Reasoning board</div>
         <CardTitle>{locationName}</CardTitle>
         {aiStatus?.liveAnalysisAvailable === false ? (
-          <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
+          <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
             Fallback mode
           </div>
         ) : null}
@@ -451,6 +479,9 @@ export function ChatPanel({
                 {message.role === "assistant" ? (
                   <div className="space-y-3">
                     <MarkdownContent content={message.content} />
+                    {message.id === "streaming" && (
+                      <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-[var(--accent)] align-middle" />
+                    )}
                     {messageTrust ? (
                       <div className="border-t border-[color:var(--border-soft)] pt-3">
                         <div className="flex flex-wrap items-center gap-2">

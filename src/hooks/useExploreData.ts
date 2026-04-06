@@ -128,6 +128,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     workspaceCards: allWorkspaceCards,
     isCardVisible,
     setCardVisible,
+    reorderCards,
   } = useWorkspaceCards(activeProfile.id, appMode);
 
   const cards = useMemo(
@@ -487,38 +488,51 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setReportGeneratedAt(null);
 
     try {
-      const response = await fetchWithTimeout(
-        "/api/agents/geo-scribe",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: `Generate a full site assessment report for ${selectedLocationName} at ${selectedPoint.lat}, ${selectedPoint.lng} using the ${activeProfile.name} mission profile. Use the full context bundle, cite real values with units, keep the output in markdown, and include explicit sections for data status, supported findings, limitations, and next diligence steps.`,
-            context: agentContext,
-          }),
-          signal: controller.signal,
+      const response = await fetch("/api/agents/geo-scribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        25_000,
-      );
+        body: JSON.stringify({
+          message: `Generate a full site assessment report for ${selectedLocationName} at ${selectedPoint.lat}, ${selectedPoint.lng} using the ${activeProfile.name} mission profile. Use the full context bundle, cite real values with units, keep the output in markdown, and include explicit sections for data status, supported findings, limitations, and next diligence steps.`,
+          context: agentContext,
+        }),
+        signal: controller.signal,
+      });
 
       if (!response.ok) {
         throw new Error(await readAgentRouteError(response));
       }
 
-      const markdown = (await readResponseTextWithTimeout(response, 15_000)).trim();
-      if (requestId !== reportRequestIdRef.current || controller.signal.aborted) {
-        return;
-      }
-
-      if (!markdown) {
-        throw new Error("GeoScribe returned an empty report.");
+      if (!response.body) {
+        throw new Error("GeoScribe returned no response body.");
       }
 
       const responseMode =
         (response.headers.get("X-GeoSight-Mode") as AgentExecutionMode | null) ?? "live";
-      setReportMarkdown(markdown);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (requestId !== reportRequestIdRef.current || controller.signal.aborted) {
+          await reader.cancel();
+          return;
+        }
+        accumulated += decoder.decode(value, { stream: true });
+        setReportMarkdown(accumulated);
+      }
+
+      if (requestId !== reportRequestIdRef.current || controller.signal.aborted) {
+        return;
+      }
+
+      if (!accumulated.trim()) {
+        throw new Error("GeoScribe returned an empty report.");
+      }
+
       setReportMode(responseMode);
       setReportGeneratedAt(new Date().toISOString());
     } catch (reportGenerationError) {
@@ -650,6 +664,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     workspaceCards,
     isCardVisible,
     setCardVisible,
+    reorderCards,
     shellMode,
     setShellMode,
     viewMode,

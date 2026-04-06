@@ -55,6 +55,7 @@ export function useWorkspaceCards(profileId: string, appMode: AppMode) {
   const [visibility, setVisibility] = useState<Record<WorkspaceCardId, boolean>>(
     () => mergeWorkspacePreferences(normalizedProfileId, appMode),
   );
+  const [cardOrder, setCardOrder] = useState<WorkspaceCardId[]>(() => readStoredPreferences().globalOrder);
 
   useEffect(() => {
     const stored = readStoredPreferences();
@@ -67,16 +68,19 @@ export function useWorkspaceCards(profileId: string, appMode: AppMode) {
         ...profilePreferences,
       }),
     );
+    setCardOrder(stored.globalOrder.length > 0 ? stored.globalOrder : []);
   }, [appMode, normalizedProfileId, profileId]);
 
   const persist = useCallback(
-    (nextVisibility: Record<WorkspaceCardId, boolean>) => {
+    (nextVisibility: Record<WorkspaceCardId, boolean>, currentOrder: WorkspaceCardId[]) => {
       const stored = readStoredPreferences();
       const nextState: StoredWorkspaceCardPreferences = {
         globalOrder:
-          stored.globalOrder.length > 0
-            ? stored.globalOrder
-            : cards.map((card) => card.id),
+          currentOrder.length > 0
+            ? currentOrder
+            : stored.globalOrder.length > 0
+              ? stored.globalOrder
+              : cards.map((card) => card.id),
         profiles: {
           ...stored.profiles,
           [normalizedProfileId]: toWorkspaceCardPreferences(nextVisibility),
@@ -91,15 +95,29 @@ export function useWorkspaceCards(profileId: string, appMode: AppMode) {
   const setCardVisible = useCallback((cardId: WorkspaceCardId, visible: boolean) => {
     setVisibility((current) => {
       const next = { ...current, [cardId]: visible };
-      persist(next);
+      persist(next, cardOrder);
       return next;
     });
-  }, [persist]);
+  }, [persist, cardOrder]);
 
-  const visibleCards = useMemo(
-    () => cards.filter((card) => visibility[card.id]),
-    [cards, visibility],
-  );
+  const reorderCards = useCallback((newOrder: WorkspaceCardId[]) => {
+    setCardOrder(newOrder);
+    const stored = readStoredPreferences();
+    writeStoredPreferences({ ...stored, globalOrder: newOrder });
+  }, []);
+
+  const visibleCards = useMemo(() => {
+    const filtered = cards.filter((card) => visibility[card.id]);
+    if (cardOrder.length === 0) return filtered;
+    return [...filtered].sort((a, b) => {
+      const ai = cardOrder.indexOf(a.id);
+      const bi = cardOrder.indexOf(b.id);
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }, [cards, visibility, cardOrder]);
 
   const primaryCards = useMemo(
     () => visibleCards.filter((card) => card.zone === "primary"),
@@ -119,6 +137,7 @@ export function useWorkspaceCards(profileId: string, appMode: AppMode) {
     setCardVisible,
     showCard: (cardId: WorkspaceCardId) => setCardVisible(cardId, true),
     hideCard: (cardId: WorkspaceCardId) => setCardVisible(cardId, false),
+    reorderCards,
     cardMap: WORKSPACE_CARD_MAP,
   };
 }

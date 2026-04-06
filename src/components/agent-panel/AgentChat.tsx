@@ -525,7 +525,7 @@ export default function AgentChat() {
                 >
                   <div
                     className={cn(
-                      "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold uppercase",
+                      "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-xs font-semibold uppercase",
                       isAssistant
                         ? "agent-avatar agent-avatar--assistant"
                         : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--foreground)]",
@@ -545,13 +545,13 @@ export default function AgentChat() {
                   <div className={cn("min-w-0 flex-1", isAssistant ? "" : "text-right")}>
                     <div
                       className={cn(
-                        "flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]",
+                        "flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]",
                         isAssistant ? "" : "justify-end",
                       )}
                     >
                       {isAssistant ? (
                         <span
-                          className="agent-chip agent-chip--assistant rounded-full border px-2 py-1 text-[10px]"
+                          className="agent-chip agent-chip--assistant rounded-full border px-2 py-1 text-xs"
                           style={{
                             color: ASSISTANT_ACCENT,
                           }}

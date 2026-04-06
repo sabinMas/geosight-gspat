@@ -237,7 +237,7 @@ export function SearchBar({
 
       {showSuggestions && (suggestionsLoading || suggestions.length) ? (
         <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             Suggested matches
           </div>
           {suggestionsLoading ? (

@@ -23,6 +23,7 @@ import {
   Matrix4,
   PolygonHierarchy,
   Quaternion,
+  sampleTerrainMostDetailed,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Transforms,
@@ -86,6 +87,7 @@ interface CesiumGlobeProps {
   drawingTool?: DrawingTool;
   drawnShapes?: DrawnShape[];
   onShapeComplete?: (shape: DrawnShape) => void;
+  onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
 }
 
 export function CesiumGlobe({
@@ -105,6 +107,7 @@ export function CesiumGlobe({
   drawingTool = "none",
   drawnShapes = [],
   onShapeComplete,
+  onVertexDrag,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -669,6 +672,12 @@ export function CesiumGlobe({
     let heading = 0;   // radians, Cesium convention: 0 = north
     let speed = 0;     // m/s
 
+    // Async terrain height cache — getHeight() only works for tiles already in GPU cache,
+    // so we sample the terrain provider directly every N frames as a reliable fallback.
+    let cachedTerrainH: number | null = null;
+    let terrainSampleInFlight = false;
+    let terrainSampleFrame = 0;
+
     // Live position/orientation refs for CallbackProperty (avoids React re-renders)
     const posRef = { val: Cartesian3.fromRadians(lng, lat, height) };
     const oriRef = { val: Quaternion.IDENTITY.clone() };
@@ -743,8 +752,26 @@ export function CesiumGlobe({
       lng += dEast  / (EARTH_RADIUS * Math.cos(lat));
 
       // ── Terrain height ─────────────────────────────────────────────────────
+      // Kick off an async sample every 12 frames so we have an accurate height
+      // even when getHeight() returns undefined (tiles not yet in GPU cache).
+      terrainSampleFrame++;
+      const heightDelta = Math.abs((cachedTerrainH ?? height) - height);
+      const needsUrgentSample = heightDelta > 15;
+      if ((terrainSampleFrame % 12 === 0 || needsUrgentSample) && !terrainSampleInFlight) {
+        terrainSampleInFlight = true;
+        const samplePos = [new Cartographic(lng, lat)];
+        void sampleTerrainMostDetailed(viewer.terrainProvider, samplePos)
+          .then((sampled) => {
+            const h = sampled[0].height;
+            if (h !== undefined && isFinite(h)) cachedTerrainH = h;
+          })
+          .finally(() => { terrainSampleInFlight = false; });
+      }
+
       const carto = new Cartographic(lng, lat);
-      const terrainH = viewer.scene.globe.getHeight(carto) ?? 0;
+      // Prefer the synchronous cache (fastest), fall back to the async sample,
+      // and if both are missing hold current altitude so the vehicle never drops to sea level.
+      const terrainH = viewer.scene.globe.getHeight(carto) ?? cachedTerrainH ?? (height - VEHICLE_CLEARANCE);
       const targetH = terrainH + VEHICLE_CLEARANCE;
 
       if (height > targetH + 8) {
@@ -754,6 +781,8 @@ export function CesiumGlobe({
         // Soft snap to terrain surface
         height += (targetH - height) * Math.min(10 * dt, 1);
       }
+      // Hard floor — never clip below terrain regardless of lerp lag
+      height = Math.max(height, terrainH + VEHICLE_CLEARANCE);
 
       // ── Entity update ──────────────────────────────────────────────────────
       const vehiclePos = Cartesian3.fromRadians(lng, lat, height);
@@ -825,7 +854,7 @@ export function CesiumGlobe({
     onShapeComplete: onShapeComplete ?? (() => undefined),
   });
 
-  useGlobeDrawnShapes({ viewerRef, viewerReady, drawnShapes });
+  useGlobeDrawnShapes({ viewerRef, viewerReady, drawnShapes, drawingTool, onVertexDrag });
 
   if (!hasCesiumToken) {
     return (
@@ -870,7 +899,7 @@ export function CesiumGlobe({
               >
                 0
               </span>
-              <span className="mt-1 text-[10px] uppercase tracking-widest text-white/50">
+              <span className="mt-1 text-xs uppercase tracking-widest text-white/50">
                 km/h
               </span>
             </div>
@@ -881,11 +910,11 @@ export function CesiumGlobe({
               >
                 0
               </span>
-              <span className="mt-1 text-[10px] uppercase tracking-widest text-white/50">
+              <span className="mt-1 text-xs uppercase tracking-widest text-white/50">
                 m alt
               </span>
             </div>
-            <div className="ml-4 grid grid-cols-3 gap-0.5 text-center text-[10px] leading-tight text-white/40 select-none">
+            <div className="ml-4 grid grid-cols-3 gap-0.5 text-center text-xs leading-tight text-white/40 select-none">
               <span />
               <span className="rounded bg-white/10 px-1.5 py-0.5 text-white/70">W</span>
               <span />

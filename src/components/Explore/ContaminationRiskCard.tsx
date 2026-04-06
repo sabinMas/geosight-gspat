@@ -49,7 +49,7 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
           />
         ) : hazards ? (
           <>
-            <div className="inline-flex rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
+            <div className="inline-flex rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
               Environmental contamination: {getContaminationSummary(hazards)}
             </div>
 

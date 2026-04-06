@@ -17,9 +17,9 @@ interface FactorBreakdownProps {
 }
 
 const EVIDENCE_TONE: Record<string, string> = {
-  direct_live: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]",
-  derived_live: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
-  proxy: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]",
+  direct_live: "border-[color:var(--evidence-direct-border)] bg-[var(--evidence-direct-bg)] text-[var(--evidence-direct-fg)]",
+  derived_live: "border-[color:var(--evidence-derived-border)] bg-[var(--evidence-derived-bg)] text-[var(--evidence-derived-fg)]",
+  proxy: "border-[color:var(--evidence-proxy-border)] bg-[var(--evidence-proxy-bg)] text-[var(--evidence-proxy-fg)]",
 };
 
 export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBreakdownProps) {
@@ -60,7 +60,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
             className="rounded-full"
             onClick={() => setShowMethodNotes((current) => !current)}
           >
-            {showMethodNotes ? "Hide notes" : "Show notes"}
+            {showMethodNotes ? "Hide methodology" : "Methodology"}
             {showMethodNotes ? (
               <ChevronUp className="ml-2 h-4 w-4" />
             ) : (
@@ -72,42 +72,42 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {evidenceCounts.direct_live ? (
-            <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.direct_live}`}>
+            <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.direct_live}`}>
               {evidenceCounts.direct_live} direct live
             </span>
           ) : null}
           {evidenceCounts.derived_live ? (
-            <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.derived_live}`}>
+            <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.derived_live}`}>
               {evidenceCounts.derived_live} derived live
             </span>
           ) : null}
           {evidenceCounts.proxy ? (
-            <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.proxy}`}>
+            <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.proxy}`}>
               {evidenceCounts.proxy} proxy heuristics
             </span>
           ) : null}
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
               Strongest contributors
             </div>
             <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
               {strongestFactors.map((factor) => (
                 <div key={factor.key}>
-                  {factor.label}: {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} points delivered.
+                  {factor.label} — {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts
                 </div>
               ))}
             </div>
           </div>
           <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
               Biggest improvement areas
             </div>
             <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
               {mainConstraints.map((factor) => (
                 <div key={factor.key}>
-                  {factor.label}: roughly {factor.gap.toFixed(1)} possible points not yet captured.
+                  {factor.label} — {factor.gap.toFixed(1)} pts uncaptured
                 </div>
               ))}
             </div>
@@ -118,18 +118,18 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
             <SafeResponsiveContainer className="h-full">
               <BarChart data={orderedFactors}>
                 <XAxis dataKey="label" hide />
-                <YAxis stroke="#6b7d93" />
+                <YAxis stroke="var(--muted-foreground)" />
                 <Tooltip
                   cursor={{ fill: "rgba(255,255,255,0.04)" }}
                   contentStyle={{
-                    background: "#081221",
-                    border: "1px solid rgba(0,229,255,0.18)",
+                    background: "var(--background-elevated)",
+                    border: "1px solid var(--border-soft)",
                     borderRadius: 16,
                   }}
                 />
                 <Bar dataKey="score" radius={[8, 8, 0, 0]}>
                   {orderedFactors.map((factor) => (
-                    <Cell key={factor.key} fill={factor.score > 80 ? "#5be49b" : factor.score > 60 ? "#00e5ff" : "#ffab00"} />
+                    <Cell key={factor.key} fill={factor.score > 80 ? "var(--color-success)" : factor.score > 60 ? "var(--accent)" : "var(--color-warning)"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -169,7 +169,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
                 <div className="flex items-center gap-2">
                   {factor.evidenceLabel ? (
                     <span
-                      className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                      className={`rounded-full border px-2.5 py-1 text-xs uppercase tracking-[0.16em] ${
                         EVIDENCE_TONE[factor.evidenceKind ?? "derived_live"]
                       }`}
                     >
@@ -179,7 +179,7 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
                   <span className="font-semibold">{factor.score}</span>
                 </div>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[var(--muted-foreground)]">
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)]">
                 <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
                   Weight {factor.weightPercent}%
                 </span>

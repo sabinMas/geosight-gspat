@@ -21,7 +21,7 @@ export function LandClassifier({ results }: LandClassifierProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {dominant ? (
-          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 p-3 text-sm text-[var(--foreground)]">
+          <div className="rounded-2xl border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] p-3 text-sm text-[var(--foreground)]">
             Dominant cover: <span className="font-semibold">{dominant.label}</span>
           </div>
         ) : null}
@@ -33,7 +33,7 @@ export function LandClassifier({ results }: LandClassifierProps) {
                 <span>{item.label}</span>
                 <span>{item.value}%</span>
               </div>
-              <div className="h-2 rounded-full bg-slate-900/70">
+              <div className="h-2 rounded-full bg-[var(--surface-overlay)]">
                 <div
                   className="h-2 rounded-full"
                   style={{ width: `${item.value}%`, backgroundColor: item.color }}

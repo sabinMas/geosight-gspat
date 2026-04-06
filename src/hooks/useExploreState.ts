@@ -89,6 +89,13 @@ export interface ExploreState {
   setDrawingTool: Dispatch<SetStateAction<DrawingTool>>;
   drawnShapes: DrawnShape[];
   setDrawnShapes: Dispatch<SetStateAction<DrawnShape[]>>;
+  addDrawnShape: (shape: DrawnShape) => void;
+  undoDrawing: () => void;
+  redoDrawing: () => void;
+  renameShape: (id: string, label: string) => void;
+  updateDrawnShapeVertex: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -175,6 +182,47 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [driveMode, setDriveMode] = useState(false);
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
   const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);
+  const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
+
+  const addDrawnShape = useCallback((shape: DrawnShape) => {
+    setDrawnShapes((prev) => [...prev, shape]);
+    setRedoStack([]);
+  }, []);
+
+  const undoDrawing = useCallback(() => {
+    setDrawnShapes((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setRedoStack((r) => [...r, last]);
+      return prev.slice(0, -1);
+    });
+  }, []);
+
+  const redoDrawing = useCallback(() => {
+    setRedoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setDrawnShapes((s) => [...s, last]);
+      return prev.slice(0, -1);
+    });
+  }, []);
+
+  const renameShape = useCallback((id: string, label: string) => {
+    setDrawnShapes((prev) => prev.map((s) => (s.id === id ? { ...s, label } : s)));
+  }, []);
+
+  const updateDrawnShapeVertex = useCallback(
+    (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => {
+      setDrawnShapes((prev) =>
+        prev.map((s) =>
+          s.id === shapeId
+            ? { ...s, coordinates: s.coordinates.map((c, i) => (i === vertexIndex ? coord : c)) }
+            : s,
+        ),
+      );
+    },
+    [],
+  );
   const { quickRegions, quickRegionsLoading } = useQuickRegions(
     selectedPoint,
     locationReady,
@@ -282,5 +330,12 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setDrawingTool,
     drawnShapes,
     setDrawnShapes,
+    addDrawnShape,
+    undoDrawing,
+    redoDrawing,
+    renameShape,
+    updateDrawnShapeVertex,
+    canUndo: drawnShapes.length > 0,
+    canRedo: redoStack.length > 0,
   };
 }

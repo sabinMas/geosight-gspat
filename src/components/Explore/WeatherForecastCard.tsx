@@ -109,11 +109,11 @@ export function WeatherForecastCard({ geodata }: WeatherForecastCardProps) {
           <>
             <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1">
               <div className="grid grid-cols-[3.5rem_1fr_auto_auto_auto] gap-3 px-3 pb-1 pt-2">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Day</div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Condition</div>
-                <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Rain</div>
-                <div className="text-right text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Low</div>
-                <div className="text-right text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">High</div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Day</div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Condition</div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Rain</div>
+                <div className="text-right text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Low</div>
+                <div className="text-right text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">High</div>
               </div>
               {weatherForecast.map((day, index) => (
                 <ForecastRow
@@ -158,7 +158,7 @@ export function WeatherForecastCard({ geodata }: WeatherForecastCardProps) {
               </div>
               {weatherForecast[0]?.precipitationMm !== null && (
                 <div className="mt-3 space-y-1 border-t border-[color:var(--border-soft)] pt-3">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Precipitation totals</div>
+                  <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">Precipitation totals</div>
                   {weatherForecast.map((day, index) => (
                     <div
                       key={day.date}

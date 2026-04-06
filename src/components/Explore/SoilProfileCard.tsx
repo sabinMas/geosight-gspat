@@ -28,16 +28,16 @@ function formatDepth(cm: number | null) {
 function drainageTone(drainageClass: string | null) {
   const value = drainageClass?.toLowerCase() ?? "";
   if (value.includes("well")) {
-    return "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]";
+    return "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]";
   }
   if (value.includes("moderately")) {
-    return "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]";
+    return "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--foreground)]";
   }
   if (value.includes("poor")) {
-    return "border-rose-300/20 bg-rose-400/10 text-[var(--foreground)]";
+    return "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--foreground)]";
   }
 
-  return "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]";
+  return "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)]";
 }
 
 function hydrologicExplanation(hydrologicGroup: string | null) {

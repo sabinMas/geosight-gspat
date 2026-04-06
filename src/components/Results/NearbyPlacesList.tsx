@@ -117,7 +117,7 @@ export function NearbyPlacesList({
                   {place.attributes.map((attribute) => (
                     <span
                       key={attribute}
-                      className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] text-[var(--foreground-soft)]"
+                      className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1 text-xs text-[var(--foreground-soft)]"
                     >
                       {attribute}
                     </span>

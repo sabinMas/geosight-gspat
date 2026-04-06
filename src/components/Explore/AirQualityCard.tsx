@@ -12,19 +12,19 @@ interface AirQualityCardProps {
 function getAqiTone(category: NonNullable<GeodataResult["airQuality"]>["aqiCategory"]) {
   switch (category) {
     case "Good":
-      return "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]";
+      return "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]";
     case "Moderate":
-      return "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]";
+      return "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]";
     case "Unhealthy for Sensitive Groups":
-      return "border-orange-300/20 bg-orange-400/10 text-[var(--foreground)]";
+      return "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]";
     case "Unhealthy":
-      return "border-rose-300/20 bg-rose-400/10 text-[var(--foreground)]";
+      return "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-foreground)]";
     case "Very Unhealthy":
-      return "border-fuchsia-300/20 bg-fuchsia-400/10 text-[var(--foreground)]";
+      return "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-foreground)]";
     case "Hazardous":
-      return "border-red-300/20 bg-red-500/10 text-[var(--foreground)]";
+      return "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-foreground)]";
     default:
-      return "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]";
+      return "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)]";
   }
 }
 

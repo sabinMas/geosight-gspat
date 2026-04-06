@@ -1,6 +1,7 @@
 "use client";
 
-import { Circle, MapPin, PenTool, Ruler, Trash2, X } from "lucide-react";
+import { Circle, Download, MapPin, PenTool, Redo2, Ruler, Trash2, Undo2, X } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawnShape, DrawingTool } from "@/types";
 
@@ -9,6 +10,12 @@ interface DrawingToolbarProps {
   onSelectTool: (tool: DrawingTool) => void;
   drawnShapes: DrawnShape[];
   onClearAll: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  onRenameShape: (id: string, label: string) => void;
+  onExportGeoJSON: () => void;
 }
 
 const TOOLS: Array<{
@@ -43,13 +50,71 @@ const TOOLS: Array<{
   },
 ];
 
+function PinLabelEditor({
+  shape,
+  onRename,
+}: {
+  shape: DrawnShape;
+  onRename: (id: string, label: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(shape.label ?? "");
+
+  const commit = () => {
+    const trimmed = draft.trim();
+    onRename(shape.id, trimmed || "Pin");
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          autoFocus
+          className="h-7 w-32 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2.5 text-xs text-[var(--foreground)] outline-none focus:border-[color:var(--accent-strong)]"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          onBlur={commit}
+          maxLength={40}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="flex h-7 items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2.5 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-text"
+      onClick={() => {
+        setDraft(shape.label ?? "Pin");
+        setEditing(true);
+      }}
+      title="Click to rename pin"
+    >
+      <MapPin className="h-3 w-3 shrink-0" />
+      {shape.label ?? "Pin"}
+    </button>
+  );
+}
+
 export function DrawingToolbar({
   drawingTool,
   onSelectTool,
   drawnShapes,
   onClearAll,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onRenameShape,
+  onExportGeoJSON,
 }: DrawingToolbarProps) {
   const activeToolMeta = TOOLS.find((t) => t.id === drawingTool);
+  const markers = drawnShapes.filter((s) => s.type === "marker");
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -72,18 +137,78 @@ export function DrawingToolbar({
       })}
 
       {drawnShapes.length > 0 ? (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
-          onClick={onClearAll}
-          title="Clear all drawn shapes"
-        >
-          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-          Clear ({drawnShapes.length})
-        </Button>
-      ) : null}
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Undo last shape"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Redo"
+          >
+            <Redo2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            onClick={onExportGeoJSON}
+            title="Export shapes as GeoJSON"
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Export
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            onClick={onClearAll}
+            title="Clear all drawn shapes"
+          >
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            Clear ({drawnShapes.length})
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            onClick={onUndo}
+            disabled
+            title="Nothing to undo"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Redo"
+          >
+            <Redo2 className="h-3.5 w-3.5" />
+          </Button>
+        </>
+      )}
 
       {drawingTool !== "none" ? (
         <Button
@@ -103,6 +228,17 @@ export function DrawingToolbar({
         <span className="w-full text-xs text-[var(--muted-foreground)] sm:w-auto">
           {activeToolMeta.hint}
         </span>
+      ) : null}
+
+      {markers.length > 0 ? (
+        <div className="flex w-full flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+            Pins
+          </span>
+          {markers.map((shape) => (
+            <PinLabelEditor key={shape.id} shape={shape} onRename={onRenameShape} />
+          ))}
+        </div>
       ) : null}
     </div>
   );

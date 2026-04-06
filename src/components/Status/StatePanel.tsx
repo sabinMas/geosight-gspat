@@ -81,7 +81,7 @@ export function StateBadge({ tone, label, className }: StateBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em]",
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.16em]",
         config.badge,
         className,
       )}
@@ -126,7 +126,7 @@ export function StatePanel({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           {eyebrow ? (
-            <div className="text-[11px] font-medium uppercase tracking-[0.18em] opacity-80">
+            <div className="text-xs font-medium uppercase tracking-[0.18em] opacity-80">
               {eyebrow}
             </div>
           ) : null}

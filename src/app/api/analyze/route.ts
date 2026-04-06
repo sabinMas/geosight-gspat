@@ -8,6 +8,7 @@ import {
   normalizeTextInput,
   rateLimitHeaders,
 } from "@/lib/request-guards";
+import { runGroqAnalysisStream } from "@/lib/groq";
 import { AnalyzeRequestBody } from "@/types";
 
 function normalizeConversationMessages(messages: AnalyzeRequestBody["messages"]) {
@@ -61,6 +62,25 @@ export async function POST(request: NextRequest) {
     messages: normalizeConversationMessages(body.messages),
   };
   const headers = rateLimitHeaders(rateLimit);
+
+  // Streaming path — only for Groq, gracefully falls back to JSON on failure
+  if (body.stream) {
+    try {
+      const stream = await runGroqAnalysisStream(payload, profile);
+      return new Response(stream, {
+        headers: {
+          ...headers,
+          "Content-Type": "text/plain; charset=utf-8",
+          "X-Accel-Buffering": "no",
+          "Cache-Control": "no-cache",
+        },
+      });
+    } catch {
+      // Fall through to standard JSON path below
+    }
+  }
+
+  // Standard (non-streaming) path — also used as fallback when streaming fails
   const result = await runAnalysisWithFallback(payload, profile, {
     fallbackAnswer: buildFallbackAssessment(payload, profile),
     onProviderFailure(provider, error) {

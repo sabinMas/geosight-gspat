@@ -551,7 +551,7 @@ export function LandingPage() {
                       <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
                         {demo.name}
                       </div>
-                      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                         {demo.locationName}
                       </div>
                       <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted-foreground)]">

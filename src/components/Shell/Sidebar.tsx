@@ -78,9 +78,6 @@ export function Sidebar({
                     {region.secondaryLabel}
                   </div>
                 ) : null}
-                <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                  {region.center.lat.toFixed(3)}, {region.center.lng.toFixed(3)}
-                </div>
               </button>
             ))}
           </CardContent>

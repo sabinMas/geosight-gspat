@@ -172,7 +172,7 @@ export function EarthquakeHistoryCard({
         )}
 
         {history.maxMag === null && (
-          <div className="inline-flex rounded-full border border-slate-300/15 bg-slate-400/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
+          <div className="inline-flex rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
             No significant events · {history.yearsSearched}-year window
           </div>
         )}

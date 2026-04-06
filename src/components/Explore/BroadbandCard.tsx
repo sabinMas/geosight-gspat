@@ -62,7 +62,7 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
       <CardContent className="space-y-4">
         {broadband ? (
           <>
-            <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
+            <div className="inline-flex rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
               Internet:{" "}
               {broadband.kind === "regional_household_baseline"
                 ? getRegionalBroadbandSummary(
@@ -75,11 +75,11 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
                   )}
             </div>
 
-            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
-              {broadband.kind === "regional_household_baseline"
-                ? `GeoSight is showing ${broadband.regionLabel} country-level household connectivity context from Eurostat, not point-level service at this exact map location.`
-                : "GeoSight summarizes internet quality first, then keeps the detailed provider and speed readout below."}
-            </div>
+            {broadband.kind === "regional_household_baseline" ? (
+              <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
+                {`GeoSight is showing ${broadband.regionLabel} country-level household connectivity context from Eurostat, not point-level service at this exact map location.`}
+              </div>
+            ) : null}
 
             {broadband.kind === "regional_household_baseline" ? (
               <div className="grid gap-3 sm:grid-cols-3">
@@ -143,7 +143,7 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
                     {broadband.technologies.map((technology) => (
                       <span
                         key={technology}
-                        className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]"
+                        className="rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--accent)]"
                       >
                         {formatTechnologyLabel(technology)}
                       </span>
@@ -160,7 +160,7 @@ export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
                       broadband.technologies.map((technology) => (
                         <span
                           key={technology}
-                          className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]"
+                          className="rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--accent)]"
                         >
                           {formatTechnologyLabel(technology)}
                         </span>

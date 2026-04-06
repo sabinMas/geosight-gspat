@@ -25,9 +25,9 @@ function getBandLabel(score: number, profile?: MissionProfile) {
 }
 
 const EVIDENCE_TONE: Record<string, string> = {
-  direct_live: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]",
-  derived_live: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
-  proxy: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]",
+  direct_live: "border-[color:var(--evidence-direct-border)] bg-[var(--evidence-direct-bg)] text-[var(--evidence-direct-fg)]",
+  derived_live: "border-[color:var(--evidence-derived-border)] bg-[var(--evidence-derived-bg)] text-[var(--evidence-derived-fg)]",
+  proxy: "border-[color:var(--evidence-proxy-border)] bg-[var(--evidence-proxy-bg)] text-[var(--evidence-proxy-fg)]",
 };
 
 export function ScoreCard({ score, title = "Site score", profile, onOpenDetails }: ScoreCardProps) {
@@ -52,14 +52,6 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
   const rankedFactors = rankFactorInsights(score);
   const strongestFactors = [...rankedFactors].sort((a, b) => b.impact - a.impact).slice(0, 2);
   const mainConstraints = [...rankedFactors].sort((a, b) => b.gap - a.gap).slice(0, 2);
-  const directCount = evidenceCounts.direct_live ?? 0;
-  const proxyCount = evidenceCounts.proxy ?? 0;
-  const evidenceSummary =
-    proxyCount > directCount
-      ? "This score leans more heavily on proxy heuristics than direct live measurements."
-      : proxyCount > 0
-        ? "This score blends direct measurements, derived live analysis, and a smaller proxy layer."
-        : "This score is currently grounded in direct and derived live signals without proxy-heavy weighting.";
 
   return (
     <Card>
@@ -93,7 +85,7 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
           ) : null}
           <div className={`${mounted ? "-mt-26" : "mt-10"} text-center`}>
             <div className="text-5xl font-semibold text-[var(--foreground)]">{score.total}</div>
-            <div className="text-xs uppercase tracking-[0.24em] text-[var(--muted-foreground)]">out of 100</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">out of 100</div>
           </div>
         </div>
         <div className="space-y-3">
@@ -105,25 +97,25 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
           ) : null}
           <div className="grid gap-3 lg:grid-cols-2">
             <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Biggest lifts
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
                 {strongestFactors.map((factor) => (
                   <div key={factor.key}>
-                    {factor.label} is contributing {factor.impact.toFixed(1)} of {factor.maxImpact.toFixed(1)} possible points.
+                    {factor.label} — {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts
                   </div>
                 ))}
               </div>
             </div>
             <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Biggest drags
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
                 {mainConstraints.map((factor) => (
                   <div key={factor.key}>
-                    {factor.label} is leaving roughly {factor.gap.toFixed(1)} points on the table.
+                    {factor.label} — {factor.gap.toFixed(1)} pts uncaptured
                   </div>
                 ))}
               </div>
@@ -131,25 +123,24 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
           </div>
           <div className="flex flex-wrap gap-2">
             {evidenceCounts.direct_live ? (
-              <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.direct_live}`}>
+              <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.direct_live}`}>
                 {evidenceCounts.direct_live} direct live
               </span>
             ) : null}
             {evidenceCounts.derived_live ? (
-              <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.derived_live}`}>
+              <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.derived_live}`}>
                 {evidenceCounts.derived_live} derived live
               </span>
             ) : null}
             {evidenceCounts.proxy ? (
-              <span className={`rounded-full border px-3 py-1 text-[11px] ${EVIDENCE_TONE.proxy}`}>
+              <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.proxy}`}>
                 {evidenceCounts.proxy} proxy heuristics
               </span>
             ) : null}
           </div>
-          <div className="text-sm leading-6 text-[var(--muted-foreground)]">{evidenceSummary}</div>
           {score.broadband ? (
-            <div className="rounded-[1.5rem] border border-cyan-300/20 bg-cyan-400/8 p-4">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground)]">
+            <div className="rounded-[1.5rem] border border-[color:var(--evidence-derived-border)] bg-[var(--evidence-derived-bg)] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
                 Broadband summary
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
@@ -178,32 +169,6 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
                   Broadband factor score: {score.broadband.score} / 100
                 </div>
               ) : null}
-            </div>
-          ) : null}
-          {profile ? (
-            <div
-              className="rounded-[1.5rem] border p-4"
-              style={{
-                borderColor: `${accent}33`,
-                background: `${accent}12`,
-              }}
-            >
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                What this score means
-              </div>
-              <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
-                GeoSight converts each factor into a 0-100 score, applies the lens weights, and
-                totals the result into a first-pass fit score for this place.
-              </div>
-              <div className="mt-3 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
-                Highest weights:{" "}
-                {profile.factors
-                  .slice()
-                  .sort((a, b) => b.weight - a.weight)
-                  .slice(0, 4)
-                  .map((factor) => `${factor.label} ${Math.round(factor.weight * 100)}%`)
-                  .join(", ")}
-              </div>
             </div>
           ) : null}
         </div>

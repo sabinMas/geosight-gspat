@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
+import {
+  applyRateLimit,
+  createRateLimitResponse,
+  rateLimitHeaders,
+} from "@/lib/request-guards";
 import { LocationSearchResult } from "@/types";
 
 interface NominatimAddress {
@@ -175,6 +180,14 @@ function buildPayload(result: NominatimSearchResult | NominatimReverseResult): L
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimit = await applyRateLimit(request, "geocode", {
+    windowMs: 60_000,
+    maxRequests: 40,
+  });
+  if (!rateLimit.allowed) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   const query = request.nextUrl.searchParams.get("q")?.trim();
   const lat = request.nextUrl.searchParams.get("lat");
   const lng = request.nextUrl.searchParams.get("lng");
@@ -243,25 +256,23 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "No matching place found." }, { status: 404 });
       }
 
+      const cacheHeaders = {
+        "Cache-Control": "s-maxage=86400, stale-while-revalidate=172800",
+        ...rateLimitHeaders(rateLimit),
+      };
+
       if (limit > 1) {
-        return NextResponse.json(matches, {
-          headers: {
-            "Cache-Control": "s-maxage=86400, stale-while-revalidate=172800",
-          },
-        });
+        return NextResponse.json(matches, { headers: cacheHeaders });
       }
 
-      return NextResponse.json(matches[0], {
-        headers: {
-          "Cache-Control": "s-maxage=86400, stale-while-revalidate=172800",
-        },
-      });
+      return NextResponse.json(matches[0], { headers: cacheHeaders });
     }
 
     const result = (await response.json()) as NominatimReverseResult;
     return NextResponse.json(buildPayload(result), {
       headers: {
         "Cache-Control": "s-maxage=86400, stale-while-revalidate=172800",
+        ...rateLimitHeaders(rateLimit),
       },
     });
   } catch {

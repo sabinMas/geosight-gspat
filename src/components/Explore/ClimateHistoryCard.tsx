@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -24,23 +25,23 @@ function trendBadge(trend: NonNullable<GeodataResult["climateHistory"]>["trendDi
   switch (trend) {
     case "warming":
       return {
-        label: "Warming",
-        tone: "border-orange-300/20 bg-orange-400/10 text-[var(--foreground)]",
+        label: "Warming trend",
+        tone: "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]",
       };
     case "cooling":
       return {
-        label: "Cooling",
-        tone: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]",
+        label: "Cooling trend",
+        tone: "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]",
       };
     case "stable":
       return {
         label: "Stable",
-        tone: "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]",
+        tone: "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)]",
       };
     default:
       return {
-        label: "Unavailable",
-        tone: "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]",
+        label: "Trend unavailable",
+        tone: "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)]",
       };
   }
 }
@@ -50,6 +51,8 @@ function formatTemp(value: number | null) {
 }
 
 export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
+  const [precipOpen, setPrecipOpen] = useState(false);
+
   if (!geodata) {
     return null;
   }
@@ -100,9 +103,6 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
         </div>
 
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="text-sm leading-6 text-[var(--muted-foreground)]">
-            GeoSight summarizes the long-range trend first, then keeps the decade chart below for a deeper climate read.
-          </div>
           <SafeResponsiveContainer className="h-64">
             <LineChart data={climateHistory.summaries}>
               <XAxis dataKey="year" stroke="#6b7d93" />
@@ -137,27 +137,35 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
           </div>
         </div>
 
-        <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-            Technical details
-          </summary>
-          <div className="eyebrow mt-3">Annual precipitation context</div>
-          <SafeResponsiveContainer className="mt-3 h-32">
-            <BarChart data={climateHistory.summaries}>
-              <XAxis dataKey="year" hide />
-              <YAxis hide />
-              <Tooltip
-                cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                contentStyle={{
-                  background: "#081221",
-                  border: "1px solid rgba(0,229,255,0.18)",
-                  borderRadius: 16,
-                }}
-              />
-              <Bar dataKey="totalPrecipitationMm" fill="#38bdf8" name="Precipitation (mm)" />
-            </BarChart>
-          </SafeResponsiveContainer>
-        </details>
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+          <button
+            type="button"
+            onClick={() => setPrecipOpen((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
+          >
+            {precipOpen ? "Hide precipitation history" : "Show precipitation history"}
+          </button>
+          {precipOpen ? (
+            <>
+              <div className="eyebrow mt-3">Annual precipitation context</div>
+              <SafeResponsiveContainer className="mt-3 h-32">
+                <BarChart data={climateHistory.summaries}>
+                  <XAxis dataKey="year" hide />
+                  <YAxis hide />
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                    contentStyle={{
+                      background: "#081221",
+                      border: "1px solid rgba(0,229,255,0.18)",
+                      borderRadius: 16,
+                    }}
+                  />
+                  <Bar dataKey="totalPrecipitationMm" fill="#38bdf8" name="Precipitation (mm)" />
+                </BarChart>
+              </SafeResponsiveContainer>
+            </>
+          ) : null}
+        </div>
 
         <TrustSummaryPanel
           summary={trustSummary}

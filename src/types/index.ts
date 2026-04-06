@@ -124,8 +124,14 @@ export type WorkspaceCardId =
   | "demographics-context"
   | "outdoor-fit"
   | "trip-summary"
+  | "local-access"
+  | "site-readiness"
+  | "infrastructure-access"
   | "earthquake-history"
-  | "fire-history";
+  | "fire-history"
+  | "multi-hazard-resilience"
+  | "hazard-details"
+  | "housing-market";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -384,6 +390,25 @@ export interface GdacsAlertSummary {
   orangeCurrentAlerts: number;
   nearestAlert: GdacsAlertSummaryItem | null;
   featuredAlerts: GdacsAlertSummaryItem[];
+}
+
+export type HazardRiskTier = "low" | "moderate" | "elevated" | "critical";
+
+export interface HazardDomainScore {
+  domain: string;
+  label: string;
+  score: number;
+  tier: HazardRiskTier;
+  detail: string;
+  available: boolean;
+  coverage: "global" | "us_only";
+}
+
+export interface HazardResilienceSummary {
+  compoundScore: number;
+  tier: HazardRiskTier;
+  domains: HazardDomainScore[];
+  worstDomain: HazardDomainScore | null;
 }
 
 export interface WeatherForecastDay {
@@ -728,6 +753,7 @@ export interface DataTrend {
   detail: string;
   direction: "positive" | "neutral" | "watch";
   source: DataSourceMeta;
+  evidenceKind?: ScoreEvidenceKind;
 }
 
 export interface ElevationProfilePoint {
@@ -784,7 +810,7 @@ export interface SavedSite {
   profileId: string;
   coordinates: Coordinates;
   score: SiteScore;
-  geodata: GeodataResult;
+  geodata?: GeodataResult;
   note?: string;
 }
 
@@ -806,6 +832,7 @@ export interface AgentConversationMessage extends ConversationMessage {
 export interface AnalyzeRequestBody {
   profileId: string;
   question: string;
+  stream?: boolean;
   messages?: ConversationMessage[];
   location?: Coordinates;
   locationName?: string;

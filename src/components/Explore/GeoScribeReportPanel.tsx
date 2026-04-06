@@ -182,7 +182,7 @@ export function GeoScribeReportPanel({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-          {loading ? (
+          {loading && !markdown ? (
             <div className="flex h-full min-h-[240px] items-center justify-center">
               <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-5 py-4 text-sm text-[var(--foreground-soft)]">
                 <div className="flex items-center gap-3">
@@ -213,6 +213,9 @@ export function GeoScribeReportPanel({
                 />
               ) : null}
               <MarkdownContent content={markdown} className="space-y-4" />
+              {loading ? (
+                <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-[var(--accent)] align-middle" />
+              ) : null}
             </div>
           ) : (
             <StatePanel

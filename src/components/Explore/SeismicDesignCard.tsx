@@ -23,20 +23,20 @@ function riskBadge(pga: number | null) {
   if (pga === null) {
     return {
       label: "Unavailable",
-      tone: "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]",
+      tone: "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)]",
     };
   }
   if (pga < 0.1) {
-    return { label: "Low", tone: "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]" };
+    return { label: "Low", tone: "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]" };
   }
   if (pga <= 0.4) {
-    return { label: "Moderate", tone: "border-cyan-300/20 bg-cyan-400/10 text-[var(--foreground)]" };
+    return { label: "Moderate", tone: "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--foreground)]" };
   }
   if (pga <= 0.8) {
-    return { label: "High", tone: "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]" };
+    return { label: "High", tone: "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--foreground)]" };
   }
 
-  return { label: "Very High", tone: "border-rose-300/20 bg-rose-400/10 text-[var(--foreground)]" };
+  return { label: "Very High", tone: "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--foreground)]" };
 }
 
 export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {

@@ -83,6 +83,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       direction:
         geodata.elevationMeters !== null && geodata.elevationMeters < 400 ? "positive" : "watch",
       source: geodata.sources.elevation,
+      evidenceKind: "direct_live",
     },
     {
       id: "trend-water",
@@ -91,6 +92,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       detail: `Nearest mapped water feature: ${geodata.nearestWaterBody.name}.`,
       direction: waterDistance !== null && waterDistance < 2 ? "positive" : "neutral",
       source: geodata.sources.infrastructure,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-water-gauge",
@@ -116,6 +118,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           ? "positive"
           : "neutral",
       source: geodata.sources.water,
+      evidenceKind: "direct_live",
     },
     {
       id: "trend-access",
@@ -124,6 +127,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       detail: `Nearest mapped road corridor: ${geodata.nearestRoad.name}.`,
       direction: roadDistance !== null && roadDistance < 3 ? "positive" : "neutral",
       source: geodata.sources.infrastructure,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-climate",
@@ -142,6 +146,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       direction:
         currentTemp !== null && currentTemp >= 8 && currentTemp <= 24 ? "positive" : "neutral",
       source: geodata.sources.climate,
+      evidenceKind: "direct_live" as const,
     },
     ...(geodata.climate.weatherRiskSummary
       ? [
@@ -153,6 +158,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
               "Open-Meteo forecast risk summary built from current and short-range WMO weather codes.",
             direction: "watch" as const,
             source: geodata.sources.climate,
+            evidenceKind: "derived_live" as const,
           },
         ]
       : []),
@@ -186,6 +192,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
               ? "neutral"
               : "watch",
       source: airStation ? geodata.sources.airQuality : geodata.sources.climate,
+      evidenceKind: "direct_live",
     },
     {
       id: "trend-broadband",
@@ -225,6 +232,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
               ? "neutral"
               : "watch",
       source: geodata.sources.broadband,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-flood",
@@ -238,6 +246,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
             ? "positive"
             : "neutral",
       source: geodata.sources.floodZone,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-contamination",
@@ -260,6 +269,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
             ? "positive"
             : "neutral",
       source: geodata.sources.epaHazards,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-school",
@@ -282,6 +292,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
               : "watch"
           : "watch",
       source: geodata.sources.school,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-land",
@@ -293,6 +304,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
           : "Land-cover classification has not been derived yet.",
       direction: topLandCover?.label.includes("Water") ? "watch" : "neutral",
       source: geodata.sources.landClassification,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-power",
@@ -301,6 +313,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       detail: `Nearest mapped power infrastructure: ${geodata.nearestPower.name}.`,
       direction: powerDistance !== null && powerDistance < 5 ? "positive" : "neutral",
       source: geodata.sources.infrastructure,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-seismic",
@@ -321,6 +334,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
             ? "watch"
             : "neutral",
       source: geodata.sources.hazards,
+      evidenceKind: "direct_live",
     },
     {
       id: "trend-fire",
@@ -341,6 +355,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
               }.`,
       direction: activeFireCount !== null && activeFireCount > 10 ? "watch" : "neutral",
       source: geodata.sources.hazardFire,
+      evidenceKind: "direct_live",
     },
     {
       id: "trend-population",
@@ -362,6 +377,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
             : `${demographics.countyName} population from ACS 5-year Census data.`,
       direction: demographics.population !== null ? "neutral" : "watch",
       source: geodata.sources.demographics,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-services",
@@ -377,6 +393,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       direction:
         amenities.schoolCount !== null && serviceCount >= 8 ? "positive" : "neutral",
       source: geodata.sources.amenities,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-income",
@@ -398,6 +415,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
             : `County median home value: $${demographics.medianHomeValue.toLocaleString()}.`,
       direction: demographics.medianHouseholdIncome !== null ? "neutral" : "watch",
       source: geodata.sources.demographics,
+      evidenceKind: "derived_live",
     },
     {
       id: "trend-activity",
@@ -415,6 +433,7 @@ export function buildLocationTrends(geodata: GeodataResult | null): DataTrend[] 
       direction:
         amenities.commercialCount !== null && activityCount >= 12 ? "positive" : "neutral",
       source: geodata.sources.amenities,
+      evidenceKind: "derived_live",
     },
   ];
 }

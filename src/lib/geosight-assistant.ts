@@ -431,11 +431,11 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
 
   return [
     payload.geodata?.elevationMeters !== null && payload.geodata?.elevationMeters !== undefined
-      ? `Elevation is about ${payload.geodata.elevationMeters} m.`
+      ? `Elevation is about ${payload.geodata.elevationMeters} m. (Mapbox DEM, direct live)`
       : "Elevation is currently unavailable.",
     payload.geodata?.climate?.currentTempC !== null &&
     payload.geodata?.climate?.currentTempC !== undefined
-      ? `Current weather snapshot: ${payload.geodata.climate.currentTempC.toFixed(1)} C now, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h, AQI ${payload.geodata.climate.airQualityIndex ?? "unknown"}.`
+      ? `Current weather snapshot (Open-Meteo, direct live): ${payload.geodata.climate.currentTempC.toFixed(1)} C now, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h, AQI ${payload.geodata.climate.airQualityIndex ?? "unknown"}.`
       : "Current weather snapshot is currently unavailable.",
     payload.geodata?.weatherForecast?.length
       ? `7-day weather forecast (Open-Meteo, direct live): ${payload.geodata.weatherForecast
@@ -447,56 +447,56 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
           .join(" | ")}.`
       : "7-day weather forecast is currently unavailable.",
     payload.geodata?.nearestWaterBody
-      ? `Nearest mapped water feature: ${payload.geodata.nearestWaterBody.name} (${payload.geodata.nearestWaterBody.distanceKm ?? "unknown"} km).`
+      ? `Nearest mapped water feature (OpenStreetMap, derived live): ${payload.geodata.nearestWaterBody.name} (${payload.geodata.nearestWaterBody.distanceKm ?? "unknown"} km).`
       : "Water proximity is currently unavailable.",
     payload.geodata?.nearestRoad
-      ? `Nearest mapped road access: ${payload.geodata.nearestRoad.name} (${payload.geodata.nearestRoad.distanceKm ?? "unknown"} km).`
+      ? `Nearest mapped road access (OpenStreetMap, derived live): ${payload.geodata.nearestRoad.name} (${payload.geodata.nearestRoad.distanceKm ?? "unknown"} km).`
       : "Road access is currently unavailable.",
     payload.geodata?.nearestPower
-      ? `Nearest mapped power infrastructure: ${payload.geodata.nearestPower.name} (${payload.geodata.nearestPower.distanceKm ?? "unknown"} km).`
+      ? `Nearest mapped power infrastructure (OpenStreetMap, derived live): ${payload.geodata.nearestPower.name} (${payload.geodata.nearestPower.distanceKm ?? "unknown"} km).`
       : "Power access is currently unavailable.",
     payload.geodata?.broadband
       ? payload.geodata.broadband.kind === "regional_household_baseline"
-        ? `Broadband context: ${payload.geodata.broadband.regionLabel} country-level Eurostat baseline with ${payload.geodata.broadband.fixedBroadbandCoveragePercent ?? "unknown"}% fixed-broadband households and ${payload.geodata.broadband.mobileBroadbandCoveragePercent ?? "unknown"}% mobile-broadband households.`
-        : `Broadband context: ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadSpeed || "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadSpeed || "unknown"} Mbps up.`
+        ? `Broadband context (Eurostat, proxy regional): ${payload.geodata.broadband.regionLabel} country-level baseline with ${payload.geodata.broadband.fixedBroadbandCoveragePercent ?? "unknown"}% fixed-broadband households and ${payload.geodata.broadband.mobileBroadbandCoveragePercent ?? "unknown"}% mobile-broadband households.`
+        : `Broadband context (FCC BroadbandMap, derived live): ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadSpeed || "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadSpeed || "unknown"} Mbps up.`
       : "Broadband context is currently unavailable.",
     payload.geodata?.floodZone
-      ? `FEMA flood zone: ${payload.geodata.floodZone.label}.`
+      ? `FEMA flood zone (FEMA NFHL, derived live — US only): ${payload.geodata.floodZone.label}.`
       : "FEMA flood-zone context is currently unavailable.",
     nearestGauge
-      ? `Nearest USGS stream gauge: ${nearestGauge.siteName} (${formatDistanceKm(nearestGauge.distanceKm, "unknown distance")}) reporting ${nearestGauge.dischargeCfs ?? "unknown"} cfs.`
+      ? `Nearest USGS stream gauge (USGS NWIS, direct live): ${nearestGauge.siteName} (${formatDistanceKm(nearestGauge.distanceKm, "unknown distance")}) reporting ${nearestGauge.dischargeCfs ?? "unknown"} cfs.`
       : "USGS stream-gauge context is currently unavailable.",
     payload.geodata?.airQuality
-      ? `Nearest air-quality station: ${payload.geodata.airQuality.stationName} with PM2.5 ${payload.geodata.airQuality.pm25 ?? "unknown"} ug/m3, PM10 ${payload.geodata.airQuality.pm10 ?? "unknown"} ug/m3, category ${payload.geodata.airQuality.aqiCategory}.`
+      ? `Nearest air-quality station (OpenAQ, direct live): ${payload.geodata.airQuality.stationName} with PM2.5 ${payload.geodata.airQuality.pm25 ?? "unknown"} ug/m3, PM10 ${payload.geodata.airQuality.pm10 ?? "unknown"} ug/m3, category ${payload.geodata.airQuality.aqiCategory}.`
       : payload.geodata?.climate?.airQualityIndex !== null &&
           payload.geodata?.climate?.airQualityIndex !== undefined
-        ? `OpenAQ station unavailable; Open-Meteo AQI is ${payload.geodata.climate.airQualityIndex}.`
+        ? `OpenAQ station unavailable; Open-Meteo AQI is ${payload.geodata.climate.airQualityIndex}. (Open-Meteo, derived live)`
         : "Air-quality context is currently unavailable.",
     payload.geodata?.epaHazards
-      ? `EPA screening: ${payload.geodata.epaHazards.superfundCount} Superfund sites and ${payload.geodata.epaHazards.triCount} TRI facilities within roughly 50 km; nearest Superfund site ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
+      ? `EPA contamination screening (EPA ECHO/TRI, derived live — US only): ${payload.geodata.epaHazards.superfundCount} Superfund sites and ${payload.geodata.epaHazards.triCount} TRI facilities within roughly 50 km; nearest Superfund site ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
       : "EPA contamination screening is currently unavailable.",
     payload.geodata?.hazards?.earthquakeCount30d !== null &&
     payload.geodata?.hazards?.earthquakeCount30d !== undefined
-      ? `Recent seismic context: ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
+      ? `Recent seismic context (USGS FDSN, direct live): ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
       : "Recent seismic context is currently unavailable.",
     payload.geodata?.hazardAlerts
-      ? `Global disaster alerts (GDACS): ${payload.geodata.hazardAlerts.totalCurrentAlerts} current events worldwide; ${payload.geodata.hazardAlerts.elevatedCurrentAlerts} elevated (orange/red); nearest event ${payload.geodata.hazardAlerts.nearestAlert ? `${payload.geodata.hazardAlerts.nearestAlert.eventLabel} at ${payload.geodata.hazardAlerts.nearestAlert.distanceKm ?? "unknown"} km (${payload.geodata.hazardAlerts.nearestAlert.alertLevel})` : "none with known distance"}.`
+      ? `Global disaster alerts (GDACS, direct live): ${payload.geodata.hazardAlerts.totalCurrentAlerts} current events worldwide; ${payload.geodata.hazardAlerts.elevatedCurrentAlerts} elevated (orange/red); nearest event ${payload.geodata.hazardAlerts.nearestAlert ? `${payload.geodata.hazardAlerts.nearestAlert.eventLabel} at ${payload.geodata.hazardAlerts.nearestAlert.distanceKm ?? "unknown"} km (${payload.geodata.hazardAlerts.nearestAlert.alertLevel})` : "none with known distance"}.`
       : "Global disaster alert context (GDACS) is currently unavailable.",
     payload.geodata?.demographics?.population !== null &&
     payload.geodata?.demographics?.population !== undefined
-      ? `Area demographics (${payload.geodata.demographics.geographicGranularity}-level, ${payload.geodata.demographics.populationReferenceYear ?? "latest"}): ${new Intl.NumberFormat("en-US").format(payload.geodata.demographics.population)} population; median income ${payload.geodata.demographics.medianHouseholdIncome !== null ? `${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(payload.geodata.demographics.medianHouseholdIncome)}` : "unavailable"}${payload.geodata.demographics.medianHomeValue !== null ? `; median home value ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(payload.geodata.demographics.medianHomeValue)}` : ""}. Source: ${payload.geodata.sources.demographics.provider}. ${payload.geodata.demographics.incomeDefinition ?? ""}`
+      ? `Area demographics (${payload.geodata.sources.demographics.provider}, derived live — ${payload.geodata.demographics.geographicGranularity}-level, ${payload.geodata.demographics.populationReferenceYear ?? "latest"}): ${new Intl.NumberFormat("en-US").format(payload.geodata.demographics.population)} population; median income ${payload.geodata.demographics.medianHouseholdIncome !== null ? `${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(payload.geodata.demographics.medianHouseholdIncome)}` : "unavailable"}${payload.geodata.demographics.medianHomeValue !== null ? `; median home value ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(payload.geodata.demographics.medianHomeValue)}` : ""}. ${payload.geodata.demographics.incomeDefinition ?? ""}`
       : "Area demographics are currently unavailable.",
     payload.geodata?.amenities?.schoolCount !== null &&
     payload.geodata?.amenities?.schoolCount !== undefined
-      ? `Mapped amenities: ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, and ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues in the active analysis area.`
+      ? `Mapped amenities (OpenStreetMap, derived live): ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, and ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues in the active analysis area.`
       : "Mapped amenity counts are currently unavailable.",
     payload.geodata?.schoolContext
       ? payload.geodata.schoolContext.score === null
-        ? `School context: ${payload.geodata.schoolContext.explanation}`
-        : `GeoSight school context score: ${payload.geodata.schoolContext.score}/100 (${payload.geodata.schoolContext.band}). ${payload.geodata.schoolContext.explanation}`
+        ? `School context (derived live): ${payload.geodata.schoolContext.explanation}`
+        : `GeoSight school context score (derived live): ${payload.geodata.schoolContext.score}/100 (${payload.geodata.schoolContext.band}). ${payload.geodata.schoolContext.explanation}`
       : "School context is currently unavailable.",
     topLandCover
-      ? `Dominant land cover signal: ${topLandCover.label} (${topLandCover.value}%).`
+      ? `Dominant land cover signal (ML classification, derived live): ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",
   ];
 }

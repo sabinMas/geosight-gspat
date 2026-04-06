@@ -56,7 +56,7 @@ export function SourceInfoButton({ source, title }: SourceInfoButtonProps) {
 
       {open ? (
         <div className="absolute right-0 top-9 z-30 w-72 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3 text-left shadow-[var(--shadow-panel)]">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
             {title ?? source.label}
           </div>
           <div className="mt-2 text-sm font-medium text-[var(--foreground)]">

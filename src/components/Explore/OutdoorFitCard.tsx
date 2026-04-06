@@ -176,7 +176,7 @@ export function OutdoorFitCard({ geodata }: OutdoorFitCardProps) {
               key={signal.label}
               className={`rounded-[1.35rem] border p-4 ${toneClasses(signal.tone)}`}
             >
-              <div className="text-[11px] uppercase tracking-[0.18em] opacity-70">
+              <div className="text-xs uppercase tracking-[0.18em] opacity-70">
                 {signal.label}
               </div>
               <div className="mt-1 text-sm font-semibold">{signal.verdict}</div>

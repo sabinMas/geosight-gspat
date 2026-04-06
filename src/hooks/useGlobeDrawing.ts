@@ -108,10 +108,14 @@ export function useGlobeDrawnShapes({
   viewerRef,
   viewerReady,
   drawnShapes,
+  drawingTool,
+  onVertexDrag,
 }: {
   viewerRef: React.MutableRefObject<CesiumViewer | null>;
   viewerReady: boolean;
   drawnShapes: DrawnShape[];
+  drawingTool?: DrawingTool;
+  onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
 }) {
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -272,13 +276,72 @@ export function useGlobeDrawnShapes({
           });
         }
       }
+
+      // Vertex handles for drag-editing (polygon and measure only, not during active drawing)
+      if (!drawingTool || drawingTool === "none") {
+        if (
+          (shape.type === "polygon" && shape.coordinates.length >= 3) ||
+          (shape.type === "measure" && shape.coordinates.length >= 2)
+        ) {
+          shape.coordinates.forEach((coord, vertexIndex) => {
+            ds.entities.add({
+              id: `vertex-${shape.id}-${vertexIndex}`,
+              position: Cartesian3.fromDegrees(coord.lng, coord.lat, shape.type === "measure" ? 12 : 8),
+              point: {
+                color: Color.WHITE,
+                pixelSize: 12,
+                outlineColor: Color.fromCssColorString(shape.color),
+                outlineWidth: 3,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                disableDepthTestDistance: Number.POSITIVE_INFINITY as any,
+              },
+            });
+          });
+        }
+      }
+    }
+
+    // Vertex drag interaction — only when not in active drawing mode
+    let dragHandler: ScreenSpaceEventHandler | null = null;
+    if (onVertexDrag && (!drawingTool || drawingTool === "none")) {
+      let draggingShapeId: string | null = null;
+      let draggingVertexIndex: number | null = null;
+      dragHandler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+
+      dragHandler.setInputAction((event: { position: Cartesian2 }) => {
+        const picked = viewer.scene.pick(event.position);
+        if (!picked?.id?.id) return;
+        const match = String(picked.id.id).match(/^vertex-(.+)-(\d+)$/);
+        if (!match) return;
+        draggingShapeId = match[1];
+        draggingVertexIndex = parseInt(match[2], 10);
+        viewer.scene.screenSpaceCameraController.enableInputs = false;
+      }, ScreenSpaceEventType.LEFT_DOWN);
+
+      dragHandler.setInputAction((event: { startPosition: Cartesian2; endPosition: Cartesian2 }) => {
+        if (draggingShapeId === null || draggingVertexIndex === null) return;
+        const pos = viewer.camera.pickEllipsoid(event.endPosition, viewer.scene.globe.ellipsoid);
+        if (!pos) return;
+        const carto = Cartographic.fromCartesian(pos);
+        onVertexDrag(draggingShapeId, draggingVertexIndex, {
+          lat: CesiumMath.toDegrees(carto.latitude),
+          lng: CesiumMath.toDegrees(carto.longitude),
+        });
+      }, ScreenSpaceEventType.MOUSE_MOVE);
+
+      dragHandler.setInputAction(() => {
+        draggingShapeId = null;
+        draggingVertexIndex = null;
+        viewer.scene.screenSpaceCameraController.enableInputs = true;
+      }, ScreenSpaceEventType.LEFT_UP);
     }
 
     return () => {
       const ds2 = viewer.dataSources.getByName("drawing-shapes")[0];
       if (ds2) viewer.dataSources.remove(ds2, true);
+      if (dragHandler && !dragHandler.isDestroyed()) dragHandler.destroy();
     };
-  }, [drawnShapes, viewerRef, viewerReady]);
+  }, [drawnShapes, drawingTool, onVertexDrag, viewerRef, viewerReady]);
 }
 
 // ── Active drawing interaction ────────────────────────────────────────────────

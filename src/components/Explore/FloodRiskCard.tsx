@@ -10,18 +10,18 @@ interface FloodRiskCardProps {
 
 function getRiskTone(geodata: GeodataResult) {
   if (!geodata.floodZone?.floodZone) {
-    return "border-slate-300/15 bg-slate-400/10 text-[var(--foreground)]";
+    return "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)]";
   }
 
   if (geodata.floodZone.isSpecialFloodHazard) {
-    return "border-rose-300/20 bg-rose-400/10 text-[var(--foreground)]";
+    return "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-foreground)]";
   }
 
   if (geodata.floodZone.floodZone === "X") {
-    return "border-emerald-300/20 bg-emerald-400/10 text-[var(--foreground)]";
+    return "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]";
   }
 
-  return "border-amber-300/20 bg-amber-400/10 text-[var(--foreground)]";
+  return "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]";
 }
 
 function getRiskLabel(geodata: GeodataResult) {

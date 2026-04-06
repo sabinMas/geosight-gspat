@@ -18,6 +18,15 @@ export interface AnalysisOverview {
   dataGaps: string[];
   trustNotes: string[];
   nextSteps: string[];
+  /** 0–1 fraction of score weight backed by proxy heuristics. */
+  proxyWeight: number;
+}
+
+function evidenceTag(kind: string | undefined): string {
+  if (kind === "direct_live") return " · direct live";
+  if (kind === "derived_live") return " · derived live";
+  if (kind === "proxy") return " · proxy heuristic";
+  return "";
 }
 
 function trimDetail(detail: string, maxLength: number = 110) {
@@ -52,7 +61,9 @@ export function rankFactorInsights(score: SiteScore | null): RankedFactorInsight
 }
 
 function formatFactorPhrase(factor: RankedFactorInsight | undefined) {
-  return factor ? factor.label.toLowerCase() : "the available signals";
+  if (!factor) return "the available signals";
+  const tag = factor.evidenceKind === "proxy" ? " (proxy heuristic)" : factor.evidenceKind === "derived_live" ? " (derived live)" : factor.evidenceKind === "direct_live" ? " (direct live)" : "";
+  return `${factor.label.toLowerCase()}${tag}`;
 }
 
 function buildSummaryFromScore(profile: MissionProfile, score: SiteScore, ranked: RankedFactorInsight[]) {
@@ -140,6 +151,7 @@ export function buildAnalysisOverview(args: {
         "Unavailable signals will be labeled instead of silently omitted.",
       ],
       nextSteps: ["Wait for the first analysis to complete.", "Open a different place if this region stalls."],
+      proxyWeight: 0,
     };
   }
 
@@ -163,6 +175,7 @@ export function buildAnalysisOverview(args: {
         "Search a city, address, landmark, or coordinates.",
         "Start from a featured example if you want a guided first run.",
       ],
+      proxyWeight: 0,
     };
   }
 
@@ -187,11 +200,11 @@ export function buildAnalysisOverview(args: {
   const allStrengths = [...ranked]
     .sort((a, b) => b.impact - a.impact)
     .slice(0, 3)
-    .map((factor) => `${factor.label}: ${factor.shortDetail}`);
+    .map((factor) => `${factor.label}: ${factor.shortDetail}${evidenceTag(factor.evidenceKind)}`);
   const allWatchouts = [...ranked]
     .sort((a, b) => b.gap - a.gap)
     .slice(0, 3)
-    .map((factor) => `${factor.label}: ${factor.shortDetail}`);
+    .map((factor) => `${factor.label}: ${factor.shortDetail}${evidenceTag(factor.evidenceKind)}`);
 
   const strengths = allStrengths.filter((s) => !UNAVAILABLE_PATTERN.test(s));
   const watchouts = allWatchouts.filter((s) => !UNAVAILABLE_PATTERN.test(s));
@@ -230,5 +243,6 @@ export function buildAnalysisOverview(args: {
       "Open source awareness to inspect freshness, coverage, and provider limits.",
       "Save the site if you want to compare it against another candidate.",
     ],
+    proxyWeight,
   };
 }

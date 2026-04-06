@@ -52,8 +52,8 @@ function MarketStat({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-[var(--surface-soft)] p-4 dark:border-neutral-700">
-      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+    <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+      <div className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
         {label}
       </div>
       <div className="mt-3 text-3xl font-semibold tracking-tight text-[var(--foreground)]">

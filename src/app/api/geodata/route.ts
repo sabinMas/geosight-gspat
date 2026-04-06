@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getGeodataCache, setGeodataCache } from "@/lib/user-storage";
 import { getClimateHistory } from "@/lib/climate-history";
 import { getNearbyGroundwaterWells } from "@/lib/groundwater";
 import { getAirQuality } from "@/lib/air-quality";
@@ -205,6 +206,18 @@ export async function GET(request: NextRequest) {
   }
 
   const { lat, lng } = coordinates;
+
+  // Check Redis cache first
+  const cached = await getGeodataCache(lat, lng);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        ...rateLimitHeaders(rateLimit),
+        "X-Cache": "HIT",
+      },
+    });
+  }
+
   const bbox = toBoundingBox({ lat, lng }, 8);
   const isUsPoint = isLikelyUsCoordinate(lat, lng);
   const fireHazardConfigured = isFireHazardConfigured();
@@ -911,10 +924,14 @@ export async function GET(request: NextRequest) {
     ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };
 
+  // Cache the assembled result (fire-and-forget)
+  setGeodataCache(lat, lng, geodata);
+
   return NextResponse.json(geodata, {
     headers: {
       "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
       ...rateLimitHeaders(rateLimit),
+      "X-Cache": "MISS",
     },
   });
 }

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { CapabilityLauncher } from "@/components/Analysis/CapabilityLauncher";
-import { HousingMarketPulse } from "@/components/Explore/HousingMarketPulse";
 import { SourceInfoButton } from "@/components/Source/SourceInfoButton";
 import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
@@ -22,7 +21,6 @@ import {
   AnalysisCapabilityResult,
   DataSourceMeta,
   GeodataResult,
-  HousingMarketResult,
   MissionProfile,
   SiteScore,
 } from "@/types";
@@ -41,9 +39,6 @@ interface ActiveLocationCardProps {
   showSourceDetailsCta?: boolean;
   showCompareCta?: boolean;
   onOpenCompare?: () => void;
-  housingMarket?: HousingMarketResult | null;
-  housingMarketLoading?: boolean;
-  housingMarketError?: string | null;
   analysisCapabilities?: AnalysisCapability[];
   capabilityAnalysisLoading?: boolean;
   capabilityAnalysisError?: string | null;
@@ -74,7 +69,7 @@ function LocationSignalCard({
       className={`min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${className ?? ""}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+        <div className="min-w-0 text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           {label}
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -92,7 +87,7 @@ function LocationSignalCard({
         {detail}
       </div>
       {source ? (
-        <div className="mt-1 text-[11px] text-[var(--muted-foreground)] opacity-70">
+        <div className="mt-1 text-xs text-[var(--muted-foreground)] opacity-70">
           {source.provider}
         </div>
       ) : null}
@@ -114,9 +109,6 @@ export function ActiveLocationCard({
   showSourceDetailsCta = false,
   showCompareCta = false,
   onOpenCompare,
-  housingMarket = null,
-  housingMarketLoading = false,
-  housingMarketError = null,
   analysisCapabilities = [],
   capabilityAnalysisLoading = false,
   capabilityAnalysisError = null,
@@ -257,27 +249,47 @@ export function ActiveLocationCard({
           </div>
 
           <div className="grid gap-3 lg:grid-cols-3">
-            <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-3">
+            <div className={`rounded-[1.25rem] border p-3 ${overview.strengths.length > 0 ? "border-[color:var(--success-border)] bg-[var(--success-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Strongest signals
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
                 {overview.strengths.length > 0 ? (
-                  overview.strengths.slice(0, 2).map((item) => <div key={item}>{item}</div>)
+                  overview.strengths.slice(0, 2).map((item) => {
+                    const dotIdx = item.indexOf(" · ");
+                    const main = dotIdx >= 0 ? item.slice(0, dotIdx) : item;
+                    const tag = dotIdx >= 0 ? item.slice(dotIdx + 3) : null;
+                    return (
+                      <div key={item}>
+                        {main}
+                        {tag ? <span className="ml-1 text-[var(--muted-foreground)]">· {tag}</span> : null}
+                      </div>
+                    );
+                  })
                 ) : (
-                  <div>GeoSight will list the strongest verified signals here once the live bundle is ready.</div>
+                  <div className="text-[var(--muted-foreground)]">Strongest verified signals will appear here once the live bundle is ready.</div>
                 )}
               </div>
             </div>
-            <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-3">
+            <div className={`rounded-[1.25rem] border p-3 ${overview.watchouts.length > 0 ? "border-[color:var(--warning-border)] bg-[var(--warning-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Watch closely
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
                 {overview.watchouts.length > 0 ? (
-                  overview.watchouts.slice(0, 2).map((item) => <div key={item}>{item}</div>)
+                  overview.watchouts.slice(0, 2).map((item) => {
+                    const dotIdx = item.indexOf(" · ");
+                    const main = dotIdx >= 0 ? item.slice(0, dotIdx) : item;
+                    const tag = dotIdx >= 0 ? item.slice(dotIdx + 3) : null;
+                    return (
+                      <div key={item}>
+                        {main}
+                        {tag ? <span className="ml-1 text-[var(--muted-foreground)]">· {tag}</span> : null}
+                      </div>
+                    );
+                  })
                 ) : (
-                  <div>Any weak or unsupported signals will be called out here instead of being buried.</div>
+                  <div className="text-[var(--muted-foreground)]">Weak or unsupported signals will be called out here instead of being buried.</div>
                 )}
               </div>
             </div>
@@ -408,7 +420,7 @@ export function ActiveLocationCard({
           <div className="space-y-3 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+                <span className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                   In-context provenance
                 </span>
                 <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--foreground-soft)]">
@@ -483,15 +495,6 @@ export function ActiveLocationCard({
               Open comparison
             </Button>
           </div>
-        ) : null}
-
-        {profile.id === "home-buying" ? (
-          <HousingMarketPulse
-            locationName={locationName}
-            housingMarket={housingMarket}
-            loading={housingMarketLoading}
-            error={housingMarketError}
-          />
         ) : null}
 
         {onRunCapabilityAnalysis && onClearCapabilityAnalysis ? (

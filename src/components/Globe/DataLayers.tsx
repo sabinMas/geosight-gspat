@@ -134,7 +134,7 @@ export function DataLayers({ layers, onChange }: DataLayersProps) {
         >
           <Layers3 className="mr-2 h-4 w-4" />
           Layers
-          <kbd className="ml-2 rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+          <kbd className="ml-2 rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs text-[var(--muted-foreground)]">
             L
           </kbd>
         </Button>
