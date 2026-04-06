@@ -851,6 +851,7 @@ export function CesiumGlobe({
     viewerRef,
     viewerReady,
     drawingTool,
+    drawnShapes,
     onShapeComplete: onShapeComplete ?? (() => undefined),
   });
 

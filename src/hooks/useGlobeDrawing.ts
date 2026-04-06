@@ -346,20 +346,62 @@ export function useGlobeDrawnShapes({
 
 // ── Active drawing interaction ────────────────────────────────────────────────
 
+const SNAP_RADIUS_PX = 16;
+
+/**
+ * Returns the Cartesian3 position of the nearest existing vertex within
+ * SNAP_RADIUS_PX screen pixels of `screenPos`, or null if none qualifies.
+ */
+function findSnapTarget(
+  viewer: CesiumViewer,
+  screenPos: Cartesian2,
+  drawnShapes: DrawnShape[],
+): Cartesian3 | null {
+  let best: Cartesian3 | null = null;
+  let bestDist = SNAP_RADIUS_PX;
+
+  for (const shape of drawnShapes) {
+    for (const coord of shape.coordinates) {
+      const world = Cartesian3.fromDegrees(coord.lng, coord.lat, 0);
+      const projected = new Cartesian2();
+      // cartesianToCanvasCoordinates returns undefined when behind the camera
+      const result = viewer.scene.cartesianToCanvasCoordinates(world, projected);
+      if (!result) continue;
+      const dx = result.x - screenPos.x;
+      const dy = result.y - screenPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = Cartesian3.fromDegrees(coord.lng, coord.lat, 8);
+      }
+    }
+  }
+
+  return best;
+}
+
 export function useGlobeDrawing({
   viewerRef,
   viewerReady,
   drawingTool,
+  drawnShapes = [],
   onShapeComplete,
 }: {
   viewerRef: React.MutableRefObject<CesiumViewer | null>;
   viewerReady: boolean;
   drawingTool: DrawingTool;
+  drawnShapes?: DrawnShape[];
   onShapeComplete: (shape: DrawnShape) => void;
 }) {
   const verticesRef = useRef<Array<{ lat: number; lng: number }>>([]);
   const previewPosRef = useRef<Cartesian3 | null>(null);
   const firstPointRef = useRef<{ lat: number; lng: number } | null>(null);
+  const snapActiveRef = useRef(false);
+  const drawnShapesRef = useRef<DrawnShape[]>(drawnShapes);
+
+  useEffect(() => {
+    drawnShapesRef.current = drawnShapes;
+  }, [drawnShapes]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -372,10 +414,28 @@ export function useGlobeDrawing({
     verticesRef.current = [];
     previewPosRef.current = null;
     firstPointRef.current = null;
+    snapActiveRef.current = false;
 
     // Separate datasource for the in-progress preview
     const previewDs = new CustomDataSource("drawing-preview");
     void viewer.dataSources.add(previewDs);
+
+    // Snap indicator entity — visible when cursor is near an existing vertex
+    const snapIndicator = previewDs.entities.add({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      position: new CallbackProperty(() => previewPosRef.current ?? Cartesian3.fromDegrees(0, 0, 0), false) as any,
+      point: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        color: new CallbackProperty(() => snapActiveRef.current ? Color.WHITE : Color.TRANSPARENT, false) as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        outlineColor: new CallbackProperty(() => snapActiveRef.current ? color : Color.TRANSPARENT, false) as any,
+        outlineWidth: 3,
+        pixelSize: 18,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        disableDepthTestDistance: Number.POSITIVE_INFINITY as any,
+      },
+    });
+    void snapIndicator; // referenced via CallbackProperty above
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
@@ -403,15 +463,17 @@ export function useGlobeDrawing({
 
       handler.setInputAction(
         (e: { endPosition: Cartesian2 }) => {
-          const pos = pickPosition(viewer, e.endPosition);
-          if (pos) previewPosRef.current = pos;
+          const snap = findSnapTarget(viewer, e.endPosition, drawnShapesRef.current);
+          snapActiveRef.current = snap !== null;
+          previewPosRef.current = snap ?? pickPosition(viewer, e.endPosition) ?? previewPosRef.current;
         },
         ScreenSpaceEventType.MOUSE_MOVE,
       );
 
       handler.setInputAction(
         (e: { position: Cartesian2 }) => {
-          const pos = pickPosition(viewer, e.position);
+          const snap = findSnapTarget(viewer, e.position, drawnShapesRef.current);
+          const pos = snap ?? pickPosition(viewer, e.position);
           if (!pos) return;
           const latlng = toLatLng(pos);
           verticesRef.current = [...verticesRef.current, latlng];
@@ -485,15 +547,17 @@ export function useGlobeDrawing({
 
       handler.setInputAction(
         (e: { endPosition: Cartesian2 }) => {
-          const pos = pickPosition(viewer, e.endPosition);
-          if (pos) previewPosRef.current = pos;
+          const snap = findSnapTarget(viewer, e.endPosition, drawnShapesRef.current);
+          snapActiveRef.current = snap !== null;
+          previewPosRef.current = snap ?? pickPosition(viewer, e.endPosition) ?? previewPosRef.current;
         },
         ScreenSpaceEventType.MOUSE_MOVE,
       );
 
       handler.setInputAction(
         (e: { position: Cartesian2 }) => {
-          const pos = pickPosition(viewer, e.position);
+          const snap = findSnapTarget(viewer, e.position, drawnShapesRef.current);
+          const pos = snap ?? pickPosition(viewer, e.position);
           if (!pos) return;
           const latlng = toLatLng(pos);
 

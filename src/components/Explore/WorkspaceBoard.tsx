@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useRef, useState } from "react";
-import { BookmarkPlus, Check, GripVertical, LayoutDashboard, Trash2 } from "lucide-react";
+import { BookmarkPlus, Check, GripVertical, LayoutDashboard, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SavedBoard, WorkspaceCardDefinition, WorkspaceCardId } from "@/types";
@@ -14,9 +14,12 @@ interface WorkspaceBoardProps {
   onOpenLibrary: () => void;
   onReorderCards: (newOrder: WorkspaceCardId[]) => void;
   savedBoards: SavedBoard[];
+  activeBoardId: string | null;
   onSaveBoard: (name: string) => void;
   onRestoreBoard: (boardId: string) => void;
   onDeleteBoard: (boardId: string) => void;
+  onUpdateActiveBoard: () => void;
+  onRenameBoard: (boardId: string, newName: string) => void;
   children: ReactNode;
 }
 
@@ -27,14 +30,20 @@ export function WorkspaceBoard({
   onOpenLibrary,
   onReorderCards,
   savedBoards,
+  activeBoardId,
   onSaveBoard,
   onRestoreBoard,
   onDeleteBoard,
+  onUpdateActiveBoard,
+  onRenameBoard,
   children,
 }: WorkspaceBoardProps) {
   const [savingName, setSavingName] = useState<string | null>(null);
   const [savedConfirm, setSavedConfirm] = useState<string | null>(null);
+  const [renamingBoardId, setRenamingBoardId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const [dragOverId, setDragOverId] = useState<WorkspaceCardId | null>(null);
   const dragSrcId = useRef<WorkspaceCardId | null>(null);
 
@@ -54,6 +63,28 @@ export function WorkspaceBoard({
     setSavingName(null);
     setTimeout(() => setSavedConfirm(null), 2000);
   }
+
+  function handleBeginRename(board: SavedBoard) {
+    setRenamingBoardId(board.id);
+    setRenamingValue(board.name);
+    requestAnimationFrame(() => renameInputRef.current?.focus());
+  }
+
+  function handleCommitRename() {
+    if (renamingBoardId && renamingValue.trim()) {
+      onRenameBoard(renamingBoardId, renamingValue.trim());
+    }
+    setRenamingBoardId(null);
+    setRenamingValue("");
+  }
+
+  function handleCancelRename() {
+    setRenamingBoardId(null);
+    setRenamingValue("");
+  }
+
+  // Show "Save as new" disabled when at limit AND no active board (can't update instead)
+  const atLimit = savedBoards.length >= 5 && activeBoardId === null;
 
   return (
     <section className="space-y-4">
@@ -145,7 +176,7 @@ export function WorkspaceBoard({
           {savedConfirm ? (
             <div className="flex items-center gap-1.5 rounded-full border border-[color:var(--success-border)] bg-[var(--success-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
               <Check aria-hidden className="h-3.5 w-3.5 shrink-0" />
-              Saved "{savedConfirm}"
+              Saved &ldquo;{savedConfirm}&rdquo;
             </div>
           ) : savingName !== null ? (
             <div className="flex items-center gap-2">
@@ -168,48 +199,102 @@ export function WorkspaceBoard({
               </Button>
             </div>
           ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="rounded-full"
-              onClick={handleBeginSave}
-              disabled={savedBoards.length >= 5}
-            >
-              <BookmarkPlus aria-hidden className="mr-1.5 h-3.5 w-3.5" />
-              Save current
-            </Button>
+            <div className="flex items-center gap-2">
+              {activeBoardId !== null && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full"
+                  onClick={onUpdateActiveBoard}
+                >
+                  <RefreshCw aria-hidden className="mr-1.5 h-3.5 w-3.5" />
+                  Update active
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="rounded-full"
+                onClick={handleBeginSave}
+                disabled={atLimit}
+              >
+                <BookmarkPlus aria-hidden className="mr-1.5 h-3.5 w-3.5" />
+                Save as new
+              </Button>
+            </div>
           )}
         </div>
 
         {savedBoards.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {savedBoards.map((board) => (
-              <div
-                key={board.id}
-                className="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] pl-4 pr-2 py-2"
-              >
-                <span className="text-sm font-semibold text-[var(--foreground)]">{board.name}</span>
-                <span className="text-xs text-[var(--muted-foreground)]">
-                  · {board.visibleCardIds.length} cards
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onRestoreBoard(board.id)}
-                  className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
+            {savedBoards.map((board) => {
+              const isActive = board.id === activeBoardId;
+              return (
+                <div
+                  key={board.id}
+                  className={cn(
+                    "flex items-center gap-1 rounded-full border py-1.5 pl-4 pr-1.5 transition",
+                    isActive
+                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] ring-2 ring-[var(--accent)]"
+                      : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] hover:border-[var(--border-strong)]",
+                  )}
                 >
-                  Restore
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDeleteBoard(board.id)}
-                  aria-label={`Delete layout "${board.name}"`}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
-                >
-                  <Trash2 aria-hidden className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
+                  {renamingBoardId === board.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={renameInputRef}
+                        value={renamingValue}
+                        onChange={(e) => setRenamingValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleCommitRename();
+                          if (e.key === "Escape") handleCancelRename();
+                        }}
+                        className="h-7 w-32 rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2 text-sm text-[var(--foreground)] outline-none focus:border-[color:var(--accent)]"
+                      />
+                      <Button type="button" size="sm" className="rounded-full h-7 px-2.5 text-xs" onClick={handleCommitRename}>
+                        Save
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" className="rounded-full h-7 px-2.5 text-xs" onClick={handleCancelRename}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onRestoreBoard(board.id)}
+                        className="flex items-center gap-1.5 text-left"
+                      >
+                        <span className={cn("text-sm font-semibold", isActive ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]")}>
+                          {board.name}
+                        </span>
+                        <span className="text-xs text-[var(--muted-foreground)]">
+                          · {board.visibleCardIds.length} cards
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleBeginRename(board)}
+                        aria-label={`Rename layout "${board.name}"`}
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+                      >
+                        <Pencil aria-hidden className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteBoard(board.id)}
+                        aria-label={`Delete layout "${board.name}"`}
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+                      >
+                        <Trash2 aria-hidden className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

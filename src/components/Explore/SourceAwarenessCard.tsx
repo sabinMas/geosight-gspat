@@ -11,10 +11,135 @@ import {
   formatSourceRegionScopes,
   inferSourceRegistryContextFromGeodata,
   SOURCE_DOMAIN_LABELS,
+  SOURCE_PROVIDER_REGISTRY,
 } from "@/lib/source-registry";
-import { DataSourceMeta, DataSourceStatus, GeodataResult } from "@/types";
+import { DataSourceMeta, DataSourceStatus, GeodataResult, SourceDomain, SourceRegistryContext } from "@/types";
 
 const STATUS_ORDER: DataSourceStatus[] = ["live", "derived", "limited", "unavailable"];
+
+const ALL_DOMAINS: SourceDomain[] = [
+  "weather",
+  "nearby_places",
+  "demographics",
+  "housing",
+  "hazards",
+  "hydrology",
+  "environmental",
+  "schools",
+  "broadband",
+  "terrain",
+  "imagery",
+];
+
+interface CoverageRow {
+  domain: SourceDomain;
+  label: string;
+  globalLive: boolean;
+  regionLive: boolean;
+  status: "live" | "limited" | "unavailable";
+  limitedScopeLabel: string | null;
+}
+
+function buildDomainCoverageRows(context: SourceRegistryContext): CoverageRow[] {
+  const nonGlobalScopes = context.scopes.filter((s) => s !== "global");
+
+  return ALL_DOMAINS.map((domain) => {
+    const integratedProviders = SOURCE_PROVIDER_REGISTRY.filter(
+      (p) => p.integrated && p.domains.includes(domain),
+    );
+
+    const globalLive = integratedProviders.some((p) => p.coverage.includes("global"));
+    const regionLive =
+      nonGlobalScopes.length > 0 &&
+      integratedProviders.some((p) =>
+        p.coverage.some((c) => c !== "global" && nonGlobalScopes.includes(c)),
+      );
+
+    let status: CoverageRow["status"];
+    let limitedScopeLabel: string | null = null;
+
+    if (regionLive || globalLive) {
+      status = "live";
+    } else if (integratedProviders.length > 0) {
+      status = "limited";
+      // Determine a human-readable label for the limited scope
+      const allCoverageScopes = integratedProviders.flatMap((p) => p.coverage);
+      const uniqueScopes = Array.from(new Set(allCoverageScopes)).filter((s) => s !== "global");
+      if (uniqueScopes.length === 1 && uniqueScopes[0] === "us") {
+        limitedScopeLabel = "US only";
+      } else if (uniqueScopes.length > 0) {
+        limitedScopeLabel = "Limited";
+      } else {
+        limitedScopeLabel = "Limited";
+      }
+    } else {
+      status = "unavailable";
+    }
+
+    return {
+      domain,
+      label: SOURCE_DOMAIN_LABELS[domain],
+      globalLive,
+      regionLive,
+      status,
+      limitedScopeLabel,
+    };
+  });
+}
+
+const COVERAGE_DOT: Record<CoverageRow["status"], string> = {
+  live: "bg-[var(--success-border)]",
+  limited: "bg-[var(--warning-border)]",
+  unavailable: "bg-[var(--muted-foreground)] opacity-40",
+};
+
+function DomainCoverageMatrix({ context }: { context: SourceRegistryContext }) {
+  const rows = buildDomainCoverageRows(context);
+  return (
+    <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+      <div className="text-sm font-semibold text-[var(--foreground)]">Domain coverage</div>
+      <div className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+        What GeoSight can see for this location
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {rows.map((row) => (
+          <div
+            key={row.domain}
+            className="flex items-center justify-between gap-2 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-2.5"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${COVERAGE_DOT[row.status]}`}
+              />
+              <span className="truncate text-sm text-[var(--foreground)]">{row.label}</span>
+            </div>
+            {row.status === "live" && (
+              <span
+                className="cursor-default select-none rounded-full border border-[color:var(--success-border)] bg-[var(--success-soft)] px-2.5 py-0.5 text-xs text-[var(--foreground)] pointer-events-none whitespace-nowrap"
+              >
+                Live
+              </span>
+            )}
+            {row.status === "limited" && (
+              <span
+                className="cursor-default select-none rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-2.5 py-0.5 text-xs text-[var(--warning-foreground)] pointer-events-none whitespace-nowrap"
+              >
+                {row.limitedScopeLabel ?? "Limited"}
+              </span>
+            )}
+            {row.status === "unavailable" && (
+              <span
+                className="cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] pointer-events-none whitespace-nowrap"
+              >
+                Not covered
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function CoverageAtAGlance({ sources }: { sources: Record<string, DataSourceMeta> }) {
   const grouped = STATUS_ORDER.map((status) => ({
@@ -93,6 +218,8 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
           <div className="mb-3 text-sm font-semibold text-[var(--foreground)]">Coverage at a glance</div>
           <CoverageAtAGlance sources={geodata.sources} />
         </div>
+
+        <DomainCoverageMatrix context={registryContext} />
 
         <div className="grid gap-3 lg:grid-cols-4">
           <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">

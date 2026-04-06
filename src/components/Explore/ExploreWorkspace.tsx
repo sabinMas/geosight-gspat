@@ -661,9 +661,12 @@ export function ExploreWorkspace() {
                   onOpenLibrary={data.openLibrary}
                   onReorderCards={data.reorderCards}
                   savedBoards={data.savedBoards}
+                  activeBoardId={data.activeBoardId}
                   onSaveBoard={data.saveCurrentBoard}
                   onRestoreBoard={data.restoreBoard}
                   onDeleteBoard={data.deleteBoard}
+                  onUpdateActiveBoard={data.updateActiveBoard}
+                  onRenameBoard={data.renameBoard}
                 >
                   {data.activeBoardCard ? (
                     <div

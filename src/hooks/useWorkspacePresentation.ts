@@ -18,6 +18,7 @@ interface StoredWorkspacePresentation {
   activePrimaryCards?: Record<string, WorkspaceCardId>;
   pinnedCards?: Record<string, WorkspaceCardId[]>;
   savedBoards?: SavedBoard[];
+  activeBoardId?: string | null;
 }
 
 function readStoredPresentation(): StoredWorkspacePresentation {
@@ -53,16 +54,21 @@ function getInitialPresentationState(
   const storedPrimaryCardId =
     stored.activePrimaryCards?.[profileId] ?? stored.activePrimaryCards?.[legacyProfileId];
 
+  const profileBoards = (stored.savedBoards ?? []).filter(
+    (board) => board.profileId === profileId || board.profileId === legacyProfileId,
+  ).map((board) => ({ ...board, profileId }));
+
+  const storedActiveBoardId = stored.activeBoardId ?? null;
+  const activeBoardId = storedActiveBoardId && profileBoards.some((b) => b.id === storedActiveBoardId)
+    ? storedActiveBoardId
+    : null;
+
   return {
     shellMode: stored.shellModes?.[profileId] ?? stored.shellModes?.[legacyProfileId] ?? "minimal",
     viewMode: stored.viewMode ?? "board",
     pinnedCardIds: stored.pinnedCards?.[profileId] ?? stored.pinnedCards?.[legacyProfileId] ?? [],
-    savedBoards: (stored.savedBoards ?? []).filter(
-      (board) => board.profileId === profileId || board.profileId === legacyProfileId,
-    ).map((board) => ({
-      ...board,
-      profileId,
-    })),
+    savedBoards: profileBoards,
+    activeBoardId,
     activeCardId:
       storedBoardCardId && visibleWorkspaceCardIds.includes(storedBoardCardId)
         ? storedBoardCardId
@@ -102,6 +108,9 @@ export function useWorkspacePresentation(
   const [savedBoards, setSavedBoards] = useState<SavedBoard[]>(
     () => getInitialPresentationState(normalizedProfileId, visibleWorkspaceCardIds, visiblePrimaryCardIds).savedBoards,
   );
+  const [activeBoardId, setActiveBoardId] = useState<string | null>(
+    () => getInitialPresentationState(normalizedProfileId, visibleWorkspaceCardIds, visiblePrimaryCardIds).activeBoardId,
+  );
   const visibleWorkspaceCardIdsRef = useRef(visibleWorkspaceCardIds);
   const visiblePrimaryCardIdsRef = useRef(visiblePrimaryCardIds);
 
@@ -123,6 +132,7 @@ export function useWorkspacePresentation(
     setViewModeState(stored.viewMode);
     setPinnedCardIds(stored.pinnedCardIds);
     setSavedBoards(stored.savedBoards);
+    setActiveBoardId(stored.activeBoardId);
     setActiveCardIdState(stored.activeCardId);
     setActivePrimaryCardIdState(stored.activePrimaryCardId);
   }, [normalizedProfileId]);
@@ -235,8 +245,10 @@ export function useWorkspacePresentation(
       shellModes: stored.shellModes ?? {},
       pinnedCards: stored.pinnedCards ?? {},
       savedBoards: nextBoards,
+      activeBoardId: nextBoard.id,
     });
     setSavedBoards(sameProfileBoards);
+    setActiveBoardId(nextBoard.id);
   }, [activeCardId, normalizedProfileId, visibleWorkspaceCardIds]);
 
   const restoreBoard = useCallback((boardId: string) => {
@@ -263,6 +275,7 @@ export function useWorkspacePresentation(
     setShellModeState("board");
     setViewModeState("board");
 
+    setActiveBoardId(boardId);
     writeStoredPresentation({
       ...stored,
       shellModes: {
@@ -279,17 +292,61 @@ export function useWorkspacePresentation(
       activePrimaryCards: stored.activePrimaryCards ?? {},
       pinnedCards: stored.pinnedCards ?? {},
       savedBoards: stored.savedBoards ?? [],
+      activeBoardId: boardId,
     });
   }, [allWorkspaceCardIds, normalizedProfileId, setWorkspaceCardVisible]);
 
   const deleteBoard = useCallback((boardId: string) => {
     const stored = readStoredPresentation();
     const nextBoards = (stored.savedBoards ?? []).filter((board) => board.id !== boardId);
+    const nextActiveBoardId = stored.activeBoardId === boardId ? null : (stored.activeBoardId ?? null);
     writeStoredPresentation({
       ...stored,
       shellModes: stored.shellModes ?? {},
       pinnedCards: stored.pinnedCards ?? {},
       savedBoards: nextBoards,
+      activeBoardId: nextActiveBoardId,
+    });
+    setSavedBoards(nextBoards.filter((board) => board.profileId === normalizedProfileId));
+    setActiveBoardId(nextActiveBoardId);
+  }, [normalizedProfileId]);
+
+  const updateActiveBoard = useCallback(() => {
+    if (!activeBoardId) return;
+    const stored = readStoredPresentation();
+    const existingBoards = stored.savedBoards ?? [];
+    const nextBoards = existingBoards.map((board) =>
+      board.id === activeBoardId
+        ? {
+            ...board,
+            activeCardId,
+            visibleCardIds: visibleWorkspaceCardIds,
+          }
+        : board,
+    );
+    writeStoredPresentation({
+      ...stored,
+      shellModes: stored.shellModes ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
+      savedBoards: nextBoards,
+      activeBoardId,
+    });
+    setSavedBoards(nextBoards.filter((board) => board.profileId === normalizedProfileId));
+  }, [activeBoardId, activeCardId, normalizedProfileId, visibleWorkspaceCardIds]);
+
+  const renameBoard = useCallback((boardId: string, newName: string) => {
+    const trimmedName = newName.trim();
+    if (!trimmedName) return;
+    const stored = readStoredPresentation();
+    const nextBoards = (stored.savedBoards ?? []).map((board) =>
+      board.id === boardId ? { ...board, name: trimmedName } : board,
+    );
+    writeStoredPresentation({
+      ...stored,
+      shellModes: stored.shellModes ?? {},
+      pinnedCards: stored.pinnedCards ?? {},
+      savedBoards: nextBoards,
+      activeBoardId: stored.activeBoardId ?? null,
     });
     setSavedBoards(nextBoards.filter((board) => board.profileId === normalizedProfileId));
   }, [normalizedProfileId]);
@@ -328,8 +385,11 @@ export function useWorkspacePresentation(
     pinnedCardIds,
     togglePinnedCard,
     savedBoards,
+    activeBoardId,
     saveCurrentBoard,
     restoreBoard,
     deleteBoard,
+    updateActiveBoard,
+    renameBoard,
   };
 }
