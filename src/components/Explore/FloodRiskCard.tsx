@@ -1,7 +1,7 @@
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
+import { WorkspaceCardShell } from "./WorkspaceCardShell";
 import { GeodataResult } from "@/types";
 
 interface FloodRiskCardProps {
@@ -48,12 +48,7 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
   const trustSummary = summarizeSourceTrust([geodata.sources.floodZone], "Flood screening");
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Floodplain due diligence</div>
-        <CardTitle>Flood risk</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Floodplain due diligence" title="Flood risk">
         <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${getRiskTone(geodata)}`}>
           Flood risk: {getRiskLabel(geodata)}
         </div>
@@ -102,7 +97,6 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
           sources={[geodata.sources.floodZone]}
           note="This card reflects FEMA's mapped floodplain layer. It does not replace local floodplain review, insurance diligence, or engineering-grade stormwater analysis."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

@@ -582,6 +582,7 @@ export function ExploreWorkspace() {
                   onSelectTool={state.setDrawingTool}
                   drawnShapes={state.drawnShapes}
                   onClearAll={() => state.setDrawnShapes([])}
+                  onDeleteShape={state.removeDrawnShape}
                   canUndo={state.canUndo}
                   canRedo={state.canRedo}
                   onUndo={state.undoDrawing}

@@ -24,7 +24,7 @@ This backlog was reconciled against:
 - `src/lib/demos/registry.ts`
 - `src/lib/agents/agent-config.ts`
 
-Last updated: 2026-04-06 — GeoScribe streaming: `generateReport` now reads the agents route stream incrementally; panel renders markdown as it arrives with blinking cursor instead of blocking on the full response. Also shipped this session: Redis geodata caching (1h TTL, 3dp coordinate key); HTML5 drag-to-reorder card chips in board mode; inline evidence kind tags in strengths/watchouts; HazardDetailsCard (seismic ASCE 7-22, earthquake history, FEMA flood, FIRMS fire, GDACS alerts, AQI, EPA); design token sweep (all text-[10px]/[11px] → text-xs, all raw emerald/rose/neutral colors → CSS var tokens); drive mode hard-floor terrain collision clamp; HousingMarketCard workspace card; vertex drag-editing on drawn shapes.
+Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each drawn shape chip has an X button wired to `removeDrawnShape(id)` in `useExploreState`; (2) `WorkspaceCardShell` standardises Card/CardHeader/CardContent/loading/error/empty across all workspace cards — BroadbandCard, GroundwaterCard, ClimateHistoryCard, FloodRiskCard, AirQualityCard, ContaminationRiskCard all migrated; (3) multi-board tabs — `activeBoardId` tracked in localStorage, board chips are click-to-switch tabs with ring highlight, "Update active" saves current state, inline Pencil rename; (4) domain coverage matrix in SourceAwarenessCard showing integrated providers per domain with regional status; (5) snap-to-vertex in drawing tools (16px screen-space radius, white ring indicator); (6) Eurostat NUTS2 demographics — GISCO reverse geocode resolves NUTS2 region code for European coordinates; `fetchEurostatDemographics` tries `demo_pjan` at NUTS2 level before falling back to country level; `geographicGranularity: "nuts2_region"` propagated through to DemographicsCard label.
 
 ## Shipped Foundation
 
@@ -132,7 +132,7 @@ Last updated: 2026-04-06 — GeoScribe streaming: `generateReport` now reads the
 
 - ~~Named saved workspaces~~ — shipped: inline name input + restore/delete chip UI in `WorkspaceBoard.tsx`; layouts persist in localStorage.
 - ~~Drag-and-drop card reordering~~ — shipped: HTML5 drag API on board chip row, `GripVertical` handle, order written to `globalOrder` in localStorage.
-- Remaining gap: multi-board composition flows.
+- ~~Multi-board composition~~ — **shipped**: `activeBoardId` tracked in localStorage; board chips are click-to-switch tabs with `ring-2 ring-[var(--accent)]` highlight; "Update active" saves current card set to the active board; inline Pencil rename via `onRenameBoard`.
 
 ### Proxy-heavy factors still need stronger direct replacements
 
@@ -153,7 +153,8 @@ Last updated: 2026-04-06 — GeoScribe streaming: `generateReport` now reads the
 - ~~Vertex drag-editing~~ — **shipped**: white handle entities, ScreenSpaceEventHandler drag, `updateDrawnShapeVertex` in state.
 - ~~GeoJSON export~~ — **shipped**.
 - ~~Undo/redo~~ — **shipped**.
-- Remaining: snap-to-existing-vertices when drawing.
+- ~~Snap-to-existing-vertices~~ — **shipped**: `findSnapTarget` in `useGlobeDrawing` projects vertex positions to screen space via `cartesianToCanvasCoordinates`, snaps within 16px; white ring snap indicator via `CallbackProperty`; polygon and measure tools use snap-first pattern.
+- ~~Per-shape deletion~~ — **shipped**: X button on each shape chip in `DrawingToolbar` calls `onDeleteShape(id)` → `removeDrawnShape` in `useExploreState`.
 
 ## Next Highest-Value Milestones
 
@@ -171,7 +172,10 @@ Last updated: 2026-04-06 — GeoScribe streaming: `generateReport` now reads the
 
 ### P1: Global Coverage
 
-- Live non-US provider integrations
+- ~~Eurostat NUTS2 demographics~~ — **shipped**: GISCO reverse geocode resolves NUTS2 region code for European coordinates; `fetchEurostatDemographics` tries `demo_pjan` at NUTS2 level before falling back to country level; `geographicGranularity: "nuts2_region"` shown in DemographicsCard as "Regional (NUTS2)".
+- ~~Domain coverage matrix~~ — **shipped**: `SourceAwarenessCard` now includes a grid showing integrated providers per domain with live/limited/unavailable status derived from `SOURCE_PROVIDER_REGISTRY`.
+- ~~WorkspaceCardShell~~ — **shipped**: standard `WorkspaceCardShell` component wraps Card/CardHeader/CardContent with built-in loading/error/empty states; BroadbandCard, GroundwaterCard, ClimateHistoryCard, FloodRiskCard, AirQualityCard, ContaminationRiskCard all migrated.
+- Live non-US provider integrations (flood, soil, seismic, school beyond Eurostat)
 - Regional provider selection in reasoning and UI
 
 ### P1: High-Value Domain Expansion

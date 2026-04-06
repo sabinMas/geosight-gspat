@@ -93,6 +93,7 @@ export interface ExploreState {
   undoDrawing: () => void;
   redoDrawing: () => void;
   renameShape: (id: string, label: string) => void;
+  removeDrawnShape: (id: string) => void;
   updateDrawnShapeVertex: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -209,6 +210,10 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
 
   const renameShape = useCallback((id: string, label: string) => {
     setDrawnShapes((prev) => prev.map((s) => (s.id === id ? { ...s, label } : s)));
+  }, []);
+
+  const removeDrawnShape = useCallback((id: string) => {
+    setDrawnShapes((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
   const updateDrawnShapeVertex = useCallback(
@@ -334,6 +339,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     undoDrawing,
     redoDrawing,
     renameShape,
+    removeDrawnShape,
     updateDrawnShapeVertex,
     canUndo: drawnShapes.length > 0,
     canRedo: redoStack.length > 0,

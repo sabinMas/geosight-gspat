@@ -102,7 +102,7 @@ async function fetchGlobalDemographics(coords: Coordinates): Promise<GeodataResu
     }
 
     if (supportsEurostatCountry(country.countryCode)) {
-      return fetchEurostatDemographics(country.countryCode, country.countryName);
+      return fetchEurostatDemographics(country.countryCode, country.countryName, coords);
     }
 
     const [population, gniPerCapita] = await Promise.all([

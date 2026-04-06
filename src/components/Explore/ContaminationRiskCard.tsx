@@ -1,7 +1,7 @@
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
+import { WorkspaceCardShell } from "./WorkspaceCardShell";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
@@ -33,12 +33,7 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
   );
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Environmental due diligence</div>
-        <CardTitle>Contamination screening</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Environmental due diligence" title="Contamination screening">
         {geodata.sources.epaHazards.status === "unavailable" ? (
           <StatePanel
             tone="unavailable"
@@ -111,7 +106,6 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
           sources={[geodata.sources.epaHazards]}
           note="This card is a screening layer based on EPA facilities and site inventories. It highlights where deeper environmental due diligence should start, not whether a parcel is clean."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

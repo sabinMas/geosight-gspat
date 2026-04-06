@@ -22,8 +22,10 @@ function formatCurrency(value: number | null, currencyCode = "USD") {
   }).format(value);
 }
 
-function getGranularityLabel(granularity: "county" | "country") {
-  return granularity === "county" ? "County-level" : "Country-level";
+function getGranularityLabel(granularity: "county" | "country" | "nuts2_region") {
+  if (granularity === "county") return "County-level";
+  if (granularity === "nuts2_region") return "Regional (NUTS2)";
+  return "Country-level";
 }
 
 export function DemographicsCard({ geodata }: DemographicsCardProps) {

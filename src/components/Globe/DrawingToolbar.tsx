@@ -10,6 +10,7 @@ interface DrawingToolbarProps {
   onSelectTool: (tool: DrawingTool) => void;
   drawnShapes: DrawnShape[];
   onClearAll: () => void;
+  onDeleteShape: (id: string) => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -101,11 +102,19 @@ function PinLabelEditor({
   );
 }
 
+const SHAPE_TYPE_LABELS: Record<DrawnShape["type"], string> = {
+  polygon: "Area",
+  marker: "Pin",
+  measure: "Distance",
+  circle: "Radius",
+};
+
 export function DrawingToolbar({
   drawingTool,
   onSelectTool,
   drawnShapes,
   onClearAll,
+  onDeleteShape,
   canUndo,
   canRedo,
   onUndo,
@@ -115,6 +124,7 @@ export function DrawingToolbar({
 }: DrawingToolbarProps) {
   const activeToolMeta = TOOLS.find((t) => t.id === drawingTool);
   const markers = drawnShapes.filter((s) => s.type === "marker");
+  const nonMarkers = drawnShapes.filter((s) => s.type !== "marker");
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -230,13 +240,43 @@ export function DrawingToolbar({
         </span>
       ) : null}
 
-      {markers.length > 0 ? (
+      {(markers.length > 0 || nonMarkers.length > 0) ? (
         <div className="flex w-full flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
-            Pins
-          </span>
           {markers.map((shape) => (
-            <PinLabelEditor key={shape.id} shape={shape} onRename={onRenameShape} />
+            <div key={shape.id} className="flex items-center gap-0.5">
+              <PinLabelEditor shape={shape} onRename={onRenameShape} />
+              <button
+                type="button"
+                onClick={() => onDeleteShape(shape.id)}
+                aria-label={`Delete pin "${shape.label ?? "Pin"}"`}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {nonMarkers.map((shape) => (
+            <div
+              key={shape.id}
+              className="flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] pl-2.5 pr-1 py-1"
+            >
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: shape.color }}
+              />
+              <span className="text-xs text-[var(--foreground-soft)]">
+                {SHAPE_TYPE_LABELS[shape.type]}
+                {shape.measurementLabel ? ` · ${shape.measurementLabel}` : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => onDeleteShape(shape.id)}
+                aria-label={`Delete ${SHAPE_TYPE_LABELS[shape.type].toLowerCase()}`}
+                className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
           ))}
         </div>
       ) : null}

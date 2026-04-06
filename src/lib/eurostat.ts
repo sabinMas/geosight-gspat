@@ -1,5 +1,5 @@
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
-import { BroadbandResult, GeodataResult } from "@/types";
+import { BroadbandResult, Coordinates, GeodataResult } from "@/types";
 
 const EUROSTAT_BASE_URL =
   "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data";
@@ -100,15 +100,48 @@ export function supportsEurostatCountry(countryCode: string | null | undefined) 
   return Boolean(countryCode && EUROSTAT_COUNTRY_CODES.has(countryCode.toUpperCase()));
 }
 
+type GiscoReverseResponse = {
+  features?: Array<{
+    properties?: {
+      nuts?: {
+        NUTS2?: { code?: string; name?: string };
+      };
+    };
+  }>;
+};
+
+async function fetchGiscoNuts2(coords: Coordinates) {
+  try {
+    const url = `https://gisco-services.ec.europa.eu/api/?q=&lat=${coords.lat}&lon=${coords.lng}&lang=en&limit=1`;
+    const response = await fetchWithTimeout(
+      url,
+      { next: { revalidate: 60 * 60 * 24 } },
+      EXTERNAL_TIMEOUTS.fast,
+    );
+    if (!response.ok) return null;
+    const payload = (await response.json()) as GiscoReverseResponse;
+    const nuts2 = payload.features?.[0]?.properties?.nuts?.NUTS2;
+    if (!nuts2?.code) return null;
+    return { code: nuts2.code, name: nuts2.name ?? nuts2.code };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchEurostatDemographics(
   countryCode: string,
   countryName: string,
+  coords?: Coordinates,
 ): Promise<GeodataResult["demographics"]> {
   const normalizedCountryCode = countryCode.trim().toUpperCase();
 
+  // Try to resolve a NUTS2 region for sub-national granularity
+  const nuts2 = coords ? await fetchGiscoNuts2(coords) : null;
+  const geoCode = nuts2 ? nuts2.code : normalizedCountryCode;
+
   const [population, medianIncome] = await Promise.all([
     fetchLatestEurostatValue("demo_pjan", {
-      geo: normalizedCountryCode,
+      geo: geoCode,
       sex: "T",
       age: "TOTAL",
       unit: "NR",
@@ -122,14 +155,29 @@ export async function fetchEurostatDemographics(
     }).catch(() => null),
   ]);
 
+  // If NUTS2 population lookup failed, fall back to country level
+  const resolvedPopulation =
+    population ??
+    (nuts2
+      ? await fetchLatestEurostatValue("demo_pjan", {
+          geo: normalizedCountryCode,
+          sex: "T",
+          age: "TOTAL",
+          unit: "NR",
+        }).catch(() => null)
+      : null);
+
+  const granularity: GeodataResult["demographics"]["geographicGranularity"] =
+    nuts2 && population ? "nuts2_region" : "country";
+
   return {
-    countyName: countryName,
-    stateCode: normalizedCountryCode,
-    population: population?.value ?? null,
+    countyName: nuts2 && population ? nuts2.name : countryName,
+    stateCode: nuts2 ? nuts2.code : normalizedCountryCode,
+    population: resolvedPopulation?.value ?? null,
     medianHouseholdIncome: medianIncome?.value ?? null,
     medianHomeValue: null,
-    geographicGranularity: "country",
-    populationReferenceYear: population?.year ?? null,
+    geographicGranularity: granularity,
+    populationReferenceYear: resolvedPopulation?.year ?? null,
     incomeReferenceYear: medianIncome?.year ?? null,
     incomeDefinition: medianIncome
       ? "Eurostat median equivalised net income"

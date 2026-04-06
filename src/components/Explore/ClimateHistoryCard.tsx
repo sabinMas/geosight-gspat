@@ -12,8 +12,8 @@ import {
 } from "recharts";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
+import { WorkspaceCardShell } from "./WorkspaceCardShell";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -64,38 +64,27 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
   );
   if (!climateHistory || !climateHistory.summaries.length) {
     return (
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="eyebrow">Historical weather</div>
-          <CardTitle>Climate trends (10-year)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <StatePanel
-            tone={geodata.sources.climateHistory.status === "unavailable" ? "unavailable" : "partial"}
-            eyebrow="Trend coverage"
-            title="Historical climate history is not fully available here"
-            description={geodata.sources.climateHistory.note ?? "GeoSight could not assemble the 10-year climate archive for this point, so trend claims should stay conservative."}
-            compact
-          />
-          <TrustSummaryPanel
-            summary={trustSummary}
-            sources={[geodata.sources.climateHistory]}
-            note="This card uses the Open-Meteo archive when long-range weather history is available for the selected point."
-          />
-        </CardContent>
-      </Card>
+      <WorkspaceCardShell eyebrow="Historical weather" title="Climate trends (10-year)">
+        <StatePanel
+          tone={geodata.sources.climateHistory.status === "unavailable" ? "unavailable" : "partial"}
+          eyebrow="Trend coverage"
+          title="Historical climate history is not fully available here"
+          description={geodata.sources.climateHistory.note ?? "GeoSight could not assemble the 10-year climate archive for this point, so trend claims should stay conservative."}
+          compact
+        />
+        <TrustSummaryPanel
+          summary={trustSummary}
+          sources={[geodata.sources.climateHistory]}
+          note="This card uses the Open-Meteo archive when long-range weather history is available for the selected point."
+        />
+      </WorkspaceCardShell>
     );
   }
 
   const badge = trendBadge(climateHistory.trendDirection);
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Historical weather</div>
-        <CardTitle>Climate trends (10-year)</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Historical weather" title="Climate trends (10-year)">
         <div
           className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${badge.tone}`}
         >
@@ -172,7 +161,6 @@ export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
           sources={[geodata.sources.climateHistory]}
           note="GeoSight compares the more recent five-year average against the earlier five-year baseline so the user can tell whether conditions are warming, cooling, or staying roughly stable."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

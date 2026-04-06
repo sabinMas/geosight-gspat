@@ -639,7 +639,7 @@ export interface GeodataResult {
     population: number | null;
     medianHouseholdIncome: number | null;
     medianHomeValue: number | null;
-    geographicGranularity: "county" | "country";
+    geographicGranularity: "county" | "country" | "nuts2_region";
     populationReferenceYear: number | null;
     incomeReferenceYear: number | null;
     incomeDefinition: string | null;

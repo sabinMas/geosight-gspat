@@ -1,7 +1,7 @@
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
+import { WorkspaceCardShell } from "./WorkspaceCardShell";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
 
@@ -39,12 +39,7 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
   );
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Environmental quality</div>
-        <CardTitle>Air quality</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Environmental quality" title="Air quality">
         {geodata.airQuality ? (
           <>
             <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${getAqiTone(geodata.airQuality.aqiCategory)}`}>
@@ -104,7 +99,6 @@ export function AirQualityCard({ geodata }: AirQualityCardProps) {
           sources={[geodata.sources.airQuality, geodata.sources.climate]}
           note="Nearest-station pollutant values are more direct than the broader AQI estimate. When the station is missing, GeoSight labels the result as a wider atmospheric screen instead of a local monitor reading."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }
