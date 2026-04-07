@@ -201,6 +201,11 @@ export interface WorkspaceCardDefinition {
   modeVisibility: { explorer: boolean; pro: boolean };
 }
 
+/** Minimum prop contract shared by all workspace cards that render geodata. */
+export interface WorkspaceCardBaseProps {
+  geodata: GeodataResult | null;
+}
+
 export interface AnalysisCapability {
   analysisId: AnalysisCapabilityId;
   title: string;

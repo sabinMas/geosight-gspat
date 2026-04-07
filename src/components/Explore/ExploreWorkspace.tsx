@@ -17,7 +17,6 @@ import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
-import { AuthButton } from "@/components/Shell/AuthButton";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
@@ -357,7 +356,6 @@ export function ExploreWorkspace() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <AuthButton />
               <ModeSwitcher mode={state.appMode} onSetMode={state.setAppMode} />
               <div className="max-w-full overflow-x-auto">
               <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]">
