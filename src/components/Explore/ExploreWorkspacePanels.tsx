@@ -21,6 +21,7 @@ import { InfrastructureAccessCard } from "@/components/Explore/InfrastructureAcc
 import { LocalAccessCard } from "@/components/Explore/LocalAccessCard";
 import { SiteReadinessCard } from "@/components/Explore/SiteReadinessCard";
 import { MultiHazardResilienceCard } from "@/components/Explore/MultiHazardResilienceCard";
+import { ResilienceScoreCard } from "@/components/Explore/ResilienceScoreCard";
 import { HazardDetailsCard } from "@/components/Explore/HazardDetailsCard";
 import { OutdoorFitCard } from "@/components/Explore/OutdoorFitCard";
 import { SchoolContextCard } from "@/components/Explore/SchoolContextCard";
@@ -137,6 +138,7 @@ function getDataDependencyPlaceholder(
     "earthquake-history",
     "fire-history",
     "multi-hazard-resilience",
+    "resilience-score",
     "site-readiness",
     "infrastructure-access",
     "hazard-details",
@@ -396,6 +398,8 @@ export function ExploreWorkspacePanel({
       return <InfrastructureAccessCard geodata={data.geodata} />;
     case "multi-hazard-resilience":
       return <MultiHazardResilienceCard geodata={data.geodata} />;
+    case "resilience-score":
+      return <ResilienceScoreCard geodata={data.geodata} />;
     case "hazard-details":
       return <HazardDetailsCard geodata={data.geodata} />;
     case "housing-market":

@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { rankFactorInsights } from "@/lib/analysis-summary";
 import { getMethodologyForFactor } from "@/lib/scoring-methodology";
-import { cn } from "@/lib/utils";
 import { Bar, BarChart, Cell, Tooltip, XAxis, YAxis } from "recharts";
 import { SiteScore } from "@/types";
 
@@ -22,10 +20,21 @@ const EVIDENCE_TONE: Record<string, string> = {
   proxy: "border-[color:var(--evidence-proxy-border)] bg-[var(--evidence-proxy-bg)] text-[var(--evidence-proxy-fg)]",
 };
 
+function getGaugeTone(score: number) {
+  if (score >= 80) return "bg-[var(--success-soft)] border-[color:var(--success-border)]";
+  if (score >= 60) return "bg-[var(--accent-soft)] border-[color:var(--accent-strong)]";
+  return "bg-[var(--warning-soft)] border-[color:var(--warning-border)]";
+}
+
+function getImprovementPath(gap: number): string {
+  if (gap < 2) return "This factor is near its ceiling — no significant gain available.";
+  if (gap < 10) return `Closing this gap would add up to ${gap.toFixed(1)} pts to the overall score.`;
+  return `This is the biggest improvement opportunity — closing it adds up to ${gap.toFixed(1)} pts.`;
+}
+
 export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBreakdownProps) {
   const [mounted, setMounted] = useState(false);
-  const [showMethodNotes, setShowMethodNotes] = useState(false);
-  const [openMethodKey, setOpenMethodKey] = useState<string | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -48,26 +57,8 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
   return (
     <Card>
       <CardHeader className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-3">
-            <div className="eyebrow">Evidence breakdown</div>
-            <CardTitle>{title}</CardTitle>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="rounded-full"
-            onClick={() => setShowMethodNotes((current) => !current)}
-          >
-            {showMethodNotes ? "Hide methodology" : "Methodology"}
-            {showMethodNotes ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : (
-              <ChevronDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <div className="eyebrow">Evidence breakdown</div>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
@@ -137,67 +128,93 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
           ) : null}
         </div>
         <div className="space-y-2">
-          {orderedFactors.map((factor) => (
-            <div
-              key={factor.key}
-              className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--foreground)]">
-                <div className="group relative flex items-center gap-2">
+          {orderedFactors.map((factor) => {
+            const isExpanded = expandedKey === factor.key;
+            const methodNote = getMethodologyForFactor(factor.key);
+            return (
+              <div
+                key={factor.key}
+                className={`rounded-[1.5rem] border border-[color:var(--border-soft)] p-3 ${isExpanded ? "bg-[var(--surface-raised)]" : "bg-[var(--surface-soft)]"} cursor-pointer`}
+                onClick={() => setExpandedKey(isExpanded ? null : factor.key)}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpandedKey(isExpanded ? null : factor.key);
+                  }
+                }}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--foreground)]">
                   <span className="font-medium">{factor.label}</span>
-                  <button
-                    type="button"
-                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-1 text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
-                    aria-label={`Show scoring methodology for ${factor.label}`}
-                    onClick={() =>
-                      setOpenMethodKey((current) =>
-                        current === factor.key ? null : factor.key,
-                      )
-                    }
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                  </button>
-                  <div
-                    className={cn(
-                      "absolute left-0 top-full z-10 mt-2 hidden w-[320px] rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3 text-xs leading-5 text-[var(--foreground-soft)] shadow-[var(--shadow-panel)] group-hover:block group-focus-within:block",
-                      openMethodKey === factor.key && "block",
+                  <div className="flex items-center gap-2">
+                    {factor.evidenceLabel ? (
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-xs uppercase tracking-[0.16em] ${
+                          EVIDENCE_TONE[factor.evidenceKind ?? "derived_live"]
+                        }`}
+                      >
+                        {factor.evidenceLabel}
+                      </span>
+                    ) : null}
+                    <span className="font-semibold">{factor.score}</span>
+                    {isExpanded ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
                     )}
-                  >
-                    {getMethodologyForFactor(factor.key)}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {factor.evidenceLabel ? (
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-xs uppercase tracking-[0.16em] ${
-                        EVIDENCE_TONE[factor.evidenceKind ?? "derived_live"]
-                      }`}
-                    >
-                      {factor.evidenceLabel}
-                    </span>
-                  ) : null}
-                  <span className="font-semibold">{factor.score}</span>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)]">
+                  <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
+                    Weight {factor.weightPercent}%
+                  </span>
+                  <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
+                    Adds {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts
+                  </span>
+                  <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
+                    Misses {factor.gap.toFixed(1)} pts
+                  </span>
                 </div>
+                <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">{factor.detail}</p>
+                {isExpanded ? (
+                  <div className="mt-3 space-y-3 border-t border-[color:var(--border-soft)] pt-3">
+                    <div>
+                      <div className="mb-1.5 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                        Score
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-[100px] overflow-hidden rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)]">
+                          <div
+                            className={`h-full rounded-full ${getGaugeTone(factor.score)}`}
+                            style={{ width: `${factor.score}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-[var(--foreground)]">{factor.score} / 100</span>
+                      </div>
+                    </div>
+                    {methodNote ? (
+                      <div>
+                        <div className="mb-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                          How this is scored
+                        </div>
+                        <p className="text-xs leading-5 text-[var(--foreground-soft)]">{methodNote}</p>
+                      </div>
+                    ) : null}
+                    <div>
+                      <div className="mb-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                        To improve
+                      </div>
+                      <p className="text-xs leading-5 text-[var(--foreground-soft)]">
+                        {getImprovementPath(factor.gap)}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-              <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)]">
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
-                  Weight {factor.weightPercent}%
-                </span>
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
-                  Adds {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts
-                </span>
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2.5 py-1">
-                  Misses {factor.gap.toFixed(1)} pts
-                </span>
-              </div>
-              <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">{factor.detail}</p>
-              {showMethodNotes && factor.evidenceExplanation ? (
-                <p className="mt-2 text-xs leading-5 text-[var(--foreground-soft)]">
-                  {factor.evidenceExplanation}
-                </p>
-              ) : null}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

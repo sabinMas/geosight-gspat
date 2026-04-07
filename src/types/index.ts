@@ -131,7 +131,8 @@ export type WorkspaceCardId =
   | "fire-history"
   | "multi-hazard-resilience"
   | "hazard-details"
-  | "housing-market";
+  | "housing-market"
+  | "resilience-score";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
