@@ -1,6 +1,6 @@
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -45,13 +45,8 @@ export function DemographicsCard({ geodata }: DemographicsCardProps) {
   const incomeLabel = isEurostat ? "Median equivalised net income" : "Median household income";
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Area context</div>
-        <CardTitle>Demographics</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {hasAnyData ? (
+    <WorkspaceCardShell eyebrow="Area context" title="Demographics">
+      {hasAnyData ? (
           <>
             <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
               <div className="eyebrow">Coverage</div>
@@ -136,7 +131,6 @@ export function DemographicsCard({ geodata }: DemographicsCardProps) {
               : "Non-US demographics are country-level from Eurostat (Europe) or World Bank (elsewhere). These are national context indicators, not local or city-level data."
           }
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, Tooltip, XAxis } from "recharts";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { AppMode, FireHistorySummary, GeodataResult } from "@/types";
 
@@ -57,140 +57,105 @@ export function FireHistoryCard({ geodata, lat, lng, appMode = "pro" }: FireHist
 
   if (!geodata) return null;
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="eyebrow">Fire history</div>
-          <CardTitle>Wildfire history</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StatePanel
-            tone="partial"
-            eyebrow="Loading"
-            title="Fetching wildfire history..."
-            description="GeoSight is querying the NASA FIRMS archive for annual fire detection data near this location."
-            compact
-          />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !history) {
-    return (
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="eyebrow">Fire history</div>
-          <CardTitle>Wildfire history</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StatePanel
-            tone="unavailable"
-            eyebrow="Unavailable"
-            title="Wildfire history could not be loaded"
-            description={error ?? "NASA FIRMS did not return a valid response for this location."}
-            compact
-          />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const maxDetections = Math.max(...history.byYear.map((y) => y.detectionCount), 1);
+  const maxDetections = history ? Math.max(...history.byYear.map((y) => y.detectionCount), 1) : 1;
   const isExplorer = appMode === "explorer";
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Fire history</div>
-        <CardTitle>Wildfire history</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {history.hotYears.length > 0 ? (
-          <div className="inline-flex rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--warning-foreground)]">
-            High fire years: {history.hotYears.join(", ")}
-          </div>
-        ) : (
-          <div className="inline-flex rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
-            No elevated fire seasons detected
-          </div>
-        )}
-
-        {isExplorer && (
-          <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-            {history.totalDetections > 0 ? (
-              <>
-                GeoSight detected{" "}
-                <span className="text-[var(--foreground)]">
-                  {history.totalDetections} fire events
-                </span>{" "}
-                near this area over the past {history.yearsSearched} years.
-                {history.hotYears.length > 0 && (
-                  <> Active seasons: {history.hotYears.join(", ")}.</>
-                )}
-              </>
-            ) : (
-              `No significant fire activity was detected near this area in the past ${history.yearsSearched} years.`
-            )}
-          </p>
-        )}
-
-        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-          <div className="eyebrow mb-3">Fire detections by year</div>
-          <SafeResponsiveContainer className="h-40">
-            <BarChart data={history.byYear}>
-              <XAxis dataKey="year" stroke="#6b7d93" tick={{ fontSize: 11 }} />
-              <Tooltip
-                cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                contentStyle={{
-                  background: "#081221",
-                  border: "1px solid rgba(0,229,255,0.18)",
-                  borderRadius: 16,
-                }}
-                formatter={(value) => [`${value}`, "Detections"]}
-              />
-              <Bar dataKey="detectionCount" name="Detections" radius={[4, 4, 0, 0]}>
-                {history.byYear.map((entry, i) => (
-                  <Cell
-                    key={`cell-${i}`}
-                    fill={intensityColor(entry.detectionCount, maxDetections)}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </SafeResponsiveContainer>
-        </div>
-
-        {!isExplorer && history.byYear.length > 0 && (
-          <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-              Year-by-year breakdown
-            </summary>
-            <div className="mt-3 space-y-2">
-              {history.byYear.map((y) => (
-                <div key={y.year} className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--foreground)]">{y.year}</span>
-                  <span className="text-[var(--muted-foreground)]">
-                    {y.detectionCount} detections
-                    {y.maxBrightnessK !== null && ` · max ${y.maxBrightnessK.toFixed(0)} K`}
-                  </span>
-                </div>
-              ))}
+    <WorkspaceCardShell
+      eyebrow="Fire history"
+      title="Wildfire history"
+      loading={loading}
+      loadingTitle="Fetching wildfire history..."
+      loadingDescription="GeoSight is querying the NASA FIRMS archive for annual fire detection data near this location."
+      error={!loading && (error || !history) ? (error ?? "NASA FIRMS did not return a valid response for this location.") : null}
+    >
+      {history ? (
+        <>
+          {history.hotYears.length > 0 ? (
+            <div className="inline-flex rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--warning-foreground)]">
+              High fire years: {history.hotYears.join(", ")}
             </div>
-          </details>
-        )}
+          ) : (
+            <div className="inline-flex rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
+              No elevated fire seasons detected
+            </div>
+          )}
 
-        {history.totalDetections === 0 && (
-          <StatePanel
-            tone="partial"
-            eyebrow="Fire activity"
-            title="No fire detections in this area"
-            description={`NASA FIRMS did not record significant fire activity within 1° of this location over the past ${history.yearsSearched} years.`}
-            compact
-          />
-        )}
-      </CardContent>
-    </Card>
+          {isExplorer && (
+            <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+              {history.totalDetections > 0 ? (
+                <>
+                  GeoSight detected{" "}
+                  <span className="text-[var(--foreground)]">
+                    {history.totalDetections} fire events
+                  </span>{" "}
+                  near this area over the past {history.yearsSearched} years.
+                  {history.hotYears.length > 0 && (
+                    <> Active seasons: {history.hotYears.join(", ")}.</>
+                  )}
+                </>
+              ) : (
+                `No significant fire activity was detected near this area in the past ${history.yearsSearched} years.`
+              )}
+            </p>
+          )}
+
+          <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+            <div className="eyebrow mb-3">Fire detections by year</div>
+            <SafeResponsiveContainer className="h-40">
+              <BarChart data={history.byYear}>
+                <XAxis dataKey="year" stroke="#6b7d93" tick={{ fontSize: 11 }} />
+                <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  contentStyle={{
+                    background: "#081221",
+                    border: "1px solid rgba(0,229,255,0.18)",
+                    borderRadius: 16,
+                  }}
+                  formatter={(value) => [`${value}`, "Detections"]}
+                />
+                <Bar dataKey="detectionCount" name="Detections" radius={[4, 4, 0, 0]}>
+                  {history.byYear.map((entry, i) => (
+                    <Cell
+                      key={`cell-${i}`}
+                      fill={intensityColor(entry.detectionCount, maxDetections)}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </SafeResponsiveContainer>
+          </div>
+
+          {!isExplorer && history.byYear.length > 0 && (
+            <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+                Year-by-year breakdown
+              </summary>
+              <div className="mt-3 space-y-2">
+                {history.byYear.map((y) => (
+                  <div key={y.year} className="flex items-center justify-between text-sm">
+                    <span className="text-[var(--foreground)]">{y.year}</span>
+                    <span className="text-[var(--muted-foreground)]">
+                      {y.detectionCount} detections
+                      {y.maxBrightnessK !== null && ` · max ${y.maxBrightnessK.toFixed(0)} K`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
+          {history.totalDetections === 0 && (
+            <StatePanel
+              tone="partial"
+              eyebrow="Fire activity"
+              title="No fire detections in this area"
+              description={`NASA FIRMS did not record significant fire activity within 1° of this location over the past ${history.yearsSearched} years.`}
+              compact
+            />
+          )}
+        </>
+      ) : null}
+    </WorkspaceCardShell>
   );
 }

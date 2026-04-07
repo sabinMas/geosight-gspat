@@ -1,6 +1,6 @@
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { SchoolContextResult } from "@/types";
@@ -84,12 +84,7 @@ export function SchoolContextCard({
     : null;
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Community context</div>
-        <CardTitle>School context</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Community context" title="School context">
         {loading ? (
           <StatePanel
             tone="loading"
@@ -210,7 +205,6 @@ export function SchoolContextCard({
             />
           )
         )}
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

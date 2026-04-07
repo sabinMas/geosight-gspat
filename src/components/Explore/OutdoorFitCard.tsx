@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import type { GeodataResult } from "@/types";
 
 interface OutdoorFitCardProps {
@@ -132,25 +132,11 @@ function buildFitSignals(geodata: GeodataResult): FitSignal[] {
 }
 
 export function OutdoorFitCard({ geodata }: OutdoorFitCardProps) {
-  if (!geodata) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="eyebrow">Explorer view</div>
-          <CardTitle>Outdoor fit</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Select a location to see the outdoor suitability summary.
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!geodata) return null;
 
   const signals = buildFitSignals(geodata);
-
   const positiveCount = signals.filter((s) => s.tone === "positive").length;
   const watchCount = signals.filter((s) => s.tone === "watch").length;
-
   const overallVerdict =
     watchCount >= 2
       ? "Some concerns — check the details below"
@@ -159,32 +145,25 @@ export function OutdoorFitCard({ geodata }: OutdoorFitCardProps) {
         : "Reasonable outdoor potential";
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Explorer view</div>
-        <CardTitle>Outdoor fit</CardTitle>
-        <p className="text-sm leading-6 text-[var(--muted-foreground)]">{overallVerdict}</p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {signals.length === 0 ? (
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Not enough data to assess outdoor suitability for this location.
-          </p>
-        ) : (
-          signals.map((signal) => (
-            <div
-              key={signal.label}
-              className={`rounded-[1.35rem] border p-4 ${toneClasses(signal.tone)}`}
-            >
-              <div className="text-xs uppercase tracking-[0.18em] opacity-70">
-                {signal.label}
-              </div>
-              <div className="mt-1 text-sm font-semibold">{signal.verdict}</div>
-              <div className="mt-1 text-xs leading-5 opacity-80">{signal.detail}</div>
+    <WorkspaceCardShell eyebrow="Explorer view" title="Outdoor fit" subtitle={overallVerdict}>
+      {signals.length === 0 ? (
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Not enough data to assess outdoor suitability for this location.
+        </p>
+      ) : (
+        signals.map((signal) => (
+          <div
+            key={signal.label}
+            className={`rounded-[1.35rem] border p-4 ${toneClasses(signal.tone)}`}
+          >
+            <div className="text-xs uppercase tracking-[0.18em] opacity-70">
+              {signal.label}
             </div>
-          ))
-        )}
-      </CardContent>
-    </Card>
+            <div className="mt-1 text-sm font-semibold">{signal.verdict}</div>
+            <div className="mt-1 text-xs leading-5 opacity-80">{signal.detail}</div>
+          </div>
+        ))
+      )}
+    </WorkspaceCardShell>
   );
 }

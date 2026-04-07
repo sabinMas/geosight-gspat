@@ -1,6 +1,6 @@
 "use client";
 
-import { Circle, Download, MapPin, PenTool, Redo2, Ruler, Trash2, Undo2, X } from "lucide-react";
+import { Circle, Download, Grid2x2, MapPin, PenTool, Redo2, Ruler, Trash2, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawnShape, DrawingTool } from "@/types";
@@ -17,6 +17,8 @@ interface DrawingToolbarProps {
   onRedo: () => void;
   onRenameShape: (id: string, label: string) => void;
   onExportGeoJSON: () => void;
+  snapToGrid: boolean;
+  onToggleSnapToGrid: () => void;
 }
 
 const TOOLS: Array<{
@@ -121,6 +123,8 @@ export function DrawingToolbar({
   onRedo,
   onRenameShape,
   onExportGeoJSON,
+  snapToGrid,
+  onToggleSnapToGrid,
 }: DrawingToolbarProps) {
   const activeToolMeta = TOOLS.find((t) => t.id === drawingTool);
   const markers = drawnShapes.filter((s) => s.type === "marker");
@@ -145,6 +149,21 @@ export function DrawingToolbar({
           </Button>
         );
       })}
+
+      {drawingTool !== "none" ? (
+        <Button
+          type="button"
+          variant={snapToGrid ? "default" : "secondary"}
+          size="sm"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          aria-pressed={snapToGrid}
+          onClick={onToggleSnapToGrid}
+          title="Snap to ~100m grid"
+        >
+          <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
+          Snap grid
+        </Button>
+      ) : null}
 
       {drawnShapes.length > 0 ? (
         <>

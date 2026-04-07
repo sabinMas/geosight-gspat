@@ -288,6 +288,8 @@ export interface MissionProfile {
 export interface ExploreInitState {
   profileId?: string;
   locationQuery?: string;
+  lat?: number;
+  lng?: number;
   demoId?: string;
   entrySource?: ExploreEntrySource;
   appMode?: AppMode;

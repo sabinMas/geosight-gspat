@@ -1,4 +1,4 @@
-import { GeodataResult } from "@/types";
+import { GeodataResult, GdacsAlertSummary } from "@/types";
 
 export interface ResilienceDomain {
   key: string;
@@ -208,6 +208,104 @@ function scoreContamination(geodata: GeodataResult): ResilienceDomain {
   };
 }
 
+function scoreHeatStress(geodata: GeodataResult): ResilienceDomain {
+  const weight = 0.11;
+  const summaries = geodata.climateHistory?.summaries;
+
+  // Average of recent years' annual peak temp (hottest day of year per year)
+  let avgPeakTempC: number | null = null;
+  if (summaries && summaries.length > 0) {
+    const recent = summaries.filter((s) => s.year >= 2020);
+    const pool = recent.length >= 3 ? recent : summaries;
+    avgPeakTempC = pool.reduce((sum, s) => sum + s.maxTempC, 0) / pool.length;
+  }
+
+  if (avgPeakTempC === null) {
+    return {
+      key: "heat",
+      label: "Heat stress",
+      score: 65,
+      weight,
+      status: "unknown",
+      detail: "Heat stress data unavailable — climate history required",
+    };
+  }
+
+  const peak = Math.round(avgPeakTempC * 10) / 10;
+
+  if (avgPeakTempC >= 42) {
+    return { key: "heat", label: "Heat stress", score: 15, weight, status: "risk",
+      detail: `Extreme heat — avg annual peak ${peak}°C` };
+  }
+  if (avgPeakTempC >= 36) {
+    return { key: "heat", label: "Heat stress", score: 45, weight, status: "caution",
+      detail: `High heat — avg annual peak ${peak}°C` };
+  }
+  if (avgPeakTempC >= 30) {
+    return { key: "heat", label: "Heat stress", score: 72, weight, status: "caution",
+      detail: `Moderate heat — avg annual peak ${peak}°C` };
+  }
+  return { key: "heat", label: "Heat stress", score: 90, weight, status: "good",
+    detail: `Low heat stress — avg annual peak ${peak}°C` };
+}
+
+function scoreAlerts(hazardAlerts: GdacsAlertSummary | null): ResilienceDomain {
+  const weight = 0.12;
+
+  if (hazardAlerts === null) {
+    return {
+      key: "alerts",
+      label: "Disaster alerts",
+      score: 70,
+      weight,
+      status: "unknown",
+      detail: "GDACS global disaster alert feed unavailable",
+    };
+  }
+
+  if (hazardAlerts.redCurrentAlerts > 0) {
+    return {
+      key: "alerts",
+      label: "Disaster alerts",
+      score: 25,
+      weight,
+      status: "risk",
+      detail: `${hazardAlerts.redCurrentAlerts} Red-level GDACS alert${hazardAlerts.redCurrentAlerts > 1 ? "s" : ""} active`,
+    };
+  }
+
+  if (hazardAlerts.elevatedCurrentAlerts > 0) {
+    return {
+      key: "alerts",
+      label: "Disaster alerts",
+      score: 50,
+      weight,
+      status: "caution",
+      detail: `${hazardAlerts.elevatedCurrentAlerts} elevated GDACS alert${hazardAlerts.elevatedCurrentAlerts > 1 ? "s" : ""} (Orange/Red)`,
+    };
+  }
+
+  if (hazardAlerts.totalCurrentAlerts > 10) {
+    return {
+      key: "alerts",
+      label: "Disaster alerts",
+      score: 65,
+      weight,
+      status: "caution",
+      detail: `${hazardAlerts.totalCurrentAlerts} active GDACS alerts in feed`,
+    };
+  }
+
+  return {
+    key: "alerts",
+    label: "Disaster alerts",
+    score: 85,
+    weight,
+    status: "good",
+    detail: "No elevated disaster alerts in GDACS feed",
+  };
+}
+
 function scoreAirQuality(geodata: GeodataResult): ResilienceDomain {
   const weight = 0.15;
   const aq = geodata.airQuality;
@@ -261,11 +359,13 @@ export function buildResilienceScore(geodata: GeodataResult | null): ResilienceS
   if (!geodata) return null;
 
   const domains: ResilienceDomain[] = [
-    scoreFlood(geodata),
-    scoreSeismic(geodata),
-    scoreFire(geodata),
-    scoreContamination(geodata),
-    scoreAirQuality(geodata),
+    { ...scoreFlood(geodata), weight: 0.20 },
+    { ...scoreSeismic(geodata), weight: 0.16 },
+    { ...scoreFire(geodata), weight: 0.16 },
+    { ...scoreContamination(geodata), weight: 0.14 },
+    { ...scoreAirQuality(geodata), weight: 0.11 },
+    { ...scoreAlerts(geodata.hazardAlerts), weight: 0.12 },
+    scoreHeatStress(geodata),
   ];
 
   // Sort worst first (ascending score)

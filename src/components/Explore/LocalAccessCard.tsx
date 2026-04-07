@@ -1,8 +1,8 @@
 "use client";
 
 import { Bus, HeartPulse, ShoppingBag, Utensils } from "lucide-react";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -92,24 +92,21 @@ export function LocalAccessCard({ geodata }: { geodata: GeodataResult | null }) 
   const trustSummary = summarizeSourceTrust([geodata.sources.amenities], "Local access");
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Access profile</div>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <CardTitle>Local access</CardTitle>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-3xl font-semibold text-[var(--foreground)]">{total}</div>
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">out of 100</div>
-            </div>
-            <div className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold cursor-default pointer-events-none select-none ${scoreLabelClasses(total)}`}>
-              {label}
-            </div>
+    <WorkspaceCardShell
+      eyebrow="Access profile"
+      title="Local access"
+      headerExtra={
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-3xl font-semibold text-[var(--foreground)]">{total}</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">out of 100</div>
+          </div>
+          <div className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold cursor-default pointer-events-none select-none ${scoreLabelClasses(total)}`}>
+            {label}
           </div>
         </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
+      }
+    >
         {signals.map((signal) => (
           <div
             key={signal.label}
@@ -149,7 +146,6 @@ export function LocalAccessCard({ geodata }: { geodata: GeodataResult | null }) 
           sources={[geodata.sources.amenities]}
           note="Amenity counts are sourced from OpenStreetMap via Overpass API. Coverage varies significantly by country and urban vs. rural context."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

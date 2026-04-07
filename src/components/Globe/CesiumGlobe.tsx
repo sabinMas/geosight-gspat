@@ -88,6 +88,7 @@ interface CesiumGlobeProps {
   drawnShapes?: DrawnShape[];
   onShapeComplete?: (shape: DrawnShape) => void;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
+  snapToGrid?: boolean;
 }
 
 export function CesiumGlobe({
@@ -108,6 +109,7 @@ export function CesiumGlobe({
   drawnShapes = [],
   onShapeComplete,
   onVertexDrag,
+  snapToGrid = false,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -853,6 +855,7 @@ export function CesiumGlobe({
     drawingTool,
     drawnShapes,
     onShapeComplete: onShapeComplete ?? (() => undefined),
+    snapToGrid,
   });
 
   useGlobeDrawnShapes({ viewerRef, viewerReady, drawnShapes, drawingTool, onVertexDrag });

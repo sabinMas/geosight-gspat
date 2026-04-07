@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatSourceTimestamp, summarizeSourceMeta } from "@/lib/source-metadata";
 import {
   buildSourceRegistryPreview,
@@ -208,12 +208,7 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
     .slice(0, 6);
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Trust and provenance</div>
-        <CardTitle>Source awareness</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <WorkspaceCardShell eyebrow="Trust and provenance" title="Source awareness">
         <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
           <div className="mb-3 text-sm font-semibold text-[var(--foreground)]">Coverage at a glance</div>
           <CoverageAtAGlance sources={geodata.sources} />
@@ -449,7 +444,6 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
             </div>
           ) : null}
         </div>
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

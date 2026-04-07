@@ -1,8 +1,8 @@
 "use client";
 
 import { AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildHazardResilienceSummary } from "@/lib/scoring";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult, HazardDomainScore, HazardRiskTier } from "@/types";
@@ -55,11 +55,11 @@ export function MultiHazardResilienceCard({ geodata }: { geodata: GeodataResult 
   const trustSummary = summarizeSourceTrust(allSources, "Multi-hazard resilience");
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Hazard resilience</div>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <CardTitle>Multi-hazard resilience</CardTitle>
+    <WorkspaceCardShell
+      eyebrow="Hazard resilience"
+      title="Multi-hazard resilience"
+      headerExtra={
+        <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="text-right">
               <div className="text-3xl font-semibold text-[var(--foreground)]">{summary.compoundScore}</div>
@@ -73,17 +73,15 @@ export function MultiHazardResilienceCard({ geodata }: { geodata: GeodataResult 
               )}
             </div>
           </div>
+          {summary.worstDomain && summary.worstDomain.tier !== "low" ? (
+            <div className="flex items-center gap-2 rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1.5 text-xs text-[var(--warning-foreground)]">
+              <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
+              Highest concern: {summary.worstDomain.label} ({TIER_STYLES[summary.worstDomain.tier].label.toLowerCase()})
+            </div>
+          ) : null}
         </div>
-
-        {summary.worstDomain && summary.worstDomain.tier !== "low" ? (
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1.5 text-xs text-[var(--warning-foreground)]">
-            <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
-            Highest concern: {summary.worstDomain.label} ({TIER_STYLES[summary.worstDomain.tier].label.toLowerCase()})
-          </div>
-        ) : null}
-      </CardHeader>
-
-      <CardContent className="space-y-3">
+      }
+    >
         {summary.domains.map((domain) => (
           <DomainRow key={domain.domain} domain={domain} />
         ))}
@@ -97,7 +95,6 @@ export function MultiHazardResilienceCard({ geodata }: { geodata: GeodataResult 
           sources={allSources}
           note="Seismic, flood, and contamination domains are US-only. Fire and disaster alerts are globally sourced. Non-US locations receive neutral fallback scores for unavailable domains."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Car, FileText, Globe, Plus, Sparkles, X } from "lucide-react";
+import { Car, FileText, Globe, Link2, Plus, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
@@ -55,6 +55,15 @@ export function ExploreWorkspace() {
   const data = useExploreData({ state, setGeoContext });
   const inExplorer = isExplorerMode(state.appMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyLink = useCallback(() => {
+    void navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
+  }, []);
+
   const [workspaceNotice, setWorkspaceNotice] = useState<{
     tone: "info" | "warning";
     message: string;
@@ -408,6 +417,19 @@ export function ExploreWorkspace() {
                   Compare
                 </Button>
               </div>
+              {state.locationReady ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-full"
+                  onClick={handleCopyLink}
+                  title="Copy a shareable link to this location and profile"
+                >
+                  <Link2 className="mr-1.5 h-3.5 w-3.5" />
+                  {copiedLink ? "Copied!" : "Share"}
+                </Button>
+              ) : null}
               </div>
             </div>
           </div>
@@ -526,6 +548,7 @@ export function ExploreWorkspace() {
                   drawnShapes={state.drawnShapes}
                   onShapeComplete={handleShapeComplete}
                   onVertexDrag={state.updateDrawnShapeVertex}
+                  snapToGrid={state.snapToGrid}
                 />
                 <div className="absolute right-4 top-4 z-20 hidden sm:flex flex-col gap-2">
                   <Button
@@ -587,6 +610,8 @@ export function ExploreWorkspace() {
                   onRedo={state.redoDrawing}
                   onRenameShape={state.renameShape}
                   onExportGeoJSON={handleExportGeoJSON}
+                  snapToGrid={state.snapToGrid}
+                  onToggleSnapToGrid={() => state.setSnapToGrid((v) => !v)}
                 />
               </section>
             </ClientErrorBoundary>

@@ -1,6 +1,6 @@
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceKm } from "@/lib/stream-gauges";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult, GdacsAlertSummary } from "@/types";
@@ -53,12 +53,7 @@ export function HazardCard({ geodata }: HazardCardProps) {
   const trustSummary = summarizeSourceTrust(hazardSources, "Hazard screening");
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Hazard review</div>
-        <CardTitle>Hazard context</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Hazard review" title="Hazard context">
         <div className="grid gap-3 lg:grid-cols-3">
           <HazardMetric
             label="Seismic activity"
@@ -212,7 +207,6 @@ export function HazardCard({ geodata }: HazardCardProps) {
           sources={hazardSources}
           note="Earthquakes, fire detections, and global disaster alerts are live feeds. Weather risk is a GeoSight-derived summary built from the loaded weather codes and forecast context."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

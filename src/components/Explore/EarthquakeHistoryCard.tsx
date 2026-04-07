@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, Tooltip, XAxis } from "recharts";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { AppMode, EarthquakeHistorySummary, GeodataResult } from "@/types";
 
@@ -101,63 +101,26 @@ export function EarthquakeHistoryCard({
 
   if (!geodata) return null;
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="eyebrow">Seismic history</div>
-          <CardTitle>Earthquake history</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StatePanel
-            tone="partial"
-            eyebrow="Loading"
-            title="Fetching earthquake history..."
-            description="GeoSight is querying the USGS ComCat archive for the last 5 years of seismic activity within 500 km."
-            compact
-          />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !history) {
-    return (
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="eyebrow">Seismic history</div>
-          <CardTitle>Earthquake history</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StatePanel
-            tone="unavailable"
-            eyebrow="Unavailable"
-            title="Earthquake history could not be loaded"
-            description={
-              error ?? "USGS ComCat did not return a valid response for this location."
-            }
-            compact
-          />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const yearData = Object.entries(history.countByYear)
-    .filter(([y]) => y !== "unknown")
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([year, count]) => ({ year, count }));
-
-  const significantEvents = history.events.filter((e) => e.mag >= 4).slice(0, 10);
+  const yearData = history
+    ? Object.entries(history.countByYear)
+        .filter(([y]) => y !== "unknown")
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([year, count]) => ({ year, count }))
+    : [];
+  const significantEvents = history ? history.events.filter((e) => e.mag >= 4).slice(0, 10) : [];
   const isExplorer = appMode === "explorer";
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Seismic history</div>
-        <CardTitle>Earthquake history</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell
+      eyebrow="Seismic history"
+      title="Earthquake history"
+      loading={loading}
+      loadingTitle="Fetching earthquake history..."
+      loadingDescription="GeoSight is querying the USGS ComCat archive for the last 5 years of seismic activity within 500 km."
+      error={!loading && (error || !history) ? (error ?? "USGS ComCat did not return a valid response for this location.") : null}
+    >
+      {history ? (
+        <>
         {history.maxMag !== null && (
           <div
             className="inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-[var(--foreground)]"
@@ -263,7 +226,8 @@ export function EarthquakeHistoryCard({
             compact
           />
         )}
-      </CardContent>
-    </Card>
+        </>
+      ) : null}
+    </WorkspaceCardShell>
   );
 }

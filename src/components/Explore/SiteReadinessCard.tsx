@@ -1,8 +1,8 @@
 "use client";
 
 import { CheckCircle2, HelpCircle, XCircle, AlertTriangle } from "lucide-react";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -278,21 +278,16 @@ export function SiteReadinessCard({ geodata }: { geodata: GeodataResult | null }
   const trustSummary = summarizeSourceTrust(sources, "Site readiness");
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Site development</div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <CardTitle>Site readiness</CardTitle>
-          <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold cursor-default pointer-events-none select-none ${toneClasses(overall.tone)}`}>
-            {overall.label}
-          </span>
-        </div>
-        <p className="text-xs leading-5 text-[var(--muted-foreground)]">
-          First-pass screen across six infrastructure and hazard domains. Each signal is derived from live or US-only data sources — unavailable items require site-specific investigation.
-        </p>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
+    <WorkspaceCardShell
+      eyebrow="Site development"
+      title="Site readiness"
+      subtitle="First-pass screen across six infrastructure and hazard domains. Each signal is derived from live or US-only data sources — unavailable items require site-specific investigation."
+      headerExtra={
+        <span className={`self-start shrink-0 rounded-full border px-3 py-1 text-xs font-semibold cursor-default pointer-events-none select-none ${toneClasses(overall.tone)}`}>
+          {overall.label}
+        </span>
+      }
+    >
         {signals.map((signal) => (
           <div
             key={signal.label}
@@ -318,7 +313,6 @@ export function SiteReadinessCard({ geodata }: { geodata: GeodataResult | null }
           sources={sources}
           note="Road and power proximity from OSM infrastructure layer. Broadband from FCC BroadbandMap (US) or Eurostat baseline (non-US). Flood zone from FEMA NFHL (US only). Soil from USDA SSURGO (US only). Seismic from USGS ASCE 7-22 (US only)."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

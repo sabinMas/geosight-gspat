@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { HousingMarketPulse } from "@/components/Explore/HousingMarketPulse";
 import type { HousingMarketResult } from "@/types";
 
@@ -13,19 +13,13 @@ interface HousingMarketCardProps {
 
 export function HousingMarketCard({ locationName, housingMarket, loading, error }: HousingMarketCardProps) {
   return (
-    <Card>
-      <CardHeader className="space-y-2">
-        <div className="eyebrow">Residential market</div>
-        <CardTitle>Housing market</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <HousingMarketPulse
-          locationName={locationName}
-          housingMarket={housingMarket}
-          loading={loading}
-          error={error}
-        />
-      </CardContent>
-    </Card>
+    <WorkspaceCardShell eyebrow="Residential market" title="Housing market">
+      <HousingMarketPulse
+        locationName={locationName}
+        housingMarket={housingMarket}
+        loading={loading}
+        error={error}
+      />
+    </WorkspaceCardShell>
   );
 }

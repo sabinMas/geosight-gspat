@@ -47,6 +47,18 @@ function toLatLng(pos: Cartesian3): { lat: number; lng: number } {
   };
 }
 
+const GRID_INTERVAL_DEG = 0.001; // ~111m per interval at equator
+
+/** Snap a lat/lng coordinate to the nearest grid intersection. */
+function applyGridSnap(
+  coord: { lat: number; lng: number },
+): { lat: number; lng: number } {
+  return {
+    lat: Math.round(coord.lat / GRID_INTERVAL_DEG) * GRID_INTERVAL_DEG,
+    lng: Math.round(coord.lng / GRID_INTERVAL_DEG) * GRID_INTERVAL_DEG,
+  };
+}
+
 /** Great-circle distance between two lat/lng points in metres. */
 function haversineMetres(
   a: { lat: number; lng: number },
@@ -386,22 +398,29 @@ export function useGlobeDrawing({
   drawingTool,
   drawnShapes = [],
   onShapeComplete,
+  snapToGrid = false,
 }: {
   viewerRef: React.MutableRefObject<CesiumViewer | null>;
   viewerReady: boolean;
   drawingTool: DrawingTool;
   drawnShapes?: DrawnShape[];
   onShapeComplete: (shape: DrawnShape) => void;
+  snapToGrid?: boolean;
 }) {
   const verticesRef = useRef<Array<{ lat: number; lng: number }>>([]);
   const previewPosRef = useRef<Cartesian3 | null>(null);
   const firstPointRef = useRef<{ lat: number; lng: number } | null>(null);
   const snapActiveRef = useRef(false);
   const drawnShapesRef = useRef<DrawnShape[]>(drawnShapes);
+  const snapToGridRef = useRef(snapToGrid);
 
   useEffect(() => {
     drawnShapesRef.current = drawnShapes;
   }, [drawnShapes]);
+
+  useEffect(() => {
+    snapToGridRef.current = snapToGrid;
+  }, [snapToGrid]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -439,6 +458,26 @@ export function useGlobeDrawing({
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
 
+    /**
+     * Resolves a screen position to a world Cartesian3, applying snap-to-vertex
+     * first, then snap-to-grid if enabled and no vertex snap matched.
+     * Returns [position, isSnapped] where isSnapped reflects vertex snapping only.
+     */
+    function resolvePosition(
+      screenPos: Cartesian2,
+    ): [Cartesian3 | null, boolean] {
+      const vertexSnap = findSnapTarget(viewer, screenPos, drawnShapesRef.current);
+      if (vertexSnap) return [vertexSnap, true];
+      const raw = pickPosition(viewer, screenPos);
+      if (!raw) return [null, false];
+      if (snapToGridRef.current) {
+        const latLng = toLatLng(raw);
+        const snapped = applyGridSnap(latLng);
+        return [Cartesian3.fromDegrees(snapped.lng, snapped.lat, 8), false];
+      }
+      return [raw, false];
+    }
+
     // ── Polygon ──────────────────────────────────────────────────────────────
     if (drawingTool === "polygon") {
       previewDs.entities.add({
@@ -463,17 +502,16 @@ export function useGlobeDrawing({
 
       handler.setInputAction(
         (e: { endPosition: Cartesian2 }) => {
-          const snap = findSnapTarget(viewer, e.endPosition, drawnShapesRef.current);
-          snapActiveRef.current = snap !== null;
-          previewPosRef.current = snap ?? pickPosition(viewer, e.endPosition) ?? previewPosRef.current;
+          const [pos, isVertexSnap] = resolvePosition(e.endPosition);
+          snapActiveRef.current = isVertexSnap;
+          previewPosRef.current = pos ?? previewPosRef.current;
         },
         ScreenSpaceEventType.MOUSE_MOVE,
       );
 
       handler.setInputAction(
         (e: { position: Cartesian2 }) => {
-          const snap = findSnapTarget(viewer, e.position, drawnShapesRef.current);
-          const pos = snap ?? pickPosition(viewer, e.position);
+          const [pos] = resolvePosition(e.position);
           if (!pos) return;
           const latlng = toLatLng(pos);
           verticesRef.current = [...verticesRef.current, latlng];
@@ -514,7 +552,7 @@ export function useGlobeDrawing({
     if (drawingTool === "marker") {
       handler.setInputAction(
         (e: { position: Cartesian2 }) => {
-          const pos = pickPosition(viewer, e.position);
+          const [pos] = resolvePosition(e.position);
           if (!pos) return;
           onShapeComplete({
             id: crypto.randomUUID(),
@@ -547,17 +585,16 @@ export function useGlobeDrawing({
 
       handler.setInputAction(
         (e: { endPosition: Cartesian2 }) => {
-          const snap = findSnapTarget(viewer, e.endPosition, drawnShapesRef.current);
-          snapActiveRef.current = snap !== null;
-          previewPosRef.current = snap ?? pickPosition(viewer, e.endPosition) ?? previewPosRef.current;
+          const [pos, isVertexSnap] = resolvePosition(e.endPosition);
+          snapActiveRef.current = isVertexSnap;
+          previewPosRef.current = pos ?? previewPosRef.current;
         },
         ScreenSpaceEventType.MOUSE_MOVE,
       );
 
       handler.setInputAction(
         (e: { position: Cartesian2 }) => {
-          const snap = findSnapTarget(viewer, e.position, drawnShapesRef.current);
-          const pos = snap ?? pickPosition(viewer, e.position);
+          const [pos] = resolvePosition(e.position);
           if (!pos) return;
           const latlng = toLatLng(pos);
 
@@ -608,7 +645,7 @@ export function useGlobeDrawing({
 
       handler.setInputAction(
         (e: { endPosition: Cartesian2 }) => {
-          const pos = pickPosition(viewer, e.endPosition);
+          const [pos] = resolvePosition(e.endPosition);
           if (pos) previewPosRef.current = pos;
         },
         ScreenSpaceEventType.MOUSE_MOVE,
@@ -616,7 +653,7 @@ export function useGlobeDrawing({
 
       handler.setInputAction(
         (e: { position: Cartesian2 }) => {
-          const pos = pickPosition(viewer, e.position);
+          const [pos] = resolvePosition(e.position);
           if (!pos) return;
           const latlng = toLatLng(pos);
 

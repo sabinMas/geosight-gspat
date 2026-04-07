@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult, WeatherForecastDay } from "@/types";
 
@@ -91,20 +91,18 @@ export function WeatherForecastCard({ geodata }: WeatherForecastCardProps) {
   const { weatherForecast } = geodata;
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Weather outlook</div>
-        <div className="flex items-start justify-between gap-4">
-          <CardTitle>7-day forecast</CardTitle>
-          <button
-            onClick={() => setUseFahrenheit((prev) => !prev)}
-            className="shrink-0 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
-          >
-            {useFahrenheit ? "°C" : "°F"}
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell
+      eyebrow="Weather outlook"
+      title="7-day forecast"
+      headerExtra={
+        <button
+          onClick={() => setUseFahrenheit((prev) => !prev)}
+          className="self-start rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 py-1 text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+        >
+          {useFahrenheit ? "°C" : "°F"}
+        </button>
+      }
+    >
         {weatherForecast.length > 0 ? (
           <>
             <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1">
@@ -194,7 +192,6 @@ export function WeatherForecastCard({ geodata }: WeatherForecastCardProps) {
           sources={[geodata.sources.climate]}
           note="GeoSight uses Open-Meteo free forecast API, which provides global 7-day daily forecasts with no key required. The forecast is cached for up to 6 hours."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

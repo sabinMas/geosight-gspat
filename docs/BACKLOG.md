@@ -24,6 +24,10 @@ This backlog was reconciled against:
 - `src/lib/demos/registry.ts`
 - `src/lib/agents/agent-config.ts`
 
+Last updated: 2026-04-07 — Batch 9 shipped: (1) heat stress domain added to `buildResilienceScore` — 7th domain using average of recent years' annual peak temperature from `climateHistory.summaries.maxTempC` (Open-Meteo, global); thresholds: ≥42°C risk, ≥36°C caution, ≥30°C moderate caution, <30°C good; weights rebalanced (flood 20%, seismic 16%, fire 16%, contamination 14%, air 11%, alerts 12%, heat 11%); (2) `ClimateHistoryCard` precipitation overhaul — added `precipTrendDirection` helper computing baseline (2015–2019) vs recent (2020–2024) avg precipitation with ±13% threshold; new precipitation trend badge; precipitation bar chart now always visible (removed toggle); both temperature and precipitation sections show baseline-to-recent summary lines.
+
+Last updated: 2026-04-07 — Batch 8 shipped: (1) GDACS disaster alerts domain added to `buildResilienceScore` in `resilience-score.ts` — `ResilienceScoreCard` now has 6 domains (flood 22%, seismic 18%, fire 18%, contamination 18%, air quality 12%, disaster alerts 12%), matching parity with `buildHazardResilienceSummary`; globally sourced GDACS feed improves non-US location coverage; (2) snap-to-grid drawing toggle — `snapToGrid` state in `useExploreState`; `applyGridSnap` helper in `useGlobeDrawing` snaps cursor to nearest 0.001° (~100m) grid intersection when no vertex snap matches; `Grid2x2` toggle button in `DrawingToolbar` (active only when a drawing tool is selected); wired through `CesiumGlobe` → `useGlobeDrawing` via `snapToGrid` prop.
+
 Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each drawn shape chip has an X button wired to `removeDrawnShape(id)` in `useExploreState`; (2) `WorkspaceCardShell` standardises Card/CardHeader/CardContent/loading/error/empty across all workspace cards — BroadbandCard, GroundwaterCard, ClimateHistoryCard, FloodRiskCard, AirQualityCard, ContaminationRiskCard all migrated; (3) multi-board tabs — `activeBoardId` tracked in localStorage, board chips are click-to-switch tabs with ring highlight, "Update active" saves current state, inline Pencil rename; (4) domain coverage matrix in SourceAwarenessCard showing integrated providers per domain with regional status; (5) snap-to-vertex in drawing tools (16px screen-space radius, white ring indicator); (6) Eurostat NUTS2 demographics — GISCO reverse geocode resolves NUTS2 region code for European coordinates; `fetchEurostatDemographics` tries `demo_pjan` at NUTS2 level before falling back to country level; `geographicGranularity: "nuts2_region"` propagated through to DemographicsCard label.
 
 ## Shipped Foundation
@@ -160,7 +164,7 @@ Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each dr
 
 ### P0: Trust + Wow
 
-- Richer live hazard and resilience layers
+- ~~Richer live hazard and resilience layers~~ — **shipped**: `ResilienceScoreCard` now has 7 domains (flood, seismic, fire, contamination, air quality, disaster alerts, heat stress); heat stress uses Open-Meteo historical archive (global); `ClimateHistoryCard` adds precipitation trend badge + always-visible precip chart
 - ~~Inline provenance in headline outputs~~ — **shipped**: provider name now inline in TrendSignalCard and LocationSignalCard; badge colors use design tokens
 - ~~Standardized provenance labeling~~ — **shipped**: `direct live` / `derived live` / `proxy heuristic` now in score cards, trend signals, all `buildSupportedFacts` lines, GeoScribe prompt, and GeoAnalyst prompt.
 
@@ -191,9 +195,10 @@ Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each dr
 - ~~GeoJSON export~~ — **shipped**: Export button downloads `geosight-shapes.geojson` with correct geometry types
 - ~~Undo/redo stack~~ — **shipped**: `addDrawnShape` / `undoDrawing` / `redoDrawing` in `useExploreState`; Undo/Redo buttons in toolbar
 - ~~Vertex drag-editing~~ — **shipped**: white handle entities per vertex (polygon + measure), ScreenSpaceEventHandler drag interaction, `updateDrawnShapeVertex` in `useExploreState`.
-- Remaining drawing gaps: snap-to-grid
+- ~~Snap-to-grid~~ — **shipped**: `applyGridSnap` snaps cursor to 0.001° (~100m) grid when enabled; toggle button in `DrawingToolbar`; vertex snap takes priority over grid snap
 - LiDAR and National Map layers
 - Deeper subsurface and geology overlays
+- ~~Share link for current location~~ — **shipped**: `lat`/`lng`/`location` pushed to URL on every `selectPoint`; `explore/page.tsx` reads them; direct-coord init skips geocoding; "Share" button in workspace header copies `window.location.href` with 2s "Copied!" feedback; only visible when a location is loaded
 - Stronger export and share workflows beyond the current GeoScribe panel
 
 ## Definition Of Ready For New Backlog Items

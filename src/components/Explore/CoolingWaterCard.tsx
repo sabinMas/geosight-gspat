@@ -1,6 +1,6 @@
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { GeodataResult } from "@/types";
@@ -21,12 +21,7 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
   );
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Cooling infrastructure</div>
-        <CardTitle>Cooling water</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Cooling infrastructure" title="Cooling water">
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
             <div className="eyebrow">Mapped water access</div>
@@ -89,7 +84,6 @@ export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
           sources={[geodata.sources.infrastructure, geodata.sources.water]}
           note="Mapped water proximity comes from OSM-style infrastructure context, while discharge values come from nearby USGS gauges when a suitable station is available."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

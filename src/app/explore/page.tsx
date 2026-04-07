@@ -16,9 +16,14 @@ export default async function ExplorePage({
 }) {
   const params = (await searchParams) ?? {};
 
+  const rawLat = firstValue(params.lat);
+  const rawLng = firstValue(params.lng);
+
   const initialState: ExploreInitState = {
     profileId: firstValue(params.profile),
     locationQuery: firstValue(params.location),
+    lat: rawLat !== undefined ? Number(rawLat) : undefined,
+    lng: rawLng !== undefined ? Number(rawLng) : undefined,
     demoId: firstValue(params.demo),
     entrySource: (firstValue(params.entrySource) as ExploreInitState["entrySource"]) ?? "direct",
     appMode: parseAppMode(firstValue(params.mode) ?? null),

@@ -97,6 +97,8 @@ export interface ExploreState {
   updateDrawnShapeVertex: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
   canUndo: boolean;
   canRedo: boolean;
+  snapToGrid: boolean;
+  setSnapToGrid: Dispatch<SetStateAction<boolean>>;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -138,16 +140,22 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     getInitialProfile(init.profileId),
   );
   const [initError, setInitError] = useState<string | null>(null);
+  const hasDirectCoords =
+    init.lat !== undefined && init.lng !== undefined &&
+    Number.isFinite(init.lat) && Number.isFinite(init.lng);
   const [initStatus, setInitStatus] = useState<"idle" | "resolving">(
-    init.locationQuery ? "resolving" : "idle",
+    (init.locationQuery && !hasDirectCoords) ? "resolving" : "idle",
   );
-  const [locationReady, setLocationReady] = useState(false);
+  const [locationReady, setLocationReady] = useState(hasDirectCoords);
 
-  const defaultCoordinates = {
-    lat: DEFAULT_GLOBE_VIEW.lat,
-    lng: DEFAULT_GLOBE_VIEW.lng,
-  };
-  const defaultLabel = init.locationQuery ? "Resolving location..." : "Starter view";
+  const defaultCoordinates = hasDirectCoords
+    ? { lat: init.lat!, lng: init.lng! }
+    : { lat: DEFAULT_GLOBE_VIEW.lat, lng: DEFAULT_GLOBE_VIEW.lng };
+  const defaultLabel = hasDirectCoords
+    ? (init.locationQuery ?? `${init.lat!.toFixed(4)}, ${init.lng!.toFixed(4)}`)
+    : init.locationQuery
+      ? "Resolving location..."
+      : "Starter view";
 
   const {
     selectedPoint,
@@ -162,8 +170,18 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     (coords: { lat: number; lng: number }, label?: string, displayLabel?: string) => {
       setLocationReady(true);
       selectGlobePoint(coords, label, displayLabel);
+      // Keep URL in sync so the page is bookmarkable / shareable
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("lat", coords.lat.toFixed(6));
+      params.set("lng", coords.lng.toFixed(6));
+      if (label) {
+        params.set("location", label);
+      } else {
+        params.delete("location");
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [selectGlobePoint],
+    [selectGlobePoint, router, pathname, searchParams],
   );
 
   const [layers, setLayers] = useState<LayerState>(activeProfile.defaultLayers);
@@ -184,6 +202,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
   const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);
   const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
+  const [snapToGrid, setSnapToGrid] = useState(false);
 
   const addDrawnShape = useCallback((shape: DrawnShape) => {
     setDrawnShapes((prev) => [...prev, shape]);
@@ -244,7 +263,8 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
 
   useEffect(() => {
     const locationQuery = init.locationQuery;
-    if (!locationQuery) {
+    // Skip geocoding when precise coords were already provided via URL params
+    if (!locationQuery || hasDirectCoords) {
       return;
     }
 
@@ -343,5 +363,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     updateDrawnShapeVertex,
     canUndo: drawnShapes.length > 0,
     canRedo: redoStack.length > 0,
+    snapToGrid,
+    setSnapToGrid,
   };
 }

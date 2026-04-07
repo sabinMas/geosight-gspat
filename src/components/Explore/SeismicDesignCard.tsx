@@ -1,8 +1,8 @@
 "use client";
 
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -49,14 +49,13 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
     "Seismic design screening",
   );
 
-  if (!hasSeismicData(geodata)) {
-    return (
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="eyebrow">Structural hazard</div>
-          <CardTitle>Seismic risk profile</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+  const seismic = geodata.seismicDesign;
+  const badge = riskBadge(seismic?.pga ?? null);
+
+  return (
+    <WorkspaceCardShell eyebrow="Structural hazard" title="Seismic risk profile">
+      {!hasSeismicData(geodata) ? (
+        <>
           <StatePanel
             tone={geodata.sources.seismicDesign.status === "unavailable" ? "unavailable" : "partial"}
             eyebrow="Structural hazard"
@@ -69,21 +68,9 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
             sources={[geodata.sources.seismicDesign, geodata.sources.hazards]}
             note="This card pairs mapped seismic design values with recent earthquake activity so you can distinguish engineering context from short-term event history."
           />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const seismic = geodata.seismicDesign!;
-  const badge = riskBadge(seismic.pga);
-
-  return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Structural hazard</div>
-        <CardTitle>Seismic risk profile</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </>
+      ) : seismic ? (
+        <>
         <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${badge.tone}`}>
           Earthquake risk: {badge.label}
         </div>
@@ -136,7 +123,8 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
           sources={[geodata.sources.seismicDesign, geodata.sources.hazards]}
           note="Peak ground acceleration, Ss, and S1 come from USGS design maps. They are screening inputs for engineering diligence, not a substitute for structural design."
         />
-      </CardContent>
-    </Card>
+        </>
+      ) : null}
+    </WorkspaceCardShell>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { Activity, AlertTriangle, CloudRain, Flame, ShieldAlert, Wind, Zap } from "lucide-react";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -53,16 +53,11 @@ export function HazardDetailsCard({ geodata }: { geodata: GeodataResult | null }
   const trustSummary = summarizeSourceTrust(allSources, "Hazard parameters");
 
   return (
-    <Card>
-      <CardHeader className="space-y-2">
-        <div className="eyebrow">Hazard parameters</div>
-        <CardTitle>Technical hazard data</CardTitle>
-        <p className="text-xs text-[var(--muted-foreground)]">
-          Raw measurements from live sources. US-only domains are labeled. Use alongside the compound resilience score.
-        </p>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
+    <WorkspaceCardShell
+      eyebrow="Hazard parameters"
+      title="Technical hazard data"
+      subtitle="Raw measurements from live sources. US-only domains are labeled. Use alongside the compound resilience score."
+    >
         {/* Seismic */}
         <div>
           <SectionHeader icon={Activity} label="Seismic design (ASCE 7-22)" />
@@ -198,7 +193,6 @@ export function HazardDetailsCard({ geodata }: { geodata: GeodataResult | null }
           sources={allSources}
           note="Seismic, flood, and contamination data are US-only. Fire and disaster alerts are globally sourced."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

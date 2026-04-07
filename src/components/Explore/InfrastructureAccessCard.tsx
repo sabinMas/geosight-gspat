@@ -1,8 +1,8 @@
 "use client";
 
 import { Zap, Droplets, Wifi, Route } from "lucide-react";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -91,16 +91,11 @@ export function InfrastructureAccessCard({ geodata }: { geodata: GeodataResult |
   const trustSummary = summarizeSourceTrust(sources, "Infrastructure access");
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Site development</div>
-        <CardTitle>Infrastructure access</CardTitle>
-        <p className="text-xs leading-5 text-[var(--muted-foreground)]">
-          Raw proximity measurements to the four infrastructure inputs most relevant to site development: road access, power grid, water, and broadband. No thresholds applied — interpret against your project requirements.
-        </p>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
+    <WorkspaceCardShell
+      eyebrow="Site development"
+      title="Infrastructure access"
+      subtitle="Raw proximity measurements to the four infrastructure inputs most relevant to site development: road access, power grid, water, and broadband. No thresholds applied — interpret against your project requirements."
+    >
         <div className="divide-y divide-[color:var(--border-soft)] rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)]">
           {rows.map((row) => (
             <div key={row.label} className="flex items-start gap-3 px-4 py-3">
@@ -131,7 +126,6 @@ export function InfrastructureAccessCard({ geodata }: { geodata: GeodataResult |
           sources={sources}
           note="Road and power from OpenStreetMap. Water body from OpenStreetMap hydrology. Broadband from FCC BroadbandMap API (US) or Eurostat NUTS-2 household baseline (non-US)."
         />
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
 
@@ -87,14 +87,12 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
     "Soil profile screening",
   );
 
-  if (!hasSoilData(geodata)) {
-    return (
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="eyebrow">Subsurface geology</div>
-          <CardTitle>Soil profile</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+  const soil = geodata.soilProfile;
+
+  return (
+    <WorkspaceCardShell eyebrow="Subsurface geology" title="Soil profile">
+      {!hasSoilData(geodata) ? (
+        <>
           <StatePanel
             tone={geodata.sources.soilProfile.status === "unavailable" ? "unavailable" : "partial"}
             eyebrow="Subsurface coverage"
@@ -107,20 +105,9 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
             sources={[geodata.sources.soilProfile]}
             note="Soil profile outputs are mapped soil-survey interpretations. They are useful for screening runoff, drainage, and buildability, but they do not replace a geotechnical report."
           />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const soil = geodata.soilProfile!;
-
-  return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Subsurface geology</div>
-        <CardTitle>Soil profile</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </>
+      ) : soil ? (
+        <>
         <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${drainageTone(soil.drainageClass)}`}>
           Building suitability: {getBuildabilitySummary(soil)}
         </div>
@@ -215,7 +202,8 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
           sources={[geodata.sources.soilProfile]}
           note="The suitability headline is GeoSight's plain-language interpretation of drainage, hydrologic group, water table, and bedrock depth from the mapped soil unit."
         />
-      </CardContent>
-    </Card>
+        </>
+      ) : null}
+    </WorkspaceCardShell>
   );
 }

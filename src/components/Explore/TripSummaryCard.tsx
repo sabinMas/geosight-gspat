@@ -1,7 +1,7 @@
 "use client";
 
 import { Footprints, MapPin, Thermometer, Trees, Wind } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import type { GeodataResult } from "@/types";
 
 interface TripSummaryCardProps {
@@ -52,19 +52,7 @@ function buildTerrainNote(geodata: GeodataResult): string {
 }
 
 export function TripSummaryCard({ geodata, locationName }: TripSummaryCardProps) {
-  if (!geodata) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="eyebrow">Trip overview</div>
-          <CardTitle>Trip summary</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Select a location to see the access and conditions overview.
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!geodata) return null;
 
   const { climate, amenities, floodZone } = geodata;
   const terrainNote = buildTerrainNote(geodata);
@@ -80,14 +68,7 @@ export function TripSummaryCard({ geodata, locationName }: TripSummaryCardProps)
   const transitCount = amenities.transitStopCount ?? 0;
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">Trip overview</div>
-        <CardTitle>{locationName}</CardTitle>
-        <p className="text-xs text-[var(--muted-foreground)]">{terrainNote}</p>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
+    <WorkspaceCardShell eyebrow="Trip overview" title={locationName} subtitle={terrainNote}>
         {/* Current conditions */}
         {hasConditions ? (
           <div className="space-y-2">
@@ -173,7 +154,6 @@ export function TripSummaryCard({ geodata, locationName }: TripSummaryCardProps)
             This location is in a mapped flood hazard area ({floodZone.label}). Check local conditions before visiting after rain.
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+    </WorkspaceCardShell>
   );
 }
