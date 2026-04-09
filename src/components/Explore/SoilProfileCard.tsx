@@ -94,16 +94,16 @@ export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
       {!hasSoilData(geodata) ? (
         <>
           <StatePanel
-            tone={geodata.sources.soilProfile.status === "unavailable" ? "unavailable" : "partial"}
+            tone="partial"
             eyebrow="Subsurface coverage"
-            title="USDA soil survey data is incomplete for this point"
-            description={geodata.sources.soilProfile.note ?? "GeoSight could not load enough SSURGO soil detail at the selected location to build a reliable soil profile summary."}
+            title="Soil data unavailable for this point"
+            description={geodata.sources.soilProfile.note ?? "GeoSight could not retrieve soil profile data for this location. US points use USDA SSURGO; global points use SoilGrids (ISRIC)."}
             compact
           />
           <TrustSummaryPanel
             summary={trustSummary}
             sources={[geodata.sources.soilProfile]}
-            note="Soil profile outputs are mapped soil-survey interpretations. They are useful for screening runoff, drainage, and buildability, but they do not replace a geotechnical report."
+            note="US points use USDA SSURGO mapped soil-survey data. Non-US points use SoilGrids (ISRIC) 250 m global rasters — texture, drainage class, and hydrologic group are derived from clay/silt/sand means at 0–30 cm depth. Neither source replaces a geotechnical report."
           />
         </>
       ) : soil ? (

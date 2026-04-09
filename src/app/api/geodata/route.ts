@@ -44,7 +44,7 @@ const OPTIONAL_PROVIDER_TIMEOUTS = {
   flood: 12_000,
   water: 7_000,
   groundwater: 7_500,
-  soil: 7_000,
+  soil: 14_000,
   seismic: 7_000,
   climateHistory: 8_500,
   airQuality: 7_000,
@@ -247,9 +247,11 @@ export async function GET(request: NextRequest) {
         "groundwater",
       )
     : Promise.resolve({ wells: [], nearestWell: null, wellCount: 0 });
-  const soilProfilePromise = isUsPoint
-    ? withSoftTimeout(getSoilProfile({ lat, lng }), OPTIONAL_PROVIDER_TIMEOUTS.soil, "soil profile")
-    : Promise.resolve(null);
+  const soilProfilePromise = withSoftTimeout(
+    getSoilProfile({ lat, lng }),
+    OPTIONAL_PROVIDER_TIMEOUTS.soil,
+    "soil profile",
+  );
   const seismicDesignPromise = isUsPoint
     ? withSoftTimeout(
         getSeismicDesignParams({ lat, lng }),
@@ -791,19 +793,20 @@ export async function GET(request: NextRequest) {
       soilProfile: buildRegistryAwareSourceMeta({
         id: "soil-profile",
         label: "Soil profile",
-        provider: "NRCS Soil Data Access (SSURGO)",
+        provider: isUsPoint ? "NRCS Soil Data Access (SSURGO)" : "SoilGrids (ISRIC)",
         domain: "terrain",
         context: registryContext,
-        status: !isUsPoint ? "unavailable" : hasSoilProfile ? "live" : "limited",
+        status: hasSoilProfile ? "live" : "limited",
         lastUpdated: now,
-        freshness: "Cached up to 24 hours",
-        coverage: "United States mapped soil survey areas",
-        confidence:
-          !isUsPoint
-            ? "NRCS soil survey coverage is currently US-only."
-            : hasSoilProfile
-              ? "Direct mapped soil-survey attributes for the intersecting map unit."
-              : "No mapped SSURGO soil profile was returned for this point.",
+        freshness: isUsPoint ? "Cached up to 24 hours" : "250m global rasters — cached 7 days",
+        coverage: isUsPoint ? "United States mapped soil survey areas" : "Global (250 m resolution)",
+        confidence: hasSoilProfile
+          ? isUsPoint
+            ? "Direct mapped soil-survey attributes for the intersecting map unit."
+            : "Texture, drainage, and hydrologic group derived from SoilGrids clay/silt/sand means at 0-30 cm. Depth to water table and K factor are US-only."
+          : isUsPoint
+            ? "No mapped SSURGO soil profile was returned for this point."
+            : "SoilGrids returned no data for this coordinate.",
       }),
       seismicDesign: buildRegistryAwareSourceMeta({
         id: "seismic-design",
@@ -943,8 +946,8 @@ export async function GET(request: NextRequest) {
       "GDACS global disaster notifications provide broad alert context for major current events.",
       !isUsPoint
         ? registryContext.scopes.includes("europe")
-          ? "Europe currently uses Eurostat for country-level broadband baselines, while flood zones, USGS Water Services, groundwater wells, NRCS soils, seismic design maps, and EPA contamination screening remain US-only."
-          : "Broadband point lookups, FEMA flood zones, USGS Water Services, groundwater wells, NRCS soils, seismic design maps, and EPA contamination screening are currently US-only."
+          ? "Europe currently uses Eurostat for country-level broadband baselines, while flood zones, USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening remain US-only. Soil data is now global via SoilGrids (ISRIC)."
+          : "Broadband point lookups, FEMA flood zones, USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening are currently US-only. Soil data is now global via SoilGrids (ISRIC)."
         : null,
     ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };
