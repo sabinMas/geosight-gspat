@@ -270,6 +270,7 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       nearestSuperfundDistanceKm: isMountainSite ? 18.6 : null,
     },
     hazardAlerts: null,
+    solarResource: null,
     weatherForecast: [],
     schoolContext: {
       coverageStatus: "state_accountability_supported",
