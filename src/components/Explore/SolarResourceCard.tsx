@@ -145,7 +145,7 @@ export function SolarResourceCard({ geodata }: SolarResourceCardProps) {
             Peak sun hours
           </div>
           <div className="mt-2 text-xl font-semibold text-[var(--foreground)]">
-            {solar.peakSunHours!.toFixed(1)}
+            {solar.annualGhiKwhM2Day.toFixed(1)}
           </div>
           <div className="mt-1 text-xs text-[var(--muted-foreground)]">hrs/day avg</div>
         </div>
