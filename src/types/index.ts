@@ -566,6 +566,12 @@ export interface FloodZoneResult {
   floodZone: string;
   isSpecialFloodHazard: boolean;
   label: string;
+  /** "fema" for US regulatory zone; "glofas" for global river-discharge context */
+  source: "fema" | "glofas";
+  /** GloFAS only: peak 7-day forecast river discharge (m³/s) */
+  peakDischargeCms?: number | null;
+  /** GloFAS only: qualitative tier — "Low" | "Moderate" | "Significant" | "Major" */
+  dischargeRiskLabel?: string | null;
 }
 
 export interface StreamGaugeResult {

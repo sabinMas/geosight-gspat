@@ -62,10 +62,7 @@ async function queryFloodEndpoint(url: string) {
   }
 }
 
-export async function getFloodZone(
-  lat: number,
-  lng: number,
-): Promise<FloodZoneResult | null> {
+async function getFemaFloodZone(lat: number, lng: number): Promise<FloodZoneResult | null> {
   try {
     const queries = FEMA_FLOOD_ENDPOINTS.map((endpoint) => {
       const url = new URL(endpoint);
@@ -82,11 +79,7 @@ export async function getFloodZone(
       queries.map(async (query) => {
         const payload = await queryFloodEndpoint(query);
         const featureAttributes = payload?.features?.[0]?.attributes;
-
-        if (!featureAttributes?.FLD_ZONE) {
-          throw new Error("No flood zone found.");
-        }
-
+        if (!featureAttributes?.FLD_ZONE) throw new Error("No flood zone found.");
         return featureAttributes;
       }),
     ).catch(() => null);
@@ -94,20 +87,78 @@ export async function getFloodZone(
     if (attributes?.FLD_ZONE) {
       const floodZone = attributes.FLD_ZONE.trim();
       const subtype =
-        attributes.FLD_ZONE_SUBTY?.trim() ??
-        attributes.ZONE_SUBTY?.trim() ??
-        null;
+        attributes.FLD_ZONE_SUBTY?.trim() ?? attributes.ZONE_SUBTY?.trim() ?? null;
       const isSpecialFloodHazard = attributes.SFHA_TF?.trim().toUpperCase() === "T";
-
       return {
         floodZone,
         isSpecialFloodHazard,
         label: describeFloodZone(floodZone, subtype, isSpecialFloodHazard),
+        source: "fema",
       };
     }
-
     return null;
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// GloFAS (Global Flood Awareness System) via Open-Meteo — global fallback
+// Free, no API key, ~10 km resolution, 7-day ensemble forecast
+// ---------------------------------------------------------------------------
+
+type GloFASResponse = {
+  daily?: { river_discharge?: (number | null)[] };
+};
+
+function classifyDischarge(cms: number): string {
+  if (cms > 2000) return "Major";
+  if (cms > 500) return "Significant";
+  if (cms > 50) return "Moderate";
+  return "Low";
+}
+
+async function getGloFASContext(lat: number, lng: number): Promise<FloodZoneResult | null> {
+  try {
+    const url = new URL("https://flood-api.open-meteo.com/v1/flood");
+    url.searchParams.set("latitude", lat.toFixed(4));
+    url.searchParams.set("longitude", lng.toFixed(4));
+    url.searchParams.set("daily", "river_discharge");
+    url.searchParams.set("forecast_days", "7");
+
+    const response = await fetchWithTimeout(
+      url.toString(),
+      { next: { revalidate: 60 * 60 * 6 } },
+      EXTERNAL_TIMEOUTS.standard,
+    );
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as GloFASResponse;
+    const values = data.daily?.river_discharge?.filter((v): v is number => v !== null) ?? [];
+    if (values.length === 0) return null;
+
+    const peak = Math.max(...values);
+    const riskLabel = classifyDischarge(peak);
+
+    return {
+      floodZone: "GloFAS",
+      isSpecialFloodHazard: false,
+      label: `${riskLabel} river discharge — ${peak.toFixed(0)} m³/s peak (7-day forecast)`,
+      source: "glofas",
+      peakDischargeCms: peak,
+      dischargeRiskLabel: riskLabel,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getFloodZone(
+  lat: number,
+  lng: number,
+): Promise<FloodZoneResult | null> {
+  // FEMA silently returns null outside US coverage — GloFAS provides global fallback
+  const fema = await getFemaFloodZone(lat, lng);
+  if (fema) return fema;
+  return getGloFASContext(lat, lng);
 }

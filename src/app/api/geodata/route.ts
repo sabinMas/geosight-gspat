@@ -230,9 +230,11 @@ export async function GET(request: NextRequest) {
         "broadband",
       )
     : Promise.resolve(null);
-  const floodZonePromise = isUsPoint
-    ? withSoftTimeout(getFloodZone(lat, lng), OPTIONAL_PROVIDER_TIMEOUTS.flood, "flood zone")
-    : Promise.resolve(null);
+  const floodZonePromise = withSoftTimeout(
+    getFloodZone(lat, lng),
+    OPTIONAL_PROVIDER_TIMEOUTS.flood,
+    "flood zone",
+  );
   const waterGaugePromise = isUsPoint
     ? withSoftTimeout(
         getNearbyStreamGauges(lat, lng),
@@ -449,7 +451,7 @@ export async function GET(request: NextRequest) {
             commercialCount: null,
           },
     broadband: broadbandData,
-    floodZone: isUsPoint && floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
+    floodZone: floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
     streamGauges,
     groundwater:
       groundwaterResult.status === "fulfilled"
@@ -727,21 +729,25 @@ export async function GET(request: NextRequest) {
       floodZone: buildRegistryAwareSourceMeta({
         id: "flood-zone",
         label: "Flood zone",
-        provider: "FEMA NFHL",
+        provider:
+          floodZoneResult.status === "fulfilled" && floodZoneResult.value?.source === "glofas"
+            ? "GloFAS via Open-Meteo"
+            : "FEMA NFHL",
         domain: "hazards",
         context: registryContext,
-        status:
-          !isUsPoint
-            ? "unavailable"
-            : floodZoneResult.status === "fulfilled" && floodZoneResult.value
-              ? "live"
-              : "limited",
+        status: floodZoneResult.status === "fulfilled" && floodZoneResult.value ? "live" : "limited",
         lastUpdated: now,
-        freshness: "Cached up to 24 hours",
-        coverage: "United States only",
+        freshness:
+          floodZoneResult.status === "fulfilled" && floodZoneResult.value?.source === "glofas"
+            ? "7-day ensemble forecast — refreshed every 6 hours"
+            : "Cached up to 24 hours",
+        coverage:
+          floodZoneResult.status === "fulfilled" && floodZoneResult.value?.source === "glofas"
+            ? "Global (~10 km resolution, river channels only)"
+            : "United States only",
         confidence:
-          !isUsPoint
-            ? "FEMA flood-zone coverage is only available for US locations."
+          floodZoneResult.status === "fulfilled" && floodZoneResult.value?.source === "glofas"
+            ? "GloFAS river-discharge forecast — hydrological context only, not a regulatory flood zone. Meaningful near rivers; may be zero in areas without modelled channels."
             : floodZoneResult.status === "fulfilled" && floodZoneResult.value
               ? "Direct FEMA flood-zone designation at or immediately around the selected point."
               : "FEMA did not return a flood-zone designation for this point.",
@@ -814,13 +820,13 @@ export async function GET(request: NextRequest) {
         provider: "USGS Seismic Design Maps",
         domain: "hazards",
         context: registryContext,
-        status: !isUsPoint ? "unavailable" : hasSeismicDesign ? "live" : "limited",
+        status: !isUsPoint ? "limited" : hasSeismicDesign ? "live" : "limited",
         lastUpdated: now,
         freshness: "ASCE 7-22 reference values",
         coverage: "United States design-map coverage",
         confidence:
           !isUsPoint
-            ? "USGS ASCE 7-22 design-map coverage is currently US-only."
+            ? "USGS ASCE 7-22 design-map coverage is US-only. Seismic context for this location is derived from the USGS earthquake catalog (recent seismicity, 30-day window)."
             : hasSeismicDesign
               ? "Direct site-specific seismic design parameters from the USGS design-maps service."
               : "USGS design-map parameters were unavailable for this point.",
@@ -946,8 +952,8 @@ export async function GET(request: NextRequest) {
       "GDACS global disaster notifications provide broad alert context for major current events.",
       !isUsPoint
         ? registryContext.scopes.includes("europe")
-          ? "Europe currently uses Eurostat for country-level broadband baselines, while flood zones, USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening remain US-only. Soil data is now global via SoilGrids (ISRIC)."
-          : "Broadband point lookups, FEMA flood zones, USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening are currently US-only. Soil data is now global via SoilGrids (ISRIC)."
+          ? "Europe currently uses Eurostat for country-level broadband baselines, while USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening remain US-only. Soil data is global via SoilGrids (ISRIC); flood context is global via GloFAS (Open-Meteo)."
+          : "Broadband point lookups, USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening are currently US-only. Soil data is global via SoilGrids (ISRIC); flood context is global via GloFAS (Open-Meteo)."
         : null,
     ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };
