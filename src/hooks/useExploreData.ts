@@ -176,8 +176,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setShellMode,
     viewMode,
     setViewMode,
-    activeCardId,
-    setActiveCardId,
+    openCardIds,
+    openCard,
+    closeCard,
+    toggleOpenCard,
     activePrimaryCardId,
     setActivePrimaryCardId,
     pinnedCardIds,
@@ -218,8 +220,13 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     () => workspaceCards.filter((card) => visibility[card.id]),
     [visibility, workspaceCards],
   );
-  const activeBoardCard =
-    boardCards.find((card) => card.id === activeCardId) ?? boardCards[0] ?? null;
+  const openBoardCards = useMemo(
+    () =>
+      openCardIds
+        .map((id) => boardCards.find((card) => card.id === id))
+        .filter((card): card is NonNullable<typeof card> => card !== undefined),
+    [openCardIds, boardCards],
+  );
   const activePrimaryCard =
     primaryCards.find((card) => card.id === activePrimaryCardId) ?? primaryCards[0] ?? null;
 
@@ -586,19 +593,19 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     if (!visibility[cardId]) {
       setCardVisible(cardId, true);
     }
-    setActiveCardId(cardId);
+    openCard(cardId);
     if (shellMode === "minimal") {
       setShellMode("guided");
     }
-  }, [setActiveCardId, setCardVisible, setShellMode, shellMode, visibility]);
+  }, [openCard, setCardVisible, setShellMode, shellMode, visibility]);
 
   const openAdvancedBoard = useCallback(() => {
     setShellMode("board");
     setViewMode("board");
-    if (!activeCardId && boardCards[0]) {
-      setActiveCardId(boardCards[0].id);
+    if (openCardIds.length === 0 && boardCards[0]) {
+      openCard(boardCards[0].id);
     }
-  }, [activeCardId, boardCards, setActiveCardId, setShellMode, setViewMode]);
+  }, [openCardIds.length, boardCards, openCard, setShellMode, setViewMode]);
 
   const openLibrary = useCallback(() => {
     setShellMode("board");
@@ -628,12 +635,12 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
 
     if (suggested && !visibility[suggested.id]) {
       setCardVisible(suggested.id, true);
-      setActiveCardId(suggested.id);
+      openCard(suggested.id);
     }
   }, [
     geodata,
     previewUrl,
-    setActiveCardId,
+    openCard,
     setActivePrimaryCardId,
     setCardVisible,
     setShellMode,
@@ -672,8 +679,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setShellMode,
     viewMode,
     setViewMode,
-    activeCardId,
-    setActiveCardId,
+    openCardIds,
+    openCard,
+    closeCard,
+    toggleOpenCard,
     activePrimaryCardId,
     setActivePrimaryCardId,
     pinnedCardIds,
@@ -686,7 +695,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     updateActiveBoard,
     renameBoard,
     boardCards,
-    activeBoardCard,
+    openBoardCards,
     activePrimaryCard,
     suggestedCards,
     openCardFromTray,

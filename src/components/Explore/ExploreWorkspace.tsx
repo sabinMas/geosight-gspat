@@ -142,7 +142,7 @@ export function ExploreWorkspace() {
       if (!data.visibility[cardId]) {
         data.setCardVisible(cardId, true);
       }
-      data.setActiveCardId(cardId);
+      data.openCard(cardId);
       data.setViewMode("board");
       return;
     }
@@ -246,10 +246,8 @@ export function ExploreWorkspace() {
     () =>
       data.shellMode === "board"
         ? data.boardCards.map((card) => card.id)
-        : data.activeBoardCard
-          ? [data.activeBoardCard.id]
-          : [],
-    [data.activeBoardCard, data.boardCards, data.shellMode],
+        : data.openBoardCards.map((card) => card.id),
+    [data.openBoardCards, data.boardCards, data.shellMode],
   );
 
   const visibleControlCount =
@@ -262,7 +260,7 @@ export function ExploreWorkspace() {
     5 +
     (state.overlayDemo ? 1 : 0) +
     (data.activePrimaryCard ? 1 : 0) +
-    (data.activeBoardCard ? 1 : 0) +
+    data.openBoardCards.length +
     data.suggestedCards.length;
 
   useEffect(() => {
@@ -281,7 +279,7 @@ export function ExploreWorkspace() {
       demoOpen: Boolean(state.overlayDemo),
     });
   }, [
-    data.activeBoardCard,
+    data.openBoardCards,
     data.activePrimaryCard,
     data.geodata,
     data.loading,
@@ -409,10 +407,14 @@ export function ExploreWorkspace() {
                 <Button
                   type="button"
                   size="sm"
-                  variant="ghost"
+                  variant={data.openCardIds.includes("compare") ? "default" : "ghost"}
                   className="rounded-full"
                   onClick={() => openCard("compare")}
-                  title="Compare saved locations side by side."
+                  title={
+                    data.sites.length >= 2
+                      ? "Compare saved locations side by side."
+                      : "Save at least two locations to unlock comparison."
+                  }
                 >
                   Compare
                 </Button>
@@ -680,8 +682,8 @@ export function ExploreWorkspace() {
               data.viewMode === "board" ? (
                 <WorkspaceBoard
                   cards={data.boardCards}
-                  activeCardId={data.activeBoardCard?.id ?? null}
-                  onSelectCard={data.setActiveCardId}
+                  openCardIds={data.openCardIds}
+                  onToggleCard={data.toggleOpenCard}
                   onOpenLibrary={data.openLibrary}
                   onReorderCards={data.reorderCards}
                   savedBoards={data.savedBoards}
@@ -692,21 +694,24 @@ export function ExploreWorkspace() {
                   onUpdateActiveBoard={data.updateActiveBoard}
                   onRenameBoard={data.renameBoard}
                 >
-                  {data.activeBoardCard ? (
-                    <div
-                      className={cn(
-                        "grid gap-4",
-                        data.activeBoardCard.defaultSize === "wide"
-                          ? "xl:grid-cols-1"
-                          : "xl:grid-cols-2",
-                      )}
-                    >
-                      <ExploreWorkspacePanel
-                        cardId={data.activeBoardCard.id}
-                        state={state}
-                        data={data}
-                        onOpenCard={openCard}
-                      />
+                  {data.openBoardCards.length > 0 ? (
+                    <div className="space-y-4">
+                      {data.openBoardCards.map((card) => (
+                        <div
+                          key={card.id}
+                          className={cn(
+                            "grid gap-4",
+                            card.defaultSize === "wide" ? "xl:grid-cols-1" : "xl:grid-cols-2",
+                          )}
+                        >
+                          <ExploreWorkspacePanel
+                            cardId={card.id}
+                            state={state}
+                            data={data}
+                            onOpenCard={openCard}
+                          />
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="flex min-h-[120px] items-center justify-center">
@@ -731,18 +736,21 @@ export function ExploreWorkspace() {
               )
             ) : (
               <>
-                {data.activeBoardCard ? (
+                {data.openBoardCards.length > 0 ? (
                   <section className="space-y-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                       <Sparkles className="h-4 w-4 text-[var(--accent)]" />
                       Supporting view
                     </div>
-                    <ExploreWorkspacePanel
-                      cardId={data.activeBoardCard.id}
-                      state={state}
-                      data={data}
-                      onOpenCard={openCard}
-                    />
+                    {data.openBoardCards.map((card) => (
+                      <ExploreWorkspacePanel
+                        key={card.id}
+                        cardId={card.id}
+                        state={state}
+                        data={data}
+                        onOpenCard={openCard}
+                      />
+                    ))}
                   </section>
                 ) : null}
 

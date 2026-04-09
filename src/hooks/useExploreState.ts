@@ -257,6 +257,16 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setOverlayDismissed(false);
   }, [activeDemo?.id]);
 
+  // Fly to demo coordinates when a demo is loaded or changes
+  useEffect(() => {
+    if (!activeDemo) return;
+    selectPoint(
+      { lat: activeDemo.coordinates.lat, lng: activeDemo.coordinates.lng },
+      activeDemo.locationName,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDemo?.id]);
+
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
   }, [activeProfile]);

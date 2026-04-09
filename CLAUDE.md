@@ -330,23 +330,27 @@ See `docs/BACKLOG.md` for full detail. Short version:
 
 **P0 — trust and data quality**
 - ~~Inline provenance~~ — shipped: `source.provider` now inline in `TrendSignalCard` and `LocationSignalCard`; badge colors token-aligned
-- Standardise `direct live` / `derived live` / `proxy heuristic` labeling throughout (partial — see BACKLOG.md)
+- ~~Standardised provenance labeling~~ — shipped: `direct live / derived live / proxy heuristic` throughout score cards, trends, GeoScribe, GeoAnalyst prompts
 
 **P1 — card platform**
-- Saved named dashboard layouts
-- Drag-and-drop card composition in board mode
+- ~~Formal universal card contract~~ — shipped: all 17+ cards migrated to `WorkspaceCardShell`
+- ~~Multi-card board mode~~ — shipped: `openCardIds: WorkspaceCardId[]` replaces `activeCardId`; chips toggle; multiple cards stack in `space-y-4`
+- ~~Intent routing for new cards~~ — shipped: `workspace-intent.ts` has `"wildfire"` / `"alerts"` / `"climate"` intents; question → card suggestion wired for all synthesis cards
 
 **P1 — global coverage**
-- Live non-US provider integrations (flood, broadband, school, contamination)
+- Live non-US provider integrations (flood, soil, seismic, school beyond Eurostat) — **next P1 target**
 - Regional provider selection exposed in UI
 
 **P1 — domain expansion**
-- Travel / trip-planning card family
-- Richer multi-hazard resilience stack
+- ~~Travel / trip-planning card family~~ — shipped
+- ~~Drought risk card~~ — shipped: `DroughtRiskCard` — precip deficit + aridity + heat amplification → 4-tier
+- ~~Live disaster alerts card~~ — shipped: `DisasterAlertsCard` — full GDACS feed with per-event rows, level badges, distance, dates, report links
+- ~~Wildfire risk index card~~ — shipped: `WildfireRiskCard` — fire proximity + aridity + vegetation + heat → 4-tier structural risk
+- ~~Thermal load card~~ — shipped: `ThermalLoadCard` — ambient temp + wind + climate trajectory + CDD → Excellent/Favorable/Moderate/Challenging; first use of `coolingDegreeDays`
+- Richer multi-hazard resilience stack (seismic probabilistic, flood depth)
 
 **P2 — spatial tools**
-- ~~Polygon drawing~~ — shipped: Draw area, Drop pin, Measure, Radius circle. See `src/hooks/useGlobeDrawing.ts` and `DrawingToolbar.tsx`.
-- Remaining: editable pin labels, GeoJSON export, undo/redo, snap
+- ~~Polygon drawing~~ — shipped: Draw area, Drop pin, Measure, Radius circle, snap-to-vertex, snap-to-grid, vertex drag-editing, undo/redo, GeoJSON export, named pin labels
 - LiDAR / National Map layers
 - Export and share beyond GeoScribe panel
 
@@ -356,5 +360,6 @@ See `docs/BACKLOG.md` for full detail. Short version:
 
 - `README.md` — user-facing product overview and quick start
 - `docs/BACKLOG.md` — full milestone inventory
+- `docs/HANDOFF.md` — agent/dev handoff: what's shipped, what's next, data source reference, critical conventions
 - `docs/RELEASE_RUNBOOK.md` — deploy checklist and AI environment validation
 - `agents.md` — product north star and agent system description

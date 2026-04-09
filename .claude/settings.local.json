@@ -41,7 +41,11 @@
       "Bash(cmd.exe /c \"node -e \"\"try { const {Grid2x2} = require\\(''lucide-react''\\); console.log\\(''Grid2x2 ok'', !!Grid2x2\\); } catch\\(e\\) { console.log\\(''err'', e.message\\); }\"\"\")",
       "Bash(cmd.exe /c \"if exist C:\\\\Users\\\\mason\\\\OneDrive\\\\Documents\\\\GitHub\\\\geosight-gspat\\\\node_modules\\\\lucide-react \\(echo found\\) else \\(echo not found\\)\")",
       "Bash(cmd.exe /c \"grep -rn \"\"from.*ui/card\"\" src/components/Explore/*.tsx 2>&1 | grep -v WorkspaceCardShell\")",
-      "Bash(cmd.exe /c \"node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1\")"
+      "Bash(cmd.exe /c \"node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1\")",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(cmd /c \"node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1\")",
+      "Bash(cmd /c \"cd /d C:\\\\Users\\\\mason\\\\OneDrive\\\\Documents\\\\GitHub\\\\geosight-gspat && npx tsc --noEmit 2>&1\")",
+      "Bash(cmd /c \"cd /d \\\\\"C:\\\\Users\\\\mason\\\\OneDrive\\\\Documents\\\\GitHub\\\\geosight-gspat\\\\\" && npx tsc --noEmit\")"
     ]
   }
 }

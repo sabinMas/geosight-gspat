@@ -6,6 +6,9 @@ export type WorkspaceIntent =
   | "trust"
   | "comparison"
   | "hazard"
+  | "wildfire"
+  | "climate"
+  | "alerts"
   | "terrain"
   | "imagery"
   | "schools";
@@ -15,7 +18,16 @@ const SUMMARY_PATTERN =
 const TRUST_PATTERN =
   /\b(source|sources|trust|provenance|confidence|freshness|coverage|where did this come from)\b/i;
 const COMPARISON_PATTERN = /\b(compare|comparison|versus|vs\.?|side by side|better than)\b/i;
-const HAZARD_PATTERN = /\b(risk|hazard|fire|earthquake|flood|danger|resilience)\b/i;
+// Wildfire checked before generic hazard so fire-specific questions get the richer card
+const WILDFIRE_PATTERN =
+  /\b(wildfire|fire risk|fire danger|fire weather|fire.prone|burn scar|structural fire)\b/i;
+// Alerts checked before generic hazard — "active disaster", "emergency alert", "GDACS"
+const ALERTS_PATTERN =
+  /\b(disaster|alert|alerts|emergency|cyclone|tsunami|gdacs|active event|current event)\b/i;
+const HAZARD_PATTERN = /\b(risk|hazard|earthquake|flood|danger|resilience)\b/i;
+// Climate covers drought, precipitation trends, thermal load, heat, aridity
+const CLIMATE_PATTERN =
+  /\b(drought|precipitation|rainfall|rain deficit|aridity|arid|drying|cooling load|thermal|heat load|temperature trend|warming trend|cdd|climate|cooling degree)\b/i;
 const TERRAIN_PATTERN = /\b(terrain|slope|elevation|topography|grade|profile)\b/i;
 const IMAGERY_PATTERN = /\b(image|imagery|photo|satellite|land cover|classification)\b/i;
 const SCHOOL_PATTERN = /\b(school|district|student|education|ospi|nces)\b/i;
@@ -32,8 +44,17 @@ export function detectWorkspaceIntent(question: string): WorkspaceIntent {
   if (TRUST_PATTERN.test(normalized)) {
     return "trust";
   }
+  if (WILDFIRE_PATTERN.test(normalized)) {
+    return "wildfire";
+  }
+  if (ALERTS_PATTERN.test(normalized)) {
+    return "alerts";
+  }
   if (HAZARD_PATTERN.test(normalized)) {
     return "hazard";
+  }
+  if (CLIMATE_PATTERN.test(normalized)) {
+    return "climate";
   }
   if (TERRAIN_PATTERN.test(normalized)) {
     return "terrain";
@@ -68,6 +89,12 @@ export function getSuggestedCardIdForIntent(intent: WorkspaceIntent): WorkspaceC
       return "compare";
     case "hazard":
       return "hazard-context";
+    case "wildfire":
+      return "wildfire-risk";
+    case "alerts":
+      return "disaster-alerts";
+    case "climate":
+      return "drought-risk";
     case "terrain":
       return "terrain-viewer";
     case "imagery":

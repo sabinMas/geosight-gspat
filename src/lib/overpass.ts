@@ -6,7 +6,29 @@ import {
 } from "@/lib/nearby-places";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 
-const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
+// Primary and fallback Overpass API mirrors — overpass-api.de is rate-limited on the free tier
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+
+async function fetchOverpass(body: string, cacheSeconds: number): Promise<Response> {
+  let lastError: unknown;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const response = await fetchWithTimeout(
+        endpoint,
+        { method: "POST", body, next: { revalidate: cacheSeconds } },
+        EXTERNAL_TIMEOUTS.standard,
+      );
+      if (response.ok) return response;
+      lastError = new Error(`Overpass ${endpoint} returned ${response.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError ?? new Error("All Overpass mirrors failed.");
+}
 
 export type OverpassElement = {
   id: number;
@@ -231,15 +253,7 @@ export async function fetchNearbyInfrastructure(bbox: BoundingBox) {
     out tags center;
   `;
 
-  const response = await fetchWithTimeout(OVERPASS_ENDPOINT, {
-    method: "POST",
-    body: query,
-    next: { revalidate: 60 * 60 * 6 },
-  }, EXTERNAL_TIMEOUTS.standard);
-
-  if (!response.ok) {
-    throw new Error("Overpass request failed.");
-  }
+  const response = await fetchOverpass(query, 60 * 60 * 6);
 
   return (await response.json()) as {
     elements?: OverpassElement[];
@@ -252,15 +266,7 @@ export async function fetchNearbyPlaces(
   category: NearbyPlaceCategory,
 ) {
   const query = buildNearbyQuery(category, coords);
-  const response = await fetchWithTimeout(OVERPASS_ENDPOINT, {
-    method: "POST",
-    body: query,
-    next: { revalidate: 60 * 30 },
-  }, EXTERNAL_TIMEOUTS.standard);
-
-  if (!response.ok) {
-    throw new Error("Nearby places request failed.");
-  }
+  const response = await fetchOverpass(query, 60 * 30);
 
   const json = (await response.json()) as { elements?: OverpassElement[] };
   const elements = json.elements ?? [];

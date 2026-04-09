@@ -34,13 +34,14 @@ import { sanitizeStreamGauges } from "@/lib/stream-gauges";
 import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { getNearbyStreamGauges } from "@/lib/water";
+import { getSolarResource } from "@/lib/solar-resource";
 import { GeodataResult } from "@/types";
 
 const OPTIONAL_PROVIDER_TIMEOUTS = {
   fire: 6_500,
   schools: 7_000,
   broadband: 6_500,
-  flood: 6_500,
+  flood: 12_000,
   water: 7_000,
   groundwater: 7_500,
   soil: 7_000,
@@ -49,6 +50,7 @@ const OPTIONAL_PROVIDER_TIMEOUTS = {
   airQuality: 7_000,
   epaHazards: 7_000,
   gdacsAlerts: 8_500,
+  solar: 10_000,
 } as const;
 
 function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -286,6 +288,7 @@ export async function GET(request: NextRequest) {
     airQualityResult,
     epaHazardResult,
     gdacsAlertResult,
+    solarResourceResult,
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
@@ -313,6 +316,7 @@ export async function GET(request: NextRequest) {
       withSoftTimeout(getAirQuality(lat, lng), OPTIONAL_PROVIDER_TIMEOUTS.airQuality, "air quality"),
       epaHazardPromise,
       gdacsAlertPromise,
+      withSoftTimeout(getSolarResource({ lat, lng }), OPTIONAL_PROVIDER_TIMEOUTS.solar, "solar resource"),
     ]);
 
   const infrastructure =
@@ -452,6 +456,7 @@ export async function GET(request: NextRequest) {
     soilProfile,
     seismicDesign,
     climateHistory,
+    solarResource: solarResourceResult.status === "fulfilled" ? solarResourceResult.value : null,
     airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
     epaHazards: isUsPoint && epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
     hazardAlerts: gdacsAlertResult.status === "fulfilled" ? gdacsAlertResult.value : null,
@@ -831,6 +836,26 @@ export async function GET(request: NextRequest) {
           hasClimateHistory
             ? "Derived yearly trend summaries from archived daily Open-Meteo records."
             : "Historical climate summaries could not be assembled for this point.",
+      }),
+      solarResource: buildRegistryAwareSourceMeta({
+        id: "solar-resource",
+        label: "Solar irradiance",
+        provider: "NASA POWER",
+        domain: "weather",
+        context: registryContext,
+        status:
+          solarResourceResult.status === "fulfilled" &&
+          solarResourceResult.value.annualGhiKwhM2Day !== null
+            ? "live"
+            : "limited",
+        lastUpdated: now,
+        freshness: "22-year climatological averages (2001–2022), cached 7 days",
+        coverage: "Global — NASA satellite-derived surface irradiance",
+        confidence:
+          solarResourceResult.status === "fulfilled" &&
+          solarResourceResult.value.annualGhiKwhM2Day !== null
+            ? "NASA POWER provides satellite-derived climatological GHI and clearness index. Values are multi-year averages, not real-time readings."
+            : "Solar resource data could not be retrieved for this point.",
       }),
       airQuality: buildRegistryAwareSourceMeta({
         id: "air-quality",

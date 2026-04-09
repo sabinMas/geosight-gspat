@@ -15,6 +15,12 @@ import { FireHistoryCard } from "@/components/Explore/FireHistoryCard";
 import { CoolingWaterCard } from "@/components/Explore/CoolingWaterCard";
 import { FloodRiskCard } from "@/components/Explore/FloodRiskCard";
 import { GroundwaterCard } from "@/components/Explore/GroundwaterCard";
+import { DisasterAlertsCard } from "@/components/Explore/DisasterAlertsCard";
+import { WildfireRiskCard } from "@/components/Explore/WildfireRiskCard";
+import { ThermalLoadCard } from "@/components/Explore/ThermalLoadCard";
+import { StreamGaugeCard } from "@/components/Explore/StreamGaugeCard";
+import { SolarResourceCard } from "@/components/Explore/SolarResourceCard";
+import { DroughtRiskCard } from "@/components/Explore/DroughtRiskCard";
 import { HazardCard } from "@/components/Explore/HazardCard";
 import { HousingMarketCard } from "@/components/Explore/HousingMarketCard";
 import { InfrastructureAccessCard } from "@/components/Explore/InfrastructureAccessCard";
@@ -142,6 +148,12 @@ function getDataDependencyPlaceholder(
     "site-readiness",
     "infrastructure-access",
     "hazard-details",
+    "drought-risk",
+    "disaster-alerts",
+    "wildfire-risk",
+    "thermal-load",
+    "stream-gauges",
+    "solar-resource",
   ]);
 
   if (scoreCards.has(cardId) && !data.siteScore) {
@@ -402,6 +414,18 @@ export function ExploreWorkspacePanel({
       return <ResilienceScoreCard geodata={data.geodata} />;
     case "hazard-details":
       return <HazardDetailsCard geodata={data.geodata} />;
+    case "drought-risk":
+      return <DroughtRiskCard geodata={data.geodata} />;
+    case "disaster-alerts":
+      return <DisasterAlertsCard geodata={data.geodata} />;
+    case "wildfire-risk":
+      return <WildfireRiskCard geodata={data.geodata} />;
+    case "thermal-load":
+      return <ThermalLoadCard geodata={data.geodata} />;
+    case "stream-gauges":
+      return <StreamGaugeCard geodata={data.geodata} />;
+    case "solar-resource":
+      return <SolarResourceCard geodata={data.geodata} />;
     case "housing-market":
       return (
         <HousingMarketCard

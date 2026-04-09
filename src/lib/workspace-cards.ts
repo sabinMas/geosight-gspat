@@ -570,6 +570,146 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     supportedProfiles: ["data-center", "residential", "commercial"],
     emptyState: "Select a place to see raw hazard parameters.",
   },
+  {
+    id: "drought-risk",
+    title: "Drought risk",
+    summary: "Precipitation deficit trend + aridity class + heat amplification → 4-tier drought risk rating from Open-Meteo historical archive.",
+    questionAnswered: "Is this location experiencing a multi-year precipitation deficit, and how does aridity and warming amplify drought pressure?",
+    regionCoverage: "Global — Open-Meteo ERA5 historical archive (2015–2024)",
+    failureMode: "Shows unavailable state when climate history is absent; degrades gracefully with partial year coverage",
+    freshnessWindow: "Recomputed on geodata change; underlying archive cached 24 hours",
+    nextActions: ["Compare vs climate history card", "Check weather forecast for near-term precipitation", "Review cooling water access if water stress is a concern"],
+    icon: "Droplets",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 128,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    emptyState: "Select a location to assess multi-year drought pressure.",
+  },
+  {
+    id: "disaster-alerts",
+    title: "Live disaster alerts",
+    summary: "GDACS global disaster feed — active flood, earthquake, tropical cyclone, drought, and wildfire events at Orange and Red alert levels.",
+    questionAnswered: "Are there any active major disaster events near this location right now?",
+    regionCoverage: "Global — GDACS UN/EU joint initiative disaster feed",
+    failureMode: "Shows unavailable state when GDACS feed cannot be reached; empty state (no alerts) is a valid and positive result",
+    freshnessWindow: "Live on location change; GDACS feed refreshes every few hours",
+    nextActions: [
+      "Check multi-hazard resilience score for long-term context",
+      "Review hazard details for technical parameters",
+      "Open weather forecast for near-term conditions",
+    ],
+    icon: "ShieldAlert",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 129,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    emptyState: "Select a location to check the live global disaster alert feed.",
+  },
+  {
+    id: "wildfire-risk",
+    title: "Wildfire risk index",
+    summary: "Structural fire risk synthesis: current NASA FIRMS fire proximity + climate aridity + vegetation fuel load + temperature trend → 4-tier risk rating.",
+    questionAnswered: "Structurally, how fire-prone is this location — beyond just whether fires are burning right now?",
+    regionCoverage: "Global for climate aridity and temperature trend; NASA FIRMS fire detection global when API key is configured; OSM land cover global",
+    failureMode: "Applies estimated penalty for unknown FIRMS data; aridity and vegetation factors still score when available",
+    freshnessWindow: "Recomputed on geodata change; underlying fire and climate data live",
+    nextActions: [
+      "Check wildfire history for year-by-year fire seasons",
+      "Review drought risk for climate dryness context",
+      "Open disaster alerts for active GDACS events",
+    ],
+    icon: "Flame",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 130,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    emptyState: "Select a location to assess structural wildfire risk.",
+  },
+  {
+    id: "thermal-load",
+    title: "Cooling load",
+    summary: "Thermal environment assessment: ambient temperature + wind cooling potential + climate trajectory → efficiency rating for cooling-dependent infrastructure.",
+    questionAnswered: "How thermally demanding is this location for cooling operations, and is the burden growing over time?",
+    regionCoverage: "Global — Open-Meteo current forecast (temperature, wind) and ERA5 archive (2015–2024 trend)",
+    failureMode: "Degrades gracefully when wind or trend data is unavailable; temperature-only scoring still produces a valid rating",
+    freshnessWindow: "Recomputed on geodata change; forecast data cached 6 hours",
+    nextActions: [
+      "Review climate history for long-run temperature trends",
+      "Check drought risk for water stress context",
+      "Open weather forecast for near-term conditions",
+    ],
+    icon: "Thermometer",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 131,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    emptyState: "Select a location to assess thermal load and cooling efficiency.",
+  },
+  {
+    id: "stream-gauges",
+    title: "Stream gauge network",
+    summary: "Active USGS stream gauges within 50 km: flow classification, drainage area context, and surface water availability rating.",
+    questionAnswered: "Is there adequate surface water flow nearby, and how reliable is the nearest gauge for water sourcing or flood context?",
+    regionCoverage: "Contiguous United States — USGS NWIS real-time instantaneous values",
+    failureMode: "Shows empty state with coverage note when no gauges found within 50 km; individual gauges degrade gracefully when discharge or drainage area is absent",
+    freshnessWindow: "Recomputed on geodata change; USGS NWIS data typically has 15-minute lag",
+    nextActions: [
+      "Review cooling water card for intake feasibility",
+      "Check flood risk for downstream context",
+      "Open groundwater card if surface supply is low",
+    ],
+    icon: "Waves",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 132,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "site-development", "commercial"],
+    emptyState: "Select a US location to see active stream gauges and surface water availability.",
+  },
+  {
+    id: "solar-resource",
+    title: "Solar resource",
+    summary: "NASA POWER satellite-derived irradiance: annual GHI, peak sun hours, clearness index, and monthly profile — global coverage, no API key required.",
+    questionAnswered: "How much solar energy is available at this location, and when does it peak or dip across the year?",
+    regionCoverage: "Global — NASA POWER 22-year climatological averages (2001–2022)",
+    failureMode: "Shows empty state when NASA POWER is unreachable; individual fields degrade gracefully when clearness or clear-sky values are absent",
+    freshnessWindow: "Climatological averages cached 7 days; values do not change frequently",
+    nextActions: [
+      "Check thermal load card for cooling energy demand context",
+      "Review climate history for temperature and precipitation trends",
+      "Cross-reference with wind data for hybrid energy site assessment",
+    ],
+    icon: "Sun",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 133,
+    requiredData: ["geodata"],
+    supportedProfiles: ["data-center", "site-development", "commercial", "residential"],
+    emptyState: "Select a location to see solar irradiance and peak sun hours.",
+  },
 ] as const;
 
 function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
@@ -601,6 +741,18 @@ function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
     case "earthquake-history":
     case "fire-history":
       return ["ask_hazard", "location_selected"];
+    case "wildfire-risk":
+      return ["ask_wildfire", "ask_hazard", "location_selected"];
+    case "disaster-alerts":
+      return ["ask_alerts", "ask_hazard", "location_selected"];
+    case "drought-risk":
+      return ["ask_climate", "location_selected"];
+    case "thermal-load":
+      return ["ask_climate", "location_selected"];
+    case "stream-gauges":
+      return ["ask_hazard", "location_selected"];
+    case "solar-resource":
+      return ["ask_climate", "location_selected"];
     case "outdoor-fit":
       return ["ask_reasoning", "ask_hazard", "location_selected"];
     case "trip-summary":

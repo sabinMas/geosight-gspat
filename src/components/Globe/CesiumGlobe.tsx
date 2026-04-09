@@ -124,6 +124,7 @@ export function CesiumGlobe({
   const [pointerInside, setPointerInside] = useState(false);
   const driveHudSpeedRef = useRef<HTMLSpanElement | null>(null);
   const driveHudAltRef = useRef<HTMLSpanElement | null>(null);
+  const terrainExaggerationRef = useRef(terrainExaggeration);
   const terrainProviderPromise = useMemo(
     () =>
       createWorldTerrainAsync().catch((error) => {
@@ -315,6 +316,7 @@ export function CesiumGlobe({
     }
 
     viewer.scene.verticalExaggeration = terrainExaggeration;
+    terrainExaggerationRef.current = terrainExaggeration;
   }, [terrainExaggeration, viewerReady]);
 
   useEffect(() => {
@@ -811,7 +813,7 @@ export function CesiumGlobe({
       hudFrame++;
       if (hudFrame % 4 === 0) {
         const kph = Math.abs(Math.round(speed * 3.6));
-        const altM = Math.round(height);
+        const altM = Math.round(height / Math.max(terrainExaggerationRef.current, 1));
         if (driveHudSpeedRef.current) driveHudSpeedRef.current.textContent = `${kph}`;
         if (driveHudAltRef.current)   driveHudAltRef.current.textContent   = `${altM}`;
       }

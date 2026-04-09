@@ -340,10 +340,7 @@ export function LandingPage() {
             </div>
 
             {/* Location entry — always visible, dimmed until a lens is selected */}
-            <div
-              ref={explorerStep2Ref}
-              className={`mx-auto max-w-xl transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100 pointer-events-auto" : "opacity-50 pointer-events-none"}`}
-            >
+            <div ref={explorerStep2Ref} className="mx-auto max-w-xl">
               <p className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
                 STEP 2 — ENTER A LOCATION
               </p>
@@ -351,7 +348,14 @@ export function LandingPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   setError(null);
-                  if (!selectedUseCaseId?.startsWith("explorer-")) return;
+                  if (!selectedUseCaseId?.startsWith("explorer-")) {
+                    setError("Choose a lens above before searching for a location.");
+                    return;
+                  }
+                  if (!locationQuery.trim()) {
+                    setError("Enter a city, address, or coordinates to continue.");
+                    return;
+                  }
                   const lensId = selectedUseCaseId.replace("explorer-", "");
                   const lens = EXPLORER_LENSES.find((l) => l.id === lensId);
                   if (!lens) return;
@@ -368,14 +372,18 @@ export function LandingPage() {
                 }}
                 className="space-y-4"
               >
-                <Input
-                  value={locationQuery}
-                  onChange={(e) => setLocationQuery(e.target.value)}
-                  placeholder="City, region, or coordinates…"
-                  className="h-12 rounded-[1.5rem]"
-                  autoFocus={Boolean(selectedUseCaseId?.startsWith("explorer-"))}
-                />
-                <div className="flex gap-3">
+                {/* Input row — dimmed and non-interactive until a lens is chosen */}
+                <div className={`transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+                  <Input
+                    value={locationQuery}
+                    onChange={(e) => setLocationQuery(e.target.value)}
+                    placeholder="City, region, or coordinates…"
+                    className="h-12 rounded-[1.5rem]"
+                    autoFocus={Boolean(selectedUseCaseId?.startsWith("explorer-"))}
+                  />
+                </div>
+                {/* Button row — always interactive so users get feedback if they skip Step 1 */}
+                <div className={`flex gap-3 transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-60"}`}>
                   <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
                     {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Explore this place
@@ -386,6 +394,10 @@ export function LandingPage() {
                     className="h-12 rounded-full"
                     onClick={async () => {
                       setError(null);
+                      if (!selectedUseCaseId?.startsWith("explorer-")) {
+                        setError("Choose a lens above before using your location.");
+                        return;
+                      }
                       setLocating(true);
                       try {
                         const coords = await getCurrentCoordinates();
@@ -404,7 +416,7 @@ export function LandingPage() {
                     Use my location
                   </Button>
                 </div>
-                {error && selectedUseCaseId?.startsWith("explorer-") ? (
+                {error ? (
                   <div className="rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
                     {error}
                   </div>
@@ -557,7 +569,7 @@ export function LandingPage() {
                       <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted-foreground)]">
                         {demo.tagline}
                       </p>
-                      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-[var(--foreground)] opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-[var(--muted-foreground)] opacity-60 transition-opacity duration-300 group-hover:opacity-100 group-hover:text-[var(--foreground)]">
                         Open demo
                         <ArrowRight className="h-4 w-4" />
                       </div>

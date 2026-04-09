@@ -2,6 +2,7 @@ import type { ClimateHistoryResult } from "@/lib/climate-history";
 import type { GroundwaterSummary } from "@/lib/groundwater";
 import type { SeismicDesignParams } from "@/lib/seismic-design";
 import type { SoilProfile } from "@/lib/soil-profile";
+import type { SolarResourceResult } from "@/lib/solar-resource";
 export type { AppMode, CardAudience, CardComplexity } from "./app-mode";
 import type { AppMode, CardAudience, CardComplexity } from "./app-mode";
 
@@ -85,6 +86,9 @@ export type WorkspaceRevealTrigger =
   | "ask_trust"
   | "ask_comparison"
   | "ask_hazard"
+  | "ask_climate"
+  | "ask_wildfire"
+  | "ask_alerts"
   | "ask_terrain"
   | "ask_imagery"
   | "ask_schools"
@@ -132,7 +136,13 @@ export type WorkspaceCardId =
   | "multi-hazard-resilience"
   | "hazard-details"
   | "housing-market"
-  | "resilience-score";
+  | "resilience-score"
+  | "drought-risk"
+  | "disaster-alerts"
+  | "wildfire-risk"
+  | "thermal-load"
+  | "stream-gauges"
+  | "solar-resource";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -436,7 +446,9 @@ export interface SavedBoard {
   id: string;
   name: string;
   profileId: string;
+  /** @deprecated kept for backward compat; use openCardIds */
   activeCardId: WorkspaceCardId | null;
+  openCardIds?: WorkspaceCardId[];
   visibleCardIds: WorkspaceCardId[];
   createdAt: string;
 }
@@ -668,6 +680,7 @@ export interface GeodataResult {
   soilProfile: SoilProfile | null;
   seismicDesign: SeismicDesignParams | null;
   climateHistory: ClimateHistoryResult | null;
+  solarResource: SolarResourceResult | null;
   airQuality: AirQualityResult | null;
   epaHazards: EPAHazardResult | null;
   hazardAlerts: GdacsAlertSummary | null;
@@ -691,6 +704,7 @@ export interface GeodataResult {
     soilProfile: DataSourceMeta;
     seismicDesign: DataSourceMeta;
     climateHistory: DataSourceMeta;
+    solarResource: DataSourceMeta;
     airQuality: DataSourceMeta;
     epaHazards: DataSourceMeta;
     hazardAlerts: DataSourceMeta;

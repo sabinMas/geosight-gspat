@@ -9,8 +9,8 @@ import { WorkspaceCardIcon } from "./WorkspaceCardIcon";
 
 interface WorkspaceBoardProps {
   cards: WorkspaceCardDefinition[];
-  activeCardId: WorkspaceCardId | null;
-  onSelectCard: (cardId: WorkspaceCardId) => void;
+  openCardIds: WorkspaceCardId[];
+  onToggleCard: (cardId: WorkspaceCardId) => void;
   onOpenLibrary: () => void;
   onReorderCards: (newOrder: WorkspaceCardId[]) => void;
   savedBoards: SavedBoard[];
@@ -25,8 +25,8 @@ interface WorkspaceBoardProps {
 
 export function WorkspaceBoard({
   cards,
-  activeCardId,
-  onSelectCard,
+  openCardIds,
+  onToggleCard,
   onOpenLibrary,
   onReorderCards,
   savedBoards,
@@ -94,7 +94,7 @@ export function WorkspaceBoard({
           <div className="space-y-1">
             <div className="eyebrow">Secondary views</div>
             <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-              Open one supporting view at a time
+              Supporting views
             </h2>
           </div>
           <Button type="button" variant="secondary" className="rounded-full shrink-0" onClick={onOpenLibrary}>
@@ -105,7 +105,7 @@ export function WorkspaceBoard({
         {cards.length > 0 ? (
           <div className="mt-5 flex flex-wrap gap-2">
             {cards.map((card) => {
-              const active = card.id === activeCardId;
+              const isOpen = openCardIds.includes(card.id);
               return (
                 <div
                   key={card.id}
@@ -129,10 +129,10 @@ export function WorkspaceBoard({
                   onDragEnd={() => { setDragOverId(null); dragSrcId.current = null; }}
                   className={cn(
                     "group inline-flex items-center gap-2 rounded-full border transition duration-300",
-                    active
-                      ? "border-[var(--border-strong)] bg-[var(--surface-soft)] shadow-[var(--shadow-soft)]"
+                    isOpen
+                      ? "border-[var(--accent-strong)] bg-[var(--accent-soft)] ring-2 ring-[var(--accent)]"
                       : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]",
-                    dragOverId === card.id ? "ring-2 ring-[var(--accent)]" : "",
+                    dragOverId === card.id && !isOpen ? "ring-2 ring-[var(--accent)] ring-opacity-50" : "",
                   )}
                 >
                   <GripVertical
@@ -141,13 +141,22 @@ export function WorkspaceBoard({
                   />
                   <button
                     type="button"
-                    onClick={() => onSelectCard(card.id)}
+                    onClick={() => onToggleCard(card.id)}
+                    aria-pressed={isOpen}
                     className="inline-flex items-center gap-2 py-2.5 pr-4 text-left"
                   >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--accent)]">
+                    <div className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-full border",
+                      isOpen
+                        ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                        : "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--accent)]",
+                    )}>
                       <WorkspaceCardIcon icon={card.icon} className="h-4 w-4" />
                     </div>
-                    <div className="text-sm font-semibold text-[var(--foreground)]">{card.title}</div>
+                    <div className={cn(
+                      "text-sm font-semibold",
+                      isOpen ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]",
+                    )}>{card.title}</div>
                   </button>
                 </div>
               );

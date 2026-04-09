@@ -51,6 +51,14 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Inline script runs before React hydration to prevent theme FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('geosight.theme-mode.v1');var t=m==='light'?'light':m==='system'?(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):'dark';document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className={`${dmSans.variable} ${jetBrainsMono.variable}`}>
         <ThemeProvider>
           <AgentPanel>{children}</AgentPanel>
