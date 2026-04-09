@@ -311,7 +311,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     return () => {
       cancelled = true;
     };
-  }, [init.locationQuery, selectPoint]);
+  }, [init.locationQuery, hasDirectCoords, selectPoint]);
 
   return {
     init,

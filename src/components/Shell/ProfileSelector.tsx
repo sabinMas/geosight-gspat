@@ -22,7 +22,6 @@ const ICONS = {
 
 const SIDEBAR_CARD_WIDTH = 98;
 const SIDEBAR_CARD_GAP = 8;
-const SIDEBAR_VISIBLE_WIDTH = SIDEBAR_CARD_WIDTH * 2 + SIDEBAR_CARD_GAP * 2 + SIDEBAR_CARD_WIDTH / 2 + 10;
 
 const PROFILE_ICON_BY_ID = {
   "home-buying": House,
