@@ -458,6 +458,15 @@ function buildDemoGeodata(siteName: string): GeodataResult {
         coverage: "Pacific Northwest demo only",
         confidence: "Demo-only hazard alert context to keep showcase objects schema-complete.",
       }),
+      solarResource: buildSourceMeta({
+        id: "demo-solar-resource",
+        label: "Solar irradiance",
+        provider: "GeoSight demo overlay",
+        status: "limited",
+        freshness: "Static showcase seed",
+        coverage: "Pacific Northwest demo only",
+        confidence: "Demo-only solar context to keep showcase objects schema-complete.",
+      }),
     },
     sourceNotes: [
       "Preloaded showcase data for the Pacific Northwest cooling center scenario.",
