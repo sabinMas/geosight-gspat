@@ -77,21 +77,28 @@ export function CapabilityLauncher({
 
       {capabilities.length ? (
         <div className="flex flex-wrap gap-2">
-          {capabilities.map((capability) => (
-            <Button
-              key={capability.analysisId}
-              type="button"
-              size="sm"
-              variant={capability.recommended ? "default" : "secondary"}
-              className="rounded-full"
-              disabled={loading}
-              onClick={() => onRun(capability.analysisId)}
-              title={capability.reason}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              {capability.title}
-            </Button>
-          ))}
+          {capabilities.map((capability) => {
+            const isDisabled = loading || !capability.available;
+            return (
+              <span
+                key={capability.analysisId}
+                title={isDisabled ? capability.reason : undefined}
+                className={isDisabled ? "cursor-not-allowed" : undefined}
+              >
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={capability.recommended ? "default" : "secondary"}
+                  className="rounded-full"
+                  disabled={isDisabled}
+                  onClick={() => onRun(capability.analysisId)}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {capability.title}
+                </Button>
+              </span>
+            );
+          })}
         </div>
       ) : null}
 
