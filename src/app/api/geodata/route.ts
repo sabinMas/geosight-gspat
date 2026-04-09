@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
-      fetchNearbyInfrastructure(bbox),
+      withSoftTimeout(fetchNearbyInfrastructure(bbox), 20_000, "infrastructure"),
       fetchClimateSnapshot({ lat, lng }),
       fetchCountyDemographics({ lat, lng }),
       fetchEarthquakeSummary({ lat, lng }),

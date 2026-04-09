@@ -6,11 +6,15 @@ import {
 } from "@/lib/nearby-places";
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 
-// Primary and fallback Overpass API mirrors — overpass-api.de is rate-limited on the free tier
+// Primary and fallback Overpass API mirrors — overpass-api.de is rate-limited on the free tier.
+// Each mirror gets a 6s timeout so all three can be attempted within ~18s total,
+// well inside the 30s Vercel function budget.
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.openstreetmap.ru/api/interpreter",
 ];
+const OVERPASS_PER_MIRROR_TIMEOUT_MS = 6_000;
 
 async function fetchOverpass(body: string, cacheSeconds: number): Promise<Response> {
   let lastError: unknown;
@@ -19,7 +23,7 @@ async function fetchOverpass(body: string, cacheSeconds: number): Promise<Respon
       const response = await fetchWithTimeout(
         endpoint,
         { method: "POST", body, next: { revalidate: cacheSeconds } },
-        EXTERNAL_TIMEOUTS.standard,
+        OVERPASS_PER_MIRROR_TIMEOUT_MS,
       );
       if (response.ok) return response;
       lastError = new Error(`Overpass ${endpoint} returned ${response.status}`);
