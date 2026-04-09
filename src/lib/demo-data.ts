@@ -238,6 +238,7 @@ function buildDemoGeodata(siteName: string): GeodataResult {
       label: isMountainSite
         ? "Zone AE Special Flood Hazard Area"
         : "Zone X - area of minimal flood hazard",
+      source: "fema" as const,
     },
     streamGauges: [
       {
