@@ -189,7 +189,7 @@ export function SolarResourceCard({ geodata }: SolarResourceCardProps) {
                   fontSize: "12px",
                   color: "var(--foreground)",
                 }}
-                formatter={(value: number) => [`${value.toFixed(2)} kWh/m²/day`, "GHI"]}
+                formatter={(value) => (value != null ? [`${Number(value).toFixed(2)} kWh/m²/day`, "GHI"] : ["—", "GHI"])}
                 cursor={{ fill: "var(--surface-raised)" }}
               />
               <Bar dataKey="ghi" fill="var(--accent)" radius={[4, 4, 0, 0]} />
