@@ -466,6 +466,7 @@ export function useGlobeDrawing({
     function resolvePosition(
       screenPos: Cartesian2,
     ): [Cartesian3 | null, boolean] {
+      if (!viewer) return [null, false];
       const vertexSnap = findSnapTarget(viewer, screenPos, drawnShapesRef.current);
       if (vertexSnap) return [vertexSnap, true];
       const raw = pickPosition(viewer, screenPos);
