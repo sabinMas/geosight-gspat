@@ -180,7 +180,7 @@ function PrecipChart({ summaries }: { summaries: ClimateYearSummary[] }) {
                 borderRadius: "0.75rem",
                 fontSize: 12,
               }}
-              formatter={(v: number) => [`${v} mm`, "Precip"]}
+              formatter={(v: number | string | undefined) => v != null ? [`${v} mm`, "Precip"] : ["—", "Precip"]}
             />
             {baselineAvg ? (
               <ReferenceLine
