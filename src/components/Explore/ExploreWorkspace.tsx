@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { Car, FileText, Globe, Link2, Menu, Plus, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
+import { MapCallout } from "@/components/Globe/MapCallout";
+import { CardDisplayProvider } from "@/context/CardDisplayContext";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
 import {
   ExplorePrimaryPanel,
@@ -56,6 +58,7 @@ export function ExploreWorkspace() {
   const inExplorer = isExplorerMode(state.appMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [calloutDismissed, setCalloutDismissed] = useState(false);
 
   const handleCopyLink = useCallback(() => {
     void navigator.clipboard.writeText(window.location.href).then(() => {
@@ -481,6 +484,7 @@ export function ExploreWorkspace() {
             }
             onLocate={(result) => {
               state.setInitError(null);
+              setCalloutDismissed(false);
               state.selectPoint(
                 result.coordinates,
                 result.fullName ?? result.name,
@@ -610,6 +614,7 @@ export function ExploreWorkspace() {
                 globeRotateMode={state.globeRotateMode}
                 subsurfaceRenderMode={state.subsurfaceRenderMode}
                 onPointSelect={(coords) => {
+                  setCalloutDismissed(false);
                   state.selectPoint(coords);
                   data.handleLocationSelection();
                 }}
@@ -691,6 +696,22 @@ export function ExploreWorkspace() {
             onToggleSnapToGrid={() => state.setSnapToGrid((v) => !v)}
           />
 
+          {/* Map callout — appears on point select, hides when right panel opens */}
+          {(state.locationReady || data.loading) && !rightPanelOpen && !calloutDismissed ? (
+            <MapCallout
+              geodata={data.geodata}
+              score={data.siteScore}
+              profile={state.activeProfile}
+              locationName={state.selectedLocationName}
+              loading={data.loading}
+              onOpenAnalysis={() => {
+                const firstCard = data.primaryCards[0];
+                if (firstCard) data.setActivePrimaryCardId(firstCard.id);
+              }}
+              onDismiss={() => setCalloutDismissed(true)}
+            />
+          ) : null}
+
           {/* Coord readout */}
           {state.selectedPoint ? (
             <div className="absolute bottom-4 left-4 z-10 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-1 text-xs text-[var(--muted-foreground)] backdrop-blur-sm">
@@ -705,7 +726,9 @@ export function ExploreWorkspace() {
             "flex flex-col border-t border-[color:var(--border-soft)]",
             "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
           )}>
-            {rightPanelContent}
+            <CardDisplayProvider value={{ defaultCollapsed: true }}>
+              {rightPanelContent}
+            </CardDisplayProvider>
           </aside>
         ) : null}
       </div>

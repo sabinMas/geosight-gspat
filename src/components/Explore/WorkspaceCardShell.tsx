@@ -1,8 +1,11 @@
 "use client";
 
-import { ReactNode } from "react";
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCardDisplay } from "@/context/CardDisplayContext";
+import { cn } from "@/lib/utils";
 
 interface WorkspaceCardShellProps {
   /** Eyebrow label above the card title */
@@ -24,9 +27,11 @@ interface WorkspaceCardShellProps {
   emptyTitle?: string;
   emptyDescription?: string;
   /** Rendered when not loading/error/empty */
-  children: ReactNode;
+  children: React.ReactNode;
   /** Extra content always rendered in CardHeader below the title */
-  headerExtra?: ReactNode;
+  headerExtra?: React.ReactNode;
+  /** Override the context defaultCollapsed for this card */
+  defaultCollapsed?: boolean;
 }
 
 export function WorkspaceCardShell({
@@ -42,46 +47,81 @@ export function WorkspaceCardShell({
   emptyDescription,
   children,
   headerExtra,
+  defaultCollapsed: defaultCollapsedProp,
 }: WorkspaceCardShellProps) {
+  const { defaultCollapsed: contextCollapsed } = useCardDisplay();
+  const startCollapsed = defaultCollapsedProp ?? contextCollapsed;
+  const [collapsed, setCollapsed] = useState(startCollapsed);
+
+  const collapsible = startCollapsed; // only collapsible if it started collapsed
+
   return (
     <Card>
-      <CardHeader className="space-y-3">
-        <div className="eyebrow">{eyebrow}</div>
+      <CardHeader
+        className={cn(
+          "space-y-3",
+          collapsible && "cursor-pointer select-none",
+        )}
+        onClick={collapsible ? () => setCollapsed((v) => !v) : undefined}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="eyebrow">{eyebrow}</div>
+          {collapsible ? (
+            <button
+              type="button"
+              aria-label={collapsed ? "Expand card" : "Collapse card"}
+              className="shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCollapsed((v) => !v);
+              }}
+            >
+              {collapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+          ) : null}
+        </div>
         <CardTitle>{title}</CardTitle>
-        {subtitle ? (
+        {!collapsed && subtitle ? (
           <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">{subtitle}</p>
         ) : null}
-        {headerExtra}
+        {!collapsed && headerExtra ? headerExtra : null}
       </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <StatePanel
-            tone="loading"
-            eyebrow={eyebrow}
-            title={loadingTitle ?? `Loading ${title.toLowerCase()}`}
-            description={loadingDescription ?? "Gathering live data for this location."}
-            compact
-          />
-        ) : error ? (
-          <StatePanel
-            tone="error"
-            eyebrow={eyebrow}
-            title={`${title} could not load`}
-            description={error}
-            compact
-          />
-        ) : empty ? (
-          <StatePanel
-            tone="unavailable"
-            eyebrow={eyebrow}
-            title={emptyTitle ?? `${title} is not available here`}
-            description={emptyDescription ?? "No data was returned for this location."}
-            compact
-          />
-        ) : (
-          children
-        )}
-      </CardContent>
+
+      {!collapsed ? (
+        <CardContent className="space-y-4">
+          {loading ? (
+            <StatePanel
+              tone="loading"
+              eyebrow={eyebrow}
+              title={loadingTitle ?? `Loading ${title.toLowerCase()}`}
+              description={loadingDescription ?? "Gathering live data for this location."}
+              compact
+            />
+          ) : error ? (
+            <StatePanel
+              tone="error"
+              eyebrow={eyebrow}
+              title={`${title} could not load`}
+              description={error}
+              compact
+            />
+          ) : empty ? (
+            <StatePanel
+              tone="unavailable"
+              eyebrow={eyebrow}
+              title={emptyTitle ?? `${title} is not available here`}
+              description={emptyDescription ?? "No data was returned for this location."}
+              compact
+            />
+          ) : (
+            children
+          )}
+        </CardContent>
+      ) : null}
     </Card>
   );
 }
