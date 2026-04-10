@@ -115,9 +115,14 @@ export function CesiumGlobe({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<CesiumViewer | null>(null);
   const clickHandlerRef = useRef<ScreenSpaceEventHandler | null>(null);
+  const dragHandlerRef = useRef<ScreenSpaceEventHandler | null>(null);
   const lastFlyTargetRef = useRef<string | null>(null);
   const resizeFrameRef = useRef<number | null>(null);
   const resetTimeoutRef = useRef<number | null>(null);
+  // Pin drag state
+  const pinEntityRef = useRef<ReturnType<CesiumViewer["entities"]["add"]> | null>(null);
+  const dragPositionRef = useRef<Cartesian3 | null>(null);
+  const isDraggingPinRef = useRef(false);
   const [viewerReady, setViewerReady] = useState(false);
   const [globeReady, setGlobeReady] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
@@ -534,6 +539,84 @@ export function CesiumGlobe({
     };
   }, [drawingTool, onPointSelect, viewerKey, viewerReady]);
 
+  // ── Pin drag interaction ──────────────────────────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady || drawingTool !== "none") return;
+
+    if (dragHandlerRef.current && !dragHandlerRef.current.isDestroyed()) {
+      dragHandlerRef.current.destroy();
+    }
+
+    const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+    dragHandlerRef.current = handler;
+
+    const pickPosition = (pos: Cartesian2): Cartesian3 | undefined => {
+      try {
+        const picked = viewer.scene.pickPositionSupported
+          ? viewer.scene.pickPosition(pos)
+          : undefined;
+        return picked ?? viewer.camera.pickEllipsoid(pos, viewer.scene.globe.ellipsoid) ?? undefined;
+      } catch {
+        return undefined;
+      }
+    };
+
+    // Hover: show grab cursor when over pin
+    handler.setInputAction((event: { endPosition: Cartesian2 }) => {
+      if (isDraggingPinRef.current) return;
+      const picked = viewer.scene.pick(event.endPosition);
+      viewer.canvas.style.cursor =
+        picked?.id === pinEntityRef.current ? "grab" : "";
+    }, ScreenSpaceEventType.MOUSE_MOVE);
+
+    // Press: start drag if on pin
+    handler.setInputAction((event: { position: Cartesian2 }) => {
+      const picked = viewer.scene.pick(event.position);
+      if (picked?.id !== pinEntityRef.current) return;
+      isDraggingPinRef.current = true;
+      viewer.scene.screenSpaceCameraController.enableRotate = false;
+      viewer.scene.screenSpaceCameraController.enableTranslate = false;
+      viewer.canvas.style.cursor = "grabbing";
+    }, ScreenSpaceEventType.LEFT_DOWN);
+
+    // Move: update pin position live
+    handler.setInputAction((event: { startPosition: Cartesian2; endPosition: Cartesian2 }) => {
+      if (!isDraggingPinRef.current) return;
+      const pos = pickPosition(event.endPosition);
+      if (pos) dragPositionRef.current = pos;
+    }, ScreenSpaceEventType.MOUSE_MOVE);
+
+    // Release: finalize position
+    handler.setInputAction((event: { position: Cartesian2 }) => {
+      if (!isDraggingPinRef.current) return;
+      isDraggingPinRef.current = false;
+      viewer.scene.screenSpaceCameraController.enableRotate = true;
+      viewer.scene.screenSpaceCameraController.enableTranslate = true;
+      viewer.canvas.style.cursor = "";
+
+      const pos = pickPosition(event.position) ?? dragPositionRef.current;
+      if (!pos) return;
+      const cartographic = Cartographic.fromCartesian(pos);
+      onPointSelect({
+        lat: CesiumMath.toDegrees(cartographic.latitude),
+        lng: CesiumMath.toDegrees(cartographic.longitude),
+      });
+    }, ScreenSpaceEventType.LEFT_UP);
+
+    return () => {
+      if (!handler.isDestroyed()) handler.destroy();
+      if (dragHandlerRef.current === handler) dragHandlerRef.current = null;
+      // Restore state if unmounted mid-drag
+      if (isDraggingPinRef.current) {
+        isDraggingPinRef.current = false;
+        viewer.scene.screenSpaceCameraController.enableRotate = true;
+        viewer.scene.screenSpaceCameraController.enableTranslate = true;
+        viewer.canvas.style.cursor = "";
+      }
+    };
+  }, [drawingTool, onPointSelect, viewerKey, viewerReady]);
+
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!isViewerUsable(viewer) || !viewerReady) {
@@ -541,10 +624,16 @@ export function CesiumGlobe({
     }
 
     viewer.entities.removeAll();
+    dragPositionRef.current = null;
 
-    viewer.entities.add({
+    const basePosition = Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220);
+    const pinEntity = viewer.entities.add({
       name: "Selected Site",
-      position: Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220),
+      // CallbackProperty so drag moves the dot live without rebuilding the entity
+      position: new CallbackProperty(
+        () => dragPositionRef.current ?? basePosition,
+        false,
+      ) as unknown as Cartesian3,
       point: {
         color: Color.fromCssColorString("#00e5ff"),
         pixelSize: 14,
@@ -552,6 +641,7 @@ export function CesiumGlobe({
         outlineWidth: 2,
       },
     });
+    pinEntityRef.current = pinEntity;
 
     viewer.entities.add({
       name: "Selected region",
