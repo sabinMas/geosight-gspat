@@ -24,7 +24,6 @@ import { LandingUseCase } from "@/types";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
-import { DEMO_REGISTRY } from "@/lib/demos/registry";
 import { EXPLORER_LENSES } from "@/lib/explorer-lenses";
 import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
 import { Button } from "../ui/button";
@@ -45,7 +44,6 @@ const ICONS = {
   Layers,
 } as const;
 
-const GUIDED_DEMO_IDS = ["pnw-cooling", "tokyo-commercial", "wa-residential"] as const;
 const FEATURED_USE_CASE_IDS = ["home-buying", "market-analysis", "infrastructure"] as const;
 
 function getIcon(iconName: string) {
@@ -123,13 +121,6 @@ export function LandingPage() {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const guidedDemos = useMemo(
-    () =>
-      DEMO_REGISTRY.filter((demo) =>
-        GUIDED_DEMO_IDS.includes(demo.id as (typeof GUIDED_DEMO_IDS)[number]),
-      ),
-    [],
-  );
   const featuredUseCases = useMemo(
     () =>
       FEATURED_USE_CASE_IDS.map((useCaseId) =>
@@ -519,66 +510,6 @@ export function LandingPage() {
               ))}
             </div>
           </details>
-        </section>
-
-        <section className="glass-panel rounded-[2rem] p-5 md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-                Guided demos
-              </h2>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 xl:grid-cols-3">
-            {guidedDemos.map((demo) => {
-              const Icon = getIcon(demo.icon);
-              return (
-                <button
-                  key={demo.id}
-                  type="button"
-                  onClick={() =>
-                    router.push(
-                      buildExploreHref({
-                        profileId: demo.profileId,
-                        demoId: demo.id,
-                        entrySource: "demo",
-                      }),
-                    )
-                  }
-                  className="group rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-left transition duration-300 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)]"
-                >
-                  <div className="flex min-w-0 items-start gap-4">
-                    <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-                      style={{
-                        borderColor: `${demo.accentColor}33`,
-                        color: demo.accentColor,
-                        background: `${demo.accentColor}14`,
-                      }}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
-                        {demo.name}
-                      </div>
-                      <div className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
-                        {demo.locationName}
-                      </div>
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted-foreground)]">
-                        {demo.tagline}
-                      </p>
-                      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-[var(--muted-foreground)] opacity-60 transition-opacity duration-300 group-hover:opacity-100 group-hover:text-[var(--foreground)]">
-                        Open demo
-                        <ArrowRight className="h-4 w-4" />
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
         </section>
 
       </div>

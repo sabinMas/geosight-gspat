@@ -24,7 +24,6 @@ export default async function ExplorePage({
     locationQuery: firstValue(params.location),
     lat: rawLat !== undefined ? Number(rawLat) : undefined,
     lng: rawLng !== undefined ? Number(rawLng) : undefined,
-    demoId: firstValue(params.demo),
     entrySource: (firstValue(params.entrySource) as ExploreInitState["entrySource"]) ?? "direct",
     appMode: parseAppMode(firstValue(params.mode) ?? null),
     lensId: firstValue(params.lens),

@@ -82,7 +82,6 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const {
     activeProfile,
     appMode,
-    activeDemo,
     imageSummary,
     init,
     previewUrl,
@@ -323,11 +322,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       return;
     }
 
-    if (init.locationQuery || activeDemo) {
+    if (init.locationQuery) {
       setShellMode("guided");
     }
   }, [
-    activeDemo,
     init.locationQuery,
     setShellMode,
     shellMode,

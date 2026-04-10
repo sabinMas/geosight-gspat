@@ -256,7 +256,6 @@ export function ExploreWorkspace() {
 
   const visibleTextBlockCount =
     5 +
-    (state.overlayDemo ? 1 : 0) +
     (data.activePrimaryCard ? 1 : 0) +
     data.openBoardCards.length +
     data.suggestedCards.length;
@@ -274,7 +273,6 @@ export function ExploreWorkspace() {
       geodataLoading: data.loading,
       geodataLoaded: Boolean(data.geodata),
       reportOpen: data.reportOpen,
-      demoOpen: Boolean(state.overlayDemo),
     });
   }, [
     data.openBoardCards,
@@ -287,7 +285,6 @@ export function ExploreWorkspace() {
     setUiContext,
     reportPrompt,
     state.activeProfile.id,
-    state.overlayDemo,
     state.locationReady,
     visibleControlCount,
     visibleTextBlockCount,
@@ -518,33 +515,6 @@ export function ExploreWorkspace() {
 
         {/* Left panel — desktop only */}
         <aside className="hidden w-64 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)] xl:flex">
-
-          {/* Demo story notice */}
-          {state.overlayDemo ? (
-            <div className="shrink-0 border-b border-[color:var(--border-soft)] p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="eyebrow">Demo</div>
-                  <div className="mt-0.5 truncate text-sm font-semibold text-[var(--foreground)]">
-                    {state.overlayDemo.name}
-                  </div>
-                  <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-[var(--muted-foreground)]">
-                    {state.overlayDemo.tagline}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 rounded-full"
-                  onClick={state.dismissOverlayDemo}
-                  aria-label="Dismiss demo"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ) : null}
 
           {/* Init status */}
           {state.initStatus === "resolving" ? (

@@ -7,8 +7,7 @@ export type { AppMode, CardAudience, CardComplexity } from "./app-mode";
 import type { AppMode, CardAudience, CardComplexity } from "./app-mode";
 
 export type SiteFactorKey = string;
-export type ExploreEntrySource = "landing" | "demo" | "direct";
-export type DemoOverlayLayerKey = "water" | "power" | "roads";
+export type ExploreEntrySource = "landing" | "direct";
 
 export type UseCaseType =
   | "data_center_cooling"
@@ -300,7 +299,6 @@ export interface ExploreInitState {
   locationQuery?: string;
   lat?: number;
   lng?: number;
-  demoId?: string;
   entrySource?: ExploreEntrySource;
   appMode?: AppMode;
   lensId?: string;
@@ -316,30 +314,6 @@ export interface LandingUseCase {
   suggestedQuery: string;
 }
 
-export interface DemoOverlay {
-  id: string;
-  name: string;
-  tagline: string;
-  description: string;
-  profileId: string;
-  accentColor: string;
-  icon: string;
-  locationName: string;
-  coordinates: Coordinates;
-  fallbackScreenshot: string;
-  entryMode: "workspace" | "overlay";
-  preloadedSites?: SavedSite[];
-  quickRegionSites?: DemoSiteSeed[];
-  mapOverlays?: DemoMapOverlay[];
-}
-
-export interface DemoMapOverlay {
-  id: string;
-  layer: DemoOverlayLayerKey;
-  positions: Coordinates[];
-  color: string;
-  width: number;
-}
 
 export interface Coordinates {
   lat: number;
@@ -872,13 +846,6 @@ export interface AnalyzeRequestBody {
   classification?: LandCoverBucket[];
 }
 
-export interface DemoSiteSeed {
-  id: string;
-  name: string;
-  coordinates: Coordinates;
-  score: number;
-  summary: string;
-}
 
 export interface EarthquakeEvent {
   mag: number;

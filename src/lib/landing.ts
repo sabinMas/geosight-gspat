@@ -164,9 +164,6 @@ export function buildExploreHref(init: ExploreInitState) {
   if (init.locationQuery) {
     params.set("location", init.locationQuery);
   }
-  if (init.demoId) {
-    params.set("demo", init.demoId);
-  }
   if (init.entrySource) {
     params.set("entrySource", init.entrySource);
   }

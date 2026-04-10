@@ -7,12 +7,10 @@ import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useQuickRegions } from "@/hooks/useQuickRegions";
 import { resolveLocationQuery } from "@/lib/cesium-search";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
-import { getDemoById } from "@/lib/demos/registry";
 import { getProfileById } from "@/lib/profiles";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   AppMode,
-  DemoOverlay,
   DrawnShape,
   DrawingTool,
   EarthquakeEvent,
@@ -31,10 +29,6 @@ export interface ExploreState {
   init: ExploreInitParams;
   appMode: AppMode;
   setAppMode: (mode: AppMode) => void;
-  activeDemo: DemoOverlay | null;
-  coolingDemo: DemoOverlay | null;
-  overlayDemo: DemoOverlay | null;
-  dismissOverlayDemo: () => void;
   activeProfile: MissionProfile;
   setActiveProfile: Dispatch<SetStateAction<MissionProfile>>;
   initError: string | null;
@@ -125,17 +119,6 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     [pathname, router, searchParams],
   );
 
-  const activeDemo = useMemo(() => getDemoById(init.demoId), [init.demoId]);
-  const coolingDemo = useMemo(() => getDemoById("pnw-cooling"), []);
-  const [overlayDismissed, setOverlayDismissed] = useState(false);
-  const overlayDemo = useMemo(
-    () =>
-      activeDemo?.entryMode === "overlay" && !overlayDismissed ? activeDemo : null,
-    [activeDemo, overlayDismissed],
-  );
-  const dismissOverlayDemo = useCallback(() => {
-    setOverlayDismissed(true);
-  }, []);
   const [activeProfile, setActiveProfile] = useState<MissionProfile>(() =>
     getInitialProfile(init.profileId),
   );
@@ -254,20 +237,6 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   );
 
   useEffect(() => {
-    setOverlayDismissed(false);
-  }, [activeDemo?.id]);
-
-  // Fly to demo coordinates when a demo is loaded or changes
-  useEffect(() => {
-    if (!activeDemo) return;
-    selectPoint(
-      { lat: activeDemo.coordinates.lat, lng: activeDemo.coordinates.lng },
-      activeDemo.locationName,
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDemo?.id]);
-
-  useEffect(() => {
     setLayers(activeProfile.defaultLayers);
   }, [activeProfile]);
 
@@ -317,10 +286,6 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     init,
     appMode,
     setAppMode,
-    activeDemo,
-    coolingDemo,
-    overlayDemo,
-    dismissOverlayDemo,
     activeProfile,
     setActiveProfile,
     initError,
