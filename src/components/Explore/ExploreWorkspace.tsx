@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Car, FileText, Globe, Link2, Plus, Sparkles, X } from "lucide-react";
+import { Car, FileText, Globe, Link2, Menu, Plus, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
@@ -39,7 +39,7 @@ const CesiumGlobe = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)]">
+      <div className="flex h-full items-center justify-center bg-[var(--surface-panel)] text-[var(--muted-foreground)]">
         Loading 3D globe...
       </div>
     ),
@@ -132,7 +132,7 @@ export function ExploreWorkspace() {
       window.localStorage.setItem(BOARD_MODE_NOTICE_STORAGE_KEY, "true");
       setWorkspaceNotice({
         tone: "info",
-        message: "Board mode active.",
+        message: "Workspace mode active.",
       });
     }
   };
@@ -202,7 +202,6 @@ export function ExploreWorkspace() {
 
   const handleShapeComplete = useCallback((shape: DrawnShape) => {
     state.addDrawnShape(shape);
-    // Single-shot tools auto-reset; marker stays active for multi-pin workflows
     if (shape.type !== "marker") {
       state.setDrawingTool("none");
     }
@@ -227,7 +226,6 @@ export function ExploreWorkspace() {
           : 0;
         return { type: "Feature", properties: props, geometry: { type: "Point", coordinates: [center.lng, center.lat] } };
       }
-      // polygon — close ring
       const ring = [...shape.coordinates, shape.coordinates[0]].map((c) => [c.lng, c.lat]);
       return { type: "Feature", properties: props, geometry: { type: "Polygon", coordinates: [ring] } };
     });
@@ -320,453 +318,497 @@ export function ExploreWorkspace() {
     />
   );
 
-  return (
-    <main className="min-h-screen px-4 py-4 md:px-6">
-      <div className="mx-auto max-w-[1680px] space-y-5">
-        <section className="rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-5 shadow-[var(--shadow-panel)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
-                  {inExplorer ? "Explorer" : "Pro workspace"}
-                </span>
-                {inExplorer && state.activeLensId && (() => {
-                  const lens = getExplorerLensById(state.activeLensId);
-                  return lens ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-foreground)] cursor-default select-none">
-                      {lens.label}
-                      <button
-                        type="button"
-                        onClick={() => state.setActiveLensId(null)}
-                        className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-[color:var(--accent-strong)]/20"
-                        aria-label="Clear lens filter"
-                      >
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </span>
-                  ) : null;
-                })()}
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)] cursor-default select-none">
-                  {data.shellMode}
-                </span>
-              </div>
-              <h1 className="max-w-4xl text-2xl font-semibold tracking-tight text-[var(--foreground)] sm:text-3xl md:text-4xl">
-                <span className="sm:hidden">
-                  {inExplorer ? "Explore any place" : "Spatial workspace"}
-                </span>
-                <span className="hidden sm:inline">
-                  {inExplorer
-                    ? "Pick a place and see what's there — in plain English"
-                    : "Start with one place, then reveal only the views you need"}
-                </span>
-              </h1>
-            </div>
+  const rightPanelOpen = Boolean(
+    data.activePrimaryCard ||
+    data.openBoardCards.length > 0 ||
+    data.shellMode === "board"
+  );
 
-            <div className="flex flex-wrap items-center gap-3">
-              <ModeSwitcher mode={state.appMode} onSetMode={state.setAppMode} />
-              <div className="max-w-full overflow-x-auto">
-              <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={data.shellMode === "board" ? "ghost" : "default"}
-                  className="rounded-full"
-                  onClick={handleOpenGuidedMode}
-                  title="Guided mode keeps the workspace focused and reveals supporting views on demand."
-                >
-                  Guided
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={
-                    data.shellMode === "board" && data.viewMode === "board"
-                      ? "default"
-                      : "ghost"
-                  }
-                  className="rounded-full"
-                  onClick={handleOpenBoardMode}
-                  title="Board mode opens the full advanced workspace."
-                >
-                  Board
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={
-                    data.shellMode === "board" && data.viewMode === "library"
-                      ? "default"
-                      : "ghost"
-                  }
-                  className="rounded-full"
-                  onClick={handleOpenLibraryMode}
-                  title="Library mode lets you browse every available GeoSight card."
-                >
-                  Library
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={data.openCardIds.includes("compare") ? "default" : "ghost"}
-                  className="rounded-full"
-                  onClick={() => openCard("compare")}
-                  title={
-                    data.sites.length >= 2
-                      ? "Compare saved locations side by side."
-                      : "Save at least two locations to unlock comparison."
-                  }
-                >
-                  Compare
-                </Button>
-              </div>
-              {state.locationReady ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="rounded-full"
-                  onClick={handleCopyLink}
-                  title="Copy a shareable link to this location and profile"
-                >
-                  <Link2 className="mr-1.5 h-3.5 w-3.5" />
-                  {copiedLink ? "Copied!" : "Share"}
-                </Button>
-              ) : null}
-              </div>
-            </div>
-          </div>
-
-          {workspaceNotice ? (
-            <div
-              className={cn(
-                "mt-4 rounded-2xl px-4 py-3 text-sm",
-                workspaceNotice.tone === "warning"
-                  ? "border border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]"
-                  : "border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]",
-              )}
+  // Card content rendered in right panel (desktop) or inline below globe (mobile)
+  const rightPanelContent = (
+    <div className="space-y-4 p-4">
+      {/* Primary card tabs */}
+      {data.primaryCards.length > 0 && data.shellMode !== "board" ? (
+        <div className="flex flex-wrap gap-1.5">
+          {data.primaryCards.map((card) => (
+            <Button
+              key={card.id}
+              type="button"
+              size="sm"
+              variant={card.id === data.activePrimaryCard?.id ? "default" : "secondary"}
+              className="rounded-full"
+              onClick={() => data.setActivePrimaryCardId(card.id)}
             >
-              {workspaceNotice.message}
+              {card.title}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Primary panel */}
+      {data.activePrimaryCard ? (
+        <ExplorePrimaryPanel
+          cardId={data.activePrimaryCard.id}
+          state={state}
+          data={data}
+          headerContent={resultsHeader}
+          onSaveCurrentSite={handleSaveCurrentSite}
+          onOpenCard={openCard}
+        />
+      ) : null}
+
+      {/* Open workspace cards (guided mode) */}
+      {data.shellMode !== "board" && data.openBoardCards.length > 0 ? (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+            <Sparkles className="h-4 w-4 text-[var(--accent)]" />
+            Supporting view
+          </div>
+          {data.openBoardCards.map((card) => (
+            <ExploreWorkspacePanel
+              key={card.id}
+              cardId={card.id}
+              state={state}
+              data={data}
+              onOpenCard={openCard}
+            />
+          ))}
+        </section>
+      ) : null}
+
+      {/* Board / Library */}
+      {data.shellMode === "board" ? (
+        data.viewMode === "board" ? (
+          <WorkspaceBoard
+            cards={data.boardCards}
+            openCardIds={data.openCardIds}
+            onToggleCard={data.toggleOpenCard}
+            onOpenLibrary={data.openLibrary}
+            onReorderCards={data.reorderCards}
+            savedBoards={data.savedBoards}
+            activeBoardId={data.activeBoardId}
+            onSaveBoard={data.saveCurrentBoard}
+            onRestoreBoard={data.restoreBoard}
+            onDeleteBoard={data.deleteBoard}
+            onUpdateActiveBoard={data.updateActiveBoard}
+            onRenameBoard={data.renameBoard}
+          >
+            {data.openBoardCards.length > 0 ? (
+              <div className="space-y-4">
+                {data.openBoardCards.map((card) => (
+                  <ExploreWorkspacePanel
+                    key={card.id}
+                    cardId={card.id}
+                    state={state}
+                    data={data}
+                    onOpenCard={openCard}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-[120px] items-center justify-center">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="rounded-full"
+                  onClick={data.openLibrary}
+                >
+                  Open card library
+                </Button>
+              </div>
+            )}
+          </WorkspaceBoard>
+        ) : (
+          <WorkspaceLibrary
+            cards={data.cards.filter((card) => card.zone === "workspace")}
+            visibility={data.visibility}
+            onToggleCard={data.setCardVisible}
+            onOpenCard={openCard}
+          />
+        )
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col xl:fixed xl:inset-0 xl:overflow-hidden bg-[var(--background)]">
+
+      {/* ── Topbar ── */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[52px] xl:py-0">
+        {/* Mobile menu */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0 rounded-full xl:hidden"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open sidebar"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+
+        {/* Brand */}
+        <span className="shrink-0 text-sm font-semibold text-[var(--foreground)]">GeoSight</span>
+
+        {/* Active profile pill */}
+        <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] pointer-events-none xl:inline">
+          {state.activeProfile.name}
+        </span>
+
+        {/* Lens badge (explorer mode) */}
+        {inExplorer && state.activeLensId && (() => {
+          const lens = getExplorerLensById(state.activeLensId);
+          return lens ? (
+            <span className="hidden shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-foreground)] cursor-default select-none xl:inline-flex">
+              {lens.label}
+              <button
+                type="button"
+                onClick={() => state.setActiveLensId(null)}
+                className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-[color:var(--accent-strong)]/20"
+                aria-label="Clear lens filter"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ) : null;
+        })()}
+
+        {/* Search bar — centered, flex-1 */}
+        <div className="min-w-0 flex-1">
+          <SearchBar
+            submitLabel={state.locationReady ? "Update" : "Analyze"}
+            syncValue={
+              state.locationReady
+                ? state.selectedLocationDisplayName
+                : state.init.locationQuery ?? ""
+            }
+            onLocate={(result) => {
+              state.setInitError(null);
+              state.selectPoint(
+                result.coordinates,
+                result.fullName ?? result.name,
+                result.shortName,
+              );
+              data.handleLocationSelection();
+            }}
+          />
+        </div>
+
+        {/* Right cluster */}
+        <div className="flex shrink-0 items-center gap-2">
+          <ModeSwitcher mode={state.appMode} onSetMode={state.setAppMode} />
+          {state.locationReady ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="rounded-full"
+              onClick={handleCopyLink}
+              title="Copy a shareable link to this location and profile"
+            >
+              <Link2 className="mr-1.5 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{copiedLink ? "Copied!" : "Share"}</span>
+            </Button>
+          ) : null}
+        </div>
+      </header>
+
+      {/* ── Body ── */}
+      <div className="flex min-h-0 flex-1 flex-col xl:flex-row xl:overflow-hidden">
+
+        {/* Left panel — desktop only */}
+        <aside className="hidden w-64 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)] xl:flex">
+
+          {/* Demo story notice */}
+          {state.overlayDemo ? (
+            <div className="shrink-0 border-b border-[color:var(--border-soft)] p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="eyebrow">Demo</div>
+                  <div className="mt-0.5 truncate text-sm font-semibold text-[var(--foreground)]">
+                    {state.overlayDemo.name}
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-[var(--muted-foreground)]">
+                    {state.overlayDemo.tagline}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 rounded-full"
+                  onClick={state.dismissOverlayDemo}
+                  aria-label="Dismiss demo"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           ) : null}
 
-        </section>
-
-        {state.initStatus === "resolving" ? (
-          <StatePanel
-            tone="loading"
-            eyebrow="Location setup"
-            title={`Resolving ${state.init.locationQuery} and positioning the globe`}
-            description="GeoSight is turning the requested place into map coordinates and preparing the first live location bundle."
-            compact
-          />
-        ) : null}
-        {state.initError ? (
-          <StatePanel
-            tone="error"
-            eyebrow="Location setup"
-            title="GeoSight could not lock onto that place"
-            description={state.initError}
-            compact
-          />
-        ) : null}
-
-        <section className="flex min-h-0 flex-1 gap-4 overflow-hidden">
-          <div className="hidden h-full flex-shrink-0 xl:block">{sidebarElement}</div>
-
-          <div className="space-y-4">
-            <SearchBar
-              submitLabel={state.locationReady ? "Update analysis" : "Run analysis"}
-              syncValue={
-                state.locationReady
-                  ? state.selectedLocationDisplayName
-                  : state.init.locationQuery ?? ""
-              }
-              onLocate={(result) => {
-                state.setInitError(null);
-                state.selectPoint(
-                  result.coordinates,
-                  result.fullName ?? result.name,
-                  result.shortName,
-                );
-                data.handleLocationSelection();
-              }}
-            />
-
-            {state.overlayDemo ? (
-              <section className="rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="eyebrow">Current story context</div>
-                    <div>
-                      <h2 className="text-base font-semibold text-[var(--foreground)]">
-                        {state.overlayDemo.name}
-                      </h2>
-                      <p className="mt-1 text-sm text-[var(--foreground-soft)]">
-                        {state.overlayDemo.tagline}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full"
-                    onClick={state.dismissOverlayDemo}
-                    aria-label="Dismiss demo story context"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-                  {state.overlayDemo.description}
-                </p>
-              </section>
-            ) : null}
-
-            <ClientErrorBoundary
-              title="The globe view needs a quick reset"
-              message="GeoSight kept the rest of the workspace alive. Retry the globe, switch regions, or keep working from the cards while the globe re-initializes."
-            >
-              <section className="relative flex-1 min-h-0 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] min-h-[320px] sm:min-h-[480px] md:min-h-[640px] xl:min-h-[720px]">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
-                <CesiumGlobe
-                  selectedPoint={state.selectedPoint}
-                  selectedRegion={state.selectedRegion}
-                  globeViewMode={state.globeViewMode}
-                  globeRotateMode={state.globeRotateMode}
-                  subsurfaceRenderMode={state.subsurfaceRenderMode}
-                  onPointSelect={(coords) => {
-                    state.selectPoint(coords);
-                    data.handleLocationSelection();
-                  }}
-                  savedSites={data.sites}
-                  layers={state.layers}
-                  subsurfaceDatasets={data.subsurfaceDatasets}
-                  terrainExaggeration={state.terrainExaggeration}
-                  earthquakeMarkers={state.earthquakeMarkers}
-                  driveMode={state.driveMode}
-                  onExitDriveMode={() => state.setDriveMode(false)}
-                  drawingTool={state.drawingTool}
-                  drawnShapes={state.drawnShapes}
-                  onShapeComplete={handleShapeComplete}
-                  onVertexDrag={state.updateDrawnShapeVertex}
-                  snapToGrid={state.snapToGrid}
-                />
-                <div className="absolute right-4 top-4 z-20 hidden sm:flex flex-col gap-2">
-                  <Button
-                    type="button"
-                    variant={state.globeRotateMode ? "default" : "secondary"}
-                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
-                    aria-pressed={state.globeRotateMode}
-                    aria-label={
-                      state.globeRotateMode
-                        ? "Disable 3D explore rotate mode"
-                        : "Enable 3D explore rotate mode"
-                    }
-                    onClick={() => state.setGlobeRotateMode((current) => !current)}
-                  >
-                    <Globe className="mr-2 h-4 w-4" />
-                    {state.globeRotateMode ? "3D explore" : "Rotate mode"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={state.driveMode ? "default" : "secondary"}
-                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
-                    aria-pressed={state.driveMode}
-                    aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
-                    onClick={() => state.setDriveMode((current) => !current)}
-                  >
-                    <Car className="mr-2 h-4 w-4" />
-                    {state.driveMode ? "Driving" : "Drive"}
-                  </Button>
-                </div>
-                <GlobeViewSelector
-                  globeViewMode={state.globeViewMode}
-                  onChange={state.setGlobeViewMode}
-                  subsurfaceRenderMode={state.subsurfaceRenderMode}
-                />
-                {data.shellMode === "board" ? (
-                  <DataLayers layers={state.layers} onChange={state.setLayers} />
-                ) : null}
-                <RegionSelector
-                  region={state.selectedRegion}
-                  locationTooltip={state.selectedLocationName}
-                  onReset={() => {
-                    state.selectPoint(
-                      state.selectedPoint,
-                      state.selectedLocationName,
-                      state.selectedLocationDisplayName,
-                    );
-                    data.handleLocationSelection();
-                  }}
-                />
-                <DrawingToolbar
-                  drawingTool={state.drawingTool}
-                  onSelectTool={state.setDrawingTool}
-                  drawnShapes={state.drawnShapes}
-                  onClearAll={() => state.setDrawnShapes([])}
-                  onDeleteShape={state.removeDrawnShape}
-                  canUndo={state.canUndo}
-                  canRedo={state.canRedo}
-                  onUndo={state.undoDrawing}
-                  onRedo={state.redoDrawing}
-                  onRenameShape={state.renameShape}
-                  onExportGeoJSON={handleExportGeoJSON}
-                  snapToGrid={state.snapToGrid}
-                  onToggleSnapToGrid={() => state.setSnapToGrid((v) => !v)}
-                />
-              </section>
-            </ClientErrorBoundary>
-
-            {(state.locationReady || data.loading || data.error) ? (
-              <AnalysisOverviewBanner
-                geodata={data.geodata}
-                score={data.siteScore}
-                profile={state.activeProfile}
-                locationName={state.selectedLocationName}
-                loading={data.loading}
-                error={data.error}
-                onOpenFactorBreakdown={() => openCard("factor-breakdown")}
-                onOpenSources={() => openCard("source-awareness")}
-              />
-            ) : null}
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-full"
-                onClick={() => openCard("compare")}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Compare locations
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-full"
-                disabled={data.reportLoading}
-                onClick={handleGenerateReport}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                {data.reportLoading ? "Generating report..." : "Generate report"}
-              </Button>
-              {data.primaryCards.map((card) => (
-                <Button
-                  key={card.id}
-                  type="button"
-                  size="sm"
-                  variant={
-                    card.id === data.activePrimaryCard?.id ? "default" : "secondary"
-                  }
-                  className="rounded-full"
-                  onClick={() => data.setActivePrimaryCardId(card.id)}
-                >
-                  {card.title}
-                </Button>
-              ))}
+          {/* Init status */}
+          {state.initStatus === "resolving" ? (
+            <div className="shrink-0 border-b border-[color:var(--border-soft)] px-3 py-2">
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Resolving {state.init.locationQuery}…
+              </p>
             </div>
+          ) : null}
+          {state.initError ? (
+            <div className="shrink-0 border-b border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger-foreground)]">
+              {state.initError}
+            </div>
+          ) : null}
 
-            {data.activePrimaryCard ? (
-              <ExplorePrimaryPanel
-                cardId={data.activePrimaryCard.id}
-                state={state}
-                data={data}
-                headerContent={resultsHeader}
-                onSaveCurrentSite={handleSaveCurrentSite}
-                onOpenCard={openCard}
+          {/* Sidebar (profiles + quick regions) */}
+          <div className="min-h-0 flex-1 overflow-y-auto">{sidebarElement}</div>
+
+          {/* AddViewTray — guided mode */}
+          {data.shellMode !== "board" ? (
+            <div className="shrink-0 border-t border-[color:var(--border-soft)]">
+              <AddViewTray
+                cards={data.suggestedCards}
+                pinnedCardIds={data.pinnedCardIds}
+                onOpenCard={data.openCardFromTray}
+                onTogglePinned={data.togglePinnedCard}
+                onOpenBoard={data.openAdvancedBoard}
               />
-            ) : null}
+            </div>
+          ) : null}
 
-            {data.shellMode === "board" ? (
-              data.viewMode === "board" ? (
-                <WorkspaceBoard
-                  cards={data.boardCards}
-                  openCardIds={data.openCardIds}
-                  onToggleCard={data.toggleOpenCard}
-                  onOpenLibrary={data.openLibrary}
-                  onReorderCards={data.reorderCards}
-                  savedBoards={data.savedBoards}
-                  activeBoardId={data.activeBoardId}
-                  onSaveBoard={data.saveCurrentBoard}
-                  onRestoreBoard={data.restoreBoard}
-                  onDeleteBoard={data.deleteBoard}
-                  onUpdateActiveBoard={data.updateActiveBoard}
-                  onRenameBoard={data.renameBoard}
-                >
-                  {data.openBoardCards.length > 0 ? (
-                    <div className="space-y-4">
-                      {data.openBoardCards.map((card) => (
-                        <div
-                          key={card.id}
-                          className={cn(
-                            "grid gap-4",
-                            card.defaultSize === "wide" ? "xl:grid-cols-1" : "xl:grid-cols-2",
-                          )}
-                        >
-                          <ExploreWorkspacePanel
-                            cardId={card.id}
-                            state={state}
-                            data={data}
-                            onOpenCard={openCard}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[120px] items-center justify-center">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="rounded-full"
-                        onClick={data.openLibrary}
-                      >
-                        Open card library
-                      </Button>
-                    </div>
-                  )}
-                </WorkspaceBoard>
-              ) : (
-                <WorkspaceLibrary
-                  cards={data.cards.filter((card) => card.zone === "workspace")}
-                  visibility={data.visibility}
-                  onToggleCard={data.setCardVisible}
-                  onOpenCard={openCard}
-                />
-              )
-            ) : (
-              <>
-                {data.openBoardCards.length > 0 ? (
-                  <section className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                      <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-                      Supporting view
-                    </div>
-                    {data.openBoardCards.map((card) => (
-                      <ExploreWorkspacePanel
-                        key={card.id}
-                        cardId={card.id}
-                        state={state}
-                        data={data}
-                        onOpenCard={openCard}
-                      />
-                    ))}
-                  </section>
-                ) : null}
-
-                <AddViewTray
-                  cards={data.suggestedCards}
-                  pinnedCardIds={data.pinnedCardIds}
-                  onOpenCard={data.openCardFromTray}
-                  onTogglePinned={data.togglePinnedCard}
-                  onOpenBoard={data.openAdvancedBoard}
-                />
-              </>
-            )}
+          {/* Mode buttons */}
+          <div className="shrink-0 space-y-1 border-t border-[color:var(--border-soft)] p-3">
+            <Button
+              type="button"
+              size="sm"
+              variant={data.shellMode !== "board" ? "default" : "ghost"}
+              className="w-full justify-start rounded-full"
+              onClick={handleOpenGuidedMode}
+              title="Focused mode keeps the workspace focused and reveals supporting views on demand."
+            >
+              Focused
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={data.shellMode === "board" && data.viewMode === "board" ? "default" : "ghost"}
+              className="w-full justify-start rounded-full"
+              onClick={handleOpenBoardMode}
+              title="Workspace mode opens the full advanced card board."
+            >
+              Workspace
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={data.shellMode === "board" && data.viewMode === "library" ? "default" : "ghost"}
+              className="w-full justify-start rounded-full"
+              onClick={handleOpenLibraryMode}
+              title="Browse every available GeoSight card."
+            >
+              Cards
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={data.openCardIds.includes("compare") ? "default" : "ghost"}
+              className="w-full justify-start rounded-full"
+              onClick={() => openCard("compare")}
+              title={
+                data.sites.length >= 2
+                  ? "Compare saved locations side by side."
+                  : "Save at least two locations to unlock comparison."
+              }
+            >
+              Compare
+            </Button>
           </div>
-        </section>
+        </aside>
+
+        {/* Globe area */}
+        <div className="relative min-h-[55vw] max-h-[55vh] flex-1 xl:max-h-none xl:min-h-0">
+          <ClientErrorBoundary
+            title="The globe view needs a quick reset"
+            message="GeoSight kept the rest of the workspace alive. Retry the globe, switch regions, or keep working from the cards while the globe re-initializes."
+          >
+            <div className="absolute inset-0">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
+              <CesiumGlobe
+                selectedPoint={state.selectedPoint}
+                selectedRegion={state.selectedRegion}
+                globeViewMode={state.globeViewMode}
+                globeRotateMode={state.globeRotateMode}
+                subsurfaceRenderMode={state.subsurfaceRenderMode}
+                onPointSelect={(coords) => {
+                  state.selectPoint(coords);
+                  data.handleLocationSelection();
+                }}
+                savedSites={data.sites}
+                layers={state.layers}
+                subsurfaceDatasets={data.subsurfaceDatasets}
+                terrainExaggeration={state.terrainExaggeration}
+                earthquakeMarkers={state.earthquakeMarkers}
+                driveMode={state.driveMode}
+                onExitDriveMode={() => state.setDriveMode(false)}
+                drawingTool={state.drawingTool}
+                drawnShapes={state.drawnShapes}
+                onShapeComplete={handleShapeComplete}
+                onVertexDrag={state.updateDrawnShapeVertex}
+                snapToGrid={state.snapToGrid}
+              />
+            </div>
+          </ClientErrorBoundary>
+
+          {/* Globe controls */}
+          <div className="absolute right-4 top-4 z-20 flex flex-col gap-2">
+            <Button
+              type="button"
+              variant={state.globeRotateMode ? "default" : "secondary"}
+              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+              aria-pressed={state.globeRotateMode}
+              aria-label={state.globeRotateMode ? "Disable 3D explore rotate mode" : "Enable 3D explore rotate mode"}
+              onClick={() => state.setGlobeRotateMode((current) => !current)}
+            >
+              <Globe className="mr-2 h-4 w-4" />
+              {state.globeRotateMode ? "3D explore" : "Rotate"}
+            </Button>
+            <Button
+              type="button"
+              variant={state.driveMode ? "default" : "secondary"}
+              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+              aria-pressed={state.driveMode}
+              aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
+              onClick={() => state.setDriveMode((current) => !current)}
+            >
+              <Car className="mr-2 h-4 w-4" />
+              {state.driveMode ? "Driving" : "Drive"}
+            </Button>
+          </div>
+
+          <GlobeViewSelector
+            globeViewMode={state.globeViewMode}
+            onChange={state.setGlobeViewMode}
+            subsurfaceRenderMode={state.subsurfaceRenderMode}
+          />
+          {data.shellMode === "board" ? (
+            <DataLayers layers={state.layers} onChange={state.setLayers} />
+          ) : null}
+          <RegionSelector
+            region={state.selectedRegion}
+            locationTooltip={state.selectedLocationName}
+            onReset={() => {
+              state.selectPoint(
+                state.selectedPoint,
+                state.selectedLocationName,
+                state.selectedLocationDisplayName,
+              );
+              data.handleLocationSelection();
+            }}
+          />
+          <DrawingToolbar
+            drawingTool={state.drawingTool}
+            onSelectTool={state.setDrawingTool}
+            drawnShapes={state.drawnShapes}
+            onClearAll={() => state.setDrawnShapes([])}
+            onDeleteShape={state.removeDrawnShape}
+            canUndo={state.canUndo}
+            canRedo={state.canRedo}
+            onUndo={state.undoDrawing}
+            onRedo={state.redoDrawing}
+            onRenameShape={state.renameShape}
+            onExportGeoJSON={handleExportGeoJSON}
+            snapToGrid={state.snapToGrid}
+            onToggleSnapToGrid={() => state.setSnapToGrid((v) => !v)}
+          />
+
+          {/* Coord readout */}
+          {state.selectedPoint ? (
+            <div className="absolute bottom-4 left-4 z-10 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-1 text-xs text-[var(--muted-foreground)] backdrop-blur-sm">
+              {state.selectedPoint.lat.toFixed(5)}, {state.selectedPoint.lng.toFixed(5)}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Right panel (desktop) / inline content (mobile) */}
+        {rightPanelOpen ? (
+          <aside className={cn(
+            "flex flex-col border-t border-[color:var(--border-soft)]",
+            "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
+          )}>
+            {rightPanelContent}
+          </aside>
+        ) : null}
       </div>
 
+      {/* ── Bottom bar ── */}
+      <footer className="flex shrink-0 items-center gap-3 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[64px] xl:py-0">
+        <div className="min-w-0 flex-1">
+          {(state.locationReady || data.loading || data.error) ? (
+            <AnalysisOverviewBanner
+              compact
+              geodata={data.geodata}
+              score={data.siteScore}
+              profile={state.activeProfile}
+              locationName={state.selectedLocationName}
+              loading={data.loading}
+              error={data.error}
+              onOpenFactorBreakdown={() => openCard("factor-breakdown")}
+              onOpenSources={() => openCard("source-awareness")}
+            />
+          ) : (
+            <span className="text-sm text-[var(--muted-foreground)]">
+              Search a location to begin analysis
+            </span>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="hidden shrink-0 rounded-full xl:inline-flex"
+          onClick={() => openCard("compare")}
+          title={
+            data.sites.length >= 2
+              ? "Compare saved locations side by side."
+              : "Save at least two locations to unlock comparison."
+          }
+        >
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Compare
+        </Button>
+
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          className="shrink-0 rounded-full"
+          disabled={data.reportLoading}
+          onClick={handleGenerateReport}
+        >
+          <FileText className="mr-1.5 h-3.5 w-3.5" />
+          <span className="hidden sm:inline">
+            {data.reportLoading ? "Generating…" : "Generate report"}
+          </span>
+          <span className="sm:hidden">Report</span>
+        </Button>
+      </footer>
+
+      {/* Workspace notice — floating toast */}
+      {workspaceNotice ? (
+        <div
+          className={cn(
+            "fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full border px-4 py-2 text-sm backdrop-blur-sm",
+            workspaceNotice.tone === "warning"
+              ? "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]"
+              : "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]",
+          )}
+        >
+          {workspaceNotice.message}
+        </div>
+      ) : null}
+
+      {/* Mobile sidebar overlay */}
       {sidebarOpen ? (
         <div className="fixed inset-0 z-50 bg-[var(--background)]/70 backdrop-blur-sm xl:hidden">
           <div className="absolute inset-y-0 left-0 flex w-full max-w-sm flex-col p-4">
@@ -779,6 +821,18 @@ export function ExploreWorkspace() {
                 onClick={() => setSidebarOpen(false)}
               >
                 <X className="h-4 w-4" />
+              </Button>
+            </div>
+            {/* Mode buttons in mobile sidebar */}
+            <div className="mb-3 flex shrink-0 flex-wrap gap-1.5">
+              <Button type="button" size="sm" variant={data.shellMode !== "board" ? "default" : "ghost"} className="rounded-full" onClick={() => { handleOpenGuidedMode(); setSidebarOpen(false); }}>
+                Focused
+              </Button>
+              <Button type="button" size="sm" variant={data.shellMode === "board" && data.viewMode === "board" ? "default" : "ghost"} className="rounded-full" onClick={() => { handleOpenBoardMode(); setSidebarOpen(false); }}>
+                Workspace
+              </Button>
+              <Button type="button" size="sm" variant={data.shellMode === "board" && data.viewMode === "library" ? "default" : "ghost"} className="rounded-full" onClick={() => { handleOpenLibraryMode(); setSidebarOpen(false); }}>
+                Cards
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">{sidebarElement}</div>
@@ -798,6 +852,6 @@ export function ExploreWorkspace() {
         sourceNotes={data.geodata?.sourceNotes ?? []}
         onClose={data.closeReportPanel}
       />
-    </main>
+    </div>
   );
 }

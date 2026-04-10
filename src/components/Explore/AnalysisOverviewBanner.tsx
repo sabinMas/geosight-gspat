@@ -16,6 +16,7 @@ interface AnalysisOverviewBannerProps {
   error: string | null;
   onOpenFactorBreakdown: () => void;
   onOpenSources: () => void;
+  compact?: boolean;
 }
 
 export function AnalysisOverviewBanner({
@@ -27,6 +28,7 @@ export function AnalysisOverviewBanner({
   error,
   onOpenFactorBreakdown,
   onOpenSources,
+  compact,
 }: AnalysisOverviewBannerProps) {
   const overview = buildAnalysisOverview({
     geodata,
@@ -36,6 +38,34 @@ export function AnalysisOverviewBanner({
     loading,
     error,
   });
+
+  if (compact) {
+    return (
+      <div className="flex min-w-0 items-center gap-2">
+        <StateBadge tone={overview.tone} />
+        <span className="truncate text-sm font-semibold text-[var(--foreground)]">
+          {loading ? "Analyzing…" : locationName || "Select a location"}
+        </span>
+        <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-0.5 text-xs text-[var(--foreground-soft)] pointer-events-none sm:inline">
+          {profile.name}
+        </span>
+        {!loading && overview.summary ? (
+          <span className="hidden min-w-0 truncate text-xs text-[var(--muted-foreground)] lg:block">
+            {overview.summary}
+          </span>
+        ) : null}
+        <div className="ml-auto hidden shrink-0 items-center gap-1 md:flex">
+          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenFactorBreakdown}>
+            Why score
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Button>
+          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenSources}>
+            <ShieldCheck className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card className="overflow-hidden">
