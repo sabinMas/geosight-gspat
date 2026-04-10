@@ -46,15 +46,15 @@ export function AnalysisOverviewBanner({
         <span className="truncate text-sm font-semibold text-[var(--foreground)]">
           {loading ? "Analyzing…" : locationName || "Select a location"}
         </span>
-        <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-0.5 text-xs text-[var(--foreground-soft)] pointer-events-none sm:inline">
+        <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-0.5 text-xs text-[var(--foreground-soft)] pointer-events-none xl:inline">
           {profile.name}
         </span>
         {!loading && overview.summary ? (
-          <span className="hidden min-w-0 truncate text-xs text-[var(--muted-foreground)] lg:block">
+          <span className="hidden min-w-0 truncate text-xs text-[var(--muted-foreground)] xl:block">
             {overview.summary}
           </span>
         ) : null}
-        <div className="ml-auto hidden shrink-0 items-center gap-1 md:flex">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenFactorBreakdown}>
             Why score
             <ArrowRight className="ml-1.5 h-3.5 w-3.5" />

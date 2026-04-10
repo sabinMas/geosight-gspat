@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Car, FileText, Globe, Link2, Menu, Plus, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { Car, Check, Copy, FileText, Globe, Link2, Menu, Plus, Sparkles, X } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { MapCallout } from "@/components/Globe/MapCallout";
@@ -58,7 +59,16 @@ export function ExploreWorkspace() {
   const inExplorer = isExplorerMode(state.appMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCoords, setCopiedCoords] = useState(false);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
+
+  // ESC closes mobile sidebar
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setSidebarOpen(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [sidebarOpen]);
 
   const handleCopyLink = useCallback(() => {
     void navigator.clipboard.writeText(window.location.href).then(() => {
@@ -440,7 +450,7 @@ export function ExploreWorkspace() {
           type="button"
           variant="ghost"
           size="icon"
-          className="shrink-0 rounded-full xl:hidden"
+          className="h-11 w-11 shrink-0 rounded-full xl:hidden"
           onClick={() => setSidebarOpen(true)}
           aria-label="Open sidebar"
         >
@@ -448,7 +458,7 @@ export function ExploreWorkspace() {
         </Button>
 
         {/* Brand */}
-        <span className="shrink-0 text-sm font-semibold text-[var(--foreground)]">GeoSight</span>
+        <Link href="/" className="shrink-0 text-sm font-semibold text-[var(--foreground)] transition-opacity hover:opacity-70">GeoSight</Link>
 
         {/* Active profile pill */}
         <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] pointer-events-none xl:inline">
@@ -653,6 +663,7 @@ export function ExploreWorkspace() {
               className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
               aria-pressed={state.driveMode}
               aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
+              title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD keys)"}
               onClick={() => state.setDriveMode((current) => !current)}
             >
               <Car className="mr-2 h-4 w-4" />
@@ -665,9 +676,7 @@ export function ExploreWorkspace() {
             onChange={state.setGlobeViewMode}
             subsurfaceRenderMode={state.subsurfaceRenderMode}
           />
-          {data.shellMode === "board" ? (
-            <DataLayers layers={state.layers} onChange={state.setLayers} />
-          ) : null}
+          <DataLayers layers={state.layers} onChange={state.setLayers} />
           <RegionSelector
             region={state.selectedRegion}
             locationTooltip={state.selectedLocationName}
@@ -712,11 +721,23 @@ export function ExploreWorkspace() {
             />
           ) : null}
 
-          {/* Coord readout */}
+          {/* Coord readout — click to copy */}
           {state.selectedPoint ? (
-            <div className="absolute bottom-4 left-4 z-10 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-1 text-xs text-[var(--muted-foreground)] backdrop-blur-sm">
+            <button
+              type="button"
+              title="Copy coordinates to clipboard"
+              className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-1 text-xs text-[var(--muted-foreground)] backdrop-blur-sm transition-colors hover:text-[var(--foreground)]"
+              onClick={() => {
+                const text = `${state.selectedPoint!.lat.toFixed(5)}, ${state.selectedPoint!.lng.toFixed(5)}`;
+                void navigator.clipboard.writeText(text).then(() => {
+                  setCopiedCoords(true);
+                  setTimeout(() => setCopiedCoords(false), 1500);
+                });
+              }}
+            >
               {state.selectedPoint.lat.toFixed(5)}, {state.selectedPoint.lng.toFixed(5)}
-            </div>
+              {copiedCoords ? <Check className="h-3 w-3 text-[var(--accent)]" /> : <Copy className="h-3 w-3" />}
+            </button>
           ) : null}
         </div>
 

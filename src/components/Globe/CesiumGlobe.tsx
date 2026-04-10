@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import {
   ArcGisBaseMapType,
   ArcGisMapServerImageryProvider,
@@ -981,6 +982,30 @@ export function CesiumGlobe({
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">Loading 3D map...</p>
+        </div>
+      ) : null}
+
+      {/* Zoom controls — positioned above DataLayers button (bottom-10) */}
+      {!driveMode ? (
+        <div className="pointer-events-auto absolute bottom-24 right-4 z-10 flex flex-col gap-1">
+          <button
+            type="button"
+            title="Zoom in"
+            aria-label="Zoom in"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] text-[var(--muted-foreground)] backdrop-blur-sm transition-colors hover:text-[var(--foreground)]"
+            onClick={() => { viewerRef.current?.camera.zoomIn(0.5); }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            title="Zoom out"
+            aria-label="Zoom out"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] text-[var(--muted-foreground)] backdrop-blur-sm transition-colors hover:text-[var(--foreground)]"
+            onClick={() => { viewerRef.current?.camera.zoomOut(0.5); }}
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
         </div>
       ) : null}
 

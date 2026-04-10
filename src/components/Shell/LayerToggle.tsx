@@ -15,6 +15,8 @@ export function LayerToggle({
     <button
       type="button"
       onClick={onToggle}
+      title={`${label}: ${enabled ? "on" : "off"}`}
+      aria-pressed={enabled}
       className={`flex items-center justify-between rounded-2xl border px-3 py-2 text-sm transition ${
         enabled ? `${accentClassName} border-current/30 bg-current/10` : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"
       }`}

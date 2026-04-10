@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { StatePanel } from "@/components/Status/StatePanel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCardDisplay } from "@/context/CardDisplayContext";
 import { cn } from "@/lib/utils";
@@ -94,13 +95,11 @@ export function WorkspaceCardShell({
       {!collapsed ? (
         <CardContent className="space-y-4">
           {loading ? (
-            <StatePanel
-              tone="loading"
-              eyebrow={eyebrow}
-              title={loadingTitle ?? `Loading ${title.toLowerCase()}`}
-              description={loadingDescription ?? "Gathering live data for this location."}
-              compact
-            />
+            <div className="space-y-2.5 py-1">
+              <Skeleton className="h-3.5 w-3/4" />
+              <Skeleton className="h-3.5 w-1/2" />
+              <Skeleton className="h-3.5 w-5/6" />
+            </div>
           ) : error ? (
             <StatePanel
               tone="error"
