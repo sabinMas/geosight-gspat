@@ -1,6 +1,6 @@
 # GeoSight — Agent Handoff Document
 
-Last updated: 2026-04-10 (post GIS workbench + capture/export batch, production build fixed)
+Last updated: 2026-04-10 (post GeoJSON AOI drawing workflow checkpoint, GIS workbench + capture/export retained)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
 
@@ -14,10 +14,11 @@ The app is fully deployed and functional at `https://geosight-gspat.vercel.app`.
 
 This is the current place to pick up work. The latest production-facing commits are:
 
+- `ae06db5` - `feat: add geojson AOI drawing workflow`
 - `76f9d4b` - `Ship GIS workbench capture and export workflow`
 - `2200dcb` - `Fix production build lint blockers`
 
-Those two commits together are the current production batch. If you are continuing immediately after this handoff, start from `origin/main` at or after `2200dcb`.
+The latest feature batch layers the AOI workflow on top of the GIS workbench/export foundation. If you are continuing immediately after this handoff, start from `origin/main` at or after `ae06db5` once the branch is pushed.
 
 ### What shipped in the latest batch
 
@@ -204,6 +205,62 @@ Plus specialized: `demographics-context`, `housing-market`, `outdoor-fit`, `trip
 ---
 
 ## What Was Shipped This Session
+
+### Priority 1 checkpoint - GeoJSON AOI drawing workflow
+
+Files changed:
+
+- `src/components/Explore/ExploreWorkspace.tsx`
+- `src/components/Globe/CesiumGlobe.tsx`
+- `src/components/Globe/AoiDrawingToolbar.tsx` (new)
+- `src/components/Results/AnalysisPanel.tsx` (new shell for lens-specific output)
+- `src/context/AnalysisContext.tsx` (new)
+- `src/hooks/useAoiDrawing.ts` (new)
+- `src/hooks/useExploreState.ts`
+- `src/lib/analysis-geometry.ts` (new)
+- `src/types/index.ts`
+
+What landed:
+
+- GeoJSON is now a first-class analysis contract instead of an export-only afterthought.
+- Added a dedicated `AnalysisContext` that exposes the active lens, active place, AOI `FeatureCollection`, selected geometry id, layer state, draft drawing state, and analysis mode (`location` vs `geometry`).
+- Reworked drawing around a new Cesium AOI hook with support for:
+  - point marker
+  - polyline / route drawing
+  - polygon area drawing
+  - rectangle quick select
+  - circle / radius buffer
+- Added a new floating map-native drawing toolbar:
+  - vertical pill layout
+  - active cyan / teal state
+  - hover tooltips
+  - draft-aware undo / finish controls
+  - export, clear, and selected-geometry actions
+- Added vertex editing for selected geometry on the globe.
+- Added live measurement feedback while drawing:
+  - miles for lines
+  - acres for polygon / rectangle / circle tools
+- Completed shapes now auto-fit the Cesium camera to their bounds.
+- AOI export now downloads the shared GeoJSON store directly, rather than rebuilding an ad hoc export payload.
+- Added the first lens-side handoff shell in `AnalysisPanel.tsx`, including the required `Use drawn area` button so downstream analysis can explicitly switch to geometry mode before the richer per-lens results land.
+
+Important implementation notes:
+
+- The canonical AOI store is `state.drawnGeometry`, not `state.drawnShapes`. Shapes remain as the Cesium-friendly editing model, but every change flows through `drawnGeometry` for export and future analysis.
+- `src/hooks/useAoiDrawing.ts` is now the active Cesium drawing implementation.
+- `src/hooks/useGlobeDrawing.ts` and `src/components/Globe/DrawingToolbar.tsx` are still present only as compatibility holdovers and should be removed once the remaining references are cleaned up in a future pass.
+- The new analysis shell is intentionally thin. It is there to make the AOI handoff visible now and will be expanded in Priority 3 into the full per-lens metric panel.
+
+Validation completed:
+
+- `npm run typecheck`
+- `npm run build`
+
+Immediate next recommended work:
+
+1. Priority 2 - live location tracking (`locate once`, `follow me`, `record my route`) with a globe overlay marker, breadcrumb route, and session persistence for last known position.
+2. Priority 3 - replace the current analysis shell with the full reusable `AnalysisPanel` implementation and per-lens metric pipelines.
+3. After Priority 3, remove the compatibility holdovers (`useGlobeDrawing.ts`, `DrawingToolbar.tsx`) so the AOI stack is single-path again.
 
 ### GIS-style full-viewport layout
 
