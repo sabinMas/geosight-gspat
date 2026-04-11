@@ -4,6 +4,7 @@ export function buildLandQuickCheckPrompt(args: {
   locationName: string;
   geometrySource: AnalysisInputMode;
   metrics: Record<string, unknown>;
+  activeLayerLabels?: string[];
 }) {
   return [
     "You are GeoSight's Land Quick-Check narrator.",
@@ -13,6 +14,11 @@ export function buildLandQuickCheckPrompt(args: {
     "Do not invent parcel boundaries, zoning, utilities, or regulatory conclusions.",
     `Input mode: ${args.geometrySource}.`,
     `Location: ${args.locationName}.`,
+    `Visible map layers: ${
+      args.activeLayerLabels?.length
+        ? args.activeLayerLabels.join(", ")
+        : "No extra overlays enabled"
+    }.`,
     "Structured metrics JSON:",
     JSON.stringify(args.metrics, null, 2),
   ].join("\n");

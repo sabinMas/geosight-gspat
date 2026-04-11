@@ -1,12 +1,13 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { LayerState } from "@/components/Globe/DataLayers";
+import { createLayerState } from "@/lib/map-layers";
 import {
   AnalysisInputMode,
   Coordinates,
   DrawnGeometryFeatureCollection,
   DrawingTool,
+  LayerState,
   LensAnalysisResult,
 } from "@/types";
 
@@ -53,12 +54,7 @@ const AnalysisContext = createContext<AnalysisContextValue>({
   },
   geometry: EMPTY_GEOMETRY,
   selectedGeometryId: null,
-  layers: {
-    water: false,
-    power: false,
-    roads: false,
-    heatmap: false,
-  },
+  layers: createLayerState(),
   analysisResult: null,
   analysisInputMode: "location",
   isLoading: false,

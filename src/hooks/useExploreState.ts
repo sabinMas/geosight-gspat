@@ -2,7 +2,6 @@
 
 import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useQuickRegions } from "@/hooks/useQuickRegions";
 import {
@@ -12,6 +11,7 @@ import {
 } from "@/lib/analysis-geometry";
 import { resolveLocationQuery } from "@/lib/cesium-search";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
+import { createLayerState } from "@/lib/map-layers";
 import { getProfileById } from "@/lib/profiles";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
@@ -29,6 +29,7 @@ import {
   ResultsMode,
   SubsurfaceRenderMode,
   LensAnalysisResult,
+  LayerState,
 } from "@/types";
 import { DrawingDraftState } from "@/context/AnalysisContext";
 
@@ -193,7 +194,9 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     [selectGlobePoint, router, pathname, searchParams],
   );
 
-  const [layers, setLayers] = useState<LayerState>(activeProfile.defaultLayers);
+  const [layers, setLayers] = useState<LayerState>(() =>
+    createLayerState(activeProfile.defaultLayers),
+  );
   const [globeViewMode, setGlobeViewMode] = useState<GlobeViewMode>("satellite");
   const [globeRotateMode, setGlobeRotateMode] = useState(false);
   const [subsurfaceRenderMode, setSubsurfaceRenderMode] =
@@ -324,7 +327,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   );
 
   useEffect(() => {
-    setLayers(activeProfile.defaultLayers);
+    setLayers(createLayerState(activeProfile.defaultLayers));
   }, [activeProfile]);
 
   useEffect(() => {

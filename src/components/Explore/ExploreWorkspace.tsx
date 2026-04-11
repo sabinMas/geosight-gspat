@@ -47,7 +47,6 @@ import {
 import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
 import { WorkspaceLibrary } from "@/components/Explore/WorkspaceLibrary";
 import { DataLayers } from "@/components/Globe/DataLayers";
-import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { AnalysisPanel } from "@/components/Results/AnalysisPanel";
@@ -75,6 +74,7 @@ import {
   downloadBlob,
   downloadText,
 } from "@/lib/analysis-export";
+import { getActiveLayerLabels } from "@/lib/map-layers";
 import { PROFILES } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
 import { CaptureFigureOptions, DrawnShape, GlobeViewSnapshot, WorkspaceCardId } from "@/types";
@@ -129,6 +129,9 @@ export function ExploreWorkspace() {
   } | null>(null);
 
   const captureOverlayVisible = captureMode || captureOverlayArmed;
+  const drawingTool = state.drawingTool;
+  const isAoiLayerVisible = state.layers.aoi;
+  const setLayerState = state.setLayers;
 
   // ESC closes mobile sidebar
   useEffect(() => {
@@ -164,6 +167,17 @@ export function ExploreWorkspace() {
     const interval = window.setInterval(syncSnapshot, 400);
     return () => window.clearInterval(interval);
   }, [captureOverlayVisible]);
+
+  useEffect(() => {
+    if (drawingTool === "none" || isAoiLayerVisible) {
+      return;
+    }
+
+    setLayerState((current) => ({
+      ...current,
+      aoi: true,
+    }));
+  }, [drawingTool, isAoiLayerVisible, setLayerState]);
 
   const handleCopyLink = useCallback(() => {
     void navigator.clipboard.writeText(window.location.href).then(() => {
@@ -426,14 +440,8 @@ export function ExploreWorkspace() {
   );
 
   const activeLayerLabels = useMemo(() => {
-    const labels: string[] = [];
-    if (state.layers.water) labels.push("Water bodies");
-    if (state.layers.power) labels.push("Power");
-    if (state.layers.roads) labels.push("Roads");
-    if (state.layers.heatmap) labels.push("Elevation heat");
-    labels.push(`Basemap: ${state.globeViewMode}`);
-    return labels;
-  }, [state.globeViewMode, state.layers.heatmap, state.layers.power, state.layers.roads, state.layers.water]);
+    return getActiveLayerLabels(state.layers, state.globeViewMode);
+  }, [state.globeViewMode, state.layers]);
 
   const siteSummaryCsv = useMemo(
     () =>
@@ -580,8 +588,17 @@ export function ExploreWorkspace() {
         globeView: globeApiRef.current?.getViewSnapshot() ?? null,
         terrainExaggeration: state.terrainExaggeration,
         activeLayers: {
-          ...state.layers,
           globeViewMode: state.globeViewMode,
+          roads: state.layers.roads,
+          fires: state.layers.fires,
+          floodZones: state.layers.floodZones,
+          contours: state.layers.contours,
+          aoi: state.layers.aoi,
+          roadsOpacity: state.layers.opacity.roads,
+          firesOpacity: state.layers.opacity.fires,
+          floodZonesOpacity: state.layers.opacity.floodZones,
+          contoursOpacity: state.layers.opacity.contours,
+          aoiOpacity: state.layers.opacity.aoi,
         },
         activeLayerLabels,
         captureModeEnabled: captureMode,
@@ -1476,12 +1493,12 @@ export function ExploreWorkspace() {
             onDismissError={locationTracking.clearLocateError}
           />
 
-          <GlobeViewSelector
+          <DataLayers
+            layers={state.layers}
+            onChange={state.setLayers}
             globeViewMode={state.globeViewMode}
-            onChange={state.setGlobeViewMode}
-            subsurfaceRenderMode={state.subsurfaceRenderMode}
+            onChangeGlobeViewMode={state.setGlobeViewMode}
           />
-          <DataLayers layers={state.layers} onChange={state.setLayers} />
           <RegionSelector
             region={state.selectedRegion}
             locationTooltip={state.selectedLocationName}

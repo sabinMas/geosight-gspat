@@ -94,17 +94,20 @@ export async function POST(request: NextRequest) {
           locationName,
           geometrySource: body.geometrySource,
           metrics: computation.promptContext,
+          activeLayerLabels: body.activeLayerLabels,
         })
       : lens.id === "trail-scout"
         ? buildTrailScoutPrompt({
             locationName,
             geometrySource: body.geometrySource,
             metrics: computation.promptContext,
+            activeLayerLabels: body.activeLayerLabels,
           })
         : buildLandQuickCheckPrompt({
             locationName,
             geometrySource: body.geometrySource,
             metrics: computation.promptContext,
+            activeLayerLabels: body.activeLayerLabels,
           });
 
   const narrative = await runAnalysisWithFallback(

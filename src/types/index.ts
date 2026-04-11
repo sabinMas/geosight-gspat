@@ -147,6 +147,23 @@ export type WorkspaceViewMode = "board" | "library";
 export type WorkspaceShellMode = "minimal" | "guided" | "board";
 export type GlobeViewMode = "satellite" | "road" | "water-terrain";
 export type SubsurfaceRenderMode = "surface_only" | "slice_stack" | "volume_future";
+export interface LayerOpacityState {
+  roads: number;
+  fires: number;
+  floodZones: number;
+  contours: number;
+  aoi: number;
+}
+
+export interface LayerState {
+  roads: boolean;
+  fires: boolean;
+  floodZones: boolean;
+  contours: boolean;
+  aoi: boolean;
+  opacity: LayerOpacityState;
+}
+
 export type WorkspaceCardCategory =
   | "context"
   | "analysis"
@@ -362,12 +379,7 @@ export interface MissionProfile {
   accentColor: string;
   factors: ScoringFactor[];
   systemPrompt: string;
-  defaultLayers: {
-    water: boolean;
-    power: boolean;
-    roads: boolean;
-    heatmap: boolean;
-  };
+  defaultLayers: LayerState;
   exampleQuestions: string[];
   recommendationBands: Array<{
     min: number;
@@ -956,6 +968,8 @@ export interface LensAnalysisRequestBody {
   locationName: string;
   geometry: DrawnGeometryFeatureCollection;
   selectedGeometryId?: string | null;
+  globeViewMode?: GlobeViewMode;
+  activeLayerLabels?: string[];
 }
 
 

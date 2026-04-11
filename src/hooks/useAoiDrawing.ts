@@ -322,6 +322,7 @@ export function useAoiDrawnShapes({
   onSelectShape,
   onVertexDrag,
   captureMode = false,
+  visible = true,
 }: {
   viewerRef: React.MutableRefObject<CesiumViewer | null>;
   viewerReady: boolean;
@@ -331,6 +332,7 @@ export function useAoiDrawnShapes({
   onSelectShape?: (shapeId: string | null) => void;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: Coordinates) => void;
   captureMode?: boolean;
+  visible?: boolean;
 }) {
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -343,7 +345,7 @@ export function useAoiDrawnShapes({
       void viewer.dataSources.remove(existing, true);
     }
 
-    if (drawnShapes.length === 0) {
+    if (!visible || drawnShapes.length === 0) {
       return;
     }
 
@@ -559,6 +561,7 @@ export function useAoiDrawnShapes({
     onVertexDrag,
     selectedShapeId,
     captureMode,
+    visible,
     viewerReady,
     viewerRef,
   ]);

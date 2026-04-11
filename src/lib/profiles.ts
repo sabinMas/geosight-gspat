@@ -1,4 +1,5 @@
 import { getLensLabel, normalizeProfileId } from "@/lib/lenses";
+import { createLayerState } from "@/lib/map-layers";
 import { MissionProfile } from "@/types";
 
 export const PROFILES: MissionProfile[] = [
@@ -118,7 +119,10 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on data center cooling and digital infrastructure siting. Prioritize water access, power grid adjacency, terrain buildability, climate suitability, and environmental constraints. Be explicit about what is supported by geodata versus what still needs permitting, engineering, or utility diligence.",
-    defaultLayers: { water: true, power: true, roads: true, heatmap: false },
+    defaultLayers: createLayerState({
+      roads: true,
+      floodZones: true,
+    }),
     exampleQuestions: [
       "Can this site support evaporative cooling?",
       "How far is the nearest substation or transmission corridor?",
@@ -200,7 +204,11 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on hiking, trail planning, and outdoor recreation suitability. Emphasize terrain character, water features, vegetation, access, remoteness, and weather comfort. When uncertainty exists, make it clear whether you are using direct geodata, live mapped nearby places, or inference about scenic and recreation value.",
-    defaultLayers: { water: true, power: false, roads: true, heatmap: true },
+    defaultLayers: createLayerState({
+      roads: true,
+      fires: true,
+      contours: true,
+    }),
     exampleQuestions: [
       "What's the terrain difficulty here?",
       "Are there water features for a day hike?",
@@ -298,7 +306,10 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence assistant focused on home buying and neighborhood screening. Prioritize school access, daily amenities, commute practicality, internet quality, flood exposure, air quality, and plain-language livability signals. Speak clearly for ordinary buyers, keep technical jargon behind short explanations, and state openly when a signal is unsupported or only approximate.",
-    defaultLayers: { water: true, power: false, roads: true, heatmap: false },
+    defaultLayers: createLayerState({
+      roads: true,
+      floodZones: true,
+    }),
     exampleQuestions: [
       "Does this feel like a strong place to buy a home?",
       "How good is the school and amenity access here?",
@@ -428,7 +439,10 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on residential site development and neighborhood planning. Emphasize buildability, access, hazards, school context, amenity context, and community readiness. Distinguish official government school accountability data from GeoSight's derived school-context score, and state clearly when school coverage is unsupported outside the current US-first pipeline.",
-    defaultLayers: { water: true, power: true, roads: true, heatmap: false },
+    defaultLayers: createLayerState({
+      roads: true,
+      floodZones: true,
+    }),
     exampleQuestions: [
       "Is this land suitable for a new neighborhood?",
       "What risks or constraints would slow housing here?",
@@ -502,7 +516,10 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on retail, commercial real estate, and warehouse siting. Prioritize freight and road access, inferred demand, utility readiness, and land practicality. Be explicit when demand, traffic, or land-cost commentary is based on proxy signals rather than live demographic or parcel data. When analyzing locations outside the US, note that demographic data comes from World Bank national indicators rather than county-level census data, and school context is not yet available.",
-    defaultLayers: { water: false, power: true, roads: true, heatmap: false },
+    defaultLayers: createLayerState({
+      roads: true,
+      floodZones: true,
+    }),
     exampleQuestions: [
       "How strong is the highway access here?",
       "Would this work for a distribution warehouse?",

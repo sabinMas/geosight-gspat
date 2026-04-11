@@ -25,6 +25,7 @@ import {
   LabelStyle,
   Math as CesiumMath,
   Matrix4,
+  OpenStreetMapImageryProvider,
   PolygonHierarchy,
   PolylineArrowMaterialProperty,
   Quaternion,
@@ -32,6 +33,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Transforms,
+  UrlTemplateImageryProvider,
   VerticalOrigin,
   Viewer as CesiumViewer,
 } from "cesium";
@@ -49,6 +51,7 @@ import {
   SubsurfaceDataset,
   SubsurfaceRenderMode,
   UserLocationFix,
+  LayerState,
 } from "@/types";
 import { DrawingDraftState } from "@/context/AnalysisContext";
 import {
@@ -56,7 +59,6 @@ import {
   useAoiDrawing,
   useAoiDrawnShapes,
 } from "@/hooks/useAoiDrawing";
-import { LayerState } from "./DataLayers";
 
 if (typeof window !== "undefined") {
   window.CESIUM_BASE_URL = "/cesium";
@@ -109,6 +111,16 @@ function destinationFromHeading(
     lat: (lat2 * 180) / Math.PI,
     lng: ((lng2 * 180) / Math.PI + 540) % 360 - 180,
   };
+}
+
+interface FireOverlayDetection {
+  id: string;
+  lat: number;
+  lng: number;
+  brightnessTempK: number | null;
+  distanceKm: number | null;
+  acqDate: string | null;
+  acqTime: string | null;
 }
 
 interface CesiumGlobeProps {
@@ -474,6 +486,192 @@ export function CesiumGlobe({
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    let cancelled = false;
+    const addedLayers: ImageryLayer[] = [];
+
+    const addOverlayLayer = async (
+      factory: () => Promise<
+        ArcGisMapServerImageryProvider | OpenStreetMapImageryProvider | UrlTemplateImageryProvider
+      >,
+      alpha: number,
+    ) => {
+      try {
+        const provider = await factory();
+        if (cancelled || !isViewerUsable(viewer)) {
+          return;
+        }
+
+        const layer = viewer.imageryLayers.addImageryProvider(provider);
+        layer.alpha = alpha;
+        addedLayers.push(layer);
+      } catch (error) {
+        console.warn("[cesium-globe] overlay layer failed", error);
+      }
+    };
+
+    void (async () => {
+      if (layers.roads && globeViewMode !== "road") {
+        await addOverlayLayer(
+          async () =>
+            new OpenStreetMapImageryProvider({
+              url: "https://tile.openstreetmap.org/",
+              credit: "OpenStreetMap contributors",
+            }),
+          layers.opacity.roads,
+        );
+      }
+
+      if (layers.floodZones) {
+        await addOverlayLayer(
+          () =>
+            ArcGisMapServerImageryProvider.fromUrl(
+              "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer",
+              {
+                layers: "28",
+                enablePickFeatures: false,
+              },
+            ),
+          layers.opacity.floodZones,
+        );
+      }
+
+      if (layers.contours) {
+        await addOverlayLayer(
+          async () =>
+            new UrlTemplateImageryProvider({
+              url: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+              credit: "OpenTopoMap contributors",
+            }),
+          layers.opacity.contours,
+        );
+      }
+
+      if (isViewerUsable(viewer)) {
+        viewer.scene.requestRender();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      for (const layer of addedLayers) {
+        if (!isViewerUsable(viewer)) {
+          return;
+        }
+
+        viewer.imageryLayers.remove(layer, false);
+      }
+    };
+  }, [
+    globeViewMode,
+    layers.contours,
+    layers.floodZones,
+    layers.opacity.contours,
+    layers.opacity.floodZones,
+    layers.opacity.roads,
+    layers.roads,
+    viewerReady,
+  ]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    const existing = viewer.dataSources.getByName("fire-overlays")[0];
+    if (existing) {
+      void viewer.dataSources.remove(existing, true);
+    }
+
+    if (!layers.fires) {
+      return;
+    }
+
+    const dataSource = new CustomDataSource("fire-overlays");
+    void viewer.dataSources.add(dataSource);
+    const controller = new AbortController();
+
+    void fetch(
+      `/api/map-overlays?lat=${selectedPoint.lat.toFixed(6)}&lng=${selectedPoint.lng.toFixed(
+        6,
+      )}&west=${selectedRegion.bbox.west.toFixed(6)}&south=${selectedRegion.bbox.south.toFixed(
+        6,
+      )}&east=${selectedRegion.bbox.east.toFixed(6)}&north=${selectedRegion.bbox.north.toFixed(
+        6,
+      )}`,
+      { signal: controller.signal },
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Fire overlay request failed.");
+        }
+
+        const payload = (await response.json()) as {
+          detections?: FireOverlayDetection[];
+        };
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        for (const detection of payload.detections ?? []) {
+          const brightness =
+            typeof detection.brightnessTempK === "number"
+              ? detection.brightnessTempK
+              : 320;
+          const normalized = Math.min(Math.max((brightness - 300) / 80, 0), 1);
+          const color = Color.fromBytes(
+            255,
+            Math.round(210 - normalized * 110),
+            Math.round(80 - normalized * 45),
+            Math.round(layers.opacity.fires * 255),
+          );
+
+          dataSource.entities.add({
+            id: detection.id,
+            position: Cartesian3.fromDegrees(detection.lng, detection.lat, 18),
+            point: {
+              pixelSize: 7 + normalized * 6,
+              color,
+              outlineColor: Color.WHITE.withAlpha(0.45),
+              outlineWidth: 1.5,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+          });
+        }
+
+        viewer.scene.requestRender();
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.warn("[cesium-globe] fire overlay failed", error);
+        }
+      });
+
+    return () => {
+      controller.abort();
+      if (isViewerUsable(viewer)) {
+        void viewer.dataSources.remove(dataSource, true);
+      }
+    };
+  }, [
+    layers.fires,
+    layers.opacity.fires,
+    selectedPoint.lat,
+    selectedPoint.lng,
+    selectedRegion.bbox.east,
+    selectedRegion.bbox.north,
+    selectedRegion.bbox.south,
+    selectedRegion.bbox.west,
+    viewerReady,
+  ]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
       setGlobeReady(false);
       return;
     }
@@ -834,18 +1032,6 @@ export function CesiumGlobe({
       });
     });
 
-    if (layers.heatmap) {
-      viewer.entities.add({
-        name: "Heatmap focus",
-        polygon: {
-          hierarchy: new PolygonHierarchy(regionHierarchy),
-          material: Color.fromCssColorString("#ff5d5d").withAlpha(0.18),
-          height: 6,
-          outline: false,
-        },
-      });
-    }
-
     for (const eq of earthquakeMarkers) {
       if (!Number.isFinite(eq.lat) || !Number.isFinite(eq.lng)) continue;
       const mag = eq.mag;
@@ -869,7 +1055,6 @@ export function CesiumGlobe({
   }, [
     captureMode,
     earthquakeMarkers,
-    layers.heatmap,
     regionHierarchy,
     savedSites,
     selectedPoint.lat,
@@ -1277,6 +1462,7 @@ export function CesiumGlobe({
     drawnShapes,
     drawingTool,
     captureMode,
+    visible: layers.aoi,
     selectedShapeId,
     onSelectShape,
     onVertexDrag,

@@ -1,6 +1,6 @@
-# GeoSight — Agent Handoff Document
+﻿# GeoSight â€” Agent Handoff Document
 
-Last updated: 2026-04-11 (post live location tracking + first real lens analysis batch)
+Last updated: 2026-04-11 (post unified layer-control + AOI cleanup batch)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
 
@@ -8,18 +8,20 @@ This document is written for agents (CODEX, Claude Code, or human devs) picking 
 
 ## 2026-04-11 Checkpoint
 
-The newest local checkpoint adds two major pieces on top of the AOI drawing foundation:
+The newest local checkpoint now covers three connected batches on top of the AOI drawing foundation:
 
 - Batch A: live location controls with `Locate once`, `Follow me`, and `Record route`
 - Batch B: the first real deterministic lens pipeline for:
   - `hunt-planner`
   - `trail-scout`
   - `land-quick-check`
+- Batch C: unified map layers + basemap control, visible-layer context wiring, and legacy AOI cleanup
 
-Latest local commits in order:
+Latest local commits before the current pending session commit:
 
 - `cca87b7` - `feat: add live location tracking controls`
-- pending next commit in this session will cover the lens-analysis pipeline and panel rendering
+- `edc576d` - `feat: add deterministic explorer lens analysis`
+- the current working tree in this session covers the unified layer control batch
 
 ### What changed in this checkpoint
 
@@ -71,6 +73,51 @@ Current behavior:
 - Trail Scout now renders a compact elevation profile chart
 - unsupported lenses show a non-breaking "queued next" state instead of a blank panel
 
+#### Unified layer control and AOI cleanup
+
+New files:
+
+- `src/lib/map-layers.ts`
+- `src/app/api/map-overlays/route.ts`
+
+Key wiring updates:
+
+- `src/components/Globe/DataLayers.tsx`
+- `src/components/Globe/CesiumGlobe.tsx`
+- `src/components/Explore/ExploreWorkspace.tsx`
+- `src/hooks/useExploreData.ts`
+- `src/hooks/useLensAnalysis.ts`
+- `src/context/AnalysisContext.tsx`
+- `src/lib/nasa-firms.ts`
+- `src/lib/profiles.ts`
+- `src/types/index.ts`
+
+Behavior now implemented:
+
+- the old split between `Map Style` and `Layers` controls is gone; basemap and overlays now live in one floating panel
+- shared layer state now tracks:
+  - `roads`
+  - `fires`
+  - `floodZones`
+  - `contours`
+  - `aoi`
+  - per-layer opacity values
+- Cesium now renders:
+  - OSM roads overlay
+  - NASA FIRMS fire detections through the new `/api/map-overlays` route
+  - FEMA flood imagery overlay
+  - topo/contour imagery overlay
+  - AOI visibility as a first-class toggle
+- visible layer labels now flow into:
+  - capture/export manifests
+  - `GeoSightContext.dataBundle`
+  - deterministic lens prompts
+- legacy pre-AOI files were removed:
+  - `src/hooks/useGlobeDrawing.ts`
+  - `src/components/Globe/DrawingToolbar.tsx`
+  - `src/components/Globe/GlobeViewSelector.tsx`
+  - `src/components/Shell/LayerToggle.tsx`
+
 ### Verification for this checkpoint
 
 Verified successfully with:
@@ -80,11 +127,16 @@ Verified successfully with:
 - live smoke test against `/api/lens-analysis` using:
   - location-mode Hunt Planner request for `Okanogan Highlands, WA`
   - geometry-mode Trail Scout request for a drawn `Mailbox Peak, WA` route
+- live smoke test for the new layer path using:
+  - a real flood-context lookup at `29.9511, -90.0715`
+  - a polygon AOI converted through `buildDrawnShapesGeoJson`
+  - active layer label generation from the shared `LayerState`
 
 Smoke-test note:
 
 - because local AI keys were missing, both requests fell back to deterministic narrative text
 - the important part is that the route returned real metric payloads and completed without runtime errors after the centroid fix in `src/lib/analysis/shared.ts`
+- local shell env did not include `NASA_FIRMS_MAP_KEY`, so the fire overlay UI path was validated structurally through build/typecheck while the live smoke test focused on flood context + AOI serialization
 
 ### Known caveats after this checkpoint
 
@@ -92,12 +144,16 @@ Smoke-test note:
 - Trail Scout distance/gain quality depends heavily on the fidelity of the drawn route; the current smoke-test geometry was intentionally short
 - live location modes are wired for the globe and AOI flow, but there is not yet a broader saved-session/history surface for tracks
 - unsupported explorer lenses still need real deterministic analyzers
+- fire overlays require `NASA_FIRMS_MAP_KEY`; without it the layer stays empty instead of fabricating detections
 
 ### Recommended next pickup from here
 
 1. Extend deterministic analyzers to `road-trip`, `general-explore`, and the Pro lenses.
-2. Add layer-control state to the same analysis prompt context so the narrative can reference visible overlays.
-3. Replace the remaining `useGlobeDrawing.ts` / legacy toolbar compatibility path now that AOI + route recording are both stable on the new flow.
+2. Add debounced viewport-based overlay refresh and zoom gating so roads / fires / flood layers do not over-fetch while panning.
+3. Start the save/share/export batch using the now-stable shared contracts:
+   - `LayerState`
+   - AOI GeoJSON
+   - deterministic lens results
 
 ---
 
@@ -155,7 +211,7 @@ Topographic capture mode is now a real figure workflow, not just a screenshot to
 
 - Capture overlay: `src/components/Explore/TopographicCaptureOverlay.tsx`
 - Globe metrics + capture-aware rendering: `src/components/Globe/CesiumGlobe.tsx`
-- Drawn geometry rendering polish for captures: `src/hooks/useGlobeDrawing.ts`
+- Drawn geometry rendering polish for captures: `src/hooks/useAoiDrawing.ts`
 
 Current figure overlay includes:
 
@@ -240,7 +296,7 @@ Open these files first:
 - `src/components/Explore/TopographicCaptureOverlay.tsx`
 - `src/lib/analysis-export.ts`
 - `src/components/Globe/CesiumGlobe.tsx`
-- `src/hooks/useGlobeDrawing.ts`
+- `src/hooks/useAoiDrawing.ts`
 
 If you need to reason about AI workflow or command dispatch:
 
@@ -343,7 +399,7 @@ Important implementation notes:
 
 - The canonical AOI store is `state.drawnGeometry`, not `state.drawnShapes`. Shapes remain as the Cesium-friendly editing model, but every change flows through `drawnGeometry` for export and future analysis.
 - `src/hooks/useAoiDrawing.ts` is now the active Cesium drawing implementation.
-- `src/hooks/useGlobeDrawing.ts` and `src/components/Globe/DrawingToolbar.tsx` are still present only as compatibility holdovers and should be removed once the remaining references are cleaned up in a future pass.
+- the AOI stack is now single-path: `src/hooks/useAoiDrawing.ts` + `src/components/Globe/AoiDrawingToolbar.tsx` are the active drawing implementation.
 - The new analysis shell is intentionally thin. It is there to make the AOI handoff visible now and will be expanded in Priority 3 into the full per-lens metric panel.
 
 Validation completed:
@@ -353,9 +409,9 @@ Validation completed:
 
 Immediate next recommended work:
 
-1. Priority 2 - live location tracking (`locate once`, `follow me`, `record my route`) with a globe overlay marker, breadcrumb route, and session persistence for last known position.
-2. Priority 3 - replace the current analysis shell with the full reusable `AnalysisPanel` implementation and per-lens metric pipelines.
-3. After Priority 3, remove the compatibility holdovers (`useGlobeDrawing.ts`, `DrawingToolbar.tsx`) so the AOI stack is single-path again.
+1. Extend deterministic analysis coverage to the remaining explorer and Pro lenses.
+2. Add viewport-aware overlay refresh and zoom gating for the new map-layer stack.
+3. Build save/share/export on top of the now-stable AOI + layer + lens-analysis contracts.
 
 ### GIS-style full-viewport layout
 
@@ -363,11 +419,11 @@ Immediate next recommended work:
 
 The workspace is now a true GIS tool layout on `xl:` breakpoints:
 
-- **Topbar (52px):** hamburger (mobile) | GeoSight wordmark (→ home link) | profile pill | SearchBar (flex-1) | ModeSwitcher | Share button
+- **Topbar (52px):** hamburger (mobile) | GeoSight wordmark (â†’ home link) | profile pill | SearchBar (flex-1) | ModeSwitcher | Share button
 - **Body:** `xl:flex-row xl:overflow-hidden`
   - Left panel (256px, desktop only): Sidebar + AddViewTray + mode buttons (Focused / Workspace / Cards / Compare)
-  - Globe: `xl:flex-1 xl:min-h-0` — fills all remaining space; `min-h-[55vw] max-h-[55vh]` on mobile
-  - Right panel (380px, desktop): `xl:border-l xl:overflow-y-auto` — only visible when `rightPanelOpen`
+  - Globe: `xl:flex-1 xl:min-h-0` â€” fills all remaining space; `min-h-[55vw] max-h-[55vh]` on mobile
+  - Right panel (380px, desktop): `xl:border-l xl:overflow-y-auto` â€” only visible when `rightPanelOpen`
 - **Bottom bar (64px):** compact AnalysisOverviewBanner | Compare | Generate Report (primary CTA)
 - Mobile: vertical stack, scrollable, sidebar as overlay
 
@@ -386,19 +442,19 @@ The workspace is now a true GIS tool layout on `xl:` breakpoints:
 - Position: `absolute bottom-14 left-4 z-20 w-72`
 - Appears when `(locationReady || loading) && !rightPanelOpen && !calloutDismissed`
 - Calls `buildAnalysisOverview` internally, shows: StateBadge + score/100 + location name + profile + top strength (green dot) + top watchout (amber dot)
-- Footer: "Open full analysis" button → `setActivePrimaryCardId(primaryCards[0].id)`
+- Footer: "Open full analysis" button â†’ `setActivePrimaryCardId(primaryCards[0].id)`
 - Dismissed by X button; resets on new globe click or search
 
 ### Draggable analysis pin
 
 **File:** `src/components/Globe/CesiumGlobe.tsx`
 
-Pin position uses `CallbackProperty(() => dragPositionRef.current ?? basePosition, false)` — polls a ref per frame, no React re-renders during drag. Cesium's `LEFT_DOWN` → `MOUSE_MOVE` → `LEFT_UP` handler sequence:
+Pin position uses `CallbackProperty(() => dragPositionRef.current ?? basePosition, false)` â€” polls a ref per frame, no React re-renders during drag. Cesium's `LEFT_DOWN` â†’ `MOUSE_MOVE` â†’ `LEFT_UP` handler sequence:
 1. Picks the pin entity on `LEFT_DOWN` (compared by identity to `pinEntityRef.current`)
 2. Locks camera (`enableRotate = enableTranslate = false`) and sets cursor to `"grabbing"`
-3. `MOUSE_MOVE` calls `scene.pickPosition` → `dragPositionRef.current = Cartesian3`
+3. `MOUSE_MOVE` calls `scene.pickPosition` â†’ `dragPositionRef.current = Cartesian3`
 4. `LEFT_UP` unlocks camera, calls `onPointSelect` with final cartographic coords
-5. `LEFT_CLICK` (unaffected when mouse moved >3px — Cesium suppresses) still handles click-to-analyze
+5. `LEFT_CLICK` (unaffected when mouse moved >3px â€” Cesium suppresses) still handles click-to-analyze
 
 Hover: `MOUSE_MOVE` with no drag in progress checks `scene.pick() === pinEntityRef.current` and sets cursor to `"grab"`.
 
@@ -410,40 +466,40 @@ The entire demo system was removed (registry, data, fallbacks). **Deleted files:
 - `src/lib/demos/registry.ts`
 
 **Modified files:**
-- `src/types/index.ts` — removed `DemoOverlayLayerKey`, `DemoOverlay`, `DemoMapOverlay`, `DemoSiteSeed`; `ExploreEntrySource` → `"landing" | "direct"` (was `"landing" | "direct" | "demo"`)
-- `src/app/explore/page.tsx` — removed `demoId` param
-- `src/hooks/useExploreState.ts` — removed all demo memos, effects, and state
-- `src/hooks/useExploreData.ts` — removed `activeDemo` fetch condition
-- `src/components/Landing/LandingPage.tsx` — removed guided demos section (~60 lines)
-- `src/lib/landing.ts` — removed `demoId` from URL building
+- `src/types/index.ts` â€” removed `DemoOverlayLayerKey`, `DemoOverlay`, `DemoMapOverlay`, `DemoSiteSeed`; `ExploreEntrySource` â†’ `"landing" | "direct"` (was `"landing" | "direct" | "demo"`)
+- `src/app/explore/page.tsx` â€” removed `demoId` param
+- `src/hooks/useExploreState.ts` â€” removed all demo memos, effects, and state
+- `src/hooks/useExploreData.ts` â€” removed `activeDemo` fetch condition
+- `src/components/Landing/LandingPage.tsx` â€” removed guided demos section (~60 lines)
+- `src/lib/landing.ts` â€” removed `demoId` from URL building
 
 ### UX audit fixes (shipped in final commit)
 
-**Files changed:** `ExploreWorkspace.tsx`, `CesiumGlobe.tsx`, `AnalysisOverviewBanner.tsx`, `WorkspaceCardShell.tsx`, `LayerToggle.tsx`, new `src/components/ui/skeleton.tsx`
+**Files changed:** `ExploreWorkspace.tsx`, `CesiumGlobe.tsx`, `AnalysisOverviewBanner.tsx`, `WorkspaceCardShell.tsx`, `DataLayers.tsx`, new `src/components/ui/skeleton.tsx`
 
 | Fix | File | Change |
 |---|---|---|
-| GeoSight wordmark → home Link | `ExploreWorkspace.tsx` | `<span>` → `<Link href="/">` |
+| GeoSight wordmark â†’ home Link | `ExploreWorkspace.tsx` | `<span>` â†’ `<Link href="/">` |
 | Hamburger touch target | `ExploreWorkspace.tsx` | Added `h-11 w-11` to Button |
 | ESC closes mobile sidebar | `ExploreWorkspace.tsx` | `useEffect` on `sidebarOpen` |
 | Drive mode tooltip | `ExploreWorkspace.tsx` | Added `title` prop to drive Button |
 | DataLayers always visible | `ExploreWorkspace.tsx` | Removed `shellMode === "board"` gate |
-| Coord readout → copy button | `ExploreWorkspace.tsx` | `<div>` → `<button>` with clipboard + `copiedCoords` state; Copy/Check icons |
-| Zoom +/− controls | `CesiumGlobe.tsx` | Two buttons at `bottom-24 right-4 z-10`; call `viewerRef.current?.camera.zoomIn/Out(0.5)` |
+| Coord readout â†’ copy button | `ExploreWorkspace.tsx` | `<div>` â†’ `<button>` with clipboard + `copiedCoords` state; Copy/Check icons |
+| Zoom +/âˆ’ controls | `CesiumGlobe.tsx` | Two buttons at `bottom-24 right-4 z-10`; call `viewerRef.current?.camera.zoomIn/Out(0.5)` |
 | Bottom bar truncation | `AnalysisOverviewBanner.tsx` | Profile/summary hide until `xl:` breakpoint; Why score buttons always visible |
 | Loading skeleton | `WorkspaceCardShell.tsx` | 3 skeleton lines replace full `StatePanel` for loading state |
-| Layer toggle accessibility | `LayerToggle.tsx` | Added `title` + `aria-pressed` to each toggle button |
+| Layer control accessibility | `DataLayers.tsx` | The unified basemap/overlay panel now owns layer toggles and mobile-safe touch targets |
 | Skeleton component | `src/components/ui/skeleton.tsx` | New `<Skeleton>` utility |
 
 ---
 
 ## Next Highest-Value Work
 
-### P1 — Live non-US provider integrations (recommended next)
+### P1 â€” Live non-US provider integrations (recommended next)
 
 The US-first data gap is the most visible product weakness for non-US users. The `SourceAwarenessCard` coverage matrix already shows users exactly what's missing. Each integration follows the same pattern:
 
-1. `src/lib/<provider>.ts` — fetch function with typed return
+1. `src/lib/<provider>.ts` â€” fetch function with typed return
 2. Add field to `GeodataResult` in `src/types/index.ts`
 3. Add `sources.<key>` field to `GeodataResult.sources`
 4. Wire into `Promise.allSettled` in `src/app/api/geodata/route.ts` with `withSoftTimeout`
@@ -454,29 +510,29 @@ The US-first data gap is the most visible product weakness for non-US users. The
 
 | Domain | Current gap | Best global replacement |
 |---|---|---|
-| Flood zones | FEMA US-only | JRC Global Flood Awareness System (GloFAS) — Copernicus, free REST API |
+| Flood zones | FEMA US-only | JRC Global Flood Awareness System (GloFAS) â€” Copernicus, free REST API |
 | Seismic hazard | USGS ASCE 7-22 US-only | USGS Unified Hazard Tool has a global API; GEM OpenQuake for probabilistic |
-| Soil profile | NRCS SSURGO US-only | ISRIC World Soil Information — free REST API, global |
+| Soil profile | NRCS SSURGO US-only | ISRIC World Soil Information â€” free REST API, global |
 | Contamination | EPA Envirofacts US-only | EEA European industrial sites data |
 | School quality | US Greatschools-based | Global school density via OSM + UNESCO data |
 
-### P1 — Research-grade hazard cards
+### P1 â€” Research-grade hazard cards
 
 - **Seismic probabilistic hazard curves:** The USGS hazard curves API returns annual exceedance probability at multiple spectral periods (much more useful than a single design value). Would upgrade `SeismicDesignCard` or become `SeismicHazardCard` with a probability-vs-acceleration Recharts chart.
 - **Flood depth mapping:** FEMA NFHL depth-grid data at the searched point, not just the zone label. Current `FloodRiskCard` shows zone (AE, X, etc.) but not inundation depth. FEMA's OGC services expose this.
 
-### P1 — AI quality improvements
+### P1 â€” AI quality improvements
 
 - **GeoAnalyst context completeness:** The system prompt in `src/app/api/analyze/route.ts` includes a geodata summary. The summary currently omits several newer fields (`solarResource`, `streamGauges`, `thermalLoad`). Audit the system prompt and ensure every `GeodataResult` field that has been added in the last 6 batches is represented in the AI context bundle.
 - **Structured analysis output:** GeoScribe currently generates markdown prose. A structured JSON report (section headers + confidence labels + data gap flags) would make the output parseable and enable downstream features (PDF export, section-level regeneration).
 
-### P2 — Advanced spatial and export
+### P2 â€” Advanced spatial and export
 
-- **LiDAR / National Map overlays:** USGS 3DEP LiDAR tiles as an imagery layer on the globe. The `GlobeViewSelector` already has a slot for additional basemap options. The challenge is tile server performance.
-- **Shareable analysis snapshots:** Beyond the current "Share" button (which copies the URL), export a self-contained HTML or PDF snapshot of the current analysis bundle. GeoScribe already generates the prose — the missing piece is a layout wrapper and a server-side render.
+- **LiDAR / National Map overlays:** USGS 3DEP LiDAR tiles as an imagery layer on the globe. The unified `DataLayers` panel now owns basemap selection, so any future LiDAR mode should plug into that panel rather than reintroducing a separate switcher.
+- **Shareable analysis snapshots:** Beyond the current "Share" button (which copies the URL), export a self-contained HTML or PDF snapshot of the current analysis bundle. GeoScribe already generates the prose â€” the missing piece is a layout wrapper and a server-side render.
 - **Comparison export:** `CompareTable` currently shows a live side-by-side grid. A CSV or PDF export of the comparison would make the feature usable for decision reporting.
 
-### P2 — Workspace UX
+### P2 â€” Workspace UX
 
 - **Command palette:** `Cmd+K` / `Ctrl+K` opens a search over card names, quick regions, and actions. The card registry (`src/lib/workspace-cards.ts`) already has all the metadata needed to power this.
 - **Persistent AI input bar:** A fixed input field in the bottom bar (or right panel) that always routes to GeoAnalyst, instead of requiring the user to open the Chat card first. This dramatically reduces friction for conversational analysis.
@@ -501,7 +557,7 @@ Never use raw Tailwind palette classes (`bg-blue-500`, `border-gray-200`). Use C
 --shadow-soft / --shadow-panel
 ```
 
-When referencing border tokens in a `className`, use `border-[color:var(--border-soft)]` (not `border-[var(--border-soft)]`) — the `color:` prefix is required for Tailwind v4 to treat it as a color value.
+When referencing border tokens in a `className`, use `border-[color:var(--border-soft)]` (not `border-[var(--border-soft)]`) â€” the `color:` prefix is required for Tailwind v4 to treat it as a color value.
 
 ### Card pattern
 
@@ -514,18 +570,18 @@ Every workspace card must use `WorkspaceCardShell` from `src/components/Explore/
 4. Add profile visibility defaults in `src/lib/profiles.ts`
 5. Add reveal trigger case in `getRevealTriggers()` in `workspace-cards.ts`
 6. If the card answers a new kind of question, add an intent in `src/lib/workspace-intent.ts` and extend `WorkspaceRevealTrigger` in `src/types/index.ts`
-7. Run `npx tsc --noEmit` — must be clean
+7. Run `npx tsc --noEmit` â€” must be clean
 
 ### Cesium conventions
 
-- **Drawing entities belong in named `CustomDataSource`s, never `viewer.entities`** — `viewer.entities.removeAll()` is called on every state update and will wipe anything placed there. Use `CustomDataSource("drawing-preview")` for in-progress geometry and `CustomDataSource("drawing-shapes")` for persisted shapes.
+- **Drawing entities belong in named `CustomDataSource`s, never `viewer.entities`** â€” `viewer.entities.removeAll()` is called on every state update and will wipe anything placed there. Use `CustomDataSource("drawing-preview")` for in-progress geometry and `CustomDataSource("drawing-shapes")` for persisted shapes.
 - **Do not use Resium JSX components** (`<Viewer>`, `<Entity>`, etc.). The codebase uses the direct Cesium imperative API via `viewerRef`.
-- **Drive mode camera:** `HeadingPitchRange` heading=0 places the camera **south** of target (not north) — do not add `Math.PI` to the heading. Vehicle box uses `heading - Math.PI/2` in `HeadingPitchRollQuaternion` to align the box long axis with movement direction.
-- **Zoom controls:** `viewerRef.current?.camera.zoomIn(factor)` / `zoomOut(factor)` with `factor = 0.5`. Currently rendered at `bottom-24 right-4` inside `CesiumGlobe.tsx` to avoid overlapping the `DataLayers` button at `bottom-10 right-4` in `ExploreWorkspace.tsx`.
+- **Drive mode camera:** `HeadingPitchRange` heading=0 places the camera **south** of target (not north) â€” do not add `Math.PI` to the heading. Vehicle box uses `heading - Math.PI/2` in `HeadingPitchRollQuaternion` to align the box long axis with movement direction.
+- **Zoom controls:** `viewerRef.current?.camera.zoomIn(factor)` / `zoomOut(factor)` with `factor = 0.5`. Currently rendered above the lower-right floating layer button inside `CesiumGlobe.tsx`.
 
 ### Sidebar and layout
 
-- `xl:fixed xl:inset-0 xl:overflow-hidden` on the root — do not add `overflow-x: hidden` to the body or this breaks fixed/sticky elements
+- `xl:fixed xl:inset-0 xl:overflow-hidden` on the root â€” do not add `overflow-x: hidden` to the body or this breaks fixed/sticky elements
 - Right panel is only rendered when `rightPanelOpen === true` (see `ExploreWorkspace.tsx` line ~325)
 - `CardDisplayProvider value={{ defaultCollapsed: true }}` wraps the right panel. Any card inside the panel starts collapsed. Cards outside the panel use `defaultCollapsed: false` (context default)
 - Mobile sidebar: overlay pattern (`fixed inset-0 z-50`), closed by the X button, the backdrop, or ESC key
@@ -548,9 +604,10 @@ src/
     page.tsx                        # Landing page route
     explore/page.tsx                # Explore workspace route
     api/
-      geodata/route.ts              # Main data aggregation — Promise.allSettled for all providers
+      geodata/route.ts              # Main data aggregation â€” Promise.allSettled for all providers
       analyze/route.ts              # GeoAnalyst chat endpoint
       agents/route.ts               # Agent panel endpoint
+      map-overlays/route.ts         # Live map overlay helpers (currently FIRMS detections)
       nearby-places/route.ts        # OSM Overpass nearby lookup
       geocode/route.ts              # Place search / coordinate resolution
       score/route.ts                # Deterministic scoring endpoint
@@ -558,8 +615,8 @@ src/
 
   components/
     Explore/
-      ExploreWorkspace.tsx          # Full workspace shell — GIS layout, all state wiring
-      ExploreWorkspacePanels.tsx    # Routes cardId → primary or workspace panel component
+      ExploreWorkspace.tsx          # Full workspace shell â€” GIS layout, all state wiring
+      ExploreWorkspacePanels.tsx    # Routes cardId â†’ primary or workspace panel component
       ExploreProvider.tsx           # Init params context
       AnalysisOverviewBanner.tsx    # Score overview (full card + compact bottom-bar mode)
       WorkspaceCardShell.tsx        # Universal card wrapper (all workspace cards use this)
@@ -572,43 +629,41 @@ src/
     Globe/
       CesiumGlobe.tsx               # Globe + drive mode + drawing + drag pin + zoom controls
       MapCallout.tsx                # Globe click callout popup
-      DataLayers.tsx                # Layer toggle panel (always visible, keyboard shortcut L)
-      DrawingToolbar.tsx            # Drawing tools toolbar
-      GlobeViewSelector.tsx         # Basemap switcher
+      DataLayers.tsx                # Unified basemap + overlay panel (keyboard shortcut L)
+      AoiDrawingToolbar.tsx         # Drawing tools toolbar
       RegionSelector.tsx            # Active region display + reset
     Landing/
-      LandingPage.tsx               # Landing — Explorer (5 lenses) + Pro (analyst) flows
+      LandingPage.tsx               # Landing â€” Explorer (5 lenses) + Pro (analyst) flows
     Shell/
-      Sidebar.tsx                   # Left sidebar — profiles + quick regions
+      Sidebar.tsx                   # Left sidebar â€” profiles + quick regions
       SearchBar.tsx                 # Location search
-      ModeSwitcher.tsx              # Explorer ↔ Pro toggle
-      LayerToggle.tsx               # Individual layer toggle button (title + aria-pressed)
+      ModeSwitcher.tsx              # Explorer â†” Pro toggle
     Status/
       StatePanel.tsx                # Loading / error / empty / unavailable states
     ui/
-      skeleton.tsx                  # Skeleton loading component (NEW — animate-pulse lines)
+      skeleton.tsx                  # Skeleton loading component (NEW â€” animate-pulse lines)
 
   context/
-    CardDisplayContext.tsx          # defaultCollapsed context — wraps right panel with true
+    CardDisplayContext.tsx          # defaultCollapsed context â€” wraps right panel with true
 
   hooks/
-    useExploreState.ts              # All globe/UI state — mode, point, layers, drawing, etc.
+    useExploreState.ts              # All globe/UI state â€” mode, point, layers, drawing, etc.
     useExploreData.ts               # Geodata fetch, scoring, cards, sites, report
     useSiteAnalysis.ts              # Scoring orchestration
     useWorkspaceCards.ts            # Card registry, visibility, board layout
-    useGlobeDrawing.ts              # Drawing tools — active interaction + persisted shapes
+    useAoiDrawing.ts                # Drawing tools â€” active interaction + persisted shapes
     useNearbyPlaces.ts              # OSM nearby fetch
     useHousingMarket.ts             # Housing market data fetch
 
   lib/
-    profiles.ts                     # Mission profiles — factors, weights, card defaults
+    profiles.ts                     # Mission profiles â€” factors, weights, card defaults
     scoring.ts                      # Deterministic scoring engine
-    workspace-cards.ts              # Card registry — all metadata + reveal triggers
-    workspace-intent.ts             # Question → card intent detection (regex patterns)
+    workspace-cards.ts              # Card registry â€” all metadata + reveal triggers
+    workspace-intent.ts             # Question â†’ card intent detection (regex patterns)
     source-registry.ts              # Source metadata + regional fallback guidance
-    analysis-summary.ts             # buildAnalysisOverview — strengths/watchouts/dataGaps
+    analysis-summary.ts             # buildAnalysisOverview â€” strengths/watchouts/dataGaps
     explorer-lenses.ts              # 5 Explorer mode lenses
-    lenses.ts                       # Lens ID ↔ profile ID mapping
+    lenses.ts                       # Lens ID â†” profile ID mapping
     landing.ts                      # Use cases, buildExploreHref
     solar-resource.ts               # NASA POWER GHI fetch (global, no key needed)
     stream-gauges.ts                # USGS NWIS gauge helpers
@@ -645,7 +700,7 @@ src/
 
 ## Environment Variables
 
-All set in the **Vercel project dashboard** (Settings → Environment Variables). See `.env.example` for names.
+All set in the **Vercel project dashboard** (Settings â†’ Environment Variables). See `.env.example` for names.
 
 ### Required
 
@@ -661,18 +716,18 @@ All set in the **Vercel project dashboard** (Settings → Environment Variables)
 | `GROQ_API_KEY` | Required. Primary pool key |
 | `GROQ_API_KEY_2` | Optional rotation pool (separate account = separate rate limit) |
 | `GROQ_API_KEY_3` | Optional rotation pool |
-| `GROQ_ANALYSIS_KEY` | GeoAnalyst dedicated lane (highest token usage — give it your best key) |
+| `GROQ_ANALYSIS_KEY` | GeoAnalyst dedicated lane (highest token usage â€” give it your best key) |
 | `GROQ_WRITER_KEY` | GeoScribe dedicated lane |
 | `GROQ_UX_KEY` | GeoGuide + GeoUsability shared lane |
 
-**Recommended with 3 Groq accounts:** `GROQ_ANALYSIS_KEY` → key 1 (highest quota), `GROQ_WRITER_KEY` → key 2, `GROQ_API_KEY` → key 3. Leave pool rotation vars empty.
+**Recommended with 3 Groq accounts:** `GROQ_ANALYSIS_KEY` â†’ key 1 (highest quota), `GROQ_WRITER_KEY` â†’ key 2, `GROQ_API_KEY` â†’ key 3. Leave pool rotation vars empty.
 
 ### Optional
 
 | Variable | What it enables |
 |---|---|
 | `GEMINI_API_KEY` | LLM fallback when Groq is down |
-| `NASA_FIRMS_MAP_KEY` | WildfireRiskCard fire proximity — without it, fire proximity score = 0 |
+| `NASA_FIRMS_MAP_KEY` | WildfireRiskCard fire proximity â€” without it, fire proximity score = 0 |
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Geodata cache (1hr TTL) + cloud site sync |
 | `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_AUTH_TOKEN` | Error monitoring |
 
@@ -686,9 +741,11 @@ NASA POWER, Open-Meteo, USGS, OSM Overpass, GDACS, OpenAQ, FEMA NFHL, Eurostat, 
 
 | Issue | Severity | Notes |
 |---|---|---|
-| Groq API keys missing from Vercel | HIGH | AI falls back to deterministic mode on prod — user needs to add keys via Vercel dashboard |
+| Groq API keys missing from Vercel | HIGH | AI falls back to deterministic mode on prod â€” user needs to add keys via Vercel dashboard |
 | FEMA soft timeout 12s | LOW | Raised from 6.5s; still may time out on slow FEMA servers |
 | Overpass rate limits | MEDIUM | Public `overpass-api.de` can throttle; `overpass.kumi.systems` fallback wired |
-| Fix 13 (nextSteps) not implemented | LOW | `buildAnalysisOverview` returns `nextSteps[]` but no component renders them — deferred |
+| Fix 13 (nextSteps) not implemented | LOW | `buildAnalysisOverview` returns `nextSteps[]` but no component renders them â€” deferred |
 | Fix 8 (tab active state) not changed | LOW | `ResultsModeToggle` uses `variant="default"` vs `variant="secondary"` which is already visually distinct; not changed |
-| Zoom button overlap risk | LOW | Zoom at `bottom-24 right-4` in CesiumGlobe; DataLayers at `bottom-10 right-4` in ExploreWorkspace — 20px gap; may need adjustment if DataLayers panel height changes |
+| Zoom button overlap risk | LOW | Zoom controls still sit above the lower-right floating layer button. Re-check spacing if the button or panel footprint changes again. |
+
+

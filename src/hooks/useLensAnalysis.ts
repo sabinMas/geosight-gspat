@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ExploreState } from "@/hooks/useExploreState";
+import { getActiveLayerLabels } from "@/lib/map-layers";
 import { LensAnalysisRequestBody, LensAnalysisResult } from "@/types";
 
 const SUPPORTED_LENS_IDS = new Set(["hunt-planner", "trail-scout", "land-quick-check"]);
@@ -24,6 +25,8 @@ export function useLensAnalysis(state: ExploreState) {
     selectedPoint,
     selectedLocationName,
     selectedShapeId,
+    globeViewMode,
+    layers,
     setAnalysisError,
     setAnalysisLoading,
     setAnalysisResult,
@@ -59,6 +62,8 @@ export function useLensAnalysis(state: ExploreState) {
         locationName: selectedLocationName,
         geometry: drawnGeometry,
         selectedGeometryId: selectedShapeId,
+        globeViewMode,
+        activeLayerLabels: getActiveLayerLabels(layers, globeViewMode),
       };
 
       try {
@@ -103,6 +108,8 @@ export function useLensAnalysis(state: ExploreState) {
     activeLensId,
     analysisInputMode,
     drawnGeometry,
+    globeViewMode,
+    layers,
     locationReady,
     selectedLocationName,
     selectedPoint,

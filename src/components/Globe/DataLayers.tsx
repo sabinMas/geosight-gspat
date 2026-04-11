@@ -1,21 +1,92 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Layers3, X } from "lucide-react";
-import { LayerToggle } from "@/components/Shell/LayerToggle";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import {
+  Flame,
+  Layers3,
+  Map,
+  Mountain,
+  Route,
+  Satellite,
+  ScanSearch,
+  Waves,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { GlobeViewMode, LayerState } from "@/types";
 
-export interface LayerState {
-  water: boolean;
-  power: boolean;
-  roads: boolean;
-  heatmap: boolean;
-}
+const VIEW_OPTIONS: Array<{
+  mode: GlobeViewMode;
+  label: string;
+  description: string;
+  icon: typeof Satellite;
+}> = [
+  {
+    mode: "satellite",
+    label: "Satellite",
+    description: "Aerial imagery with labels for fast orientation.",
+    icon: Satellite,
+  },
+  {
+    mode: "road",
+    label: "Road",
+    description: "Clean street-forward basemap for travel and access checks.",
+    icon: Map,
+  },
+  {
+    mode: "water-terrain",
+    label: "Terrain",
+    description: "Hillshade-style terrain view for relief and topo cues.",
+    icon: Mountain,
+  },
+];
 
-interface DataLayersProps {
-  layers: LayerState;
-  onChange: (layers: LayerState) => void;
-}
+type OverlayLayerKey = "roads" | "fires" | "floodZones" | "contours" | "aoi";
+
+const OVERLAY_OPTIONS: Array<{
+  key: OverlayLayerKey;
+  label: string;
+  description: string;
+  icon: typeof Route;
+  accentClassName: string;
+}> = [
+  {
+    key: "roads",
+    label: "OSM roads",
+    description: "Transparent road and label overlay above imagery.",
+    icon: Route,
+    accentClassName: "text-cyan-100",
+  },
+  {
+    key: "fires",
+    label: "NASA FIRMS fires",
+    description: "Recent active fire detections near the current place.",
+    icon: Flame,
+    accentClassName: "text-orange-100",
+  },
+  {
+    key: "floodZones",
+    label: "Flood context",
+    description: "FEMA flood imagery where available, with global fallback context in analysis.",
+    icon: Waves,
+    accentClassName: "text-sky-100",
+  },
+  {
+    key: "contours",
+    label: "Elevation contours",
+    description: "Topo-style contour overlay for relief, ridgelines, and drainages.",
+    icon: Mountain,
+    accentClassName: "text-emerald-100",
+  },
+  {
+    key: "aoi",
+    label: "Drawn AOI",
+    description: "Show or hide the GeoJSON shapes used for downstream analysis.",
+    icon: ScanSearch,
+    accentClassName: "text-teal-100",
+  },
+];
 
 function isTypingContext() {
   const activeElement = document.activeElement;
@@ -29,7 +100,141 @@ function isTypingContext() {
   );
 }
 
-export function DataLayers({ layers, onChange }: DataLayersProps) {
+function ToggleSwitch({
+  enabled,
+  onToggle,
+  label,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
+      onClick={onToggle}
+      className={cn(
+        "relative inline-flex h-7 w-12 items-center rounded-full border transition",
+        enabled
+          ? "border-cyan-300/40 bg-cyan-400/80"
+          : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]",
+      )}
+    >
+      <span
+        className={cn(
+          "mx-1 h-5 w-5 rounded-full bg-white shadow-sm transition",
+          enabled ? "translate-x-5" : "translate-x-0",
+        )}
+      />
+    </button>
+  );
+}
+
+function OpacitySlider({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="range"
+        min={10}
+        max={100}
+        step={1}
+        value={Math.round(value * 100)}
+        disabled={disabled}
+        onChange={(event) => onChange(Number(event.currentTarget.value) / 100)}
+        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[var(--surface-soft)] accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Overlay opacity"
+      />
+      <span className="w-10 text-right text-xs tabular-nums text-[var(--muted-foreground)]">
+        {Math.round(value * 100)}%
+      </span>
+    </div>
+  );
+}
+
+interface LayerRowProps {
+  label: string;
+  description: string;
+  icon: typeof Route;
+  accentClassName: string;
+  enabled: boolean;
+  opacity: number;
+  onToggle: () => void;
+  onOpacityChange: (value: number) => void;
+}
+
+function LayerRow({
+  label,
+  description,
+  icon: Icon,
+  accentClassName,
+  enabled,
+  opacity,
+  onToggle,
+  onOpacityChange,
+}: LayerRowProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-[1.4rem] border p-3 transition",
+        enabled
+          ? "border-cyan-300/30 bg-cyan-400/10"
+          : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div
+            className={cn(
+              "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)]",
+              accentClassName,
+            )}
+          >
+            <Icon className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-[var(--foreground)]">{label}</div>
+            <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
+              {description}
+            </p>
+          </div>
+        </div>
+        <ToggleSwitch enabled={enabled} onToggle={onToggle} label={label} />
+      </div>
+      <div className="mt-3">
+        <OpacitySlider
+          value={opacity}
+          disabled={!enabled}
+          onChange={onOpacityChange}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface DataLayersProps {
+  layers: LayerState;
+  onChange: Dispatch<SetStateAction<LayerState>>;
+  globeViewMode: GlobeViewMode;
+  onChangeGlobeViewMode: (mode: GlobeViewMode) => void;
+}
+
+export function DataLayers({
+  layers,
+  onChange,
+  globeViewMode,
+  onChangeGlobeViewMode,
+}: DataLayersProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -70,19 +275,36 @@ export function DataLayers({ layers, onChange }: DataLayersProps) {
     };
   }, [open]);
 
+  const setLayerEnabled = (key: OverlayLayerKey) => {
+    onChange((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  };
+
+  const setLayerOpacity = (key: keyof LayerState["opacity"], value: number) => {
+    onChange((current) => ({
+      ...current,
+      opacity: {
+        ...current.opacity,
+        [key]: value,
+      },
+    }));
+  };
+
   return (
-    <div ref={rootRef} className="absolute bottom-10 right-4 z-20">
+    <div ref={rootRef} className="absolute bottom-4 right-4 z-20">
       <div className="relative">
         {open ? (
-          <div className="glass-panel absolute bottom-14 right-0 z-10 w-[300px] rounded-3xl p-3">
+          <div className="glass-panel absolute bottom-16 right-0 z-10 flex w-[min(24rem,calc(100vw-2rem))] max-h-[70vh] flex-col rounded-[2rem] p-3 shadow-[var(--shadow-panel)]">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-[var(--foreground)]">
-                  Active Layers
+                  Layers and basemap
                 </div>
-                <div className="mt-1 text-sm text-[var(--foreground-soft)]">
-                  Toggle map overlays without resetting the active place.
-                </div>
+                <p className="mt-1 text-sm leading-6 text-[var(--foreground-soft)]">
+                  Visible layers stay in sync with exports and lens prompts.
+                </p>
               </div>
               <Button
                 type="button"
@@ -90,37 +312,82 @@ export function DataLayers({ layers, onChange }: DataLayersProps) {
                 variant="ghost"
                 className="h-8 w-8 rounded-full"
                 onClick={() => setOpen(false)}
-                aria-label="Close active layers panel"
+                aria-label="Close layers panel"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <LayerToggle
-                label="Water bodies"
-                enabled={layers.water}
-                onToggle={() => onChange({ ...layers, water: !layers.water })}
-                accentClassName="text-cyan-300"
-              />
-              <LayerToggle
-                label="Power"
-                enabled={layers.power}
-                onToggle={() => onChange({ ...layers, power: !layers.power })}
-                accentClassName="text-amber-300"
-              />
-              <LayerToggle
-                label="Roads"
-                enabled={layers.roads}
-                onToggle={() => onChange({ ...layers, roads: !layers.roads })}
-                accentClassName="text-[var(--foreground-soft)]"
-              />
-              <LayerToggle
-                label="Elevation heat"
-                enabled={layers.heatmap}
-                onToggle={() => onChange({ ...layers, heatmap: !layers.heatmap })}
-                accentClassName="text-rose-300"
-              />
+            <div className="overflow-y-auto pr-1">
+              <div className="mb-4">
+                <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  Basemap
+                </div>
+                <div className="grid gap-2">
+                  {VIEW_OPTIONS.map((option) => {
+                    const Icon = option.icon;
+                    const active = option.mode === globeViewMode;
+
+                    return (
+                      <button
+                        key={option.mode}
+                        type="button"
+                        onClick={() => onChangeGlobeViewMode(option.mode)}
+                        className={cn(
+                          "flex items-start gap-3 rounded-[1.3rem] border p-3 text-left transition",
+                          active
+                            ? "border-cyan-300/30 bg-cyan-400/10"
+                            : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]",
+                        )}
+                        aria-pressed={active}
+                      >
+                        <div
+                          className={cn(
+                            "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)]",
+                            active ? "text-cyan-100" : "text-[var(--muted-foreground)]",
+                          )}
+                        >
+                          <Icon className="h-4.5 w-4.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+                            {option.label}
+                            {active ? (
+                              <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-cyan-100">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
+                            {option.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  Overlay stack
+                </div>
+                <div className="space-y-2">
+                  {OVERLAY_OPTIONS.map((option) => (
+                    <LayerRow
+                      key={option.key}
+                      label={option.label}
+                      description={option.description}
+                      icon={option.icon}
+                      accentClassName={option.accentClassName}
+                      enabled={layers[option.key]}
+                      opacity={layers.opacity[option.key]}
+                      onToggle={() => setLayerEnabled(option.key)}
+                      onOpacityChange={(value) => setLayerOpacity(option.key, value)}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         ) : null}
@@ -128,13 +395,13 @@ export function DataLayers({ layers, onChange }: DataLayersProps) {
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          className="min-h-11 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 shadow-[var(--shadow-panel)]"
           aria-expanded={open}
           onClick={() => setOpen((current) => !current)}
         >
           <Layers3 className="mr-2 h-4 w-4" />
           Layers
-          <kbd className="ml-2 rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs text-[var(--muted-foreground)]">
+          <kbd className="ml-2 hidden rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs text-[var(--muted-foreground)] sm:inline-flex">
             L
           </kbd>
         </Button>

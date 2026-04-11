@@ -9,6 +9,7 @@ import {
 } from "@/lib/analysis-capabilities";
 import { GeoSightContext } from "@/lib/agents/agent-config";
 import { buildLocationTrends } from "@/lib/data-trends";
+import { getActiveLayerLabels } from "@/lib/map-layers";
 import { fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
 import { getVisibleCardsForMode } from "@/lib/app-mode";
@@ -207,6 +208,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     [geodata?.landClassification, uploadedClassification],
   );
   const locationTrends = useMemo(() => buildLocationTrends(geodata), [geodata]);
+  const activeLayerLabels = useMemo(
+    () => getActiveLayerLabels(state.layers, state.globeViewMode),
+    [state.globeViewMode, state.layers],
+  );
   const subsurfaceDatasets = useMemo(
     () => deriveSubsurfaceDatasets(geodata, state.selectedRegion),
     [geodata, state.selectedRegion],
@@ -288,6 +293,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
             analysisCapabilities,
             subsurfaceDatasets,
             globeViewMode: state.globeViewMode,
+            activeLayerLabels,
+            layerState: state.layers,
             subsurfaceRenderMode: state.subsurfaceRenderMode,
             imageSummary,
             classification: effectiveClassification,
@@ -297,6 +304,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     }),
     [
       activeProfile.id,
+      activeLayerLabels,
       analysisCapabilities,
       appMode,
       effectiveClassification,
@@ -312,6 +320,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       selectedPoint.lng,
       siteScore?.total,
       state.globeViewMode,
+      state.layers,
       state.subsurfaceRenderMode,
       subsurfaceDatasets,
     ],

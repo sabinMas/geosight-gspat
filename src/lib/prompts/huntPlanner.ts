@@ -4,6 +4,7 @@ export function buildHuntPlannerPrompt(args: {
   locationName: string;
   geometrySource: AnalysisInputMode;
   metrics: Record<string, unknown>;
+  activeLayerLabels?: string[];
 }) {
   return [
     "You are GeoSight's Hunt Planner narrator.",
@@ -13,6 +14,11 @@ export function buildHuntPlannerPrompt(args: {
     "Call out uncertainty explicitly when a value is estimated or unavailable.",
     `Input mode: ${args.geometrySource}.`,
     `Location: ${args.locationName}.`,
+    `Visible map layers: ${
+      args.activeLayerLabels?.length
+        ? args.activeLayerLabels.join(", ")
+        : "No extra overlays enabled"
+    }.`,
     "Structured metrics JSON:",
     JSON.stringify(args.metrics, null, 2),
   ].join("\n");

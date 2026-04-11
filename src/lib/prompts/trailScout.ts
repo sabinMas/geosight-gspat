@@ -4,6 +4,7 @@ export function buildTrailScoutPrompt(args: {
   locationName: string;
   geometrySource: AnalysisInputMode;
   metrics: Record<string, unknown>;
+  activeLayerLabels?: string[];
 }) {
   return [
     "You are GeoSight's Trail Scout narrator.",
@@ -13,6 +14,11 @@ export function buildTrailScoutPrompt(args: {
     "Do not invent trail maintenance details, permits, or closures.",
     `Input mode: ${args.geometrySource}.`,
     `Location: ${args.locationName}.`,
+    `Visible map layers: ${
+      args.activeLayerLabels?.length
+        ? args.activeLayerLabels.join(", ")
+        : "No extra overlays enabled"
+    }.`,
     "Structured metrics JSON:",
     JSON.stringify(args.metrics, null, 2),
   ].join("\n");
