@@ -1,6 +1,6 @@
 # GeoSight — Agent Handoff Document
 
-Last updated: 2026-04-10 (post GIS-layout refactor + UX audit fixes)
+Last updated: 2026-04-10 (post GIS workbench + capture/export batch, production build fixed)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
 
@@ -9,6 +9,165 @@ This document is written for agents (CODEX, Claude Code, or human devs) picking 
 ## State of the Codebase
 
 The app is fully deployed and functional at `https://geosight-gspat.vercel.app`. Main branch auto-deploys to Vercel on every push. TypeScript strict mode, zero type errors as of last commit.
+
+### Most Recent Production Handoff
+
+This is the current place to pick up work. The latest production-facing commits are:
+
+- `76f9d4b` - `Ship GIS workbench capture and export workflow`
+- `2200dcb` - `Fix production build lint blockers`
+
+Those two commits together are the current production batch. If you are continuing immediately after this handoff, start from `origin/main` at or after `2200dcb`.
+
+### What shipped in the latest batch
+
+#### 1. Tool-first GIS workspace shell
+
+The workspace now reads as a spatial workbench instead of a dashboard shell.
+
+- New left-side tool rail: `src/components/Explore/WorkspaceToolRail.tsx`
+- Workspace wiring: `src/components/Explore/ExploreWorkspace.tsx`
+- Shell language updated from "views/cards/board" toward "workbench/panels/evidence" across:
+  - `src/components/Explore/AddViewTray.tsx`
+  - `src/components/Explore/WorkspaceBoard.tsx`
+  - `src/components/Explore/WorkspaceLibrary.tsx`
+  - `src/components/Explore/WorkspaceCommandPalette.tsx`
+  - `src/app/api/agents/[agentId]/route.ts`
+
+Desktop layout now emphasizes:
+
+- left workbench rail for shell mode, drawing tools, and export controls
+- center globe as the primary workspace
+- right evidence tray for supporting panels
+- bottom persistent AI/report action strip
+
+#### 2. Persistent AI + command workflow
+
+Two workflow surfaces now reduce friction for analysts:
+
+- `src/components/Explore/PersistentAiBar.tsx` - always-available AI question input in the bottom bar
+- `src/components/Explore/WorkspaceCommandPalette.tsx` - command palette opened by `Cmd/Ctrl+K`
+
+Agent wiring for one-shot prompt routing and auto-submit lives in:
+
+- `src/context/AgentPanelContext.tsx`
+- `src/components/agent-panel/AgentChat.tsx`
+
+#### 3. Analyst-ready topographic capture
+
+Topographic capture mode is now a real figure workflow, not just a screenshot toggle.
+
+- Capture overlay: `src/components/Explore/TopographicCaptureOverlay.tsx`
+- Globe metrics + capture-aware rendering: `src/components/Globe/CesiumGlobe.tsx`
+- Drawn geometry rendering polish for captures: `src/hooks/useGlobeDrawing.ts`
+
+Current figure overlay includes:
+
+- figure title and subtitle
+- north reference with heading/pitch readout
+- scale reference using `metersPerPixel`
+- active-layer legend
+- AOI emphasis
+- analyst notes block
+- drawn-shape and saved-site counts
+
+Important implementation detail:
+
+- `CesiumGlobe` now exposes `GlobeViewSnapshot` metadata including viewport size and approximate `metersPerPixel`
+- `preserveDrawingBuffer` is enabled for reliable map capture
+- headless/browser QA showed expected WebGL `ReadPixels` performance warnings during capture; these are noisy but not currently breaking
+
+#### 4. Stronger analyst export package
+
+Exports are now structured for GIS handoff rather than just ad hoc downloads.
+
+Core export logic lives in:
+
+- `src/lib/analysis-export.ts`
+
+Current exports:
+
+- GeoJSON export of drawn shapes
+- analysis tables ZIP containing:
+  - `site-summary.csv`
+  - `quick-regions.csv`
+  - `drawn-shapes.csv`
+- analyst ZIP bundle containing:
+  - `manifest.json`
+  - `drawn-shapes.geojson`
+  - `site-summary.csv`
+  - `quick-regions.csv`
+  - `drawn-shapes.csv`
+  - `topographic-capture.png`
+
+Current manifest details:
+
+- `schemaVersion: 2`
+- location + AOI metadata
+- active profile
+- capture settings and active layer labels
+- globe camera snapshot
+- source summary and source notes
+- counts for quick regions, saved sites, and drawn shapes
+
+Circle exports were upgraded from center-point placeholders to polygonized GeoJSON rings.
+
+### Verification status
+
+This batch was verified with:
+
+- `npx tsc --noEmit`
+- `npm run build`
+- browser automation against `/` and `/explore`
+- real download verification for:
+  - PNG capture
+  - analysis tables ZIP
+  - analyst ZIP bundle
+
+Important build note:
+
+- Vercel production builds run lint during `next build`, so do not rely on TypeScript alone before pushing
+- use `npm run build` locally before production pushes
+
+Expected non-blocking build/runtime warnings still present:
+
+- Sentry deprecation/config warnings during build
+- missing Sentry auth token warnings for release/source-map upload
+- headless WebGL `ReadPixels` warnings during screenshot capture
+
+### Start here if you are the next engineer
+
+Open these files first:
+
+- `src/components/Explore/ExploreWorkspace.tsx`
+- `src/components/Explore/WorkspaceToolRail.tsx`
+- `src/components/Explore/TopographicCaptureOverlay.tsx`
+- `src/lib/analysis-export.ts`
+- `src/components/Globe/CesiumGlobe.tsx`
+- `src/hooks/useGlobeDrawing.ts`
+
+If you need to reason about AI workflow or command dispatch:
+
+- `src/components/Explore/PersistentAiBar.tsx`
+- `src/components/Explore/WorkspaceCommandPalette.tsx`
+- `src/context/AgentPanelContext.tsx`
+- `src/components/agent-panel/AgentChat.tsx`
+
+### Recommended next implementation order
+
+This is the highest-leverage continuation path from the current state:
+
+1. Georeferenced export
+   - Add world-file style export for capture images
+   - Add stronger extent/bounds metadata for downstream GIS use
+   - Add `KML/KMZ` export after the georeferenced PNG workflow is stable
+2. Saved analyst layouts
+   - Move from simple saved layouts toward true analyst-authored workspace composition
+   - Drag/resize/reopen workflows should become first-class, not just persisted visibility/order
+3. Inline provenance on headline outputs
+   - Push source/freshness/confidence into top-level results, compare output, and GeoAnalyst answers
+4. Deeper live hazard stack
+   - Expand wildfire, flood, drought, weather, and resilience signals so the new workbench has more expert-grade substance
 
 ### What's in the current build
 
