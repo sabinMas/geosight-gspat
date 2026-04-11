@@ -80,8 +80,8 @@ export function WorkspaceToolRail({
 }: WorkspaceToolRailProps) {
   const toolButtons = [
     { id: "polygon" as const, label: "Area", Icon: PenTool },
-    { id: "marker" as const, label: "Pin", Icon: MapPinned },
-    { id: "measure" as const, label: "Measure", Icon: Ruler },
+    { id: "point" as const, label: "Pin", Icon: MapPinned },
+    { id: "polyline" as const, label: "Path", Icon: Ruler },
     { id: "circle" as const, label: "Radius", Icon: Circle },
   ];
 

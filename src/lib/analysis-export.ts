@@ -205,7 +205,7 @@ export function buildDrawnShapesGeoJson(drawnShapes: DrawnShape[]) {
         centroidLng: centroid?.lng ?? null,
       };
 
-      if (shape.type === "marker") {
+      if (shape.type === "point") {
         const point = shape.coordinates[0];
         return {
           type: "Feature" as const,
@@ -217,7 +217,7 @@ export function buildDrawnShapesGeoJson(drawnShapes: DrawnShape[]) {
         };
       }
 
-      if (shape.type === "measure") {
+      if (shape.type === "polyline") {
         return {
           type: "Feature" as const,
           properties,

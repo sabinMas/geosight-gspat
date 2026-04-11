@@ -839,10 +839,10 @@ export function ExploreWorkspace() {
           state.setDrawingTool("polygon");
           return;
         case "action-drop-pin":
-          state.setDrawingTool("marker");
+          state.setDrawingTool("point");
           return;
         case "action-measure-distance":
-          state.setDrawingTool("measure");
+          state.setDrawingTool("polyline");
           return;
         case "action-draw-radius":
           state.setDrawingTool("circle");
