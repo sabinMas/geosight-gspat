@@ -36,6 +36,7 @@ import {
 } from "@/components/Explore/WorkspaceCommandPalette";
 import { WorkspaceToolRail } from "@/components/Explore/WorkspaceToolRail";
 import { MapCallout } from "@/components/Globe/MapCallout";
+import { AoiDrawingToolbar } from "@/components/Globe/AoiDrawingToolbar";
 import { CardDisplayProvider } from "@/context/CardDisplayContext";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
 import {
@@ -45,10 +46,10 @@ import {
 import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
 import { WorkspaceLibrary } from "@/components/Explore/WorkspaceLibrary";
 import { DataLayers } from "@/components/Globe/DataLayers";
-import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
+import { AnalysisPanel } from "@/components/Results/AnalysisPanel";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
@@ -56,6 +57,7 @@ import { isExplorerMode } from "@/lib/app-mode";
 import { getExplorerLensById } from "@/lib/explorer-lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
+import { AnalysisProvider } from "@/context/AnalysisContext";
 import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
 import {
@@ -339,7 +341,7 @@ export function ExploreWorkspace() {
 
   const handleShapeComplete = useCallback((shape: DrawnShape) => {
     state.addDrawnShape(shape);
-    if (shape.type !== "marker") {
+    if (shape.type !== "point") {
       state.setDrawingTool("none");
     }
   }, [state]);
@@ -899,6 +901,9 @@ export function ExploreWorkspace() {
     (data.activePrimaryCard ? 1 : 0) +
     data.openBoardCards.length +
     data.suggestedCards.length;
+  const activeExplorerLens = state.activeLensId
+    ? getExplorerLensById(state.activeLensId) ?? null
+    : null;
 
   useEffect(() => {
     setUiContext({
@@ -958,12 +963,73 @@ export function ExploreWorkspace() {
   const rightPanelOpen = Boolean(
     data.activePrimaryCard ||
     data.openBoardCards.length > 0 ||
-    data.shellMode === "board"
+    data.shellMode === "board" ||
+    (activeExplorerLens && (state.locationReady || state.drawnGeometry.features.length > 0))
+  );
+
+  const analysisContextValue = useMemo(
+    () => ({
+      activeLens: state.activeLensId,
+      location: {
+        name: state.selectedLocationName,
+        displayName: state.selectedLocationDisplayName,
+        coordinates: state.locationReady ? state.selectedPoint : null,
+      },
+      geometry: state.drawnGeometry,
+      selectedGeometryId: state.selectedShapeId,
+      layers: state.layers,
+      analysisResult: state.analysisResult,
+      analysisInputMode: state.analysisInputMode,
+      isLoading: state.analysisLoading,
+      error: state.analysisError,
+      drawingDraft: state.drawingDraft,
+      setAnalysisInputMode: state.setAnalysisInputMode,
+      setSelectedGeometryId: state.setSelectedShapeId,
+    }),
+    [
+      state.activeLensId,
+      state.analysisError,
+      state.analysisInputMode,
+      state.analysisLoading,
+      state.analysisResult,
+      state.drawnGeometry,
+      state.drawingDraft,
+      state.layers,
+      state.locationReady,
+      state.selectedLocationDisplayName,
+      state.selectedLocationName,
+      state.selectedPoint,
+      state.selectedShapeId,
+      state.setAnalysisInputMode,
+      state.setSelectedShapeId,
+    ],
   );
 
   // Card content rendered in right panel (desktop) or inline below globe (mobile)
   const rightPanelContent = (
     <div className="space-y-4 p-4">
+      {activeExplorerLens ? (
+        <AnalysisPanel
+          lens={activeExplorerLens}
+          location={{
+            name: state.selectedLocationName,
+            displayName: state.selectedLocationDisplayName,
+          }}
+          geometry={state.drawnGeometry}
+          analysisInputMode={state.analysisInputMode}
+          onUseDrawnArea={() => {
+            if (!state.selectedShapeId && state.drawnShapes.at(-1)?.id) {
+              state.setSelectedShapeId(state.drawnShapes.at(-1)?.id ?? null);
+            }
+            state.setAnalysisInputMode("geometry");
+          }}
+          onUseLocation={() => state.setAnalysisInputMode("location")}
+          analysisResult={state.analysisResult}
+          isLoading={state.analysisLoading}
+          error={state.analysisError}
+        />
+      ) : null}
+
       <div className="rounded-[1.4rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-3 shadow-[var(--shadow-soft)]">
         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
           Evidence tray
@@ -1077,6 +1143,7 @@ export function ExploreWorkspace() {
   );
 
   return (
+    <AnalysisProvider value={analysisContextValue}>
     <div className="flex flex-col xl:fixed xl:inset-0 xl:overflow-hidden bg-[var(--background)]">
 
       {/* ── Topbar ── */}
@@ -1277,6 +1344,11 @@ export function ExploreWorkspace() {
                 drawnShapes={state.drawnShapes}
                 onShapeComplete={handleShapeComplete}
                 onVertexDrag={state.updateDrawnShapeVertex}
+                selectedShapeId={state.selectedShapeId}
+                onSelectShape={state.setSelectedShapeId}
+                onDraftStateChange={state.setDrawingDraft}
+                undoDraftNonce={state.undoDraftNonce}
+                completeDrawingNonce={state.completeDrawingNonce}
                 snapToGrid={state.snapToGrid}
                 captureMode={captureOverlayVisible}
                 onGlobeApiChange={handleGlobeApiChange}
@@ -1344,25 +1416,26 @@ export function ExploreWorkspace() {
             />
           ) : null}
 
-          <div className="absolute bottom-14 left-4 right-4 z-20 xl:hidden">
-            <div className="rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-panel)] backdrop-blur-md">
-              <DrawingToolbar
-                drawingTool={state.drawingTool}
-                onSelectTool={state.setDrawingTool}
-                drawnShapes={state.drawnShapes}
-                onClearAll={() => state.setDrawnShapes([])}
-                onDeleteShape={state.removeDrawnShape}
-                canUndo={state.canUndo}
-                canRedo={state.canRedo}
-                onUndo={state.undoDrawing}
-                onRedo={state.redoDrawing}
-                onRenameShape={state.renameShape}
-                onExportGeoJSON={handleExportGeoJson}
-                snapToGrid={state.snapToGrid}
-                onToggleSnapToGrid={() => state.setSnapToGrid((v) => !v)}
-              />
-            </div>
-          </div>
+          <AoiDrawingToolbar
+            drawingTool={state.drawingTool}
+            onSelectTool={state.setDrawingTool}
+            drawnShapes={state.drawnShapes}
+            selectedShapeId={state.selectedShapeId}
+            onSelectShape={state.setSelectedShapeId}
+            onClearAll={() => state.setDrawnShapes([])}
+            onDeleteShape={state.removeDrawnShape}
+            canUndoHistory={state.canUndo}
+            canRedo={state.canRedo}
+            onUndoHistory={state.undoDrawing}
+            onRedo={state.redoDrawing}
+            onRenameShape={state.renameShape}
+            onExportGeoJSON={handleExportGeoJson}
+            snapToGrid={state.snapToGrid}
+            onToggleSnapToGrid={() => state.setSnapToGrid((v) => !v)}
+            draftState={state.drawingDraft}
+            onUndoDraft={state.requestUndoDraftVertex}
+            onCompleteDraft={state.requestCompleteDrawing}
+          />
 
           {/* Map callout — appears on point select, hides when right panel opens */}
           {(state.locationReady || data.loading) && !rightPanelOpen && !calloutDismissed ? (
@@ -1543,5 +1616,6 @@ export function ExploreWorkspace() {
         onClose={data.closeReportPanel}
       />
     </div>
+    </AnalysisProvider>
   );
 }

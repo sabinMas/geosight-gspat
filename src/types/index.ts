@@ -1,3 +1,10 @@
+import type {
+  Feature,
+  FeatureCollection,
+  LineString,
+  Point,
+  Polygon,
+} from "geojson";
 import type { ClimateHistoryResult } from "@/lib/climate-history";
 import type { GroundwaterSummary } from "@/lib/groundwater";
 import type { SeismicDesignParams } from "@/lib/seismic-design";
@@ -20,15 +27,74 @@ export type UseCaseType =
   | "general_exploration";
 
 export type ResultsMode = "analysis" | "nearby_places";
-export type DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle";
+export type DrawingTool =
+  | "none"
+  | "point"
+  | "polyline"
+  | "polygon"
+  | "rectangle"
+  | "circle";
+export type DrawnShapeType = Exclude<DrawingTool, "none">;
+
+export interface DrawnMeasurement {
+  kind: "distance" | "area";
+  value: number;
+  unit: "miles" | "acres";
+  display: string;
+}
+
+export interface DrawnGeometryProperties {
+  id: string;
+  label: string | null;
+  color: string;
+  shapeType: DrawnShapeType;
+  measurementLabel: string | null;
+  measurementKind: DrawnMeasurement["kind"] | null;
+  measurementUnit: DrawnMeasurement["unit"] | null;
+  measurementValue: number | null;
+  radiusMeters: number | null;
+}
+
+export type DrawnGeometry = Point | LineString | Polygon;
+export type DrawnGeometryFeature = Feature<DrawnGeometry, DrawnGeometryProperties>;
+export type DrawnGeometryFeatureCollection = FeatureCollection<
+  DrawnGeometry,
+  DrawnGeometryProperties
+>;
 
 export interface DrawnShape {
   id: string;
-  type: Exclude<DrawingTool, "none">;
+  type: DrawnShapeType;
   coordinates: Array<{ lat: number; lng: number }>;
   label?: string;
+  measurement?: DrawnMeasurement;
   measurementLabel?: string;
   color: string;
+  radiusMeters?: number;
+}
+
+export type AnalysisInputMode = "location" | "geometry";
+export type AnalysisRiskLevel = "low" | "moderate" | "high";
+
+export interface AnalysisMetricRow {
+  id: string;
+  label: string;
+  value: string;
+  icon?: string;
+  detail?: string;
+  riskLevel?: AnalysisRiskLevel;
+  estimated?: boolean;
+}
+
+export interface LensAnalysisResult {
+  lens: string;
+  geometrySource: AnalysisInputMode;
+  title: string;
+  narrative: string | null;
+  metrics: AnalysisMetricRow[];
+  generatedAt: string;
+  attribution: string[];
+  details?: Record<string, unknown>;
 }
 
 export type DataSourceStatus = "live" | "derived" | "limited" | "demo" | "unavailable";

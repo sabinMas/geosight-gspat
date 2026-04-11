@@ -5,12 +5,19 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useQuickRegions } from "@/hooks/useQuickRegions";
+import {
+  drawnShapesToFeatureCollection,
+  updateShapeVertex as updateShapeVertexValue,
+  withShapeMeasurement,
+} from "@/lib/analysis-geometry";
 import { resolveLocationQuery } from "@/lib/cesium-search";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
 import { getProfileById } from "@/lib/profiles";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
+  AnalysisInputMode,
   AppMode,
+  DrawnGeometryFeatureCollection,
   DrawnShape,
   DrawingTool,
   EarthquakeEvent,
@@ -21,7 +28,9 @@ import {
   RegionSelection,
   ResultsMode,
   SubsurfaceRenderMode,
+  LensAnalysisResult,
 } from "@/types";
+import { DrawingDraftState } from "@/context/AnalysisContext";
 
 export type ExploreInitParams = ExploreInitState;
 
@@ -82,6 +91,7 @@ export interface ExploreState {
   drawingTool: DrawingTool;
   setDrawingTool: Dispatch<SetStateAction<DrawingTool>>;
   drawnShapes: DrawnShape[];
+  drawnGeometry: DrawnGeometryFeatureCollection;
   setDrawnShapes: Dispatch<SetStateAction<DrawnShape[]>>;
   addDrawnShape: (shape: DrawnShape) => void;
   undoDrawing: () => void;
@@ -89,6 +99,22 @@ export interface ExploreState {
   renameShape: (id: string, label: string) => void;
   removeDrawnShape: (id: string) => void;
   updateDrawnShapeVertex: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
+  selectedShapeId: string | null;
+  setSelectedShapeId: Dispatch<SetStateAction<string | null>>;
+  analysisInputMode: AnalysisInputMode;
+  setAnalysisInputMode: Dispatch<SetStateAction<AnalysisInputMode>>;
+  analysisResult: LensAnalysisResult | null;
+  setAnalysisResult: Dispatch<SetStateAction<LensAnalysisResult | null>>;
+  analysisLoading: boolean;
+  setAnalysisLoading: Dispatch<SetStateAction<boolean>>;
+  analysisError: string | null;
+  setAnalysisError: Dispatch<SetStateAction<string | null>>;
+  drawingDraft: DrawingDraftState;
+  setDrawingDraft: Dispatch<SetStateAction<DrawingDraftState>>;
+  requestUndoDraftVertex: () => void;
+  undoDraftNonce: number;
+  requestCompleteDrawing: () => void;
+  completeDrawingNonce: number;
   canUndo: boolean;
   canRedo: boolean;
   snapToGrid: boolean;
@@ -186,10 +212,32 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);
   const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [analysisInputMode, setAnalysisInputMode] = useState<AnalysisInputMode>("location");
+  const [analysisResult, setAnalysisResult] = useState<LensAnalysisResult | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [drawingDraft, setDrawingDraft] = useState<DrawingDraftState>({
+    tool: "none",
+    vertexCount: 0,
+    measurementLabel: null,
+    canUndo: false,
+    canComplete: false,
+  });
+  const [undoDraftNonce, setUndoDraftNonce] = useState(0);
+  const [completeDrawingNonce, setCompleteDrawingNonce] = useState(0);
+
+  const drawnGeometry = useMemo(
+    () => drawnShapesToFeatureCollection(drawnShapes),
+    [drawnShapes],
+  );
 
   const addDrawnShape = useCallback((shape: DrawnShape) => {
-    setDrawnShapes((prev) => [...prev, shape]);
+    const normalizedShape = withShapeMeasurement(shape);
+    setDrawnShapes((prev) => [...prev, normalizedShape]);
     setRedoStack([]);
+    setSelectedShapeId(normalizedShape.id);
+    setAnalysisInputMode("geometry");
   }, []);
 
   const undoDrawing = useCallback(() => {
@@ -197,7 +245,9 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
       if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
       setRedoStack((r) => [...r, last]);
-      return prev.slice(0, -1);
+      const next = prev.slice(0, -1);
+      setSelectedShapeId(next.at(-1)?.id ?? null);
+      return next;
     });
   }, []);
 
@@ -216,6 +266,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
 
   const removeDrawnShape = useCallback((id: string) => {
     setDrawnShapes((prev) => prev.filter((s) => s.id !== id));
+    setSelectedShapeId((current) => (current === id ? null : current));
   }, []);
 
   const updateDrawnShapeVertex = useCallback(
@@ -223,13 +274,49 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
       setDrawnShapes((prev) =>
         prev.map((s) =>
           s.id === shapeId
-            ? { ...s, coordinates: s.coordinates.map((c, i) => (i === vertexIndex ? coord : c)) }
+            ? updateShapeVertexValue(s, vertexIndex, coord)
             : s,
         ),
       );
     },
     [],
   );
+
+  const requestUndoDraftVertex = useCallback(() => {
+    setUndoDraftNonce((current) => current + 1);
+  }, []);
+
+  const requestCompleteDrawing = useCallback(() => {
+    setCompleteDrawingNonce((current) => current + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!drawnShapes.length) {
+      setSelectedShapeId(null);
+      if (analysisInputMode === "geometry") {
+        setAnalysisInputMode("location");
+      }
+    } else if (!selectedShapeId || !drawnShapes.some((shape) => shape.id === selectedShapeId)) {
+      setSelectedShapeId(drawnShapes[drawnShapes.length - 1]?.id ?? null);
+    }
+  }, [analysisInputMode, drawnShapes, selectedShapeId]);
+
+  useEffect(() => {
+    if (drawingTool === "none") {
+      setDrawingDraft({
+        tool: "none",
+        vertexCount: 0,
+        measurementLabel: null,
+        canUndo: false,
+        canComplete: false,
+      });
+    } else {
+      setDrawingDraft((current) => ({
+        ...current,
+        tool: drawingTool,
+      }));
+    }
+  }, [drawingTool]);
   const { quickRegions, quickRegionsLoading } = useQuickRegions(
     selectedPoint,
     locationReady,
@@ -329,6 +416,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     drawingTool,
     setDrawingTool,
     drawnShapes,
+    drawnGeometry,
     setDrawnShapes,
     addDrawnShape,
     undoDrawing,
@@ -336,6 +424,22 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     renameShape,
     removeDrawnShape,
     updateDrawnShapeVertex,
+    selectedShapeId,
+    setSelectedShapeId,
+    analysisInputMode,
+    setAnalysisInputMode,
+    analysisResult,
+    setAnalysisResult,
+    analysisLoading,
+    setAnalysisLoading,
+    analysisError,
+    setAnalysisError,
+    drawingDraft,
+    setDrawingDraft,
+    requestUndoDraftVertex,
+    undoDraftNonce,
+    requestCompleteDrawing,
+    completeDrawingNonce,
     canUndo: drawnShapes.length > 0,
     canRedo: redoStack.length > 0,
     snapToGrid,

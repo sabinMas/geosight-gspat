@@ -45,7 +45,12 @@ import {
   SubsurfaceDataset,
   SubsurfaceRenderMode,
 } from "@/types";
-import { useGlobeDrawing, useGlobeDrawnShapes } from "@/hooks/useGlobeDrawing";
+import { DrawingDraftState } from "@/context/AnalysisContext";
+import {
+  isDrawingEntityId,
+  useAoiDrawing,
+  useAoiDrawnShapes,
+} from "@/hooks/useAoiDrawing";
 import { LayerState } from "./DataLayers";
 
 if (typeof window !== "undefined") {
@@ -91,6 +96,11 @@ interface CesiumGlobeProps {
   drawnShapes?: DrawnShape[];
   onShapeComplete?: (shape: DrawnShape) => void;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
+  selectedShapeId?: string | null;
+  onSelectShape?: (shapeId: string | null) => void;
+  onDraftStateChange?: (draft: DrawingDraftState) => void;
+  undoDraftNonce?: number;
+  completeDrawingNonce?: number;
   snapToGrid?: boolean;
   captureMode?: boolean;
   onGlobeApiChange?: (api: {
@@ -117,6 +127,11 @@ export function CesiumGlobe({
   drawnShapes = [],
   onShapeComplete,
   onVertexDrag,
+  selectedShapeId = null,
+  onSelectShape,
+  onDraftStateChange,
+  undoDraftNonce = 0,
+  completeDrawingNonce = 0,
   snapToGrid = false,
   captureMode = false,
   onGlobeApiChange,
@@ -548,6 +563,17 @@ export function CesiumGlobe({
     handler.setInputAction((event: { position: Cartesian2 }) => {
       // Yield to drawing mode — drawing hook has its own handler
       if (drawingTool !== "none") return;
+
+      const picked = viewer.scene.pick(event.position);
+      const pickedId =
+        typeof picked?.id?.id === "string"
+          ? picked.id.id
+          : typeof picked?.id === "string"
+            ? picked.id
+            : null;
+      if (isDrawingEntityId(pickedId)) {
+        return;
+      }
 
       try {
         const earthPosition =
@@ -1060,22 +1086,27 @@ export function CesiumGlobe({
   }, []);
 
   // ── Drawing hooks ────────────────────────────────────────────────────────────
-  useGlobeDrawing({
+  useAoiDrawing({
     viewerRef,
     viewerReady,
     drawingTool,
     drawnShapes,
     onShapeComplete: onShapeComplete ?? (() => undefined),
+    onDraftStateChange,
+    undoDraftNonce,
+    completeDrawingNonce,
     snapToGrid,
   });
 
-  useGlobeDrawnShapes({
+  useAoiDrawnShapes({
     viewerRef,
     viewerReady,
     drawnShapes,
     drawingTool,
-    onVertexDrag,
     captureMode,
+    selectedShapeId,
+    onSelectShape,
+    onVertexDrag,
   });
 
   if (!hasCesiumToken) {
