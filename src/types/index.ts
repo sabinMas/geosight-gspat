@@ -73,6 +73,21 @@ export interface DrawnShape {
   radiusMeters?: number;
 }
 
+export interface UserLocationFix {
+  coordinates: Coordinates;
+  accuracyMeters: number | null;
+  headingDegrees: number | null;
+  speedMps: number | null;
+  timestamp: string;
+}
+
+export interface RouteRecordingSnapshot {
+  isRecording: boolean;
+  pointCount: number;
+  totalDistanceMiles: number;
+  elapsedSeconds: number;
+}
+
 export type AnalysisInputMode = "location" | "geometry";
 export type AnalysisRiskLevel = "low" | "moderate" | "high";
 

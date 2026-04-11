@@ -1,7 +1,13 @@
 "use client";
 
 import { fetchLocationSuggestions, resolveLocationFromQuery } from "@/lib/location-search";
-import { Coordinates, LocationSearchResult } from "@/types";
+import { Coordinates, LocationSearchResult, UserLocationFix } from "@/types";
+
+const GEOLOCATION_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  maximumAge: 60_000,
+  timeout: 10_000,
+};
 
 export function parseCoordinates(value: string): Coordinates | null {
   const match = value.match(/(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)/);
@@ -107,37 +113,78 @@ export async function resolveLocationQuery(query: string): Promise<LocationSearc
   return resolveLocationFromQuery(trimmedQuery);
 }
 
-export async function getCurrentCoordinates() {
-  return new Promise<Coordinates>((resolve, reject) => {
+export function getGeolocationErrorMessage(error: GeolocationPositionError | unknown) {
+  if (typeof window !== "undefined" && !navigator.geolocation) {
+    return "Geolocation is not supported in this browser.";
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as GeolocationPositionError).code === "number"
+  ) {
+    const geolocationError = error as GeolocationPositionError;
+
+    if (geolocationError.code === geolocationError.PERMISSION_DENIED) {
+      return "Location access was denied. Enable location sharing or type a place instead.";
+    }
+
+    if (geolocationError.code === geolocationError.TIMEOUT) {
+      return "Reading your current location took too long. Try again in a moment.";
+    }
+
+    if (geolocationError.code === geolocationError.POSITION_UNAVAILABLE) {
+      return "Your device couldn't determine a GPS fix right now.";
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return "Unable to read your current location.";
+}
+
+export function toUserLocationFix(position: GeolocationPosition): UserLocationFix {
+  return {
+    coordinates: {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+    },
+    accuracyMeters: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+    headingDegrees:
+      typeof position.coords.heading === "number" && Number.isFinite(position.coords.heading)
+        ? position.coords.heading
+        : null,
+    speedMps:
+      typeof position.coords.speed === "number" && Number.isFinite(position.coords.speed)
+        ? position.coords.speed
+        : null,
+    timestamp: new Date(position.timestamp).toISOString(),
+  };
+}
+
+export async function getCurrentLocationFix() {
+  return new Promise<UserLocationFix>((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Geolocation is not supported in this browser."));
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        }),
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          reject(new Error("Location access was denied. Type a place instead."));
-          return;
-        }
-
-        if (error.code === error.TIMEOUT) {
-          reject(new Error("Reading your current location took too long. Type a place instead."));
-          return;
-        }
-
-        reject(new Error("Unable to read your current location."));
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 60_000,
-        timeout: 10_000,
-      },
+      (position) => resolve(toUserLocationFix(position)),
+      (error) => reject(new Error(getGeolocationErrorMessage(error))),
+      GEOLOCATION_OPTIONS,
     );
   });
+}
+
+export async function getCurrentCoordinates() {
+  const fix = await getCurrentLocationFix();
+  return fix.coordinates;
+}
+
+export function getGeolocationOptions() {
+  return GEOLOCATION_OPTIONS;
 }

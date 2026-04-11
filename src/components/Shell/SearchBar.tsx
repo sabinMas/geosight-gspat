@@ -167,7 +167,10 @@ export function SearchBar({
       try {
         const reversed = await reverseGeocodeCoordinates(coordinates.lat, coordinates.lng);
         if (reversed) {
-          result = reversed;
+          result = {
+            ...reversed,
+            kind: "current_location",
+          };
         }
       } catch {
         // Fall back to the plain current-location label if reverse geocoding fails.

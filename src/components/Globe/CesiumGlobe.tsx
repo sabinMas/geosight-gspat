@@ -18,17 +18,21 @@ import {
   EllipsoidTerrainProvider,
   HeadingPitchRange,
   HeadingPitchRoll,
+  HorizontalOrigin,
   ImageryLayer,
   Ion,
   IonWorldImageryStyle,
+  LabelStyle,
   Math as CesiumMath,
   Matrix4,
   PolygonHierarchy,
+  PolylineArrowMaterialProperty,
   Quaternion,
   sampleTerrainMostDetailed,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Transforms,
+  VerticalOrigin,
   Viewer as CesiumViewer,
 } from "cesium";
 import { estimateRegionSpanKm } from "@/lib/geospatial";
@@ -44,6 +48,7 @@ import {
   SavedSite,
   SubsurfaceDataset,
   SubsurfaceRenderMode,
+  UserLocationFix,
 } from "@/types";
 import { DrawingDraftState } from "@/context/AnalysisContext";
 import {
@@ -78,6 +83,34 @@ function getFlyToHeight(
   return Math.round(Math.min(Math.max(spanKm * 900, 2500), 24000));
 }
 
+function destinationFromHeading(
+  origin: Coordinates,
+  headingDegrees: number,
+  distanceMeters: number,
+): Coordinates {
+  const earthRadiusMeters = 6_371_000;
+  const bearing = (headingDegrees * Math.PI) / 180;
+  const lat1 = (origin.lat * Math.PI) / 180;
+  const lng1 = (origin.lng * Math.PI) / 180;
+  const angularDistance = distanceMeters / earthRadiusMeters;
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) +
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing),
+  );
+  const lng2 =
+    lng1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
+    );
+
+  return {
+    lat: (lat2 * 180) / Math.PI,
+    lng: ((lng2 * 180) / Math.PI + 540) % 360 - 180,
+  };
+}
+
 interface CesiumGlobeProps {
   selectedPoint: Coordinates;
   selectedRegion: RegionSelection;
@@ -103,6 +136,9 @@ interface CesiumGlobeProps {
   completeDrawingNonce?: number;
   snapToGrid?: boolean;
   captureMode?: boolean;
+  userLocationFix?: UserLocationFix | null;
+  followUser?: boolean;
+  recordedRoute?: Coordinates[];
   onGlobeApiChange?: (api: {
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
@@ -134,6 +170,9 @@ export function CesiumGlobe({
   completeDrawingNonce = 0,
   snapToGrid = false,
   captureMode = false,
+  userLocationFix = null,
+  followUser = false,
+  recordedRoute = [],
   onGlobeApiChange,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
@@ -1023,6 +1062,140 @@ export function CesiumGlobe({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driveMode, viewerReady]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    const existing = viewer.dataSources.getByName("user-location")[0];
+    if (existing) {
+      void viewer.dataSources.remove(existing, true);
+    }
+
+    if (!userLocationFix && recordedRoute.length === 0) {
+      return;
+    }
+
+    const dataSource = new CustomDataSource("user-location");
+    void viewer.dataSources.add(dataSource);
+
+    if (userLocationFix) {
+      const { coordinates, headingDegrees } = userLocationFix;
+      const position = Cartesian3.fromDegrees(coordinates.lng, coordinates.lat, 18);
+      const markerColor = Color.fromCssColorString("#22d3ee");
+      const pulseProperty = new CallbackProperty(
+        () => 14 + (Math.sin(Date.now() / 220) + 1) * 9,
+        false,
+      );
+
+      dataSource.entities.add({
+        id: "user-location-pulse",
+        position,
+        ellipse: {
+          semiMajorAxis: pulseProperty,
+          semiMinorAxis: pulseProperty,
+          material: markerColor.withAlpha(0.18),
+          outlineColor: markerColor.withAlpha(0.45),
+          outlineWidth: 1,
+          height: 0,
+        },
+      });
+
+      dataSource.entities.add({
+        id: "user-location-pin",
+        position,
+        point: {
+          pixelSize: 14,
+          color: markerColor,
+          outlineColor: Color.WHITE.withAlpha(0.95),
+          outlineWidth: 3,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: "You are here",
+          fillColor: Color.WHITE,
+          font: "600 12px Inter, sans-serif",
+          style: LabelStyle.FILL_AND_OUTLINE,
+          outlineColor: Color.BLACK.withAlpha(0.65),
+          outlineWidth: 3,
+          horizontalOrigin: HorizontalOrigin.CENTER,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          pixelOffset: new Cartesian2(0, -18),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      });
+
+      if (typeof headingDegrees === "number") {
+        const headingDestination = destinationFromHeading(coordinates, headingDegrees, 120);
+        dataSource.entities.add({
+          id: "user-location-heading",
+          polyline: {
+            positions: [
+              Cartesian3.fromDegrees(coordinates.lng, coordinates.lat, 18),
+              Cartesian3.fromDegrees(headingDestination.lng, headingDestination.lat, 18),
+            ],
+            width: 8,
+            material: new PolylineArrowMaterialProperty(markerColor.withAlpha(0.95)),
+            clampToGround: false,
+          },
+        });
+      }
+    }
+
+    if (recordedRoute.length >= 2) {
+      dataSource.entities.add({
+        id: "user-route-recording",
+        polyline: {
+          positions: recordedRoute.map((point) => Cartesian3.fromDegrees(point.lng, point.lat, 16)),
+          width: 5,
+          material: Color.fromCssColorString("#34d399").withAlpha(0.95),
+          clampToGround: false,
+        },
+      });
+    }
+
+    const renderInterval = window.setInterval(() => {
+      if (isViewerUsable(viewer)) {
+        viewer.scene.requestRender();
+      }
+    }, 240);
+
+    viewer.scene.requestRender();
+
+    return () => {
+      window.clearInterval(renderInterval);
+      if (isViewerUsable(viewer)) {
+        void viewer.dataSources.remove(dataSource, true);
+      }
+    };
+  }, [recordedRoute, userLocationFix, viewerReady]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!followUser || !userLocationFix || !isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    const currentHeight = viewer.camera.positionCartographic.height;
+    viewer.camera.setView({
+      destination: Cartesian3.fromDegrees(
+        userLocationFix.coordinates.lng,
+        userLocationFix.coordinates.lat,
+        Math.min(Math.max(currentHeight, 850), 2600),
+      ),
+      orientation: {
+        heading:
+          typeof userLocationFix.headingDegrees === "number"
+            ? CesiumMath.toRadians(userLocationFix.headingDegrees)
+            : viewer.camera.heading,
+        pitch: viewer.camera.pitch,
+        roll: 0,
+      },
+    });
+    viewer.scene.requestRender();
+  }, [followUser, userLocationFix, viewerReady]);
 
   useEffect(() => {
     if (!onGlobeApiChange) {

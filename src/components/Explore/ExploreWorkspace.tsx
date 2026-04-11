@@ -37,6 +37,7 @@ import {
 import { WorkspaceToolRail } from "@/components/Explore/WorkspaceToolRail";
 import { MapCallout } from "@/components/Globe/MapCallout";
 import { AoiDrawingToolbar } from "@/components/Globe/AoiDrawingToolbar";
+import { LocationTrackingControls } from "@/components/Globe/LocationTrackingControls";
 import { CardDisplayProvider } from "@/context/CardDisplayContext";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
 import {
@@ -59,6 +60,7 @@ import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { AnalysisProvider } from "@/context/AnalysisContext";
 import { useExploreData } from "@/hooks/useExploreData";
+import { useLocationTracking } from "@/hooks/useLocationTracking";
 import { useExploreState } from "@/hooks/useExploreState";
 import {
   buildAnalysisTablesBundle,
@@ -98,6 +100,7 @@ export function ExploreWorkspace() {
   const { setGeoContext, setUiContext, primeAgent, submitAgentPrompt } = useAgentPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
+  const locationTracking = useLocationTracking();
   const inExplorer = isExplorerMode(state.appMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -339,12 +342,78 @@ export function ExploreWorkspace() {
     globeApiRef.current = api;
   }, []);
 
+  const focusLiveFix = useCallback(
+    (
+      fix: { coordinates: { lat: number; lng: number } },
+      label = "Live location",
+      displayLabel = "Live location",
+    ) => {
+      state.setInitError(null);
+      setCalloutDismissed(false);
+      state.selectPoint(fix.coordinates, label, displayLabel);
+      data.handleLocationSelection();
+    },
+    [data, state],
+  );
+
   const handleShapeComplete = useCallback((shape: DrawnShape) => {
     state.addDrawnShape(shape);
     if (shape.type !== "point") {
       state.setDrawingTool("none");
     }
   }, [state]);
+
+  const handleLocateOnce = useCallback(() => {
+    void locationTracking.locateOnce().then((fix) => {
+      if (!fix) {
+        return;
+      }
+
+      focusLiveFix(fix, "Current location", "Current location");
+    });
+  }, [focusLiveFix, locationTracking]);
+
+  const handleStartFollowing = useCallback(() => {
+    void locationTracking.startFollowing().then((fix) => {
+      if (!fix) {
+        return;
+      }
+
+      focusLiveFix(fix, "Live location", "Live location");
+      setWorkspaceNotice({
+        tone: "info",
+        message: "Follow mode active.",
+      });
+    });
+  }, [focusLiveFix, locationTracking]);
+
+  const handleStartRecording = useCallback(() => {
+    void locationTracking.startRecording().then((fix) => {
+      if (!fix) {
+        return;
+      }
+
+      focusLiveFix(fix, "Live route start", "Live route");
+      setWorkspaceNotice({
+        tone: "info",
+        message: "Route recording started.",
+      });
+    });
+  }, [focusLiveFix, locationTracking]);
+
+  const handleStopRecording = useCallback(() => {
+    const recordedRouteShape = locationTracking.stopRecording();
+    if (!recordedRouteShape) {
+      return;
+    }
+
+    state.addDrawnShape(recordedRouteShape);
+    state.setDrawingTool("none");
+    setWorkspaceNotice({
+      tone: "info",
+      message: "Recorded route ready for analysis.",
+    });
+  }, [locationTracking, state]);
 
   const visibleUiCardIds = useMemo(
     () =>
@@ -1198,6 +1267,9 @@ export function ExploreWorkspace() {
             onLocate={(result) => {
               state.setInitError(null);
               setCalloutDismissed(false);
+              if (result.kind === "current_location") {
+                locationTracking.seedCurrentFix(result.coordinates);
+              }
               state.selectPoint(
                 result.coordinates,
                 result.fullName ?? result.name,
@@ -1351,6 +1423,9 @@ export function ExploreWorkspace() {
                 completeDrawingNonce={state.completeDrawingNonce}
                 snapToGrid={state.snapToGrid}
                 captureMode={captureOverlayVisible}
+                userLocationFix={locationTracking.currentFix}
+                followUser={locationTracking.isFollowing}
+                recordedRoute={locationTracking.recordedRoute}
                 onGlobeApiChange={handleGlobeApiChange}
               />
             </div>
@@ -1382,6 +1457,21 @@ export function ExploreWorkspace() {
               {state.driveMode ? "Driving" : "Drive"}
             </Button>
           </div>
+
+          <LocationTrackingControls
+            currentFix={locationTracking.currentFix}
+            locateError={locationTracking.locateError}
+            isLocating={locationTracking.isLocating}
+            isFollowing={locationTracking.isFollowing}
+            isRecording={locationTracking.isRecording}
+            recordingSnapshot={locationTracking.recordingSnapshot}
+            onLocateOnce={handleLocateOnce}
+            onStartFollowing={handleStartFollowing}
+            onStopFollowing={locationTracking.stopFollowing}
+            onStartRecording={handleStartRecording}
+            onStopRecording={handleStopRecording}
+            onDismissError={locationTracking.clearLocateError}
+          />
 
           <GlobeViewSelector
             globeViewMode={state.globeViewMode}
