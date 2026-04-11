@@ -224,7 +224,7 @@ export function WorkspaceCommandPalette({
             </div>
           ) : (
             <div className="rounded-3xl border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-10 text-center text-sm text-[var(--muted-foreground)]">
-              No matches for "{query}".
+              No matches for <span className="font-medium">&ldquo;{query}&rdquo;</span>.
             </div>
           )}
         </div>

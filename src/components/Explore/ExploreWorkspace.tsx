@@ -52,7 +52,6 @@ import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
-import { StatePanel } from "@/components/Status/StatePanel";
 import { isExplorerMode } from "@/lib/app-mode";
 import { getExplorerLensById } from "@/lib/explorer-lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
@@ -872,21 +871,19 @@ export function ExploreWorkspace() {
       }
     },
     [
-      data.cards,
-      data.setActivePrimaryCardId,
-      data.setShellMode,
-      data.shellMode,
+      data,
       handleCopyLink,
       handleCapturePng,
       handleExportBundle,
       handleExportCsv,
       handleExportGeoJson,
+      handleGenerateReport,
       handleOpenBoardMode,
       handleOpenGuidedMode,
       handleOpenLibraryMode,
+      handleSaveCurrentSite,
       handleSelectRegion,
       openCard,
-      setCaptureMode,
       state,
     ],
   );

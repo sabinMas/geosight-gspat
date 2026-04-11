@@ -241,23 +241,6 @@ export default function AgentChat() {
   }, [activeAgentId, clearQueuedDraft, queuedDrafts, setDraftForAgent]);
 
   useEffect(() => {
-    const queuedDraft = queuedDrafts[activeAgentId];
-    const shouldAutoSubmit = queuedAutoSubmit[activeAgentId];
-    if (!queuedDraft || !shouldAutoSubmit || isLoading) {
-      return;
-    }
-
-    clearQueuedAutoSubmit(activeAgentId);
-    void sendMessage(queuedDraft);
-  }, [
-    activeAgentId,
-    clearQueuedAutoSubmit,
-    isLoading,
-    queuedAutoSubmit,
-    queuedDrafts,
-  ]);
-
-  useEffect(() => {
     const nextTemplate = uiContext?.reportDraftTemplate?.trim();
     if (!nextTemplate) {
       lastReportDraftTemplateRef.current = null;
@@ -295,28 +278,28 @@ export default function AgentChat() {
     };
   }, []);
 
-  const setLoadingState = (agentId: AgentId, value: boolean) => {
+  const setLoadingState = useCallback((agentId: AgentId, value: boolean) => {
     setLoadingByAgent((current) => ({
       ...current,
       [agentId]: value,
     }));
-  };
+  }, []);
 
-  const setAgentError = (agentId: AgentId, value: AgentErrorState | null) => {
+  const setAgentError = useCallback((agentId: AgentId, value: AgentErrorState | null) => {
     setErrors((current) => ({
       ...current,
       [agentId]: value,
     }));
-  };
+  }, []);
 
-  const setResponseMode = (agentId: AgentId, value: AgentResponseMode) => {
+  const setResponseMode = useCallback((agentId: AgentId, value: AgentResponseMode) => {
     setResponseModeByAgent((current) => ({
       ...current,
       [agentId]: value,
     }));
-  };
+  }, []);
 
-  const sendMessage = async (
+  const sendMessage = useCallback(async (
     prompt: string,
     options?: {
       appendUserMessage?: boolean;
@@ -488,7 +471,34 @@ export default function AgentChat() {
         }
       }
     }
-  };
+  }, [
+    activeAgentId,
+    activeThread,
+    geoContext,
+    setAgentError,
+    setDraftForAgent,
+    setLoadingState,
+    setResponseMode,
+    uiContext,
+  ]);
+
+  useEffect(() => {
+    const queuedDraft = queuedDrafts[activeAgentId];
+    const shouldAutoSubmit = queuedAutoSubmit[activeAgentId];
+    if (!queuedDraft || !shouldAutoSubmit || isLoading) {
+      return;
+    }
+
+    clearQueuedAutoSubmit(activeAgentId);
+    void sendMessage(queuedDraft);
+  }, [
+    activeAgentId,
+    clearQueuedAutoSubmit,
+    isLoading,
+    queuedAutoSubmit,
+    queuedDrafts,
+    sendMessage,
+  ]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

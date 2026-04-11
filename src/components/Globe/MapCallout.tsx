@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { StateBadge } from "@/components/Status/StatePanel";
 import { Button } from "@/components/ui/button";

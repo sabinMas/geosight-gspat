@@ -4,7 +4,7 @@ import {
   describeRelativeLocation,
   shortLocationLabel,
 } from "@/lib/nearby-places";
-import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
+import { fetchWithTimeout } from "@/lib/network";
 
 // Primary and fallback Overpass API mirrors — overpass-api.de is rate-limited on the free tier.
 // Each mirror gets a 6s timeout so all three can be attempted within ~18s total,

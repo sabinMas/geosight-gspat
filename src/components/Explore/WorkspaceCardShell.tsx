@@ -95,7 +95,21 @@ export function WorkspaceCardShell({
       {!collapsed ? (
         <CardContent className="space-y-4">
           {loading ? (
-            <div className="space-y-2.5 py-1">
+            <div className="space-y-3 py-1">
+              {loadingTitle || loadingDescription ? (
+                <div className="space-y-1">
+                  {loadingTitle ? (
+                    <div className="text-sm font-medium text-[var(--foreground)]">
+                      {loadingTitle}
+                    </div>
+                  ) : null}
+                  {loadingDescription ? (
+                    <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                      {loadingDescription}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <Skeleton className="h-3.5 w-3/4" />
               <Skeleton className="h-3.5 w-1/2" />
               <Skeleton className="h-3.5 w-5/6" />

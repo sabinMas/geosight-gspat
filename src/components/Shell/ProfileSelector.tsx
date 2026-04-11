@@ -21,7 +21,6 @@ const ICONS = {
 } as const;
 
 const SIDEBAR_CARD_WIDTH = 98;
-const SIDEBAR_CARD_GAP = 8;
 
 const PROFILE_ICON_BY_ID = {
   "home-buying": House,
