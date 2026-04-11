@@ -156,7 +156,9 @@ async function readStreamChunk(
 export default function AgentChat() {
   const {
     activeAgentId,
+    clearQueuedAutoSubmit,
     geoContext,
+    queuedAutoSubmit,
     uiContext,
     queuedDrafts,
     clearQueuedDraft,
@@ -237,6 +239,23 @@ export default function AgentChat() {
       textareaRef.current?.focus();
     });
   }, [activeAgentId, clearQueuedDraft, queuedDrafts, setDraftForAgent]);
+
+  useEffect(() => {
+    const queuedDraft = queuedDrafts[activeAgentId];
+    const shouldAutoSubmit = queuedAutoSubmit[activeAgentId];
+    if (!queuedDraft || !shouldAutoSubmit || isLoading) {
+      return;
+    }
+
+    clearQueuedAutoSubmit(activeAgentId);
+    void sendMessage(queuedDraft);
+  }, [
+    activeAgentId,
+    clearQueuedAutoSubmit,
+    isLoading,
+    queuedAutoSubmit,
+    queuedDrafts,
+  ]);
 
   useEffect(() => {
     const nextTemplate = uiContext?.reportDraftTemplate?.trim();

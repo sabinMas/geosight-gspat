@@ -14,6 +14,7 @@ import {
   createWorldImageryAsync,
   createWorldTerrainAsync,
   CustomDataSource,
+  EllipsoidGeodesic,
   EllipsoidTerrainProvider,
   HeadingPitchRange,
   HeadingPitchRoll,
@@ -38,6 +39,7 @@ import {
   DrawingTool,
   EarthquakeEvent,
   GlobeViewMode,
+  GlobeViewSnapshot,
   RegionSelection,
   SavedSite,
   SubsurfaceDataset,
@@ -90,6 +92,11 @@ interface CesiumGlobeProps {
   onShapeComplete?: (shape: DrawnShape) => void;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
   snapToGrid?: boolean;
+  captureMode?: boolean;
+  onGlobeApiChange?: (api: {
+    getViewSnapshot: () => GlobeViewSnapshot | null;
+    requestRender: () => void;
+  } | null) => void;
 }
 
 export function CesiumGlobe({
@@ -111,6 +118,8 @@ export function CesiumGlobe({
   onShapeComplete,
   onVertexDrag,
   snapToGrid = false,
+  captureMode = false,
+  onGlobeApiChange,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -166,6 +175,33 @@ export function CesiumGlobe({
   const isViewerUsable = (viewer: CesiumViewer | null): viewer is CesiumViewer =>
     Boolean(viewer && !viewer.isDestroyed());
 
+  const getMetersPerPixel = (viewer: CesiumViewer) => {
+    const canvas = viewer.scene.canvas;
+    const sampleY = Math.max(24, canvas.height - 96);
+    const leftScreen = new Cartesian2(Math.max(12, canvas.width / 2 - 100), sampleY);
+    const rightScreen = new Cartesian2(Math.min(canvas.width - 12, canvas.width / 2 + 100), sampleY);
+
+    const leftRay = viewer.camera.getPickRay(leftScreen);
+    const rightRay = viewer.camera.getPickRay(rightScreen);
+    if (!leftRay || !rightRay) {
+      return null;
+    }
+
+    const leftPosition = viewer.scene.globe.pick(leftRay, viewer.scene);
+    const rightPosition = viewer.scene.globe.pick(rightRay, viewer.scene);
+    if (!leftPosition || !rightPosition) {
+      return null;
+    }
+
+    const leftCartographic = Cartographic.fromCartesian(leftPosition);
+    const rightCartographic = Cartographic.fromCartesian(rightPosition);
+    const geodesic = new EllipsoidGeodesic(leftCartographic, rightCartographic);
+    const distanceMeters = geodesic.surfaceDistance;
+    return Number.isFinite(distanceMeters) && distanceMeters > 0
+      ? distanceMeters / 200
+      : null;
+  };
+
   const requestViewerReset = (reason: string) => {
     if (resetTimeoutRef.current !== null) {
       return;
@@ -195,6 +231,11 @@ export function CesiumGlobe({
       terrainProvider: new EllipsoidTerrainProvider(),
       animation: false,
       baseLayerPicker: false,
+      contextOptions: {
+        webgl: {
+          preserveDrawingBuffer: true,
+        },
+      },
       geocoder: false,
       homeButton: false,
       sceneModePicker: false,
@@ -628,6 +669,12 @@ export function CesiumGlobe({
     dragPositionRef.current = null;
 
     const basePosition = Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220);
+    const selectedColor = Color.fromCssColorString("#00e5ff");
+    const haloColor = Color.WHITE.withAlpha(captureMode ? 0.95 : 0.55);
+    const regionOutlinePositions = [
+      ...regionHierarchy,
+      regionHierarchy[0] ?? Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 120),
+    ];
     const pinEntity = viewer.entities.add({
       name: "Selected Site",
       // CallbackProperty so drag moves the dot live without rebuilding the entity
@@ -636,10 +683,10 @@ export function CesiumGlobe({
         false,
       ) as unknown as Cartesian3,
       point: {
-        color: Color.fromCssColorString("#00e5ff"),
-        pixelSize: 14,
+        color: selectedColor,
+        pixelSize: captureMode ? 16 : 14,
         outlineColor: Color.WHITE,
-        outlineWidth: 2,
+        outlineWidth: captureMode ? 3 : 2,
       },
     });
     pinEntityRef.current = pinEntity;
@@ -648,11 +695,33 @@ export function CesiumGlobe({
       name: "Selected region",
       polygon: {
         hierarchy: new PolygonHierarchy(regionHierarchy),
-        material: Color.fromCssColorString("#00e5ff").withAlpha(0.15),
+        material: selectedColor.withAlpha(captureMode ? 0.08 : 0.15),
+        height: 12,
         outline: true,
-        outlineColor: Color.fromCssColorString("#00e5ff"),
+        outlineColor: captureMode ? haloColor : selectedColor,
       },
     });
+
+    if (regionHierarchy.length >= 2) {
+      viewer.entities.add({
+        name: "Selected region halo",
+        polyline: {
+          positions: regionOutlinePositions,
+          width: captureMode ? 8 : 4,
+          material: haloColor,
+          clampToGround: false,
+        },
+      });
+      viewer.entities.add({
+        name: "Selected region outline",
+        polyline: {
+          positions: regionOutlinePositions,
+          width: captureMode ? 4 : 2.5,
+          material: selectedColor,
+          clampToGround: false,
+        },
+      });
+    }
 
     if (subsurfaceDatasets.length) {
       viewer.entities.add({
@@ -666,6 +735,7 @@ export function CesiumGlobe({
           material: subsurfaceCueColor.withAlpha(
             subsurfaceRenderMode === "surface_only" ? 0.08 : 0.18,
           ),
+          height: 8,
           outline: true,
           outlineColor: subsurfaceCueColor.withAlpha(0.8),
         },
@@ -705,6 +775,7 @@ export function CesiumGlobe({
         polygon: {
           hierarchy: new PolygonHierarchy(regionHierarchy),
           material: Color.fromCssColorString("#ff5d5d").withAlpha(0.18),
+          height: 6,
           outline: false,
         },
       });
@@ -731,6 +802,7 @@ export function CesiumGlobe({
 
     viewer.scene.requestRender();
   }, [
+    captureMode,
     earthquakeMarkers,
     layers.heatmap,
     regionHierarchy,
@@ -927,6 +999,52 @@ export function CesiumGlobe({
   }, [driveMode, viewerReady]);
 
   useEffect(() => {
+    if (!onGlobeApiChange) {
+      return;
+    }
+
+    const getViewSnapshot = () => {
+      const viewer = viewerRef.current;
+      if (!isViewerUsable(viewer)) {
+        return null;
+      }
+
+      const cartographic = Cartographic.fromCartesian(viewer.camera.positionWC);
+      return {
+        headingDegrees: CesiumMath.toDegrees(viewer.camera.heading),
+        pitchDegrees: CesiumMath.toDegrees(viewer.camera.pitch),
+        rollDegrees: CesiumMath.toDegrees(viewer.camera.roll),
+        altitudeMeters: Number.isFinite(cartographic.height) ? cartographic.height : null,
+        latitude: Number.isFinite(cartographic.latitude)
+          ? CesiumMath.toDegrees(cartographic.latitude)
+          : null,
+        longitude: Number.isFinite(cartographic.longitude)
+          ? CesiumMath.toDegrees(cartographic.longitude)
+          : null,
+        viewportWidthPx: viewer.scene.canvas.width,
+        viewportHeightPx: viewer.scene.canvas.height,
+        metersPerPixel: getMetersPerPixel(viewer),
+      };
+    };
+
+    onGlobeApiChange({
+      getViewSnapshot,
+      requestRender: () => {
+        const viewer = viewerRef.current;
+        if (!isViewerUsable(viewer)) {
+          return;
+        }
+
+        viewer.scene.requestRender();
+      },
+    });
+
+    return () => {
+      onGlobeApiChange(null);
+    };
+  }, [onGlobeApiChange, viewerReady, viewerKey]);
+
+  useEffect(() => {
     return () => {
       if (resizeFrameRef.current !== null) {
         cancelAnimationFrame(resizeFrameRef.current);
@@ -951,7 +1069,14 @@ export function CesiumGlobe({
     snapToGrid,
   });
 
-  useGlobeDrawnShapes({ viewerRef, viewerReady, drawnShapes, drawingTool, onVertexDrag });
+  useGlobeDrawnShapes({
+    viewerRef,
+    viewerReady,
+    drawnShapes,
+    drawingTool,
+    onVertexDrag,
+    captureMode,
+  });
 
   if (!hasCesiumToken) {
     return (

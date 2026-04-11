@@ -252,7 +252,7 @@ export function SearchBar({
                   key={`${suggestion.name}-${suggestion.coordinates.lat}-${suggestion.coordinates.lng}`}
                   type="button"
                   onClick={() => handleSelectSuggestion(suggestion)}
-                  className="w-full rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)]"
+                  className="w-full rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
                 >
                   <div className="text-sm font-medium text-[var(--foreground)]">
                     {suggestion.name}

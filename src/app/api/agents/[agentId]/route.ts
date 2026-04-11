@@ -229,14 +229,14 @@ function buildGeoGuideFallback(message: string, context?: GeoSightContext) {
     normalized.includes("factor") ||
     normalized.includes("breakdown")
   ) {
-    return "Use Mission score for the headline fit and Factor breakdown for the weighted reasoning behind it. If those cards are not already open, use Add view to reveal them one at a time instead of switching the whole workspace into board mode.";
+    return "Use Mission score for the headline fit and Factor breakdown for the weighted reasoning behind it. If those panels are not already open, use Add panel to reveal them one at a time instead of switching the whole workspace into workbench mode.";
   }
 
   if (normalized.includes("compare")) {
-    return "Use the Compare view after you have saved at least two candidate sites from the current mission profile. GeoSight keeps comparison tucked away until you need it so the default workspace stays focused on one place first.";
+    return "Use the Compare panel after you have saved at least two candidate sites from the current mission profile. GeoSight keeps comparison tucked away until you need it so the default workspace stays focused on one place first.";
   }
 
-  return `You are currently in ${uiContext?.shellMode ?? "minimal"} mode with ${uiContext?.visiblePrimaryCardId ?? "the main location view"} as the primary panel and supporting views ${supportingViews}. Stay in the current shell for one-place reasoning, or open Add view if you want to reveal a specific supporting card without cluttering the board.`;
+  return `You are currently in ${uiContext?.shellMode ?? "minimal"} mode with ${uiContext?.visiblePrimaryCardId ?? "the main location panel"} as the primary panel and supporting panels ${supportingViews}. Stay in the current shell for one-place reasoning, or open Add panel if you want to reveal a specific supporting panel without cluttering the workbench.`;
 }
 
 function buildGeoScribeFallback(message: string, context?: GeoSightContext) {

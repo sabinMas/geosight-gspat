@@ -336,6 +336,28 @@ export interface RegionSelection {
   bbox: BoundingBox;
 }
 
+export interface GlobeViewSnapshot {
+  headingDegrees: number;
+  pitchDegrees: number;
+  rollDegrees: number;
+  altitudeMeters: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  viewportWidthPx: number | null;
+  viewportHeightPx: number | null;
+  metersPerPixel: number | null;
+}
+
+export interface CaptureFigureOptions {
+  title: string;
+  subtitle: string;
+  notes: string;
+  showScaleBar: boolean;
+  showLegend: boolean;
+  showNorthArrow: boolean;
+  emphasizeAoi: boolean;
+}
+
 export interface LandCoverBucket {
   label: string;
   value: number;

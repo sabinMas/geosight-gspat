@@ -23,7 +23,7 @@ export function Sidebar({
   selectedRegion,
 }: SidebarProps) {
   return (
-    <aside className="glass-panel z-20 flex h-full min-w-[280px] w-[280px] flex-col gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
+    <aside className="glass-panel z-20 flex h-full w-full min-w-0 flex-col gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
       <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4">
         <Card className="overflow-hidden">
           <CardHeader>
@@ -61,7 +61,8 @@ export function Sidebar({
                 key={region.id}
                 type="button"
                 onClick={() => onSelectRegion(region)}
-                className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                aria-pressed={selectedRegion.id === region.id}
+                className={`w-full rounded-xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40 ${
                   selectedRegion.id === region.id
                     ? "bg-[var(--surface-soft)]"
                     : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] hover:bg-[var(--surface-soft)]"

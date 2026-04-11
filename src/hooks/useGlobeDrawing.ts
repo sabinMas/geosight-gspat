@@ -122,12 +122,14 @@ export function useGlobeDrawnShapes({
   drawnShapes,
   drawingTool,
   onVertexDrag,
+  captureMode = false,
 }: {
   viewerRef: React.MutableRefObject<CesiumViewer | null>;
   viewerReady: boolean;
   drawnShapes: DrawnShape[];
   drawingTool?: DrawingTool;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
+  captureMode?: boolean;
 }) {
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -144,6 +146,8 @@ export function useGlobeDrawnShapes({
 
     for (const shape of drawnShapes) {
       const color = Color.fromCssColorString(shape.color);
+      const lineWidth = captureMode ? 4 : 2;
+      const fillAlpha = captureMode ? 0.12 : 0.2;
 
       if (shape.type === "polygon" && shape.coordinates.length >= 3) {
         ds.entities.add({
@@ -151,10 +155,10 @@ export function useGlobeDrawnShapes({
             hierarchy: new PolygonHierarchy(
               shape.coordinates.map((c) => Cartesian3.fromDegrees(c.lng, c.lat, 5)),
             ),
-            material: color.withAlpha(0.2),
+            material: color.withAlpha(fillAlpha),
             outline: true,
             outlineColor: color,
-            outlineWidth: 2,
+            outlineWidth: lineWidth,
             height: 5,
           },
         });
@@ -171,7 +175,7 @@ export function useGlobeDrawnShapes({
             ),
             label: {
               text: shape.measurementLabel,
-              font: "bold 13px sans-serif",
+              font: captureMode ? "bold 14px sans-serif" : "bold 13px sans-serif",
               fillColor: Color.WHITE,
               outlineColor: Color.fromCssColorString("#1e1e2e"),
               outlineWidth: 3,
@@ -191,13 +195,13 @@ export function useGlobeDrawnShapes({
           position: Cartesian3.fromDegrees(c.lng, c.lat, 15),
           point: {
             color,
-            pixelSize: 14,
+            pixelSize: captureMode ? 16 : 14,
             outlineColor: Color.WHITE,
-            outlineWidth: 2,
+            outlineWidth: captureMode ? 3 : 2,
           },
           label: {
             text: shape.label ?? "Pin",
-            font: "13px sans-serif",
+            font: captureMode ? "bold 14px sans-serif" : "13px sans-serif",
             fillColor: Color.WHITE,
             outlineColor: Color.fromCssColorString("#1e1e2e"),
             outlineWidth: 3,
@@ -219,7 +223,7 @@ export function useGlobeDrawnShapes({
               Cartesian3.fromDegrees(a.lng, a.lat, 8),
               Cartesian3.fromDegrees(b.lng, b.lat, 8),
             ],
-            width: 3,
+            width: captureMode ? 4 : 3,
             material: color,
           },
         });
@@ -238,7 +242,7 @@ export function useGlobeDrawnShapes({
             position: Cartesian3.fromDegrees(midLng, midLat, 30),
             label: {
               text: shape.measurementLabel,
-              font: "bold 13px sans-serif",
+              font: captureMode ? "bold 14px sans-serif" : "bold 13px sans-serif",
               fillColor: Color.WHITE,
               outlineColor: Color.fromCssColorString("#1e1e2e"),
               outlineWidth: 3,
@@ -259,23 +263,28 @@ export function useGlobeDrawnShapes({
         ds.entities.add({
           polygon: {
             hierarchy: new PolygonHierarchy(pts),
-            material: color.withAlpha(0.15),
+            material: color.withAlpha(captureMode ? 0.12 : 0.15),
             outline: true,
             outlineColor: color,
-            outlineWidth: 2,
+            outlineWidth: lineWidth,
             height: 5,
           },
         });
         ds.entities.add({
           position: Cartesian3.fromDegrees(center.lng, center.lat, 20),
-          point: { color, pixelSize: 10, outlineColor: Color.WHITE, outlineWidth: 2 },
+          point: {
+            color,
+            pixelSize: captureMode ? 12 : 10,
+            outlineColor: Color.WHITE,
+            outlineWidth: captureMode ? 3 : 2,
+          },
         });
         if (shape.measurementLabel) {
           ds.entities.add({
             position: Cartesian3.fromDegrees(center.lng, center.lat, 40),
             label: {
               text: shape.measurementLabel,
-              font: "bold 13px sans-serif",
+              font: captureMode ? "bold 14px sans-serif" : "bold 13px sans-serif",
               fillColor: Color.WHITE,
               outlineColor: Color.fromCssColorString("#1e1e2e"),
               outlineWidth: 3,
@@ -353,7 +362,7 @@ export function useGlobeDrawnShapes({
       if (ds2) viewer.dataSources.remove(ds2, true);
       if (dragHandler && !dragHandler.isDestroyed()) dragHandler.destroy();
     };
-  }, [drawnShapes, drawingTool, onVertexDrag, viewerRef, viewerReady]);
+  }, [captureMode, drawnShapes, drawingTool, onVertexDrag, viewerRef, viewerReady]);
 }
 
 // ── Active drawing interaction ────────────────────────────────────────────────

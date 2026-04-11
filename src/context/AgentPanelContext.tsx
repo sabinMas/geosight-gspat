@@ -10,15 +10,18 @@ import {
 } from "@/lib/agents/agent-config";
 
 type AgentPanelContextValue = {
+  clearQueuedAutoSubmit: (agentId: AgentId) => void;
   activeAgentId: AgentId;
   clearQueuedDraft: (agentId: AgentId) => void;
   geoContext: GeoSightContext | null;
   openDefaultPanel: () => void;
   panelOpen: boolean;
   primeAgent: (agentId: AgentId, draft?: string) => void;
+  queuedAutoSubmit: Partial<Record<AgentId, boolean>>;
   queuedDrafts: Partial<Record<AgentId, string>>;
   setGeoContext: (ctx: GeoSightContext) => void;
   setPanelOpen: (open: boolean) => void;
+  submitAgentPrompt: (agentId: AgentId, draft: string) => void;
   setUiContext: (ctx: Partial<GeoSightUiContext>) => void;
   uiContext: GeoSightUiContext | null;
 };
@@ -36,6 +39,7 @@ export function AgentPanelProvider({
   const [geoContext, setGeoContext] = useState<GeoSightContext | null>(null);
   const [uiContext, setUiContextState] = useState<GeoSightUiContext | null>(null);
   const [queuedDrafts, setQueuedDrafts] = useState<Partial<Record<AgentId, string>>>({});
+  const [queuedAutoSubmit, setQueuedAutoSubmit] = useState<Partial<Record<AgentId, boolean>>>({});
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -104,6 +108,18 @@ export function AgentPanelProvider({
     });
   }, []);
 
+  const clearQueuedAutoSubmit = useCallback((agentId: AgentId) => {
+    setQueuedAutoSubmit((current) => {
+      if (!(agentId in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[agentId];
+      return next;
+    });
+  }, []);
+
   const primeAgent = useCallback(
     (agentId: AgentId, draft?: string) => {
       setActiveAgent(agentId);
@@ -118,29 +134,56 @@ export function AgentPanelProvider({
     [setPanelOpen],
   );
 
+  const submitAgentPrompt = useCallback(
+    (agentId: AgentId, draft: string) => {
+      const trimmedDraft = draft.trim();
+      if (!trimmedDraft) {
+        return;
+      }
+
+      setActiveAgent(agentId);
+      setPanelOpen(true);
+      setQueuedDrafts((current) => ({
+        ...current,
+        [agentId]: trimmedDraft,
+      }));
+      setQueuedAutoSubmit((current) => ({
+        ...current,
+        [agentId]: true,
+      }));
+    },
+    [setPanelOpen],
+  );
+
   const value = useMemo(
     () => ({
       activeAgentId,
+      clearQueuedAutoSubmit,
       clearQueuedDraft,
       geoContext,
       openDefaultPanel,
       panelOpen,
       primeAgent,
+      queuedAutoSubmit,
       queuedDrafts,
       setGeoContext,
       setPanelOpen,
+      submitAgentPrompt,
       setUiContext,
       uiContext,
     }),
     [
       activeAgentId,
+      clearQueuedAutoSubmit,
       clearQueuedDraft,
       geoContext,
       openDefaultPanel,
       panelOpen,
       primeAgent,
+      queuedAutoSubmit,
       queuedDrafts,
       setPanelOpen,
+      submitAgentPrompt,
       setUiContext,
       uiContext,
     ],

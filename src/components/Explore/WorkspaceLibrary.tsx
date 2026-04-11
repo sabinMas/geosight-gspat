@@ -45,10 +45,10 @@ export function WorkspaceLibrary({
     <section className="space-y-4">
       <div className="rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-5 shadow-[var(--shadow-panel)] backdrop-blur-xl">
         <div className="space-y-2">
-          <div className="eyebrow">Customize views</div>
-          <h2 className="text-2xl font-semibold text-[var(--foreground)]">Choose what stays visible</h2>
+          <div className="eyebrow">Evidence library</div>
+          <h2 className="text-2xl font-semibold text-[var(--foreground)]">Choose supporting analysis panels</h2>
           <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-            Add or hide supporting views without flooding the workspace.
+            Add or hide evidence panels without losing focus on the active map task.
           </p>
         </div>
 
@@ -57,7 +57,7 @@ export function WorkspaceLibrary({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search views"
+            placeholder="Search panels"
             className="pl-11"
           />
         </div>
@@ -108,7 +108,7 @@ export function WorkspaceLibrary({
                         className="rounded-full"
                         onClick={() => onOpenCard(card.id)}
                       >
-                        Open on board
+                        Open in workbench
                       </Button>
                       <Button
                         type="button"
@@ -117,7 +117,7 @@ export function WorkspaceLibrary({
                         className="rounded-full"
                         onClick={() => onToggleCard(card.id, !visible)}
                       >
-                        {visible ? "Hide card" : "Add card"}
+                        {visible ? "Hide panel" : "Add panel"}
                       </Button>
                     </div>
                   </div>

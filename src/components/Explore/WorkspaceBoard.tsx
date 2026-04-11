@@ -92,13 +92,13 @@ export function WorkspaceBoard({
       <div className="rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-5 shadow-[var(--shadow-panel)] backdrop-blur-xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1">
-            <div className="eyebrow">Secondary views</div>
+            <div className="eyebrow">Evidence tray</div>
             <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-              Supporting views
+              Supporting analysis panels
             </h2>
           </div>
           <Button type="button" variant="secondary" className="rounded-full shrink-0" onClick={onOpenLibrary}>
-            Customize views
+            Customize panels
           </Button>
         </div>
 
@@ -173,7 +173,7 @@ export function WorkspaceBoard({
               <LayoutDashboard aria-hidden className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-[var(--foreground)]">Saved layouts</div>
+              <div className="text-sm font-semibold text-[var(--foreground)]">Saved analyst layouts</div>
               <div className="text-xs text-[var(--muted-foreground)]">
                 {savedBoards.length === 0
                   ? "Save up to 5 named layouts for this profile"

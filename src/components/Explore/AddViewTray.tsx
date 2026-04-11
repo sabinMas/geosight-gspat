@@ -24,19 +24,19 @@ export function AddViewTray({
     <section className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <div className="eyebrow">Add view</div>
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">Open only what you need next</h2>
+          <div className="eyebrow">Add panel</div>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">Open only the evidence you need next</h2>
           <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Suggested supporting views stay tucked away until you need more depth.
+            Suggested supporting panels stay tucked away until you need more depth.
           </p>
         </div>
         <Button type="button" variant="secondary" className="rounded-full" onClick={onOpenBoard}>
-          Open advanced board
+          Open analyst workbench
         </Button>
       </div>
 
       <div className="mt-3 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--muted-foreground)]">
-        Board mode unlocks the full workspace canvas, reusable board presets, and the complete card library while keeping the globe and active place in view.
+        Workbench mode unlocks the full evidence canvas, reusable layouts, and the complete panel library while keeping the globe and active place in view.
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -88,7 +88,7 @@ export function AddViewTray({
           })
         ) : (
           <div className="rounded-[1.35rem] border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)] lg:col-span-2">
-            GeoSight does not have another suggested supporting view yet. Open the advanced board if you want the full card library.
+            GeoSight does not have another suggested supporting panel yet. Open the analyst workbench if you want the full evidence library.
           </div>
         )}
       </div>
