@@ -949,6 +949,15 @@ export interface AnalyzeRequestBody {
   classification?: LandCoverBucket[];
 }
 
+export interface LensAnalysisRequestBody {
+  lensId: string;
+  geometrySource: AnalysisInputMode;
+  location: Coordinates | null;
+  locationName: string;
+  geometry: DrawnGeometryFeatureCollection;
+  selectedGeometryId?: string | null;
+}
+
 
 export interface EarthquakeEvent {
   mag: number;

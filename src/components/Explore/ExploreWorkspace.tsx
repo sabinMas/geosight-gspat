@@ -60,6 +60,7 @@ import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { AnalysisProvider } from "@/context/AnalysisContext";
 import { useExploreData } from "@/hooks/useExploreData";
+import { useLensAnalysis } from "@/hooks/useLensAnalysis";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
 import { useExploreState } from "@/hooks/useExploreState";
 import {
@@ -101,6 +102,7 @@ export function ExploreWorkspace() {
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const locationTracking = useLocationTracking();
+  useLensAnalysis(state);
   const inExplorer = isExplorerMode(state.appMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -1084,6 +1086,7 @@ export function ExploreWorkspace() {
             name: state.selectedLocationName,
             displayName: state.selectedLocationDisplayName,
           }}
+          hasLocation={state.locationReady}
           geometry={state.drawnGeometry}
           analysisInputMode={state.analysisInputMode}
           onUseDrawnArea={() => {

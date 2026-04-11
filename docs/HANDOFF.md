@@ -1,8 +1,103 @@
 # GeoSight — Agent Handoff Document
 
-Last updated: 2026-04-10 (post GeoJSON AOI drawing workflow checkpoint, GIS workbench + capture/export retained)
+Last updated: 2026-04-11 (post live location tracking + first real lens analysis batch)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
+
+---
+
+## 2026-04-11 Checkpoint
+
+The newest local checkpoint adds two major pieces on top of the AOI drawing foundation:
+
+- Batch A: live location controls with `Locate once`, `Follow me`, and `Record route`
+- Batch B: the first real deterministic lens pipeline for:
+  - `hunt-planner`
+  - `trail-scout`
+  - `land-quick-check`
+
+Latest local commits in order:
+
+- `cca87b7` - `feat: add live location tracking controls`
+- pending next commit in this session will cover the lens-analysis pipeline and panel rendering
+
+### What changed in this checkpoint
+
+#### Live location and route capture
+
+New files:
+
+- `src/hooks/useLocationTracking.ts`
+- `src/components/Globe/LocationTrackingControls.tsx`
+
+Key wiring updates:
+
+- `src/components/Explore/ExploreWorkspace.tsx`
+- `src/components/Globe/CesiumGlobe.tsx`
+- `src/components/Shell/SearchBar.tsx`
+- `src/lib/cesium-search.ts`
+- `src/types/index.ts`
+
+Behavior now implemented:
+
+- one-shot GPS locate with a persisted last-known fix in `sessionStorage`
+- continuous follow mode using browser geolocation watch
+- live breadcrumb route recording that converts into the same AOI GeoJSON path used by drawing tools
+- pulsing user marker plus heading arrow on the Cesium globe
+- inline error UI for permissions/timeouts instead of browser alerts
+
+#### First real lens-analysis route
+
+New server/client analysis pieces:
+
+- `src/app/api/lens-analysis/route.ts`
+- `src/hooks/useLensAnalysis.ts`
+- `src/lib/analysis/shared.ts`
+- `src/lib/analysis/huntPlanner.ts`
+- `src/lib/analysis/trailScout.ts`
+- `src/lib/analysis/landQuickCheck.ts`
+- `src/lib/prompts/huntPlanner.ts`
+- `src/lib/prompts/trailScout.ts`
+- `src/lib/prompts/landQuickCheck.ts`
+
+UI updates:
+
+- `src/components/Results/AnalysisPanel.tsx`
+
+Current behavior:
+
+- supported lenses now auto-run deterministic metrics when a valid place or drawn AOI is active
+- AI is used only for the short explanatory narrative; raw metrics are computed directly from source data or clearly labeled heuristics
+- Trail Scout now renders a compact elevation profile chart
+- unsupported lenses show a non-breaking "queued next" state instead of a blank panel
+
+### Verification for this checkpoint
+
+Verified successfully with:
+
+- `npm run typecheck`
+- `npm run build`
+- live smoke test against `/api/lens-analysis` using:
+  - location-mode Hunt Planner request for `Okanogan Highlands, WA`
+  - geometry-mode Trail Scout request for a drawn `Mailbox Peak, WA` route
+
+Smoke-test note:
+
+- because local AI keys were missing, both requests fell back to deterministic narrative text
+- the important part is that the route returned real metric payloads and completed without runtime errors after the centroid fix in `src/lib/analysis/shared.ts`
+
+### Known caveats after this checkpoint
+
+- existing `react-hooks/exhaustive-deps` warnings in `src/components/Explore/ExploreWorkspace.tsx` are still present and unchanged from prior work
+- Trail Scout distance/gain quality depends heavily on the fidelity of the drawn route; the current smoke-test geometry was intentionally short
+- live location modes are wired for the globe and AOI flow, but there is not yet a broader saved-session/history surface for tracks
+- unsupported explorer lenses still need real deterministic analyzers
+
+### Recommended next pickup from here
+
+1. Extend deterministic analyzers to `road-trip`, `general-explore`, and the Pro lenses.
+2. Add layer-control state to the same analysis prompt context so the narrative can reference visible overlays.
+3. Replace the remaining `useGlobeDrawing.ts` / legacy toolbar compatibility path now that AOI + route recording are both stable on the new flow.
 
 ---
 
