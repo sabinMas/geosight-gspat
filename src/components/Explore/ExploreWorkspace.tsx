@@ -9,6 +9,7 @@ import {
   Check,
   Command,
   Copy,
+  Crosshair,
   Download,
   FileText,
   Globe,
@@ -35,6 +36,8 @@ import {
   WorkspaceCommandPalette,
 } from "@/components/Explore/WorkspaceCommandPalette";
 import { WorkspaceToolRail } from "@/components/Explore/WorkspaceToolRail";
+import { FeatureInspectorPanel } from "@/components/Globe/FeatureInspectorPanel";
+import { GoToCoordinateDialog } from "@/components/Globe/GoToCoordinateDialog";
 import { MapCallout } from "@/components/Globe/MapCallout";
 import { AoiDrawingToolbar } from "@/components/Globe/AoiDrawingToolbar";
 import { LocationTrackingControls } from "@/components/Globe/LocationTrackingControls";
@@ -109,6 +112,7 @@ export function ExploreWorkspace() {
   const [copiedCoords, setCopiedCoords] = useState(false);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [goToOpen, setGoToOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState(false);
   const [captureOverlayArmed, setCaptureOverlayArmed] = useState(false);
   const [captureViewSnapshot, setCaptureViewSnapshot] = useState<GlobeViewSnapshot | null>(null);
@@ -152,6 +156,31 @@ export function ExploreWorkspace() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+
+  // Ctrl+G → Go to coordinates, I → Identify mode
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const active = document.activeElement;
+      const isTyping =
+        active?.tagName === "INPUT" ||
+        active?.tagName === "TEXTAREA" ||
+        active instanceof HTMLSelectElement ||
+        active?.getAttribute("contenteditable") === "true";
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        setGoToOpen((p) => !p);
+      }
+
+      if (!isTyping && e.key.toLowerCase() === "i" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        state.setIdentifyMode((p) => !p);
+        if (state.identifyMode) state.setIdentifyResult(null);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [state]);
 
   useEffect(() => {
     if (!captureOverlayVisible) {
@@ -599,6 +628,8 @@ export function ExploreWorkspace() {
           floodZonesOpacity: state.layers.opacity.floodZones,
           contoursOpacity: state.layers.opacity.contours,
           aoiOpacity: state.layers.opacity.aoi,
+          customLayerCount: state.layers.customLayers.length,
+          customLayerNames: state.layers.customLayers.map((l) => l.name).join(", ") || null,
         },
         activeLayerLabels,
         captureModeEnabled: captureMode,
@@ -1442,6 +1473,8 @@ export function ExploreWorkspace() {
                 undoDraftNonce={state.undoDraftNonce}
                 completeDrawingNonce={state.completeDrawingNonce}
                 snapToGrid={state.snapToGrid}
+                identifyMode={state.identifyMode}
+                onIdentifyResult={state.setIdentifyResult}
                 captureMode={captureOverlayVisible}
                 userLocationFix={locationTracking.currentFix}
                 followUser={locationTracking.isFollowing}
@@ -1475,6 +1508,23 @@ export function ExploreWorkspace() {
             >
               <Car className="mr-2 h-4 w-4" />
               {state.driveMode ? "Driving" : "Drive"}
+            </Button>
+            <Button
+              type="button"
+              variant={state.identifyMode ? "default" : "secondary"}
+              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+              aria-pressed={state.identifyMode}
+              aria-label={state.identifyMode ? "Exit identify mode" : "Enter identify mode"}
+              title={state.identifyMode ? "Exit identify mode (I)" : "Identify features on click (I)"}
+              onClick={() => {
+                state.setIdentifyMode((current) => !current);
+                if (state.identifyMode) {
+                  state.setIdentifyResult(null);
+                }
+              }}
+            >
+              <Crosshair className="mr-2 h-4 w-4" />
+              {state.identifyMode ? "Identifying" : "Identify"}
             </Button>
           </div>
 
@@ -1563,6 +1613,14 @@ export function ExploreWorkspace() {
             />
           ) : null}
 
+          {/* Feature inspector panel — appears in identify mode after click */}
+          {state.identifyMode && state.identifyResult ? (
+            <FeatureInspectorPanel
+              result={state.identifyResult}
+              onClose={() => state.setIdentifyResult(null)}
+            />
+          ) : null}
+
           {/* Coord readout — click to copy */}
           {state.selectedPoint ? (
             <button
@@ -1581,6 +1639,18 @@ export function ExploreWorkspace() {
               {copiedCoords ? <Check className="h-3 w-3 text-[var(--accent)]" /> : <Copy className="h-3 w-3" />}
             </button>
           ) : null}
+
+          {/* Go-to coordinates dialog */}
+          <GoToCoordinateDialog
+            open={goToOpen}
+            onClose={() => setGoToOpen(false)}
+            onGoTo={(coords, label) => {
+              setCalloutDismissed(false);
+              state.selectPoint(coords, label);
+              data.handleLocationSelection();
+            }}
+            currentCoords={state.locationReady ? state.selectedPoint : null}
+          />
         </main>
 
         {/* Right panel (desktop) / inline content (mobile) */}

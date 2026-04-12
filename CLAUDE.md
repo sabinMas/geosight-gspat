@@ -221,6 +221,18 @@ Interaction: LEFT_CLICK adds vertices; RIGHT_CLICK closes polygon; single LEFT_C
 
 `DrawnShape` type is in `src/types/index.ts`. `DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle"`.
 
+### GIS analyst tools
+
+**Layer Manager** (`src/components/Globe/DataLayers.tsx`): rewritten as a proper layer manager. Built-in overlays have drag-reorder, per-layer eye toggle, and opacity sliders. "External layers" section supports user-added WMS/WMTS/XYZ tile layers via `AddLayerForm`. Custom layers render via `WebMapServiceImageryProvider`/`WebMapTileServiceImageryProvider`/`UrlTemplateImageryProvider` in `CesiumGlobe.tsx`. `CustomLayer` type in `src/types/index.ts`. `LayerState.customLayers: CustomLayer[]`.
+
+**Feature Inspector** (`src/components/Globe/FeatureInspectorPanel.tsx`): identify mode activated via `I` key or globe toolbar button. Click picks entities (drawn shapes, saved sites, fires, earthquakes) and imagery layers via Cesium's `pickImageryLayerFeatures` (WMS GetFeatureInfo). Results shown in a floating panel with type badges and striped attribute table. State: `identifyMode`/`identifyResult` in `useExploreState`.
+
+**Go-to Coordinates** (`src/components/Globe/GoToCoordinateDialog.tsx`): `Ctrl+G`/`Cmd+G` opens modal. Parses decimal degrees, DMS (symbols or spaces), DDM, and auto-detects swapped lng/lat. Live preview with DMS conversion. Quick-jump buttons.
+
+**Enhanced Measurements** (`src/lib/analysis-geometry.ts`): `DrawnMeasurement` now includes `distanceKm/Mi`, `areaAcres/Ha/Km2/Mi2`, `perimeterKm/Mi`, `bearingDeg/Display`. `MeasurementDetail` component in `AoiDrawingToolbar.tsx` renders dual-unit readouts.
+
+**Keyboard shortcuts**: `L` layers, `I` identify, `Ctrl+G` go-to, `Ctrl+K` command palette.
+
 ---
 
 ## UX Conventions (from Userbrain + audit)

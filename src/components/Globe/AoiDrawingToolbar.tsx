@@ -15,9 +15,10 @@ import {
   Undo2,
   X,
 } from "lucide-react";
+import { Compass } from "lucide-react";
 import { DrawingDraftState } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
-import { DrawnShape, DrawingTool } from "@/types";
+import { DrawnMeasurement, DrawnShape, DrawingTool } from "@/types";
 
 interface AoiDrawingToolbarProps {
   drawingTool: DrawingTool;
@@ -85,6 +86,58 @@ const SHAPE_LABELS: Record<DrawnShape["type"], string> = {
   rectangle: "Box",
   circle: "Circle",
 };
+
+function MeasurementDetail({ measurement }: { measurement: DrawnMeasurement }) {
+  if (measurement.kind === "distance") {
+    return (
+      <div className="mt-2 space-y-1">
+        <div className="flex items-baseline gap-3 text-sm tabular-nums text-[var(--foreground)]">
+          <span>{measurement.distanceMi?.toFixed(2)} mi</span>
+          <span className="text-[var(--muted-foreground)]">
+            {measurement.distanceKm?.toFixed(2)} km
+          </span>
+        </div>
+        {measurement.bearingDisplay && (
+          <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+            <Compass className="h-3 w-3" />
+            <span className="tabular-nums">
+              Bearing {measurement.bearingDisplay}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Area measurement
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm tabular-nums text-[var(--foreground)]">
+        <span>{formatCompact(measurement.areaAcres ?? measurement.value)} ac</span>
+        <span className="text-[var(--muted-foreground)]">
+          {formatCompact(measurement.areaHa)} ha
+        </span>
+      </div>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs tabular-nums text-[var(--muted-foreground)]">
+        <span>{formatCompact(measurement.areaKm2)} km²</span>
+        <span>{formatCompact(measurement.areaMi2)} mi²</span>
+      </div>
+      {measurement.perimeterKm != null && (
+        <div className="text-xs tabular-nums text-[var(--muted-foreground)]">
+          Perimeter: {measurement.perimeterMi?.toFixed(2)} mi / {measurement.perimeterKm.toFixed(2)} km
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatCompact(value: number | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  if (value >= 1000) return value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  if (value >= 10) return value.toFixed(1);
+  if (value >= 0.01) return value.toFixed(2);
+  return value.toFixed(4);
+}
 
 function PinLabelEditor({
   shape,
@@ -326,10 +379,8 @@ export function AoiDrawingToolbar({
                   ? selectedShape.label ?? "Pin"
                   : SHAPE_LABELS[selectedShape.type]}
               </div>
-              {selectedShape.measurementLabel ? (
-                <div className="mt-1 text-sm text-[var(--muted-foreground)]">
-                  {selectedShape.measurementLabel}
-                </div>
+              {selectedShape.measurement ? (
+                <MeasurementDetail measurement={selectedShape.measurement} />
               ) : null}
             </div>
             <Button

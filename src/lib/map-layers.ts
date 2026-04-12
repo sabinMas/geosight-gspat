@@ -1,4 +1,4 @@
-import { GlobeViewMode, LayerOpacityState, LayerState } from "@/types";
+import { CustomLayer, GlobeViewMode, LayerOpacityState, LayerState } from "@/types";
 
 export const DEFAULT_LAYER_OPACITY: LayerOpacityState = {
   roads: 0.72,
@@ -15,6 +15,7 @@ export const DEFAULT_LAYER_STATE: LayerState = {
   contours: false,
   aoi: true,
   opacity: DEFAULT_LAYER_OPACITY,
+  customLayers: [],
 };
 
 export function createLayerState(overrides?: Partial<LayerState>): LayerState {
@@ -25,6 +26,26 @@ export function createLayerState(overrides?: Partial<LayerState>): LayerState {
       ...DEFAULT_LAYER_OPACITY,
       ...overrides?.opacity,
     },
+    customLayers: overrides?.customLayers ?? [],
+  };
+}
+
+let nextCustomLayerId = 1;
+
+export function createCustomLayer(
+  params: Pick<CustomLayer, "name" | "type" | "url"> &
+    Partial<Pick<CustomLayer, "wmsLayers" | "opacity">>,
+  existingLayers: CustomLayer[],
+): CustomLayer {
+  return {
+    id: `custom-${Date.now()}-${nextCustomLayerId++}`,
+    name: params.name,
+    type: params.type,
+    url: params.url,
+    wmsLayers: params.wmsLayers,
+    opacity: params.opacity ?? 0.8,
+    visible: true,
+    order: existingLayers.length,
   };
 }
 
@@ -64,6 +85,12 @@ export function getActiveLayerLabels(
 
   if (layers.aoi) {
     labels.push("Drawn AOI geometry");
+  }
+
+  for (const custom of layers.customLayers) {
+    if (custom.visible) {
+      labels.push(`${custom.name} (${custom.type.toUpperCase()})`);
+    }
   }
 
   return labels;

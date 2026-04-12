@@ -36,12 +36,17 @@ import {
   UrlTemplateImageryProvider,
   VerticalOrigin,
   Viewer as CesiumViewer,
+  WebMapServiceImageryProvider,
+  WebMapTileServiceImageryProvider,
 } from "cesium";
 import { estimateRegionSpanKm } from "@/lib/geospatial";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
   Coordinates,
+  CustomLayer,
   DrawnShape,
+  IdentifyHit,
+  IdentifyResult,
   DrawingTool,
   EarthquakeEvent,
   GlobeViewMode,
@@ -151,6 +156,8 @@ interface CesiumGlobeProps {
   userLocationFix?: UserLocationFix | null;
   followUser?: boolean;
   recordedRoute?: Coordinates[];
+  identifyMode?: boolean;
+  onIdentifyResult?: (result: IdentifyResult) => void;
   onGlobeApiChange?: (api: {
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
@@ -184,6 +191,8 @@ export function CesiumGlobe({
   captureMode = false,
   userLocationFix = null,
   followUser = false,
+  identifyMode = false,
+  onIdentifyResult,
   recordedRoute = [],
   onGlobeApiChange,
 }: CesiumGlobeProps) {
@@ -531,7 +540,7 @@ export function CesiumGlobe({
               "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer",
               {
                 layers: "28",
-                enablePickFeatures: false,
+                enablePickFeatures: true,
               },
             ),
           layers.opacity.floodZones,
@@ -574,6 +583,66 @@ export function CesiumGlobe({
     layers.roads,
     viewerReady,
   ]);
+
+  /* ---- Custom (user-added) WMS / WMTS / XYZ layers ---- */
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    let cancelled = false;
+    const addedLayers: ImageryLayer[] = [];
+
+    const addCustom = async (custom: CustomLayer) => {
+      if (!custom.visible) return;
+      try {
+        let provider;
+        if (custom.type === "wms") {
+          provider = new WebMapServiceImageryProvider({
+            url: custom.url,
+            layers: custom.wmsLayers || "0",
+            parameters: { transparent: "true", format: "image/png" },
+          });
+        } else if (custom.type === "wmts") {
+          provider = new WebMapTileServiceImageryProvider({
+            url: custom.url,
+            layer: custom.wmsLayers || "",
+            style: "default",
+            tileMatrixSetID: "GoogleMapsCompatible",
+          });
+        } else {
+          provider = new UrlTemplateImageryProvider({
+            url: custom.url,
+          });
+        }
+        if (cancelled || !isViewerUsable(viewer)) return;
+
+        const layer = viewer.imageryLayers.addImageryProvider(provider);
+        layer.alpha = custom.opacity;
+        addedLayers.push(layer);
+      } catch (error) {
+        console.warn(`[cesium-globe] custom layer "${custom.name}" failed`, error);
+      }
+    };
+
+    void (async () => {
+      for (const custom of layers.customLayers) {
+        await addCustom(custom);
+      }
+      if (isViewerUsable(viewer)) {
+        viewer.scene.requestRender();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      for (const layer of addedLayers) {
+        if (!isViewerUsable(viewer)) return;
+        viewer.imageryLayers.remove(layer, false);
+      }
+    };
+  }, [layers.customLayers, viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -824,10 +893,138 @@ export function CesiumGlobe({
         }
 
         const cartographic = Cartographic.fromCartesian(earthPosition);
-        onPointSelect({
+        const clickCoords = {
           lat: CesiumMath.toDegrees(cartographic.latitude),
           lng: CesiumMath.toDegrees(cartographic.longitude),
-        });
+        };
+
+        // ── Identify mode: collect hits from all layers ──
+        if (identifyMode && onIdentifyResult) {
+          const hits: IdentifyHit[] = [];
+
+          // 1. Entity hits (drawn shapes, saved sites, fire markers, earthquakes)
+          if (picked?.id) {
+            const entity = picked.id;
+            const name = entity.name ?? entity.id ?? "Unknown entity";
+            const props = entity.properties;
+            const attrs: Record<string, string | number | boolean | null> = {};
+            let featureType: IdentifyHit["featureType"] = "entity";
+
+            if (props) {
+              const propNames = props.propertyNames ?? [];
+              for (const pn of propNames) {
+                try {
+                  const val = props[pn]?.getValue?.(viewer.clock.currentTime) ?? props[pn];
+                  if (val !== undefined && val !== null) {
+                    attrs[pn] = typeof val === "object" ? JSON.stringify(val) : val;
+                  }
+                } catch {
+                  // skip unreadable property
+                }
+              }
+            }
+
+            // Classify entity by datasource
+            const dsName =
+              entity.entityCollection?.owner?.name ??
+              "";
+            if (dsName.includes("drawing") || dsName.includes("aoi")) {
+              featureType = "drawn-shape";
+            } else if (dsName.includes("fire")) {
+              featureType = "fire";
+            } else if (dsName.includes("earthquake")) {
+              featureType = "earthquake";
+            } else if (dsName.includes("site")) {
+              featureType = "saved-site";
+            }
+
+            hits.push({
+              layerName: name,
+              featureType,
+              attributes: attrs,
+              coordinates: clickCoords,
+            });
+          }
+
+          // 2. Imagery layer hits (WMS GetFeatureInfo)
+          const ray = viewer.camera.getPickRay(event.position);
+          if (ray) {
+            const imageryHitsPromise = viewer.imageryLayers.pickImageryLayerFeatures(ray, viewer.scene);
+            if (imageryHitsPromise) {
+              imageryHitsPromise
+                .then((features) => {
+                  if (!features || features.length === 0) {
+                    onIdentifyResult({
+                      clickCoordinates: clickCoords,
+                      hits,
+                      timestamp: Date.now(),
+                    });
+                    return;
+                  }
+                  for (const feature of features) {
+                    const attrs: Record<string, string | number | boolean | null> = {};
+                    // feature.data holds raw GeoJSON/KML properties when available
+                    const rawData = feature.data;
+                    if (rawData && typeof rawData === "object") {
+                      const props = rawData.properties ?? rawData;
+                      for (const [k, v] of Object.entries(props)) {
+                        if (v !== undefined && v !== null) {
+                          attrs[k] = typeof v === "object" ? JSON.stringify(v) : (v as string | number | boolean);
+                        }
+                      }
+                    }
+                    if (feature.description) {
+                      attrs["_description"] = feature.description;
+                    }
+                    if (feature.name) {
+                      attrs["_name"] = feature.name;
+                    }
+                    hits.push({
+                      layerName: feature.name ?? "Imagery layer",
+                      featureType: "imagery",
+                      attributes: attrs,
+                      coordinates: feature.position
+                        ? {
+                            lat: CesiumMath.toDegrees(feature.position.latitude),
+                            lng: CesiumMath.toDegrees(feature.position.longitude),
+                          }
+                        : clickCoords,
+                    });
+                  }
+                  onIdentifyResult({
+                    clickCoordinates: clickCoords,
+                    hits,
+                    timestamp: Date.now(),
+                  });
+                })
+                .catch(() => {
+                  // Imagery pick failed — still return entity hits
+                  onIdentifyResult({
+                    clickCoordinates: clickCoords,
+                    hits,
+                    timestamp: Date.now(),
+                  });
+                });
+            } else {
+              // No imagery pick support — return entity-only hits
+              onIdentifyResult({
+                clickCoordinates: clickCoords,
+                hits,
+                timestamp: Date.now(),
+              });
+            }
+          } else {
+            onIdentifyResult({
+              clickCoordinates: clickCoords,
+              hits,
+              timestamp: Date.now(),
+            });
+          }
+          return;
+        }
+
+        // ── Normal mode: select point ──
+        onPointSelect(clickCoords);
       } catch (error) {
         console.warn("[cesium-globe] point selection failed", error);
       }
@@ -842,7 +1039,19 @@ export function CesiumGlobe({
         clickHandlerRef.current = null;
       }
     };
-  }, [drawingTool, onPointSelect, viewerKey, viewerReady]);
+  }, [drawingTool, identifyMode, onIdentifyResult, onPointSelect, viewerKey, viewerReady]);
+
+  // ── Identify mode cursor ──────────────────────────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) return;
+    viewer.canvas.style.cursor = identifyMode ? "crosshair" : "";
+    return () => {
+      if (isViewerUsable(viewer)) {
+        viewer.canvas.style.cursor = "";
+      }
+    };
+  }, [identifyMode, viewerReady]);
 
   // ── Pin drag interaction ──────────────────────────────────────────────────
   useEffect(() => {

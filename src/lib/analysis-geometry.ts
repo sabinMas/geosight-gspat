@@ -1,4 +1,4 @@
-import { area as turfArea, bbox as turfBbox, circle as turfCircle, length as turfLength } from "@turf/turf";
+import { area as turfArea, bbox as turfBbox, bearing as turfBearing, circle as turfCircle, length as turfLength } from "@turf/turf";
 import type { FeatureCollection, Position } from "geojson";
 import {
   Coordinates,
@@ -11,6 +11,10 @@ import {
 } from "@/types";
 
 const ACRES_PER_SQUARE_METER = 0.0002471053814671653;
+const HA_PER_SQUARE_METER = 0.0001;
+const KM2_PER_SQUARE_METER = 1e-6;
+const MI2_PER_ACRE = 1 / 640;
+const KM_PER_MILE = 1.609344;
 const CIRCLE_STEPS = 64;
 
 function toPositions(coords: Coordinates[]): Position[] {
@@ -110,6 +114,35 @@ export function buildCircleCoordinates(center: Coordinates, radiusMeters: number
   return ring.slice(0, -1).map(([lng, lat]) => ({ lat, lng }));
 }
 
+function computeBearing(from: Coordinates, to: Coordinates): { deg: number; display: string } {
+  const raw = turfBearing([from.lng, from.lat], [to.lng, to.lat]);
+  const deg = ((raw % 360) + 360) % 360;
+  const cardinal = bearingCardinal(deg);
+  return {
+    deg,
+    display: `${deg.toFixed(1)}° ${cardinal}`,
+  };
+}
+
+function bearingCardinal(deg: number): string {
+  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  const idx = Math.round(deg / 45) % 8;
+  return dirs[idx];
+}
+
+function computePerimeter(coords: Coordinates[]): { km: number; mi: number } {
+  const ring = closeRing(coords);
+  const km = turfLength(
+    {
+      type: "Feature",
+      properties: {},
+      geometry: { type: "LineString", coordinates: toPositions(ring) },
+    },
+    { units: "kilometers" },
+  );
+  return { km, mi: km / KM_PER_MILE };
+}
+
 export function measurementFromShape(shape: DrawnShape): DrawnMeasurement | undefined {
   if (shape.type === "point") {
     return undefined;
@@ -127,12 +160,23 @@ export function measurementFromShape(shape: DrawnShape): DrawnMeasurement | unde
       },
       { units: "miles" },
     );
+    const km = miles * KM_PER_MILE;
+
+    // Bearing from first to last point
+    const bearing = computeBearing(
+      shape.coordinates[0],
+      shape.coordinates[shape.coordinates.length - 1],
+    );
 
     return {
       kind: "distance",
       value: miles,
       unit: "miles",
       display: formatDistanceMiles(miles),
+      distanceKm: km,
+      distanceMi: miles,
+      bearingDeg: bearing.deg,
+      bearingDisplay: bearing.display,
     };
   }
 
@@ -158,12 +202,22 @@ export function measurementFromShape(shape: DrawnShape): DrawnMeasurement | unde
       },
     });
     const acres = squareMeters * ACRES_PER_SQUARE_METER;
+    const ha = squareMeters * HA_PER_SQUARE_METER;
+    const km2 = squareMeters * KM2_PER_SQUARE_METER;
+    const mi2 = acres * MI2_PER_ACRE;
+    const perimeter = computePerimeter(polygonCoords);
 
     return {
       kind: "area",
       value: acres,
       unit: "acres",
       display: formatAreaAcres(acres),
+      areaAcres: acres,
+      areaHa: ha,
+      areaKm2: km2,
+      areaMi2: mi2,
+      perimeterKm: perimeter.km,
+      perimeterMi: perimeter.mi,
     };
   }
 

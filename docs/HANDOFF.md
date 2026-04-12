@@ -1,14 +1,70 @@
-﻿# GeoSight â€” Agent Handoff Document
+﻿# GeoSight — Agent Handoff Document
 
-Last updated: 2026-04-11 (post unified layer-control + AOI cleanup batch)
+Last updated: 2026-04-11 (post GIS analyst tools batch — layer manager, identify, go-to, measurements)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
 
 ---
 
-## 2026-04-11 Checkpoint
+## 2026-04-11 Checkpoint (GIS Analyst Tools)
 
-The newest local checkpoint now covers three connected batches on top of the AOI drawing foundation:
+This checkpoint ships four connected GIS analyst features that bring the workspace closer to ArcGIS/QGIS parity:
+
+- **Layer Manager**: full rewrite of `DataLayers` with drag-reorder, per-layer opacity, and user-added WMS/WMTS/XYZ layer support
+- **Feature Inspector / Identify tool**: click any feature on the globe in identify mode → see structured attributes in a floating panel
+- **Go-to Coordinates dialog**: `Ctrl+G` opens a coordinate input that parses decimal, DMS, DDM, and auto-detects swapped lng/lat
+- **Enhanced measurements**: bearing/azimuth on lines, multi-unit area (acres/ha/km²/mi²), perimeter for polygons/circles
+
+### Files changed
+
+New files:
+- `src/components/Globe/FeatureInspectorPanel.tsx`
+- `src/components/Globe/GoToCoordinateDialog.tsx`
+
+Modified files:
+- `src/types/index.ts` — added `CustomLayer`, `CustomLayerType`, `IdentifyHit`, `IdentifyResult`, `MeasurementUnitSystem`; extended `DrawnMeasurement` with dual-unit fields + bearing; extended `LayerState` with `customLayers`
+- `src/lib/map-layers.ts` — added `createCustomLayer` factory; `getActiveLayerLabels` includes custom layers; `createLayerState` defaults `customLayers: []`
+- `src/lib/analysis-geometry.ts` — added `computeBearing`, `computePerimeter`; `measurementFromShape` now returns `distanceKm/Mi`, `areaAcres/Ha/Km2/Mi2`, `perimeterKm/Mi`, `bearingDeg/Display`
+- `src/hooks/useExploreState.ts` — added `identifyMode`, `setIdentifyMode`, `identifyResult`, `setIdentifyResult`
+- `src/components/Globe/DataLayers.tsx` — full rewrite: compact `BuiltinLayerRow` with eye toggle + drag-reorder; `CustomLayerRow` with up/down/visibility/opacity/remove; `AddLayerForm` for WMS/WMTS/XYZ; active layer count badge on button
+- `src/components/Globe/CesiumGlobe.tsx` — added `WebMapServiceImageryProvider`, `WebMapTileServiceImageryProvider` imports; new `useEffect` for custom layer rendering; identify mode click handler with entity pick + `pickImageryLayerFeatures`; crosshair cursor in identify mode; FEMA flood layer `enablePickFeatures: true`
+- `src/components/Globe/AoiDrawingToolbar.tsx` — added `MeasurementDetail` component showing dual-unit distance/area, bearing with compass icon, perimeter
+- `src/components/Explore/ExploreWorkspace.tsx` — added Identify button, Go-to dialog, `FeatureInspectorPanel`, keyboard shortcuts (`I` for identify, `Ctrl+G` for go-to)
+
+### Keyboard shortcuts added
+
+| Key | Action |
+|---|---|
+| `L` | Toggle layer manager (existing) |
+| `I` | Toggle identify mode |
+| `Ctrl+G` / `Cmd+G` | Open Go-to coordinates dialog |
+| `Ctrl+K` / `Cmd+K` | Command palette (existing) |
+
+### Verification
+
+- `npx tsc --noEmit` — zero project errors
+- `npm run build` — clean production build
+
+### Known caveats
+
+- Identify mode imagery picks depend on WMS servers supporting GetFeatureInfo; some servers return empty results
+- Custom WMS layers require the user to know the service URL and layer name — no GetCapabilities browser yet
+- Drag-reorder on built-in overlays uses HTML5 drag API (same as board chip reorder); touch drag requires press-and-hold
+- Bearing is computed from first to last point of a line (initial bearing), not segment-by-segment
+
+### Recommended next pickup from here
+
+1. **GetCapabilities browser for WMS**: when a user enters a WMS URL, fetch `?service=WMS&request=GetCapabilities`, parse the XML, and let them pick layers from a list instead of typing layer names manually
+2. **Attribute table**: tabular browsing of drawn features + nearby places; select row → highlight on globe; sort/filter columns
+3. **Layer legend panel**: auto-generate legend entries from visible layers; show WMS `GetLegendGraphic` images
+4. **Extend deterministic analyzers** to `road-trip`, `general-explore`, and Pro lenses (deferred from prior handoff)
+5. **Viewport-based overlay refresh**: debounced zoom gating so roads/fires/flood layers don't over-fetch while panning
+
+---
+
+## Previous Checkpoint (2026-04-11, pre-analyst-tools)
+
+The prior local checkpoint covered three connected batches on top of the AOI drawing foundation:
 
 - Batch A: live location controls with `Locate once`, `Follow me`, and `Record route`
 - Batch B: the first real deterministic lens pipeline for:
@@ -17,11 +73,11 @@ The newest local checkpoint now covers three connected batches on top of the AOI
   - `land-quick-check`
 - Batch C: unified map layers + basemap control, visible-layer context wiring, and legacy AOI cleanup
 
-Latest local commits before the current pending session commit:
+Prior local commits:
 
 - `cca87b7` - `feat: add live location tracking controls`
 - `edc576d` - `feat: add deterministic explorer lens analysis`
-- the current working tree in this session covers the unified layer control batch
+- `0f9a2f6` - `feat: unify map layers and retire legacy AOI controls`
 
 ### What changed in this checkpoint
 

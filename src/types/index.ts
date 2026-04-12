@@ -36,11 +36,33 @@ export type DrawingTool =
   | "circle";
 export type DrawnShapeType = Exclude<DrawingTool, "none">;
 
+export type MeasurementUnitSystem = "imperial" | "metric";
+
 export interface DrawnMeasurement {
   kind: "distance" | "area";
   value: number;
   unit: "miles" | "acres";
   display: string;
+  /** Distance in km (always populated for distance kind) */
+  distanceKm?: number;
+  /** Distance in miles (always populated for distance kind) */
+  distanceMi?: number;
+  /** Area in hectares (always populated for area kind) */
+  areaHa?: number;
+  /** Area in km² (always populated for area kind) */
+  areaKm2?: number;
+  /** Area in acres (always populated for area kind) */
+  areaAcres?: number;
+  /** Area in mi² (always populated for area kind) */
+  areaMi2?: number;
+  /** Perimeter in km (for polygons/circles) */
+  perimeterKm?: number;
+  /** Perimeter in miles (for polygons/circles) */
+  perimeterMi?: number;
+  /** Initial bearing in degrees (0-360, for lines) */
+  bearingDeg?: number;
+  /** Bearing display string, e.g. "045° NE" */
+  bearingDisplay?: string;
 }
 
 export interface DrawnGeometryProperties {
@@ -155,6 +177,19 @@ export interface LayerOpacityState {
   aoi: number;
 }
 
+export type CustomLayerType = "wms" | "wmts" | "xyz";
+
+export interface CustomLayer {
+  id: string;
+  name: string;
+  type: CustomLayerType;
+  url: string;
+  wmsLayers?: string;
+  opacity: number;
+  visible: boolean;
+  order: number;
+}
+
 export interface LayerState {
   roads: boolean;
   fires: boolean;
@@ -162,6 +197,20 @@ export interface LayerState {
   contours: boolean;
   aoi: boolean;
   opacity: LayerOpacityState;
+  customLayers: CustomLayer[];
+}
+
+export interface IdentifyHit {
+  layerName: string;
+  featureType: "imagery" | "entity" | "drawn-shape" | "saved-site" | "fire" | "earthquake";
+  attributes: Record<string, string | number | boolean | null>;
+  coordinates: Coordinates | null;
+}
+
+export interface IdentifyResult {
+  clickCoordinates: Coordinates;
+  hits: IdentifyHit[];
+  timestamp: number;
 }
 
 export type WorkspaceCardCategory =

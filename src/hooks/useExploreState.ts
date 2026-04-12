@@ -30,6 +30,7 @@ import {
   SubsurfaceRenderMode,
   LensAnalysisResult,
   LayerState,
+  IdentifyResult,
 } from "@/types";
 import { DrawingDraftState } from "@/context/AnalysisContext";
 
@@ -120,6 +121,10 @@ export interface ExploreState {
   canRedo: boolean;
   snapToGrid: boolean;
   setSnapToGrid: Dispatch<SetStateAction<boolean>>;
+  identifyMode: boolean;
+  setIdentifyMode: Dispatch<SetStateAction<boolean>>;
+  identifyResult: IdentifyResult | null;
+  setIdentifyResult: Dispatch<SetStateAction<IdentifyResult | null>>;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -215,6 +220,8 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);
   const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
+  const [identifyMode, setIdentifyMode] = useState(false);
+  const [identifyResult, setIdentifyResult] = useState<IdentifyResult | null>(null);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [analysisInputMode, setAnalysisInputMode] = useState<AnalysisInputMode>("location");
   const [analysisResult, setAnalysisResult] = useState<LensAnalysisResult | null>(null);
@@ -447,5 +454,9 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     canRedo: redoStack.length > 0,
     snapToGrid,
     setSnapToGrid,
+    identifyMode,
+    setIdentifyMode,
+    identifyResult,
+    setIdentifyResult,
   };
 }
