@@ -24,7 +24,7 @@ import { LandingUseCase } from "@/types";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
-import { EXPLORER_LENSES } from "@/lib/explorer-lenses";
+import { EXPLORER_LENSES, getExplorerLensById } from "@/lib/explorer-lenses";
 import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -115,7 +115,6 @@ export function LandingPage() {
   const router = useRouter();
   const { setUiContext } = useAgentPanel();
   const step2Ref = useRef<HTMLDivElement | null>(null);
-  const explorerStep2Ref = useRef<HTMLDivElement | null>(null);
   const [selectedUseCaseId, setSelectedUseCaseId] = useState<string | null>(null);
   const [locationQuery, setLocationQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -147,6 +146,11 @@ export function LandingPage() {
     [selectedUseCaseId],
   );
 
+  const activeLens = useMemo(() => {
+    if (!selectedUseCaseId?.startsWith("explorer-")) return null;
+    return getExplorerLensById(selectedUseCaseId.replace("explorer-", "")) ?? null;
+  }, [selectedUseCaseId]);
+
   useEffect(() => {
     setUiContext({
       activeProfile: selectedUseCase?.profileId,
@@ -171,11 +175,11 @@ export function LandingPage() {
   }, [selectedUseCase]);
 
   useEffect(() => {
-    if (!selectedUseCaseId?.startsWith("explorer-") || !explorerStep2Ref.current) {
+    if (!selectedUseCaseId?.startsWith("explorer-")) {
       return;
     }
 
-    explorerStep2Ref.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.getElementById("step-2")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedUseCaseId]);
 
   const handleSelectUseCase = (useCaseId: string) => {
@@ -331,8 +335,18 @@ export function LandingPage() {
               })}
             </div>
 
+            {/* Lens selection callout */}
+            {activeLens ? (
+              <div className="mx-auto max-w-xl transition-all duration-300 rounded-xl border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3">
+                <div className="eyebrow mb-1">{activeLens.label}</div>
+                <p className="text-sm leading-6 text-[var(--foreground-soft)]">
+                  {activeLens.whyItMatters}
+                </p>
+              </div>
+            ) : null}
+
             {/* Location entry — always visible, dimmed until a lens is selected */}
-            <div ref={explorerStep2Ref} className="mx-auto max-w-xl">
+            <div id="step-2" className="mx-auto max-w-xl">
               <p className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
                 STEP 2 — ENTER A LOCATION
               </p>
