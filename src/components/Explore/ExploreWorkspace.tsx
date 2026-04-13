@@ -1593,6 +1593,7 @@ export function ExploreWorkspace() {
               profile={state.activeProfile}
               locationName={state.selectedLocationName}
               loading={data.loading}
+              pendingCoords={state.selectedPoint}
               onOpenAnalysis={() => {
                 const firstCard = data.primaryCards[0];
                 if (firstCard) data.setActivePrimaryCardId(firstCard.id);
