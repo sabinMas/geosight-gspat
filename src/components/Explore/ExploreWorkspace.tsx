@@ -1091,6 +1091,15 @@ export function ExploreWorkspace() {
     (activeExplorerLens && (state.locationReady || state.drawnGeometry.features.length > 0))
   );
 
+  // Latch panel open during refetch — once shown, keep rendered until explicit reset
+  const panelEverOpenedRef = useRef(false);
+  useEffect(() => {
+    if (rightPanelOpen) {
+      panelEverOpenedRef.current = true;
+    }
+  }, [rightPanelOpen]);
+  const showRightPanel = rightPanelOpen || panelEverOpenedRef.current;
+
   const analysisContextValue = useMemo(
     () => ({
       activeLens: state.activeLensId,
@@ -1586,7 +1595,7 @@ export function ExploreWorkspace() {
           />
 
           {/* Map callout — appears on point select, hides when right panel opens */}
-          {(state.locationReady || data.loading) && !rightPanelOpen && !calloutDismissed ? (
+          {(state.locationReady || data.loading) && !showRightPanel && !calloutDismissed ? (
             <MapCallout
               geodata={data.geodata}
               score={data.siteScore}
@@ -1622,7 +1631,7 @@ export function ExploreWorkspace() {
         </main>
 
         {/* Right panel (desktop) / inline content (mobile) */}
-        {rightPanelOpen ? (
+        {showRightPanel ? (
           <aside className={cn(
             "flex flex-col border-t border-[color:var(--border-soft)]",
             "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",

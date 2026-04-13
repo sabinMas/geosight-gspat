@@ -44,36 +44,42 @@ const TOOL_BUTTONS: Array<{
   id: Exclude<DrawingTool, "none">;
   label: string;
   description: string;
+  hint: string;
   Icon: React.ComponentType<{ className?: string }>;
 }> = [
   {
     id: "point",
     label: "Point",
     description: "Drop a pin",
+    hint: "Click anywhere on the map to place a named pin.",
     Icon: MapPin,
   },
   {
     id: "polyline",
     label: "Path",
     description: "Draw a route or line",
+    hint: "Click to add points along the path. Click the last point again to finish.",
     Icon: Route,
   },
   {
     id: "polygon",
     label: "Area",
     description: "Draw a free-form polygon",
+    hint: "Click to place vertices. Right-click to close the polygon.",
     Icon: Pentagon,
   },
   {
     id: "rectangle",
     label: "Box",
     description: "Quick bounding box",
+    hint: "Click a corner point, then click the opposite corner to set the bounding box.",
     Icon: Square,
   },
   {
     id: "circle",
     label: "Radius",
     description: "Draw a circular buffer",
+    hint: "Click a center point, then click again to set the radius.",
     Icon: Circle,
   },
 ];
@@ -202,6 +208,7 @@ export function AoiDrawingToolbar({
   const canUndoDraft = draftState.tool !== "none" && draftState.canUndo;
   const canCompleteDraft = draftState.tool !== "none" && draftState.canComplete;
   const canShowDraftCard = draftState.tool !== "none";
+  const activeToolHint = TOOL_BUTTONS.find((t) => t.id === drawingTool)?.hint ?? null;
 
   return (
     <div className="pointer-events-none absolute left-4 top-20 z-20 flex max-w-[calc(100%-2rem)] flex-col gap-3 sm:max-w-none">
@@ -273,6 +280,12 @@ export function AoiDrawingToolbar({
           />
         ) : null}
       </div>
+
+      {activeToolHint ? (
+        <div className="pointer-events-auto max-w-xs rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--foreground-soft)]">
+          {activeToolHint}
+        </div>
+      ) : null}
 
       {canShowDraftCard ? (
         <div className="pointer-events-auto max-w-xs rounded-[1.6rem] border border-cyan-400/20 bg-[var(--surface-overlay)] px-4 py-3 shadow-[var(--shadow-panel)] backdrop-blur-xl">
