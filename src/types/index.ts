@@ -900,6 +900,7 @@ export interface SiteFactorScore {
   evidenceKind?: ScoreEvidenceKind;
   evidenceLabel?: string;
   evidenceExplanation?: string;
+  /** Source IDs that contributed to this factor. Optional — may be absent on older score objects. */
   sourceIds?: string[];
   sourceLastUpdated?: string;
   proxyReason?: string;

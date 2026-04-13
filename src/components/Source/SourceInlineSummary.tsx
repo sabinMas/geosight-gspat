@@ -1,18 +1,40 @@
 "use client";
 
+import { useMemo } from "react";
 import { SourceStatusBadge } from "@/components/Source/SourceStatusBadge";
 import { cn } from "@/lib/utils";
 import {
   formatSourceTimestamp,
   summarizeSourceMeta,
 } from "@/lib/source-metadata";
-import { DataSourceMeta } from "@/types";
+import { DataSourceMeta, SiteFactorScore } from "@/types";
+
+/**
+ * Builds a map from sourceId → factor label display names.
+ * Uses SiteFactorScore.sourceIds (added by WU-3) — gracefully skips factors
+ * that don't carry sourceIds yet.
+ */
+function buildSourceFactorMap(
+  factors: SiteFactorScore[],
+): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const factor of factors) {
+    if (!factor.sourceIds) continue;
+    for (const sourceId of factor.sourceIds) {
+      if (!map[sourceId]) map[sourceId] = [];
+      map[sourceId].push(factor.label);
+    }
+  }
+  return map;
+}
 
 interface SourceInlineSummaryProps {
   source: DataSourceMeta;
   title?: string;
   compact?: boolean;
   className?: string;
+  /** Optional scoring factors — used to render "Used in: …" pill row via reverse lookup. */
+  factors?: SiteFactorScore[];
 }
 
 export function SourceInlineSummary({
@@ -20,7 +42,14 @@ export function SourceInlineSummary({
   title,
   compact = false,
   className,
+  factors,
 }: SourceInlineSummaryProps) {
+  const factorLabels = useMemo(() => {
+    if (!factors) return [];
+    const map = buildSourceFactorMap(factors);
+    return map[source.id] ?? [];
+  }, [factors, source.id]);
+
   return (
     <div
       className={cn(
@@ -51,6 +80,21 @@ export function SourceInlineSummary({
           {source.note}
         </div>
       ) : null}
+      {factorLabels.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          <span className="text-xs text-[var(--muted-foreground)] cursor-default select-none">
+            Used in:
+          </span>
+          {factorLabels.map((label) => (
+            <span
+              key={label}
+              className="rounded-full bg-[var(--surface-soft)] border border-[color:var(--border-soft)] px-2 py-0.5 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

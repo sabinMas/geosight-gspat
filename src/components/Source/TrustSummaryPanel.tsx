@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { TrustPanelSummary } from "@/lib/source-trust";
 import { cn } from "@/lib/utils";
-import { DataSourceMeta } from "@/types";
+import { DataSourceMeta, SiteFactorScore } from "@/types";
 import { StateBadge } from "@/components/Status/StatePanel";
 import { SourceInlineSummary } from "@/components/Source/SourceInlineSummary";
 
@@ -15,6 +15,8 @@ interface TrustSummaryPanelProps {
   note?: string;
   className?: string;
   initialVisibleCount?: number;
+  /** Optional scoring factors for factor→source reverse lookup in each SourceInlineSummary. */
+  factors?: SiteFactorScore[];
 }
 
 export function TrustSummaryPanel({
@@ -24,6 +26,7 @@ export function TrustSummaryPanel({
   note,
   className,
   initialVisibleCount = 3,
+  factors,
 }: TrustSummaryPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const normalizedSources = useMemo(
@@ -58,7 +61,8 @@ export function TrustSummaryPanel({
       {visibleSources.length ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {visibleSources.map((source) => (
-            <SourceInlineSummary key={source.id} source={source} compact className="h-full" />
+            // TODO: pass factors prop when scoring data is available here
+            <SourceInlineSummary key={source.id} source={source} compact className="h-full" factors={factors} />
           ))}
         </div>
       ) : null}
