@@ -183,6 +183,7 @@ interface CesiumGlobeProps {
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
   } | null) => void;
+  onOverlayMetersPerPixelChange?: (metersPerPixel: number | null) => void;
 }
 
 export function CesiumGlobe({
@@ -214,6 +215,7 @@ export function CesiumGlobe({
   followUser = false,
   recordedRoute = [],
   onGlobeApiChange,
+  onOverlayMetersPerPixelChange,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -499,6 +501,10 @@ export function CesiumGlobe({
       }
     };
   }, [getOverlayViewportState, viewerReady, viewerKey]);
+
+  useEffect(() => {
+    onOverlayMetersPerPixelChange?.(overlayViewportSnapshot?.metersPerPixel ?? null);
+  }, [onOverlayMetersPerPixelChange, overlayViewportSnapshot?.metersPerPixel]);
 
   useEffect(() => {
     const viewer = viewerRef.current;

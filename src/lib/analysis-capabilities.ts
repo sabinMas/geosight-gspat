@@ -105,7 +105,114 @@ function hasClimateData(geodata: GeodataResult | null, dataTrends: DataTrend[]) 
   );
 }
 
+function hasInfrastructureCoolingSignals(geodata: GeodataResult | null) {
+  if (!geodata) {
+    return false;
+  }
+
+  return (
+    geodata.nearestWaterBody.distanceKm !== null ||
+    geodata.nearestPower.distanceKm !== null ||
+    geodata.climate.currentTempC !== null ||
+    geodata.climate.coolingDegreeDays !== null ||
+    Boolean(geodata.broadband)
+  );
+}
+
+function hasCommercialSignals(geodata: GeodataResult | null) {
+  if (!geodata) {
+    return false;
+  }
+
+  return (
+    geodata.nearestRoad.distanceKm !== null ||
+    geodata.nearestPower.distanceKm !== null ||
+    geodata.demographics.population !== null ||
+    geodata.demographics.medianHouseholdIncome !== null ||
+    geodata.amenities.commercialCount !== null ||
+    Boolean(geodata.broadband)
+  );
+}
+
+function hasSiteReadinessSignals(geodata: GeodataResult | null) {
+  if (!geodata) {
+    return false;
+  }
+
+  return (
+    geodata.nearestRoad.distanceKm !== null ||
+    Boolean(geodata.floodZone) ||
+    hasSoilData(geodata) ||
+    hasGroundwaterData(geodata) ||
+    geodata.amenities.schoolCount !== null ||
+    geodata.amenities.commercialCount !== null
+  );
+}
+
 const CAPABILITY_DEFINITIONS: CapabilityDefinition[] = [
+  {
+    analysisId: "infrastructure-cooling",
+    title: "Assess infrastructure cooling fit",
+    shortLabel: "Cooling fit",
+    description: "Summarize water, power, climate, broadband, and hazard posture for data-center-style siting.",
+    triggerMode: "user_triggered",
+    outputFormat: "interpretation",
+    modelLane: "analysis",
+    failureMode: "Falls back to a deterministic infrastructure read if providers fail.",
+    evaluate: ({ geodata, profile }) => {
+      const available = profile.id === "data-center" && hasInfrastructureCoolingSignals(geodata);
+
+      return {
+        available,
+        recommended: available,
+        reason: available
+          ? "Water, power, climate, and connectivity signals are loaded for a cooling-focused infrastructure read."
+          : "This capability appears when the data-center profile has enough water, power, climate, or broadband context.",
+      };
+    },
+  },
+  {
+    analysisId: "commercial-logistics",
+    title: "Assess commercial logistics fit",
+    shortLabel: "Logistics",
+    description: "Summarize freight access, utility readiness, demand proxies, and commercial practicality.",
+    triggerMode: "user_triggered",
+    outputFormat: "interpretation",
+    modelLane: "analysis",
+    failureMode: "Falls back to a deterministic commercial screening read if providers fail.",
+    evaluate: ({ geodata, profile }) => {
+      const available = profile.id === "commercial" && hasCommercialSignals(geodata);
+
+      return {
+        available,
+        recommended: available,
+        reason: available
+          ? "Road, utility, demand, and commercial-density proxies are loaded for this commercial read."
+          : "This capability appears when the commercial profile has enough transport, utility, or demand context.",
+      };
+    },
+  },
+  {
+    analysisId: "site-readiness",
+    title: "Assess site-development readiness",
+    shortLabel: "Site ready",
+    description: "Summarize buildability, hazards, services, and access for neighborhood-scale development.",
+    triggerMode: "user_triggered",
+    outputFormat: "interpretation",
+    modelLane: "analysis",
+    failureMode: "Falls back to a deterministic site-readiness read if providers fail.",
+    evaluate: ({ geodata, profile }) => {
+      const available = profile.id === "site-development" && hasSiteReadinessSignals(geodata);
+
+      return {
+        available,
+        recommended: available,
+        reason: available
+          ? "Road, buildability, and community-support signals are loaded for this site-development read."
+          : "This capability appears when the site-development profile has enough access, buildability, or hazard context.",
+      };
+    },
+  },
   {
     analysisId: "seismic-context",
     title: "Interpret seismic context",
@@ -375,6 +482,12 @@ export function buildCapabilityPrompt(
   locationName: string,
 ) {
   switch (capabilityId) {
+    case "infrastructure-cooling":
+      return `Assess the infrastructure cooling fit for ${locationName}. Use only the loaded water, power, broadband, climate, terrain, and hazard context, distinguish direct live versus derived or unavailable signals, and explain what still needs engineering or utility diligence.`;
+    case "commercial-logistics":
+      return `Assess the commercial logistics fit for ${locationName}. Use only the loaded road access, utility, broadband, demand-proxy, amenity, and hazard context, distinguish proxy signals from direct live evidence, and explain the main operational tradeoffs.`;
+    case "site-readiness":
+      return `Assess the site-development readiness for ${locationName}. Use only the loaded road, flood, soil, groundwater, school, amenity, and terrain context, distinguish direct live versus derived signals, and explain the main buildability and community-readiness constraints.`;
     case "seismic-context":
       return `Interpret the seismic context for ${locationName}. Distinguish direct live earthquake history from seismic design-map parameters, call out anything unavailable, and end with the most important next diligence step.`;
     case "groundwater-soil":
@@ -399,6 +512,33 @@ export function buildCapabilityFallbackResponse(
   const { dataTrends, geodata, locationName, subsurfaceDatasets } = context;
 
   switch (capabilityId) {
+    case "infrastructure-cooling":
+      return [
+        `## Infrastructure cooling fit for ${locationName}`,
+        `- Water posture: nearest mapped water is ${formatDecimal(geodata?.nearestWaterBody.distanceKm, " km")} away, with the nearest stream gauge ${formatDecimal(geodata?.streamGauges?.[0]?.distanceKm, " km")} from the site context when available.`,
+        `- Utility posture: nearest mapped power infrastructure is ${formatDecimal(geodata?.nearestPower.distanceKm, " km")} away and broadband context is ${geodata?.broadband ? "loaded" : "unavailable"}.`,
+        `- Climate posture: current temperature ${formatDecimal(geodata?.climate.currentTempC, " C")} with cooling degree days ${formatValue(geodata?.climate.coolingDegreeDays)} and average temperature ${formatDecimal(geodata?.climate.averageTempC, " C")}.`,
+        `- Hazard posture: flood ${geodata?.floodZone?.label ?? "Unavailable"}, seismic PGA ${formatDecimal(geodata?.seismicDesign?.pga, "g", 2)}, current AQI ${formatValue(geodata?.climate.airQualityIndex)}.`,
+        `- Interpretation: this is a screening read for data-center-style infrastructure. Water, power, and climate can be interpreted now, but utility queue position, permitting, and parcel engineering still require separate diligence.`,
+      ].join("\n");
+    case "commercial-logistics":
+      return [
+        `## Commercial logistics fit for ${locationName}`,
+        `- Access posture: nearest mapped road access is ${formatDecimal(geodata?.nearestRoad.distanceKm, " km")} and nearest mapped power infrastructure is ${formatDecimal(geodata?.nearestPower.distanceKm, " km")}.`,
+        `- Demand proxies: population ${formatValue(geodata?.demographics.population)}, median income ${formatValue(geodata?.demographics.medianHouseholdIncome)}, commercial venues ${formatValue(geodata?.amenities.commercialCount)}.`,
+        `- Site practicality: dominant flood posture is ${geodata?.floodZone?.label ?? "Unavailable"} with terrain elevation ${formatDecimal(geodata?.elevationMeters, " m")} and air quality index ${formatValue(geodata?.climate.airQualityIndex)}.`,
+        `- Connectivity: broadband is ${geodata?.broadband ? "loaded for this site" : "unavailable"} and should be treated as an early readiness signal rather than full carrier diligence.`,
+        `- Interpretation: this is a screening read for retail, logistics, or warehouse use. It mixes direct access signals with demand proxies, so frontage, zoning, and parcel circulation still need a closer look.`,
+      ].join("\n");
+    case "site-readiness":
+      return [
+        `## Site-development readiness for ${locationName}`,
+        `- Access and services: nearest mapped road is ${formatDecimal(geodata?.nearestRoad.distanceKm, " km")} away, with ${formatValue(geodata?.amenities.schoolCount)} mapped schools and ${formatValue(geodata?.amenities.commercialCount)} mapped commercial amenities nearby.`,
+        `- Buildability posture: elevation ${formatDecimal(geodata?.elevationMeters, " m")}, soil ${geodata?.soilProfile?.mapUnitName ?? "Unavailable"}, drainage ${geodata?.soilProfile?.drainageClass ?? "unknown"}, nearest groundwater depth ${formatDecimal(geodata?.groundwater.nearestWell?.currentLevelFt, " ft below land surface")}.`,
+        `- Hazard posture: flood ${geodata?.floodZone?.label ?? "Unavailable"}, seismic PGA ${formatDecimal(geodata?.seismicDesign?.pga, "g", 2)}, contamination sites ${formatValue(geodata?.epaHazards?.superfundCount)}.`,
+        `- Community context: school-context score ${formatValue(geodata?.schoolContext?.score, "/100")} and broadband ${geodata?.broadband ? "loaded" : "unavailable"}.`,
+        `- Interpretation: this is a screening read for neighborhood-scale development. Access, flood exposure, and subsurface context are visible now, but zoning, utilities, stormwater design, and entitlement risk still need direct diligence.`,
+      ].join("\n");
     case "seismic-context":
       return [
         `## Seismic context for ${locationName}`,
@@ -540,6 +680,33 @@ export function getCapabilitySources(
   }
 
   switch (capabilityId) {
+    case "infrastructure-cooling":
+      return [
+        geodata.sources.water,
+        geodata.sources.infrastructure,
+        geodata.sources.climate,
+        geodata.sources.broadband,
+        geodata.sources.floodZone,
+        geodata.sources.seismicDesign,
+      ];
+    case "commercial-logistics":
+      return [
+        geodata.sources.infrastructure,
+        geodata.sources.demographics,
+        geodata.sources.amenities,
+        geodata.sources.broadband,
+        geodata.sources.floodZone,
+      ];
+    case "site-readiness":
+      return [
+        geodata.sources.infrastructure,
+        geodata.sources.floodZone,
+        geodata.sources.school,
+        geodata.sources.soilProfile,
+        geodata.sources.groundwater,
+        geodata.sources.broadband,
+        geodata.sources.epaHazards,
+      ];
     case "seismic-context":
       return [geodata.sources.hazards, geodata.sources.seismicDesign];
     case "groundwater-soil":

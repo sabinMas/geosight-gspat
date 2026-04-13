@@ -112,6 +112,7 @@ export function ExploreWorkspace() {
   const [captureMode, setCaptureMode] = useState(false);
   const [captureOverlayArmed, setCaptureOverlayArmed] = useState(false);
   const [captureViewSnapshot, setCaptureViewSnapshot] = useState<GlobeViewSnapshot | null>(null);
+  const [overlayMetersPerPixel, setOverlayMetersPerPixel] = useState<number | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const [captureFigure, setCaptureFigure] = useState<CaptureFigureOptions>({
     title: "",
@@ -132,6 +133,22 @@ export function ExploreWorkspace() {
   const drawingTool = state.drawingTool;
   const isAoiLayerVisible = state.layers.aoi;
   const setLayerState = state.setLayers;
+  const addSavedSite = data.addSite;
+  const currentGeodata = data.geodata;
+  const currentSiteScore = data.siteScore;
+  const savedSites = data.sites;
+  const setShellMode = data.setShellMode;
+  const setViewMode = data.setViewMode;
+  const openAdvancedBoard = data.openAdvancedBoard;
+  const cardVisibility = data.visibility;
+  const setVisibleCard = data.setCardVisible;
+  const openBoardCard = data.openCard;
+  const openCardFromTray = data.openCardFromTray;
+  const openLibrary = data.openLibrary;
+  const handleDataLocationSelection = data.handleLocationSelection;
+  const generateGeoReport = data.generateReport;
+  const geodataLoading = data.loading;
+  const handleDataQuestionIntent = data.handleQuestionIntent;
 
   // ESC closes mobile sidebar
   useEffect(() => {
@@ -203,28 +220,37 @@ export function ExploreWorkspace() {
     return () => window.clearTimeout(timeout);
   }, [workspaceNotice]);
 
-  const handleSaveCurrentSite = () => {
-    if (!data.geodata || !data.siteScore) {
+  const handleSaveCurrentSite = useCallback(() => {
+    if (!currentGeodata || !currentSiteScore) {
       return;
     }
 
-    data.addSite({
+    addSavedSite({
       id: crypto.randomUUID(),
-      name: `${state.activeProfile.name} Site ${data.sites.length + 1}`,
+      name: `${state.activeProfile.name} Site ${savedSites.length + 1}`,
       regionName: state.selectedLocationName,
       profileId: state.activeProfile.id,
       coordinates: state.selectedPoint,
-      geodata: data.geodata,
-      score: data.siteScore,
+      geodata: currentGeodata,
+      score: currentSiteScore,
     });
 
     setWorkspaceNotice({
       tone: "info",
       message: `${state.selectedLocationName} saved.`,
     });
-  };
+  }, [
+    addSavedSite,
+    currentGeodata,
+    currentSiteScore,
+    savedSites.length,
+    state.activeProfile.id,
+    state.activeProfile.name,
+    state.selectedLocationName,
+    state.selectedPoint,
+  ]);
 
-  const handleOpenGuidedMode = () => {
+  const handleOpenGuidedMode = useCallback(() => {
     if (!state.locationReady) {
       setWorkspaceNotice({
         tone: "warning",
@@ -233,16 +259,16 @@ export function ExploreWorkspace() {
       return;
     }
 
-    data.setShellMode("guided");
-    data.setViewMode("board");
+    setShellMode("guided");
+    setViewMode("board");
     setWorkspaceNotice({
       tone: "info",
       message: "Focused mode active.",
     });
-  };
+  }, [setShellMode, setViewMode, state.locationReady]);
 
-  const handleOpenBoardMode = () => {
-    data.openAdvancedBoard();
+  const handleOpenBoardMode = useCallback(() => {
+    openAdvancedBoard();
 
     if (typeof window === "undefined") {
       return;
@@ -257,20 +283,27 @@ export function ExploreWorkspace() {
         message: "Workspace mode active.",
       });
     }
-  };
+  }, [openAdvancedBoard]);
 
-  const openCard = (cardId: WorkspaceCardId) => {
+  const openCard = useCallback((cardId: WorkspaceCardId) => {
     if (data.shellMode === "board") {
-      if (!data.visibility[cardId]) {
-        data.setCardVisible(cardId, true);
+      if (!cardVisibility[cardId]) {
+        setVisibleCard(cardId, true);
       }
-      data.openCard(cardId);
-      data.setViewMode("board");
+      openBoardCard(cardId);
+      setViewMode("board");
       return;
     }
 
-    data.openCardFromTray(cardId);
-  };
+    openCardFromTray(cardId);
+  }, [
+    cardVisibility,
+    openBoardCard,
+    openCardFromTray,
+    setVisibleCard,
+    setViewMode,
+    data.shellMode,
+  ]);
 
   const resultsHeader = (
     <ResultsModeToggle mode={state.resultsMode} onChange={state.setResultsMode} />
@@ -297,9 +330,9 @@ export function ExploreWorkspace() {
     [data.geodata],
   );
 
-  const handleOpenLibraryMode = () => {
-    data.openLibrary();
-  };
+  const handleOpenLibraryMode = useCallback(() => {
+    openLibrary();
+  }, [openLibrary]);
 
   const handleSelectRegion = useCallback(
     (region: typeof state.selectedRegion) => {
@@ -309,13 +342,13 @@ export function ExploreWorkspace() {
           : region.name;
       state.setSelectedRegion(region);
       state.selectPoint(region.center, regionLabel, regionLabel);
-      data.handleLocationSelection();
+      handleDataLocationSelection();
     },
-    [data, state],
+    [handleDataLocationSelection, state],
   );
 
-  const handleGenerateReport = () => {
-    if (!data.geodata) {
+  const handleGenerateReport = useCallback(() => {
+    if (!currentGeodata) {
       setWorkspaceNotice({
         tone: "warning",
         message: "Select a location first to generate a report.",
@@ -323,7 +356,7 @@ export function ExploreWorkspace() {
       return;
     }
 
-    if (data.loading) {
+    if (geodataLoading) {
       setWorkspaceNotice({
         tone: "warning",
         message: "Analysis still loading — try again shortly.",
@@ -332,8 +365,8 @@ export function ExploreWorkspace() {
     }
 
     primeAgent("geo-scribe", reportPrompt);
-    void data.generateReport();
-  };
+    void generateGeoReport();
+  }, [currentGeodata, generateGeoReport, geodataLoading, primeAgent, reportPrompt]);
 
   const handlePersistentQuestionSubmit = useCallback(
     (question: string) => {
@@ -345,10 +378,10 @@ export function ExploreWorkspace() {
         return;
       }
 
-      data.handleQuestionIntent(question);
+      handleDataQuestionIntent(question);
       submitAgentPrompt("geo-analyst", question);
     },
-    [data, state.locationReady, submitAgentPrompt],
+    [handleDataQuestionIntent, state.locationReady, submitAgentPrompt],
   );
 
   const handleGlobeApiChange = useCallback((api: {
@@ -356,6 +389,9 @@ export function ExploreWorkspace() {
     requestRender: () => void;
   } | null) => {
     globeApiRef.current = api;
+    if (!api) {
+      setOverlayMetersPerPixel(null);
+    }
   }, []);
 
   const focusLiveFix = useCallback(
@@ -367,9 +403,9 @@ export function ExploreWorkspace() {
       state.setInitError(null);
       setCalloutDismissed(false);
       state.selectPoint(fix.coordinates, label, displayLabel);
-      data.handleLocationSelection();
+      handleDataLocationSelection();
     },
-    [data, state],
+    [handleDataLocationSelection, state],
   );
 
   const handleShapeComplete = useCallback((shape: DrawnShape) => {
@@ -1447,6 +1483,7 @@ export function ExploreWorkspace() {
                 followUser={locationTracking.isFollowing}
                 recordedRoute={locationTracking.recordedRoute}
                 onGlobeApiChange={handleGlobeApiChange}
+                onOverlayMetersPerPixelChange={setOverlayMetersPerPixel}
               />
             </div>
           </ClientErrorBoundary>
@@ -1498,6 +1535,7 @@ export function ExploreWorkspace() {
             onChange={state.setLayers}
             globeViewMode={state.globeViewMode}
             onChangeGlobeViewMode={state.setGlobeViewMode}
+            overlayMetersPerPixel={overlayMetersPerPixel}
           />
           <RegionSelector
             region={state.selectedRegion}

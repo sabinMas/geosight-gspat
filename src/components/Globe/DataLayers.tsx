@@ -43,6 +43,11 @@ const VIEW_OPTIONS: Array<{
 ];
 
 type OverlayLayerKey = "roads" | "fires" | "floodZones" | "contours" | "aoi";
+type LayerStatusNotice = {
+  tone: "info" | "warning";
+  label: string;
+  description: string;
+};
 
 const OVERLAY_OPTIONS: Array<{
   key: OverlayLayerKey;
@@ -162,6 +167,69 @@ function OpacitySlider({
   );
 }
 
+function formatScaleLabel(metersPerPixel: number | null | undefined) {
+  if (metersPerPixel === null || metersPerPixel === undefined || Number.isNaN(metersPerPixel)) {
+    return null;
+  }
+
+  return metersPerPixel >= 1000
+    ? `${(metersPerPixel / 1000).toFixed(1)} km/pixel`
+    : `${Math.round(metersPerPixel)} m/pixel`;
+}
+
+function getOverlayStatusNotice(
+  key: OverlayLayerKey,
+  enabled: boolean,
+  globeViewMode: GlobeViewMode,
+  overlayMetersPerPixel: number | null | undefined,
+): LayerStatusNotice | null {
+  if (!enabled || key === "aoi") {
+    return null;
+  }
+
+  if (key === "roads" && globeViewMode === "road") {
+    return {
+      tone: "info",
+      label: "Road basemap active",
+      description: "Road detail is already visible in the current basemap, so the separate OSM roads overlay stays idle.",
+    };
+  }
+
+  const threshold =
+    key === "roads"
+      ? 700
+      : key === "contours"
+        ? 900
+        : key === "floodZones"
+          ? 2200
+          : key === "fires"
+            ? 2500
+            : null;
+
+  if (
+    threshold !== null &&
+    overlayMetersPerPixel !== null &&
+    overlayMetersPerPixel !== undefined &&
+    overlayMetersPerPixel > threshold
+  ) {
+    const scaleLabel = formatScaleLabel(overlayMetersPerPixel);
+    return {
+      tone: "warning",
+      label: "Zoom in to load",
+      description:
+        key === "roads"
+          ? `OSM roads and labels wait for street-scale zoom. ${scaleLabel ? `Current camera scale is about ${scaleLabel}.` : ""}`.trim()
+          : key === "contours"
+            ? `Contours wait for a tighter terrain-scale view. ${scaleLabel ? `Current camera scale is about ${scaleLabel}.` : ""}`.trim()
+            : key === "floodZones"
+              ? `Flood imagery waits for a closer parcel or neighborhood view. ${scaleLabel ? `Current camera scale is about ${scaleLabel}.` : ""}`.trim()
+              : `Fire detections wait for a closer regional view. ${scaleLabel ? `Current camera scale is about ${scaleLabel}.` : ""}`.trim(),
+    };
+  }
+
+  return null;
+}
+
 interface LayerRowProps {
   label: string;
   description: string;
@@ -169,6 +237,7 @@ interface LayerRowProps {
   accentClassName: string;
   enabled: boolean;
   opacity: number;
+  statusNotice: LayerStatusNotice | null;
   onToggle: () => void;
   onOpacityChange: (value: number) => void;
 }
@@ -180,6 +249,7 @@ function LayerRow({
   accentClassName,
   enabled,
   opacity,
+  statusNotice,
   onToggle,
   onOpacityChange,
 }: LayerRowProps) {
@@ -218,6 +288,19 @@ function LayerRow({
           onChange={onOpacityChange}
         />
       </div>
+      {statusNotice ? (
+        <div
+          className={cn(
+            "mt-3 rounded-[1rem] border px-3 py-2 text-xs leading-5",
+            statusNotice.tone === "warning"
+              ? "border-amber-300/25 bg-amber-400/10 text-amber-50"
+              : "border-cyan-300/25 bg-cyan-400/10 text-cyan-50",
+          )}
+        >
+          <div className="font-medium uppercase tracking-[0.16em]">{statusNotice.label}</div>
+          <div className="mt-1 text-[11px] leading-5 opacity-80">{statusNotice.description}</div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -227,6 +310,7 @@ interface DataLayersProps {
   onChange: Dispatch<SetStateAction<LayerState>>;
   globeViewMode: GlobeViewMode;
   onChangeGlobeViewMode: (mode: GlobeViewMode) => void;
+  overlayMetersPerPixel?: number | null;
 }
 
 export function DataLayers({
@@ -234,6 +318,7 @@ export function DataLayers({
   onChange,
   globeViewMode,
   onChangeGlobeViewMode,
+  overlayMetersPerPixel = null,
 }: DataLayersProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -382,6 +467,12 @@ export function DataLayers({
                       accentClassName={option.accentClassName}
                       enabled={layers[option.key]}
                       opacity={layers.opacity[option.key]}
+                      statusNotice={getOverlayStatusNotice(
+                        option.key,
+                        layers[option.key],
+                        globeViewMode,
+                        overlayMetersPerPixel,
+                      )}
                       onToggle={() => setLayerEnabled(option.key)}
                       onOpacityChange={(value) => setLayerOpacity(option.key, value)}
                     />

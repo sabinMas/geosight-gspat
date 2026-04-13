@@ -250,6 +250,9 @@ export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";
 export type NearbyPlacesSource = "live" | "unavailable";
 export type ScoreEvidenceKind = "direct_live" | "derived_live" | "proxy";
 export type AnalysisCapabilityId =
+  | "infrastructure-cooling"
+  | "commercial-logistics"
+  | "site-readiness"
   | "seismic-context"
   | "groundwater-soil"
   | "hazard-stack"
