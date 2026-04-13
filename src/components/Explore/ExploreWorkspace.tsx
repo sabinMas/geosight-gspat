@@ -105,6 +105,7 @@ export function ExploreWorkspace() {
   useLensAnalysis(state);
   const inExplorer = isExplorerMode(state.appMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [locationPanelOpen, setLocationPanelOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCoords, setCopiedCoords] = useState(false);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
@@ -1295,7 +1296,17 @@ export function ExploreWorkspace() {
         </Button>
 
         {/* Brand */}
-        <Link href="/" className="shrink-0 text-sm font-semibold text-[var(--foreground)] transition-opacity hover:opacity-70">GeoSight</Link>
+        <Link
+          href="/"
+          className="relative z-10 shrink-0 text-sm font-semibold text-[var(--foreground)] transition-opacity hover:opacity-70"
+          onClick={(e) => {
+            if (state.drawnShapes.length > 0 && !window.confirm("Leave GeoSight? Your drawn shapes will not be saved.")) {
+              e.preventDefault();
+            }
+          }}
+        >
+          GeoSight
+        </Link>
 
         {/* Active profile pill */}
         <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] pointer-events-none xl:inline">
@@ -1522,22 +1533,37 @@ export function ExploreWorkspace() {
               <Car className="mr-2 h-4 w-4" />
               {state.driveMode ? "Driving" : "Drive"}
             </Button>
+            <Button
+              type="button"
+              variant={locationPanelOpen ? "default" : "secondary"}
+              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+              aria-pressed={locationPanelOpen}
+              aria-label={locationPanelOpen ? "Hide location tracking" : "Show location tracking"}
+              title="Live location tracking"
+              onClick={() => setLocationPanelOpen((v) => !v)}
+            >
+              <MapPinned className="mr-2 h-4 w-4" />
+              {locationPanelOpen ? "Tracking" : "Location"}
+            </Button>
           </div>
 
-          <LocationTrackingControls
-            currentFix={locationTracking.currentFix}
-            locateError={locationTracking.locateError}
-            isLocating={locationTracking.isLocating}
-            isFollowing={locationTracking.isFollowing}
-            isRecording={locationTracking.isRecording}
-            recordingSnapshot={locationTracking.recordingSnapshot}
-            onLocateOnce={handleLocateOnce}
-            onStartFollowing={handleStartFollowing}
-            onStopFollowing={locationTracking.stopFollowing}
-            onStartRecording={handleStartRecording}
-            onStopRecording={handleStopRecording}
-            onDismissError={locationTracking.clearLocateError}
-          />
+          {locationPanelOpen ? (
+            <LocationTrackingControls
+              currentFix={locationTracking.currentFix}
+              locateError={locationTracking.locateError}
+              isLocating={locationTracking.isLocating}
+              isFollowing={locationTracking.isFollowing}
+              isRecording={locationTracking.isRecording}
+              recordingSnapshot={locationTracking.recordingSnapshot}
+              onLocateOnce={handleLocateOnce}
+              onStartFollowing={handleStartFollowing}
+              onStopFollowing={locationTracking.stopFollowing}
+              onStartRecording={handleStartRecording}
+              onStopRecording={handleStopRecording}
+              onDismissError={locationTracking.clearLocateError}
+              onClose={() => setLocationPanelOpen(false)}
+            />
+          ) : null}
 
           <DataLayers
             layers={state.layers}

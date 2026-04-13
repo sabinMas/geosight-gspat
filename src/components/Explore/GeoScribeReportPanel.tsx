@@ -71,15 +71,7 @@ export function GeoScribeReportPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(4,10,18,0.58)]">
-      <button
-        type="button"
-        className="absolute inset-0"
-        aria-label="Close GeoScribe report"
-        onClick={onClose}
-      />
-
-      <aside className="relative flex h-full w-full max-w-[760px] flex-col border-l border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
+    <aside className="fixed top-0 right-0 bottom-0 z-50 flex h-full w-full max-w-[760px] flex-col border-l border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[-4px_0_24px_rgba(0,0,0,0.4)]">
         <div className="flex items-start justify-between gap-4 border-b border-[color:var(--border-soft)] px-5 py-4">
           <div className="min-w-0">
             <div className="eyebrow">GeoScribe report</div>
@@ -226,7 +218,6 @@ export function GeoScribeReportPanel({
             />
           )}
         </div>
-      </aside>
-    </div>
+    </aside>
   );
 }

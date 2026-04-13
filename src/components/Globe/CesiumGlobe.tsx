@@ -376,24 +376,30 @@ export function CesiumGlobe({
     setViewerReady(false);
     setGlobeReady(false);
 
-    const viewer = new CesiumViewer(host, {
-      terrainProvider: new EllipsoidTerrainProvider(),
-      animation: false,
-      baseLayerPicker: false,
-      contextOptions: {
-        webgl: {
-          preserveDrawingBuffer: true,
+    let viewer: CesiumViewer;
+    try {
+      viewer = new CesiumViewer(host, {
+        terrainProvider: new EllipsoidTerrainProvider(),
+        animation: false,
+        baseLayerPicker: false,
+        contextOptions: {
+          webgl: {
+            preserveDrawingBuffer: true,
+          },
         },
-      },
-      geocoder: false,
-      homeButton: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      timeline: false,
-      navigationHelpButton: false,
-      infoBox: false,
-      shouldAnimate: true,
-    });
+        geocoder: false,
+        homeButton: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        timeline: false,
+        navigationHelpButton: false,
+        infoBox: false,
+        shouldAnimate: true,
+      });
+    } catch (err) {
+      console.error("[CesiumGlobe] Viewer init failed:", err);
+      return;
+    }
 
     viewerRef.current = viewer;
     setViewerReady(true);

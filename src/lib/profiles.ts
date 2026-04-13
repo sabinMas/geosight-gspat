@@ -542,7 +542,7 @@ export const PROFILE_MAP = Object.fromEntries(PROFILES.map((profile) => [profile
   MissionProfile
 >;
 
-export function getProfileById(profileId: string) {
+export function getProfileById(profileId: string | null | undefined) {
   const normalizedProfileId = normalizeProfileId(profileId);
   return (normalizedProfileId ? PROFILE_MAP[normalizedProfileId] : undefined) ?? DEFAULT_PROFILE;
 }

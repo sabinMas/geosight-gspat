@@ -55,7 +55,7 @@ export function AnalysisOverviewBanner({
           </span>
         ) : null}
         <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenFactorBreakdown}>
+          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenFactorBreakdown} title="See how this location's score was calculated">
             Why score
             <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
           </Button>
@@ -110,6 +110,7 @@ export function AnalysisOverviewBanner({
               variant="secondary"
               className="rounded-full"
               onClick={onOpenFactorBreakdown}
+              title="See how this location's score was calculated"
             >
               Why this score
               <ArrowRight className="ml-2 h-4 w-4" />

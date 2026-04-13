@@ -86,7 +86,7 @@ export interface ExploreState {
   earthquakeMarkers: EarthquakeEvent[];
   setEarthquakeMarkers: Dispatch<SetStateAction<EarthquakeEvent[]>>;
   activeLensId: string | null;
-  setActiveLensId: Dispatch<SetStateAction<string | null>>;
+  setActiveLensId: (lensId: string | null) => void;
   driveMode: boolean;
   setDriveMode: Dispatch<SetStateAction<boolean>>;
   drawingTool: DrawingTool;
@@ -209,7 +209,21 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultsMode, setResultsMode] = useState<ResultsMode>("nearby_places");
   const [earthquakeMarkers, setEarthquakeMarkers] = useState<EarthquakeEvent[]>([]);
-  const [activeLensId, setActiveLensId] = useState<string | null>(init.lensId ?? null);
+  const [activeLensId, setActiveLensIdState] = useState<string | null>(init.lensId ?? null);
+
+  const setActiveLensId = useCallback(
+    (lensId: string | null) => {
+      setActiveLensIdState(lensId);
+      const params = new URLSearchParams(searchParams.toString());
+      if (lensId !== null) {
+        params.set("lens", lensId);
+      } else {
+        params.delete("lens");
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
   const [driveMode, setDriveMode] = useState(false);
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
   const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);

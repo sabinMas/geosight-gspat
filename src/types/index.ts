@@ -954,7 +954,7 @@ export interface AgentConversationMessage extends ConversationMessage {
 }
 
 export interface AnalyzeRequestBody {
-  profileId: string;
+  profileId: string | null;
   question: string;
   stream?: boolean;
   messages?: ConversationMessage[];

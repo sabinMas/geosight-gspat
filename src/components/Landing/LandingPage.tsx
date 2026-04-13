@@ -30,6 +30,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ProductPreviewSection } from "./ProductPreviewSection";
 import { CapabilityShowcase } from "./CapabilityShowcase";
+import { Footer } from "./Footer";
 
 const ICONS = {
   House,
@@ -247,7 +248,10 @@ export function LandingPage() {
           <div className="hero-orbit bottom-[-6rem] left-[-5rem]" />
 
           <div className="relative flex items-center justify-between">
-            <div className="eyebrow text-[var(--accent)]">GeoSight</div>
+            <div className="eyebrow text-[var(--accent)]">
+            <span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)] mr-1.5 align-middle" aria-hidden="true" />
+            GeoSight
+          </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -519,6 +523,7 @@ export function LandingPage() {
         </section>
 
       </div>
+      <Footer />
     </main>
   );
 }

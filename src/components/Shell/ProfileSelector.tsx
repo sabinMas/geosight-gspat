@@ -140,11 +140,23 @@ export function ProfileSelector({
           </div>
         </div>
 
-        <div className="h-[3px] w-full rounded-full bg-[var(--surface-soft)]">
-          <div
-            className="h-[3px] rounded-full bg-[var(--accent)] transition-[width] duration-150"
-            style={{ width: `${scrollProgress * 100}%` }}
-          />
+        <div className="flex items-center justify-center gap-1.5">
+          {orderedProfiles.map((profile, index) => {
+            const totalProfiles = orderedProfiles.length;
+            const activeIndex = Math.round(scrollProgress * (totalProfiles - 1));
+            const isActiveDot = index === activeIndex;
+            return (
+              <div
+                key={profile.id}
+                className="rounded-full transition-all duration-150"
+                style={{
+                  width: isActiveDot ? "16px" : "6px",
+                  height: "6px",
+                  backgroundColor: isActiveDot ? "var(--accent)" : "var(--surface-soft)",
+                }}
+              />
+            );
+          })}
         </div>
       </div>
     );

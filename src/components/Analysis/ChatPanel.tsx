@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StateBadge } from "@/components/Status/StatePanel";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,7 @@ export function ChatPanel({
   } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showGrounding, setShowGrounding] = useState(false);
+  const [useLensContext, setUseLensContext] = useState(true);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const analyzeRequestIdRef = useRef(0);
   const analyzeAbortControllerRef = useRef<AbortController | null>(null);
@@ -239,7 +241,7 @@ export function ChatPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stream: true,
-          profileId: profile.id,
+          profileId: useLensContext ? profile.id : null,
           question: trimmedQuestion,
           messages: conversationMessages,
           location,
@@ -351,6 +353,7 @@ export function ChatPanel({
     profile.id,
     resultsMode,
     loading,
+    useLensContext,
   ]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -366,7 +369,22 @@ export function ChatPanel({
     <Card className="flex min-h-[420px] flex-col">
       <CardHeader className="space-y-3">
         <div className="eyebrow">Reasoning board</div>
-        <CardTitle>{locationName}</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>{locationName}</CardTitle>
+          <button
+            type="button"
+            onClick={() => setUseLensContext((v) => !v)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition",
+              useLensContext
+                ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                : "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)]"
+            )}
+            title={useLensContext ? "Lens context active — click to disable" : "No lens framing — click to enable"}
+          >
+            {profile.name}
+          </button>
+        </div>
         {aiStatus?.liveAnalysisAvailable === false ? (
           <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
             Fallback mode

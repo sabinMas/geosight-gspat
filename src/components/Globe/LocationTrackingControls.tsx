@@ -1,6 +1,6 @@
 "use client";
 
-import { Crosshair, Loader2, Navigation, Radar, Square, Waypoints } from "lucide-react";
+import { Crosshair, Loader2, Navigation, Radar, Square, Waypoints, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RouteRecordingSnapshot, UserLocationFix } from "@/types";
 
@@ -17,6 +17,7 @@ interface LocationTrackingControlsProps {
   onStartRecording: () => void;
   onStopRecording: () => void;
   onDismissError: () => void;
+  onClose: () => void;
 }
 
 function formatAccuracy(fix: UserLocationFix | null) {
@@ -54,6 +55,7 @@ export function LocationTrackingControls({
   onStartRecording,
   onStopRecording,
   onDismissError,
+  onClose,
 }: LocationTrackingControlsProps) {
   const accuracyLabel = formatAccuracy(currentFix);
 
@@ -75,6 +77,14 @@ export function LocationTrackingControls({
               GPS
             </div>
           ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]"
+            aria-label="Close location tracking panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
