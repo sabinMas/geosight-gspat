@@ -8,6 +8,7 @@ export interface ExplorerLens {
   profileId: string;
   defaultCards: WorkspaceCardId[];
   summaryQuestion: string;
+  whyItMatters: string;
 }
 
 export const EXPLORER_LENSES: ExplorerLens[] = [
@@ -29,6 +30,8 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
     ],
     summaryQuestion:
       "Is this area good for hunting? Summarize terrain, access, water proximity, and hazards in plain English.",
+    whyItMatters:
+      "Reviews terrain ruggedness, trail and road access, water feature proximity, wildfire risk, and seasonal weather patterns.",
   },
   {
     id: "trail-scout",
@@ -48,6 +51,8 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
     ],
     summaryQuestion:
       "Is this a good hike? Tell me about the terrain, elevation, and air quality in plain English.",
+    whyItMatters:
+      "Checks trail access, elevation gain, air quality, wildfire exposure, and outdoor fit score for the area.",
   },
   {
     id: "road-trip",
@@ -66,6 +71,8 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
     ],
     summaryQuestion:
       "Is this a good road trip stop? Tell me what's interesting, scenic, and worth seeing here.",
+    whyItMatters:
+      "Surfaces nearby points of interest, terrain character, climate comfort, hazard context, and seasonal conditions.",
   },
   {
     id: "land-quick-check",
@@ -85,6 +92,8 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
     ],
     summaryQuestion:
       "Give me a plain-English summary of this land — flood risk, terrain, and access.",
+    whyItMatters:
+      "Evaluates flood zone exposure, terrain slope, soil bearing signals, access routes, and air quality for the parcel.",
   },
   {
     id: "general-explore",
@@ -104,6 +113,8 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
     ],
     summaryQuestion:
       "What's interesting or notable about this place? Give me a plain-English overview.",
+    whyItMatters:
+      "Checks terrain character, hazard context, flood risk, air quality, and elevation to surface what stands out.",
   },
 ];
 
