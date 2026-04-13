@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlertTriangle,
   ChartArea,
+  ChevronDown,
   Flame,
   Gauge,
   LineChart,
@@ -236,6 +238,7 @@ export function AnalysisPanel({
   error,
   children,
 }: AnalysisPanelProps) {
+  const [narrativeExpanded, setNarrativeExpanded] = useState(false);
   const featureCount = geometry.features.length;
   const geometrySummary =
     featureCount === 0
@@ -305,11 +308,11 @@ export function AnalysisPanel({
         <div className="rounded-[1.4rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             <Sparkles className="h-3.5 w-3.5" />
-            AOI store
+            Your area
           </div>
           <p className="mt-2 text-sm leading-6 text-[var(--foreground)]">{geometrySummary}</p>
           <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-            GeoJSON is the shared geometry contract for drawing, export, and lens analysis.
+            Draw on the map to analyze a custom zone.
           </p>
         </div>
 
@@ -360,16 +363,32 @@ export function AnalysisPanel({
         {analysisResult ? (
           <>
             <div className="rounded-[1.4rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                <Sparkles className="h-3.5 w-3.5" />
-                Narrative
-              </div>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left"
+                onClick={() => setNarrativeExpanded((v) => !v)}
+              >
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Narrative
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-[var(--muted-foreground)] transition-transform duration-200 ${narrativeExpanded ? "rotate-180" : ""}`}
+                />
+              </button>
               <div className="mt-2 text-base font-semibold text-[var(--foreground)]">
                 {analysisResult.title}
               </div>
-              <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
-                {analysisResult.narrative ?? "Narrative unavailable for this run."}
-              </p>
+              {narrativeExpanded ? (
+                <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
+                  {analysisResult.narrative ?? "Narrative unavailable for this run."}
+                </p>
+              ) : (
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                  {analysisResult.narrative?.slice(0, 120) ?? "Narrative unavailable for this run."}
+                  {(analysisResult.narrative?.length ?? 0) > 120 ? "…" : ""}
+                </p>
+              )}
             </div>
 
             {elevationProfile ? (

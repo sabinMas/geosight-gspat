@@ -72,9 +72,10 @@ interface StateBadgeProps {
   tone: StateTone;
   label?: string;
   className?: string;
+  title?: string;
 }
 
-export function StateBadge({ tone, label, className }: StateBadgeProps) {
+export function StateBadge({ tone, label, className, title }: StateBadgeProps) {
   const config = STATE_TONE_STYLES[tone];
   const Icon = config.icon;
 
@@ -83,8 +84,10 @@ export function StateBadge({ tone, label, className }: StateBadgeProps) {
       className={cn(
         "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.16em]",
         config.badge,
+        title ? "cursor-help" : undefined,
         className,
       )}
+      title={title}
     >
       <Icon className={cn("h-3.5 w-3.5", config.iconClassName)} />
       {label ?? config.label}

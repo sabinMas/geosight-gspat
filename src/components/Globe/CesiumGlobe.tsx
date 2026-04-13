@@ -85,7 +85,10 @@ function getFlyToHeight(
   }
 
   const spanKm = estimateRegionSpanKm(selectedRegion.bbox);
-  return Math.round(Math.min(Math.max(spanKm * 900, 2500), 24000));
+  // Minimum 50,000m on first fly-to from landing so terrain context is immediately visible;
+  // subsequent user-driven clicks use the tighter 2,500m floor for fine-grained exploration.
+  const minHeight = isFirstTarget ? 50000 : 2500;
+  return Math.round(Math.min(Math.max(spanKm * 900, minHeight), 120000));
 }
 
 function destinationFromHeading(

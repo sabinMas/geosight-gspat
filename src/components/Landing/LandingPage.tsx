@@ -170,6 +170,7 @@ export function LandingPage() {
                 type="button"
                 onClick={() => handleSelectLens(lens.id)}
                 aria-pressed={isActive}
+                title={lens.whyItMatters}
                 className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition duration-200"
                 style={{
                   borderColor: isActive ? "var(--accent-strong)" : "var(--border-soft)",

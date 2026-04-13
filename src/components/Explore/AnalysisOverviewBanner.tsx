@@ -42,7 +42,10 @@ export function AnalysisOverviewBanner({
   if (compact) {
     return (
       <div className="flex min-w-0 items-center gap-2">
-        <StateBadge tone={overview.tone} />
+        <StateBadge
+          tone={overview.tone}
+          title={overview.tone === "partial" ? "Some data layers have limited regional coverage. Hover a data card to see source availability." : undefined}
+        />
         <span className="truncate text-sm font-semibold text-[var(--foreground)]">
           {loading ? "Analyzing…" : locationName || "Select a location"}
         </span>
@@ -55,11 +58,11 @@ export function AnalysisOverviewBanner({
           </span>
         ) : null}
         <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenFactorBreakdown} title="See how this location's score was calculated">
+          <Button type="button" size="sm" variant="ghost" className="rounded-full text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]" onClick={onOpenFactorBreakdown} title="See how this location's score was calculated">
             Why score
             <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
           </Button>
-          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenSources}>
+          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenSources} title="View data sources">
             <ShieldCheck className="h-3.5 w-3.5" />
           </Button>
         </div>

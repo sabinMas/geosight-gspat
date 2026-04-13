@@ -7,6 +7,7 @@ import { toPng } from "html-to-image";
 import {
   Car,
   Check,
+  ChevronDown,
   Command,
   Copy,
   Download,
@@ -149,6 +150,22 @@ export function ExploreWorkspace() {
   const generateGeoReport = data.generateReport;
   const geodataLoading = data.loading;
   const handleDataQuestionIntent = data.handleQuestionIntent;
+
+  // FIX 3: When arriving from landing with a location query, auto-confirm "Use place"
+  // so the user doesn't have to click through the confirmation step.
+  const autoConfirmedRef = useRef(false);
+  const setAnalysisInputMode = state.setAnalysisInputMode;
+  useEffect(() => {
+    if (
+      autoConfirmedRef.current ||
+      init.entrySource !== "landing" ||
+      !state.locationReady
+    ) {
+      return;
+    }
+    autoConfirmedRef.current = true;
+    setAnalysisInputMode("location");
+  }, [init.entrySource, setAnalysisInputMode, state.locationReady]);
 
   // ESC closes mobile sidebar
   useEffect(() => {
@@ -1100,6 +1117,15 @@ export function ExploreWorkspace() {
   }, [rightPanelOpen]);
   const showRightPanel = rightPanelOpen || panelEverOpenedRef.current;
 
+  // User-controlled panel collapse (desktop: slide-out; mobile: handled by native scroll)
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  // Auto-expand when new content arrives
+  useEffect(() => {
+    if (rightPanelOpen) {
+      setRightPanelCollapsed(false);
+    }
+  }, [rightPanelOpen]);
+
   const analysisContextValue = useMemo(
     () => ({
       activeLens: state.activeLensId,
@@ -1389,7 +1415,7 @@ export function ExploreWorkspace() {
       <div className="flex min-h-0 flex-1 flex-col xl:flex-row xl:overflow-hidden">
 
         {/* Left icon rail — desktop only */}
-        <aside className="hidden w-14 shrink-0 flex-col items-center overflow-hidden border-r border-[color:var(--border-soft)] xl:flex" aria-label="Workspace tools">
+        <aside className="hidden w-14 shrink-0 flex-col items-center border-r border-[color:var(--border-soft)] xl:flex" aria-label="Workspace tools">
 
           {/* Init error strip */}
           {state.initError ? (
@@ -1660,26 +1686,41 @@ export function ExploreWorkspace() {
           className={cn(
             "hidden xl:flex xl:flex-col xl:fixed xl:inset-y-[52px] xl:right-0 xl:w-[380px] xl:overflow-y-auto xl:border-l xl:border-[color:var(--border-soft)] xl:bg-[var(--surface-overlay)] xl:backdrop-blur-xl xl:shadow-[var(--shadow-panel)] xl:z-30",
             "xl:transition-transform xl:duration-300 xl:ease-out",
-            showRightPanel ? "xl:translate-x-0" : "xl:translate-x-full",
+            showRightPanel && !rightPanelCollapsed ? "xl:translate-x-0" : "xl:translate-x-full",
           )}
           aria-label="Analysis cards and workspace panels"
-          aria-hidden={!showRightPanel}
+          aria-hidden={!showRightPanel || rightPanelCollapsed}
         >
+          {/* Collapse arrow — anchored to left edge of panel */}
+          {showRightPanel ? (
+            <button
+              type="button"
+              onClick={() => setRightPanelCollapsed((v) => !v)}
+              title={rightPanelCollapsed ? "Expand analysis panel" : "Collapse analysis panel"}
+              aria-label={rightPanelCollapsed ? "Expand analysis panel" : "Collapse analysis panel"}
+              className="absolute -left-8 top-1/2 z-40 -translate-y-1/2 flex h-16 w-8 items-center justify-center rounded-l-xl border border-r-0 border-[color:var(--border-soft)] bg-[var(--surface-overlay)] text-[var(--muted-foreground)] backdrop-blur-xl shadow-[var(--shadow-soft)] transition hover:text-[var(--foreground)]"
+            >
+              <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", rightPanelCollapsed ? "-rotate-90" : "rotate-90")} />
+            </button>
+          ) : null}
           <CardDisplayProvider value={{ defaultCollapsed: true }}>
             {rightPanelContent}
           </CardDisplayProvider>
         </aside>
 
-        {/* Pull handle — appears when panel is closed and there is content to show */}
-        {!showRightPanel && (
+        {/* Pull handle — appears when panel is closed (no content) or user-collapsed */}
+        {(!showRightPanel || rightPanelCollapsed) && (
           <button
             type="button"
             className="hidden xl:flex fixed right-0 top-1/2 z-30 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-l-xl border border-r-0 border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-1.5 py-4 backdrop-blur-xl shadow-[var(--shadow-soft)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition"
             title="Open analysis panels"
             aria-label="Open analysis panels"
             onClick={() => {
-              const firstCard = data.primaryCards[0];
-              if (firstCard) data.setActivePrimaryCardId(firstCard.id);
+              setRightPanelCollapsed(false);
+              if (!showRightPanel) {
+                const firstCard = data.primaryCards[0];
+                if (firstCard) data.setActivePrimaryCardId(firstCard.id);
+              }
             }}
           >
             <div className="h-4 w-0.5 rounded-full bg-current opacity-40" />
