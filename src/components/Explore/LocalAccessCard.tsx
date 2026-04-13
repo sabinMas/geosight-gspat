@@ -100,8 +100,8 @@ export function LocalAccessCard({ geodata }: { geodata: GeodataResult | null }) 
       eyebrow="Access profile"
       title="Local access"
       headerExtra={
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="min-w-0 text-right">
             <div className="text-3xl font-semibold text-[var(--foreground)]">{total}</div>
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">out of 100</div>
           </div>

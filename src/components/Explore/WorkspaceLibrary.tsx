@@ -82,11 +82,11 @@ export function WorkspaceLibrary({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--accent)]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--accent)]">
                           <WorkspaceCardIcon icon={card.icon} className="h-4 w-4" />
                         </div>
-                        <div>
-                          <div className="text-base font-semibold text-[var(--foreground)]">{card.title}</div>
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-semibold text-[var(--foreground)]">{card.title}</div>
                           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">{card.summary}</p>
                           {card.questionAnswered ? (
                             <p className="mt-1 text-xs italic leading-5 text-[var(--muted-foreground)]/70">

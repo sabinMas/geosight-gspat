@@ -41,7 +41,7 @@ function TrendSignalCard({
 }) {
   return (
     <div
-      className={`rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${muted ? "opacity-80" : ""}`}
+      className={`min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${muted ? "opacity-80" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
@@ -52,7 +52,7 @@ function TrendSignalCard({
           <SourceInfoButton source={trend.source} title={`${trend.label} source`} />
         </div>
       </div>
-      <div className="mt-4 text-4xl font-semibold tracking-tight text-[var(--foreground)]">
+      <div className="mt-4 min-w-0 break-words text-4xl font-semibold tracking-tight text-[var(--foreground)]">
         {trend.value}
       </div>
       <div

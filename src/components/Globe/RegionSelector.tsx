@@ -12,8 +12,8 @@ export function RegionSelector({ region, locationTooltip, onReset }: RegionSelec
     <div className="glass-panel absolute bottom-4 right-4 z-10 max-w-[320px] rounded-3xl p-4 text-sm text-[var(--foreground-soft)]">
       <div className="text-xs uppercase tracking-[0.24em] text-cyan-200">Selection area</div>
       <div
-        className="mt-2 text-base font-semibold text-[var(--foreground)]"
-        title={locationTooltip}
+        className="mt-2 line-clamp-2 text-base font-semibold text-[var(--foreground)]"
+        title={locationTooltip ?? region.name}
       >
         {region.name}
       </div>

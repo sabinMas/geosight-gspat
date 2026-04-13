@@ -96,25 +96,25 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
             </div>
           ) : null}
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
+            <div className="min-w-0 rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Biggest lifts
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
                 {strongestFactors.map((factor) => (
-                  <div key={factor.key}>
+                  <div key={factor.key} className="min-w-0 break-words">
                     {factor.label} — {factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts
                   </div>
                 ))}
               </div>
             </div>
-            <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
+            <div className="min-w-0 rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Biggest drags
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
                 {mainConstraints.map((factor) => (
-                  <div key={factor.key}>
+                  <div key={factor.key} className="min-w-0 break-words">
                     {factor.label} — {factor.gap.toFixed(1)} pts uncaptured
                   </div>
                 ))}

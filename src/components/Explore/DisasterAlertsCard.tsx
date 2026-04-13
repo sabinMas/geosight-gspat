@@ -71,9 +71,9 @@ function AlertRow({ alert }: { alert: GdacsAlertSummaryItem }) {
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-current bg-[var(--surface-overlay)] opacity-70">
           <Icon className="h-3.5 w-3.5" aria-hidden />
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-[var(--foreground)] leading-snug">
+            <span className="min-w-0 truncate text-sm font-semibold leading-snug text-[var(--foreground)]">
               {alert.eventLabel || alert.eventType}
             </span>
             <span
@@ -82,7 +82,7 @@ function AlertRow({ alert }: { alert: GdacsAlertSummaryItem }) {
               {alert.alertLevel}
             </span>
           </div>
-          <div className="text-xs text-[var(--muted-foreground)]">
+          <div className="truncate text-xs text-[var(--muted-foreground)]">
             {alert.country}
             {alert.distanceKm !== null
               ? ` · ${alert.distanceKm.toFixed(0)} km from search point`
@@ -90,7 +90,7 @@ function AlertRow({ alert }: { alert: GdacsAlertSummaryItem }) {
             {fromDate ? ` · ${fromDate}${toDate && toDate !== fromDate ? ` – ${toDate}` : ""}` : ""}
           </div>
           {alert.description ? (
-            <p className="text-xs leading-5 text-[var(--foreground)] opacity-75">
+            <p className="line-clamp-2 text-xs leading-5 text-[var(--foreground)] opacity-75">
               {alert.description}
             </p>
           ) : null}

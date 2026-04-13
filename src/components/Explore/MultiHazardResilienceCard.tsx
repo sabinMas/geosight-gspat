@@ -64,8 +64,8 @@ export function MultiHazardResilienceCard({ geodata }: { geodata: GeodataResult 
       title="Multi-hazard resilience"
       headerExtra={
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="text-right">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0 text-right">
               <div className="text-3xl font-semibold text-[var(--foreground)]">{summary.compoundScore}</div>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">out of 100</div>
             </div>

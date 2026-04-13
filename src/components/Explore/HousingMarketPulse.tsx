@@ -52,11 +52,11 @@ function MarketStat({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
       <div className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
         {label}
       </div>
-      <div className="mt-3 text-3xl font-semibold tracking-tight text-[var(--foreground)]">
+      <div className="mt-3 min-w-0 break-words text-3xl font-semibold tracking-tight text-[var(--foreground)]">
         {value}
       </div>
       <div className="mt-3 h-14">

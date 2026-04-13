@@ -97,13 +97,13 @@ export function NearbyPlacesList({
               className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]"
             >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-[var(--foreground)]">{place.name}</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-[var(--foreground)]">{place.name}</div>
+                  <div className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
                     {place.category}
                   </div>
                 </div>
-                <div className="text-right text-xs text-[var(--muted-foreground)]">
+                <div className="shrink-0 text-right text-xs text-[var(--muted-foreground)]">
                   <div className="text-base font-semibold text-[var(--foreground)]">{place.distanceKm?.toFixed(1) ?? "--"} km</div>
                   <div className="mt-1">{place.relativeLocation}</div>
                 </div>

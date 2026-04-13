@@ -143,10 +143,10 @@ export function WorkspaceBoard({
                     type="button"
                     onClick={() => onToggleCard(card.id)}
                     aria-pressed={isOpen}
-                    className="inline-flex items-center gap-2 py-2.5 pr-4 text-left"
+                    className="inline-flex min-w-0 items-center gap-2 py-2.5 pr-4 text-left"
                   >
                     <div className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-full border",
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border",
                       isOpen
                         ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]"
                         : "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--accent)]",
@@ -154,7 +154,7 @@ export function WorkspaceBoard({
                       <WorkspaceCardIcon icon={card.icon} className="h-4 w-4" />
                     </div>
                     <div className={cn(
-                      "text-sm font-semibold",
+                      "min-w-0 truncate text-sm font-semibold",
                       isOpen ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]",
                     )}>{card.title}</div>
                   </button>
@@ -274,12 +274,12 @@ export function WorkspaceBoard({
                       <button
                         type="button"
                         onClick={() => onRestoreBoard(board.id)}
-                        className="flex items-center gap-1.5 text-left"
+                        className="flex min-w-0 items-center gap-1.5 text-left"
                       >
-                        <span className={cn("text-sm font-semibold", isActive ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]")}>
+                        <span className={cn("min-w-0 truncate text-sm font-semibold", isActive ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]")}>
                           {board.name}
                         </span>
-                        <span className="text-xs text-[var(--muted-foreground)]">
+                        <span className="shrink-0 text-xs text-[var(--muted-foreground)]">
                           · {board.visibleCardIds.length} cards
                         </span>
                       </button>
