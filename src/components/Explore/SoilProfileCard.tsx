@@ -79,7 +79,9 @@ function getBuildabilitySummary(soil: NonNullable<GeodataResult["soilProfile"]>)
 
 export function SoilProfileCard({ geodata }: SoilProfileCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Subsurface geology" title="Soil profile" loading={true} />
+    );
   }
 
   const trustSummary = summarizeSourceTrust(

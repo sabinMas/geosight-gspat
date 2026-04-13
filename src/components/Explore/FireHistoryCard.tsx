@@ -55,7 +55,11 @@ export function FireHistoryCard({ geodata, lat, lng, appMode = "pro" }: FireHist
     return () => controller.abort();
   }, [geodata, lat, lng]);
 
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Fire history" title="Wildfire history" loading={true} />
+    );
+  }
 
   const maxDetections = history ? Math.max(...history.byYear.map((y) => y.detectionCount), 1) : 1;
   const isExplorer = appMode === "explorer";

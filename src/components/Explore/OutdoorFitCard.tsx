@@ -132,7 +132,11 @@ function buildFitSignals(geodata: GeodataResult): FitSignal[] {
 }
 
 export function OutdoorFitCard({ geodata }: OutdoorFitCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Explorer view" title="Outdoor fit" loading={true} />
+    );
+  }
 
   const signals = buildFitSignals(geodata);
   const positiveCount = signals.filter((s) => s.tone === "positive").length;

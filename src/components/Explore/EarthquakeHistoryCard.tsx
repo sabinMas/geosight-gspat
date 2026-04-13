@@ -99,7 +99,11 @@ export function EarthquakeHistoryCard({
     }
   };
 
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Seismic history" title="Earthquake history" loading={true} />
+    );
+  }
 
   const yearData = history
     ? Object.entries(history.countByYear)

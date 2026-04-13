@@ -77,7 +77,11 @@ function tierBadgeClasses(tone: TierMeta["tone"]) {
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function SolarResourceCard({ geodata }: SolarResourceCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Energy" title="Solar resource" loading={true} />
+    );
+  }
 
   const solar = geodata.solarResource;
   const sources = [geodata.sources.solarResource];

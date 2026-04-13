@@ -30,7 +30,9 @@ function getGranularityLabel(granularity: "county" | "country" | "nuts2_region")
 
 export function DemographicsCard({ geodata }: DemographicsCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Area context" title="Demographics" loading={true} />
+    );
   }
 
   const trustSummary = summarizeSourceTrust([geodata.sources.demographics], "Demographics context");

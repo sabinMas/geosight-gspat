@@ -264,7 +264,11 @@ function overallTone(signals: ReadinessSignal[]): { label: string; tone: SignalT
 }
 
 export function SiteReadinessCard({ geodata }: { geodata: GeodataResult | null }) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Site development" title="Site readiness" loading={true} />
+    );
+  }
 
   const signals = buildSignals(geodata);
   const overall = overallTone(signals);

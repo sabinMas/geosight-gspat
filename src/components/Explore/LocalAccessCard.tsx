@@ -86,7 +86,11 @@ function scoreLabelClasses(total: number) {
 }
 
 export function LocalAccessCard({ geodata }: { geodata: GeodataResult | null }) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Access profile" title="Local access" loading={true} />
+    );
+  }
 
   const { total, label, signals } = computeAccessScore(geodata);
   const trustSummary = summarizeSourceTrust([geodata.sources.amenities], "Local access");

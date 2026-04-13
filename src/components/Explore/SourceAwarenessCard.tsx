@@ -190,7 +190,9 @@ export function SourceAwarenessCard({ geodata }: SourceAwarenessCardProps) {
   const [showSourceDetails, setShowSourceDetails] = useState(false);
 
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Trust and provenance" title="Source awareness" loading={true} />
+    );
   }
 
   const registryContext = inferSourceRegistryContextFromGeodata(geodata);

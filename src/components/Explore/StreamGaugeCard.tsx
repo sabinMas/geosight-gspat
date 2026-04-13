@@ -116,7 +116,11 @@ function ratingBadgeClasses(tone: "success" | "accent" | "warning" | "danger") {
 }
 
 export function StreamGaugeCard({ geodata }: StreamGaugeCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Hydrology" title="Stream gauge network" loading={true} />
+    );
+  }
 
   const gauges = sanitizeStreamGauges(geodata.streamGauges);
   const sources = [geodata.sources.water];
