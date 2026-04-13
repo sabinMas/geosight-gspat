@@ -28,6 +28,7 @@ import { EXPLORER_LENSES } from "@/lib/explorer-lenses";
 import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { ProductPreviewSection } from "./ProductPreviewSection";
 
 const ICONS = {
   House,
@@ -438,6 +439,10 @@ export function LandingPage() {
               Open Pro workspace
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+          </div>
+
+          <div className="mt-4 mb-5">
+            <ProductPreviewSection />
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
