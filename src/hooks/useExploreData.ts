@@ -10,7 +10,7 @@ import {
 import { GeoSightContext } from "@/lib/agents/agent-config";
 import { buildLocationTrends } from "@/lib/data-trends";
 import { getActiveLayerLabels } from "@/lib/map-layers";
-import { fetchWithTimeout } from "@/lib/network";
+import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/network";
 import { calculateProfileScore } from "@/lib/scoring";
 import { getVisibleCardsForMode } from "@/lib/app-mode";
 import { getExplorerLensById } from "@/lib/explorer-lenses";
@@ -60,7 +60,7 @@ async function readResponseTextWithTimeout(response: Response, timeoutMs: number
       response.text(),
       new Promise<string>((_, reject) => {
         timeoutHandle = setTimeout(() => {
-          reject(new Error("The AI response took too long to finish."));
+          reject(new ExternalRequestTimeoutError(timeoutMs));
         }, timeoutMs);
       }),
     ]);
@@ -69,6 +69,14 @@ async function readResponseTextWithTimeout(response: Response, timeoutMs: number
       clearTimeout(timeoutHandle);
     }
   }
+}
+
+function isRetryableTimeoutResponse(response: Response) {
+  return (
+    response.status === 504 ||
+    response.headers.get("X-GeoSight-Mode") === "timeout" ||
+    response.headers.get("X-GeoSight-Retryable") === "true"
+  );
 }
 
 function laneToAgentId(capabilityId: AnalysisCapabilityId, modelLane: string) {
@@ -421,14 +429,17 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
             }),
             signal: controller.signal,
           },
-          25_000,
+          60_000,
         );
 
         if (!response.ok) {
+          if (isRetryableTimeoutResponse(response)) {
+            throw new ExternalRequestTimeoutError(60_000);
+          }
           throw new Error(await readAgentRouteError(response));
         }
 
-        const content = (await readResponseTextWithTimeout(response, 12_000)).trim();
+        const content = (await readResponseTextWithTimeout(response, 60_000)).trim();
         if (requestId !== capabilityRequestIdRef.current || controller.signal.aborted) {
           return;
         }
@@ -452,6 +463,14 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         });
       } catch (analysisError) {
         if (requestId !== capabilityRequestIdRef.current || controller.signal.aborted) {
+          return;
+        }
+
+        if (analysisError instanceof ExternalRequestTimeoutError) {
+          setCapabilityAnalysisResult(null);
+          setCapabilityAnalysisError(
+            "Live capability analysis timed out before a model returned a usable response. Retry in a moment.",
+          );
           return;
         }
 

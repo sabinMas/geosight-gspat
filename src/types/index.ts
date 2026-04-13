@@ -267,7 +267,7 @@ export type AnalysisModelLane =
   | "writer"
   | "scientific";
 export type AnalysisCapabilityStatus = "available" | "unavailable";
-export type AgentExecutionMode = "live" | "fallback" | "deterministic";
+export type AgentExecutionMode = "live" | "fallback" | "deterministic" | "timeout";
 export type SubsurfaceDatasetId =
   | "groundwater"
   | "soil-profile"

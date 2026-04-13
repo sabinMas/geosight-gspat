@@ -709,18 +709,14 @@ All set in the **Vercel project dashboard** (Settings â†’ Environment Varia
 | `NEXT_PUBLIC_CESIUM_ION_TOKEN` | Globe does not render |
 | `GROQ_API_KEY` | All AI falls back to deterministic mode |
 
-### AI key pool (add all keys you have)
+### AI providers
 
 | Variable | Notes |
 |---|---|
-| `GROQ_API_KEY` | Required. Primary pool key |
-| `GROQ_API_KEY_2` | Optional rotation pool (separate account = separate rate limit) |
-| `GROQ_API_KEY_3` | Optional rotation pool |
-| `GROQ_ANALYSIS_KEY` | GeoAnalyst dedicated lane (highest token usage â€” give it your best key) |
-| `GROQ_WRITER_KEY` | GeoScribe dedicated lane |
-| `GROQ_UX_KEY` | GeoGuide + GeoUsability shared lane |
+| `GROQ_API_KEY` | Primary Groq key used for live analysis and Groq-backed agents |
+| `GEMINI_API_KEY` | Secondary live provider when Groq truly fails |
 
-**Recommended with 3 Groq accounts:** `GROQ_ANALYSIS_KEY` â†’ key 1 (highest quota), `GROQ_WRITER_KEY` â†’ key 2, `GROQ_API_KEY` â†’ key 3. Leave pool rotation vars empty.
+**Current recommendation:** keep one fresh `GROQ_API_KEY` configured for Groq-first requests and one `GEMINI_API_KEY` configured as the backup provider.
 
 ### Optional
 

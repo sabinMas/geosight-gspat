@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isProviderTimeoutError } from "@/lib/analysis-provider";
 import { logAnalysisProviderFailure, runAnalysisWithFallback } from "@/lib/analysis-runner";
 import { buildFallbackAssessment } from "@/lib/geosight-assistant";
 import { getProfileById } from "@/lib/profiles";
@@ -31,6 +32,24 @@ function normalizeConversationMessages(messages: AnalyzeRequestBody["messages"])
     .slice(-12);
 
   return normalized.length ? normalized : undefined;
+}
+
+function buildTimeoutResponse(headers: HeadersInit, provider = "groq") {
+  return NextResponse.json(
+    {
+      error: "Live analysis timed out before a provider returned a usable response. Please retry.",
+      retryable: true,
+      provider,
+    },
+    {
+      status: 504,
+      headers: {
+        ...headers,
+        "X-GeoSight-Mode": "timeout",
+        "X-GeoSight-Retryable": "true",
+      },
+    },
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -81,12 +100,21 @@ export async function POST(request: NextRequest) {
   }
 
   // Standard (non-streaming) path — also used as fallback when streaming fails
-  const result = await runAnalysisWithFallback(payload, profile, {
-    fallbackAnswer: buildFallbackAssessment(payload, profile),
-    onProviderFailure(provider, error) {
-      logAnalysisProviderFailure("analyze", provider, error);
-    },
-  });
+  let result;
+  try {
+    result = await runAnalysisWithFallback(payload, profile, {
+      fallbackAnswer: buildFallbackAssessment(payload, profile),
+      onProviderFailure(provider, error) {
+        logAnalysisProviderFailure("analyze", provider, error);
+      },
+    });
+  } catch (error) {
+    if (isProviderTimeoutError(error)) {
+      return buildTimeoutResponse(headers, error.provider);
+    }
+
+    throw error;
+  }
 
   return NextResponse.json(
     {

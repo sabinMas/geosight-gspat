@@ -6,23 +6,25 @@ function hasConfiguredEnv(envName: string) {
 }
 
 export async function GET() {
-  const groqAnalysisKeys = [
-    "GROQ_API_KEY",
-    "GROQ_API_KEY_2",
-    "GROQ_API_KEY_3",
-  ].filter(hasConfiguredEnv);
+  const groqConfigured = hasConfiguredEnv("GROQ_API_KEY");
   const geminiConfigured = hasConfiguredEnv("GEMINI_API_KEY");
   const agentStatuses = Object.fromEntries(
     Object.entries(AGENT_CONFIGS).map(([agentId, config]) => [
       agentId,
-      {
-        configured: hasConfiguredEnv(config.apiKeyEnv),
-        provider: "groq",
-        envKey: config.apiKeyEnv,
-      },
+      config.apiKeyEnv
+        ? {
+            configured: hasConfiguredEnv(config.apiKeyEnv),
+            provider: "groq",
+            envKey: config.apiKeyEnv,
+          }
+        : {
+            configured: true,
+            provider: "deterministic",
+            envKey: null,
+          },
     ]),
   );
-  const liveAnalysisAvailable = groqAnalysisKeys.length > 0 || geminiConfigured;
+  const liveAnalysisAvailable = groqConfigured || geminiConfigured;
 
   return NextResponse.json(
     {
@@ -30,8 +32,8 @@ export async function GET() {
       liveAnalysisAvailable,
       analysisProviders: {
         groq: {
-          configured: groqAnalysisKeys.length > 0,
-          configuredKeyCount: groqAnalysisKeys.length,
+          configured: groqConfigured,
+          configuredKeyCount: groqConfigured ? 1 : 0,
         },
         gemini: {
           configured: geminiConfigured,

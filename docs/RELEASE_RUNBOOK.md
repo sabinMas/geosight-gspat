@@ -5,11 +5,6 @@
 Set these environment variables in Vercel before promoting a release that depends on live AI:
 
 - `GROQ_API_KEY`
-- `GROQ_API_KEY_2` (optional)
-- `GROQ_API_KEY_3` (optional)
-- `GROQ_ANALYSIS_KEY`
-- `GROQ_UX_KEY`
-- `GROQ_WRITER_KEY`
 - `GEMINI_API_KEY`
 
 ## Post-Deploy Validation

@@ -281,15 +281,13 @@ These are decisions that have been tested and should not be undone:
 ## Environment Variables
 
 See `.env.example` for all keys. Minimum for local development:
-- `NEXT_PUBLIC_CESIUM_ION_TOKEN` — globe will not render without this
-- `GROQ_API_KEY` — chat and analysis will fall back to deterministic mode without this
+- `NEXT_PUBLIC_CESIUM_ION_TOKEN` - globe will not render without this
+- `GROQ_API_KEY` - chat and analysis will fall back to deterministic mode without this
 
 Optional:
-- `GROQ_API_KEY_2`, `GROQ_API_KEY_3` — rotation pool for rate limits
-- `GROQ_ANALYSIS_KEY`, `GROQ_UX_KEY`, `GROQ_WRITER_KEY` — per-agent keys
-- `GEMINI_API_KEY` — fallback reasoning + RAG embeddings
-- `NASA_FIRMS_MAP_KEY` — fire detection coverage
-- `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` — shared rate limiting
+- `GEMINI_API_KEY` - secondary live provider + RAG embeddings
+- `NASA_FIRMS_MAP_KEY` - fire detection coverage
+- `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` - shared rate limiting
 
 ---
 

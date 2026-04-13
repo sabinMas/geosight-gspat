@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+  AnalysisProviderError,
+  isProviderTimeoutError,
+  normalizeProviderError,
+} from "@/lib/analysis-provider";
+import {
   AGENT_CONFIGS,
   AgentConfig,
   GeoSightContext,
@@ -8,6 +13,7 @@ import {
   isAgentId,
 } from "@/lib/agents/agent-config";
 import { buildFallbackAssessment, formatLocationLabel } from "@/lib/geosight-assistant";
+import { getGroqKey } from "@/lib/groq";
 import { getProfileById } from "@/lib/profiles";
 import { injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
@@ -431,43 +437,47 @@ function createTextStream(body: ReadableStream<Uint8Array>) {
 
 async function requestGroqCompletion(
   config: AgentConfig,
-  apiKey: string,
   message: string,
   context?: GeoSightContext,
   messages: AgentConversationMessage[] = [],
 ) {
+  const apiKey = getGroqKey();
   const completionMessages = await buildCompletionMessages(config, message, context, messages);
 
-  return fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: config.temperature,
-      max_tokens: config.maxTokens,
-      stream: true,
-      messages: completionMessages.map((entry) => ({
-        role: entry.role,
-        content: entry.content,
-      })),
-    }),
-  });
+  try {
+    return await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        temperature: config.temperature,
+        max_tokens: config.maxTokens,
+        stream: true,
+        messages: completionMessages.map((entry) => ({
+          role: entry.role,
+          content: entry.content,
+        })),
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch (error) {
+    throw normalizeProviderError(error, "groq");
+  }
 }
 
-function getGroqApiKeyCandidates(config: AgentConfig) {
-  const candidates = [
-    process.env[config.apiKeyEnv],
-    process.env.GROQ_API_KEY,
-    process.env.GROQ_API_KEY_2,
-    process.env.GROQ_API_KEY_3,
-  ]
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
-
-  return [...new Set(candidates)];
+function buildAgentTimeoutResponse() {
+  return new Response("GeoSight live model timed out before it returned a usable response. Please retry.", {
+    status: 504,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-GeoSight-Mode": "timeout",
+      "X-GeoSight-Retryable": "true",
+    },
+  });
 }
 
 export async function POST(
@@ -511,43 +521,60 @@ export async function POST(
     });
   }
 
-  const apiKeys = getGroqApiKeyCandidates(agentConfig);
-  if (apiKeys.length === 0) {
-    return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
+  try {
+    getGroqKey();
+  } catch (error) {
+    if (error instanceof AnalysisProviderError && error.category === "missing_config") {
+      return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-GeoSight-Mode": "fallback",
+        },
+      });
+    }
+
+    throw error;
+  }
+
+  try {
+    const response = await requestGroqCompletion(
+      agentConfig,
+      message,
+      requestContext,
+      messages,
+    );
+
+    if (!response.ok || !response.body) {
+      if (response.status === 408 || response.status === 504) {
+        return buildAgentTimeoutResponse();
+      }
+
+      console.warn(
+        `[agents-route] agent=${AGENT_CONFIGS[rawAgentId].id} provider_failed status=${response.status}`,
+      );
+
+      return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
         "X-GeoSight-Mode": "fallback",
       },
     });
-  }
-
-  try {
-    for (const apiKey of apiKeys) {
-      const response = await requestGroqCompletion(
-        agentConfig,
-        apiKey,
-        message,
-        requestContext,
-        messages,
-      );
-
-      if (!response.ok || !response.body) {
-        console.warn(
-          `[agents-route] agent=${AGENT_CONFIGS[rawAgentId].id} provider_failed status=${response.status}`,
-        );
-        continue;
-      }
-
-      return new Response(createTextStream(response.body), {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "no-store",
-          "X-GeoSight-Mode": "live",
-        },
-      });
     }
+
+    return new Response(createTextStream(response.body), {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-GeoSight-Mode": "live",
+      },
+    });
   } catch (error) {
+    if (isProviderTimeoutError(error)) {
+      return buildAgentTimeoutResponse();
+    }
+
     console.error(
       `[agents-route] agent=${AGENT_CONFIGS[rawAgentId].id} request_failed`,
       error,

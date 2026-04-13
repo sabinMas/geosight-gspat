@@ -14,7 +14,7 @@ export interface TrustPanelSummary {
   description: string;
 }
 
-export type GeneratedTrustMode = "live" | "fallback" | "deterministic";
+export type GeneratedTrustMode = "live" | "fallback" | "deterministic" | "timeout";
 
 function normalizeSources(sources: Array<DataSourceMeta | null | undefined>) {
   return sources.filter((source): source is DataSourceMeta => Boolean(source));
@@ -157,6 +157,16 @@ export function summarizeGeneratedTrust(
       title: `${subject} is using GeoSight's deterministic interpretation layer`,
       description:
         "This output was generated directly from the loaded geospatial context without a live model call. It stays grounded, but it is intentionally conservative and formula-driven.",
+    };
+  }
+
+  if (mode === "timeout") {
+    return {
+      tone: "partial",
+      badgeLabel: "Live timeout",
+      title: `${subject} timed out before a live model completed`,
+      description:
+        "GeoSight did not get a usable live model response in time. Retry the live request instead of treating this as a grounded fallback synthesis.",
     };
   }
 

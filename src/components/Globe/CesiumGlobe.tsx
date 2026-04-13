@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import {
   ArcGisBaseMapType,
@@ -29,6 +29,7 @@ import {
   PolygonHierarchy,
   PolylineArrowMaterialProperty,
   Quaternion,
+  Rectangle,
   sampleTerrainMostDetailed,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -40,6 +41,7 @@ import {
 import { estimateRegionSpanKm } from "@/lib/geospatial";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import {
+  BoundingBox,
   Coordinates,
   DrawnShape,
   DrawingTool,
@@ -110,6 +112,32 @@ function destinationFromHeading(
   return {
     lat: (lat2 * 180) / Math.PI,
     lng: ((lng2 * 180) / Math.PI + 540) % 360 - 180,
+  };
+}
+
+function rectangleToBoundingBox(rectangle: Rectangle): BoundingBox | null {
+  const west = CesiumMath.toDegrees(rectangle.west);
+  const south = CesiumMath.toDegrees(rectangle.south);
+  const east = CesiumMath.toDegrees(rectangle.east);
+  const north = CesiumMath.toDegrees(rectangle.north);
+  const widthDegrees = east - west;
+
+  if (
+    !Number.isFinite(west) ||
+    !Number.isFinite(south) ||
+    !Number.isFinite(east) ||
+    !Number.isFinite(north) ||
+    widthDegrees <= 0 ||
+    north <= south
+  ) {
+    return null;
+  }
+
+  return {
+    west: Math.max(-180, west),
+    south: Math.max(-90, south),
+    east: Math.min(180, east),
+    north: Math.min(90, north),
   };
 }
 
@@ -203,6 +231,10 @@ export function CesiumGlobe({
   const [globeReady, setGlobeReady] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
   const [pointerInside, setPointerInside] = useState(false);
+  const [overlayViewportBbox, setOverlayViewportBbox] = useState<BoundingBox | null>(null);
+  const [overlayViewportSnapshot, setOverlayViewportSnapshot] = useState<GlobeViewSnapshot | null>(
+    null,
+  );
   const driveHudSpeedRef = useRef<HTMLSpanElement | null>(null);
   const driveHudAltRef = useRef<HTMLSpanElement | null>(null);
   const terrainExaggerationRef = useRef(terrainExaggeration);
@@ -241,7 +273,7 @@ export function CesiumGlobe({
   const isViewerUsable = (viewer: CesiumViewer | null): viewer is CesiumViewer =>
     Boolean(viewer && !viewer.isDestroyed());
 
-  const getMetersPerPixel = (viewer: CesiumViewer) => {
+  const getMetersPerPixel = useCallback((viewer: CesiumViewer) => {
     const canvas = viewer.scene.canvas;
     const sampleY = Math.max(24, canvas.height - 96);
     const leftScreen = new Cartesian2(Math.max(12, canvas.width / 2 - 100), sampleY);
@@ -266,7 +298,55 @@ export function CesiumGlobe({
     return Number.isFinite(distanceMeters) && distanceMeters > 0
       ? distanceMeters / 200
       : null;
-  };
+  }, []);
+
+  const getOverlayViewportState = useCallback((viewer: CesiumViewer) => {
+    const cartographic = Cartographic.fromCartesian(viewer.camera.positionWC);
+    const snapshot: GlobeViewSnapshot = {
+      headingDegrees: CesiumMath.toDegrees(viewer.camera.heading),
+      pitchDegrees: CesiumMath.toDegrees(viewer.camera.pitch),
+      rollDegrees: CesiumMath.toDegrees(viewer.camera.roll),
+      altitudeMeters: Number.isFinite(cartographic.height) ? cartographic.height : null,
+      latitude: Number.isFinite(cartographic.latitude)
+        ? CesiumMath.toDegrees(cartographic.latitude)
+        : null,
+      longitude: Number.isFinite(cartographic.longitude)
+        ? CesiumMath.toDegrees(cartographic.longitude)
+        : null,
+      viewportWidthPx: viewer.scene.canvas.width,
+      viewportHeightPx: viewer.scene.canvas.height,
+      metersPerPixel: getMetersPerPixel(viewer),
+    };
+    const viewRectangle = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+
+    return {
+      bbox: viewRectangle ? rectangleToBoundingBox(viewRectangle) : null,
+      snapshot,
+    };
+  }, [getMetersPerPixel]);
+
+  const roadsOverlayActive =
+    layers.roads &&
+    globeViewMode !== "road" &&
+    (overlayViewportSnapshot?.metersPerPixel === null ||
+      overlayViewportSnapshot?.metersPerPixel === undefined ||
+      overlayViewportSnapshot.metersPerPixel <= 700);
+  const floodOverlayActive =
+    layers.floodZones &&
+    (overlayViewportSnapshot?.metersPerPixel === null ||
+      overlayViewportSnapshot?.metersPerPixel === undefined ||
+      overlayViewportSnapshot.metersPerPixel <= 2200);
+  const contoursOverlayActive =
+    layers.contours &&
+    (overlayViewportSnapshot?.metersPerPixel === null ||
+      overlayViewportSnapshot?.metersPerPixel === undefined ||
+      overlayViewportSnapshot.metersPerPixel <= 900);
+  const fireOverlayActive =
+    layers.fires &&
+    overlayViewportBbox !== null &&
+    (overlayViewportSnapshot?.metersPerPixel === null ||
+      overlayViewportSnapshot?.metersPerPixel === undefined ||
+      overlayViewportSnapshot.metersPerPixel <= 2500);
 
   const requestViewerReset = (reason: string) => {
     if (resetTimeoutRef.current !== null) {
@@ -382,6 +462,43 @@ export function CesiumGlobe({
     controller.translateEventTypes = globeRotateMode ? [] : [CameraEventType.LEFT_DRAG];
     viewer.scene.requestRender();
   }, [globeRotateMode, pointerInside, viewerReady]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    let debounceHandle: ReturnType<typeof setTimeout> | null = null;
+
+    const syncOverlayViewport = () => {
+      if (!isViewerUsable(viewer)) {
+        return;
+      }
+
+      const { bbox, snapshot } = getOverlayViewportState(viewer);
+      setOverlayViewportBbox(bbox);
+      setOverlayViewportSnapshot(snapshot);
+    };
+
+    const scheduleSync = () => {
+      if (debounceHandle) {
+        clearTimeout(debounceHandle);
+      }
+
+      debounceHandle = setTimeout(syncOverlayViewport, 180);
+    };
+
+    syncOverlayViewport();
+    viewer.camera.moveEnd.addEventListener(scheduleSync);
+
+    return () => {
+      viewer.camera.moveEnd.removeEventListener(scheduleSync);
+      if (debounceHandle) {
+        clearTimeout(debounceHandle);
+      }
+    };
+  }, [getOverlayViewportState, viewerReady, viewerKey]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -513,7 +630,7 @@ export function CesiumGlobe({
     };
 
     void (async () => {
-      if (layers.roads && globeViewMode !== "road") {
+      if (roadsOverlayActive) {
         await addOverlayLayer(
           async () =>
             new OpenStreetMapImageryProvider({
@@ -524,7 +641,7 @@ export function CesiumGlobe({
         );
       }
 
-      if (layers.floodZones) {
+      if (floodOverlayActive) {
         await addOverlayLayer(
           () =>
             ArcGisMapServerImageryProvider.fromUrl(
@@ -538,7 +655,7 @@ export function CesiumGlobe({
         );
       }
 
-      if (layers.contours) {
+      if (contoursOverlayActive) {
         await addOverlayLayer(
           async () =>
             new UrlTemplateImageryProvider({
@@ -565,13 +682,13 @@ export function CesiumGlobe({
       }
     };
   }, [
+    contoursOverlayActive,
+    floodOverlayActive,
     globeViewMode,
-    layers.contours,
-    layers.floodZones,
     layers.opacity.contours,
     layers.opacity.floodZones,
     layers.opacity.roads,
-    layers.roads,
+    roadsOverlayActive,
     viewerReady,
   ]);
 
@@ -586,20 +703,24 @@ export function CesiumGlobe({
       void viewer.dataSources.remove(existing, true);
     }
 
-    if (!layers.fires) {
+    if (!fireOverlayActive || !overlayViewportBbox) {
       return;
     }
 
     const dataSource = new CustomDataSource("fire-overlays");
     void viewer.dataSources.add(dataSource);
     const controller = new AbortController();
+    const viewportCenter = {
+      lat: (overlayViewportBbox.south + overlayViewportBbox.north) / 2,
+      lng: (overlayViewportBbox.west + overlayViewportBbox.east) / 2,
+    };
 
     void fetch(
-      `/api/map-overlays?lat=${selectedPoint.lat.toFixed(6)}&lng=${selectedPoint.lng.toFixed(
+      `/api/map-overlays?lat=${viewportCenter.lat.toFixed(6)}&lng=${viewportCenter.lng.toFixed(
         6,
-      )}&west=${selectedRegion.bbox.west.toFixed(6)}&south=${selectedRegion.bbox.south.toFixed(
+      )}&west=${overlayViewportBbox.west.toFixed(6)}&south=${overlayViewportBbox.south.toFixed(
         6,
-      )}&east=${selectedRegion.bbox.east.toFixed(6)}&north=${selectedRegion.bbox.north.toFixed(
+      )}&east=${overlayViewportBbox.east.toFixed(6)}&north=${overlayViewportBbox.north.toFixed(
         6,
       )}`,
       { signal: controller.signal },
@@ -658,14 +779,9 @@ export function CesiumGlobe({
       }
     };
   }, [
-    layers.fires,
+    fireOverlayActive,
     layers.opacity.fires,
-    selectedPoint.lat,
-    selectedPoint.lng,
-    selectedRegion.bbox.east,
-    selectedRegion.bbox.north,
-    selectedRegion.bbox.south,
-    selectedRegion.bbox.west,
+    overlayViewportBbox,
     viewerReady,
   ]);
 
@@ -1393,22 +1509,7 @@ export function CesiumGlobe({
         return null;
       }
 
-      const cartographic = Cartographic.fromCartesian(viewer.camera.positionWC);
-      return {
-        headingDegrees: CesiumMath.toDegrees(viewer.camera.heading),
-        pitchDegrees: CesiumMath.toDegrees(viewer.camera.pitch),
-        rollDegrees: CesiumMath.toDegrees(viewer.camera.roll),
-        altitudeMeters: Number.isFinite(cartographic.height) ? cartographic.height : null,
-        latitude: Number.isFinite(cartographic.latitude)
-          ? CesiumMath.toDegrees(cartographic.latitude)
-          : null,
-        longitude: Number.isFinite(cartographic.longitude)
-          ? CesiumMath.toDegrees(cartographic.longitude)
-          : null,
-        viewportWidthPx: viewer.scene.canvas.width,
-        viewportHeightPx: viewer.scene.canvas.height,
-        metersPerPixel: getMetersPerPixel(viewer),
-      };
+      return getOverlayViewportState(viewer).snapshot;
     };
 
     onGlobeApiChange({
@@ -1426,7 +1527,7 @@ export function CesiumGlobe({
     return () => {
       onGlobeApiChange(null);
     };
-  }, [onGlobeApiChange, viewerReady, viewerKey]);
+  }, [getOverlayViewportState, onGlobeApiChange, viewerReady, viewerKey]);
 
   useEffect(() => {
     return () => {

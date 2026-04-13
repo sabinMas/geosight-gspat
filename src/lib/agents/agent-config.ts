@@ -25,7 +25,7 @@ export type AgentConfig = {
   name: string;
   tagline: string;
   model: string;
-  apiKeyEnv: string;
+  apiKeyEnv?: string;
   systemPrompt: string;
   temperature: number;
   maxTokens: number;
@@ -57,7 +57,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoAnalyst",
     tagline: "Site intelligence & scoring",
     model: DEFAULT_AGENT_MODEL,
-    apiKeyEnv: "GROQ_ANALYSIS_KEY",
+    apiKeyEnv: "GROQ_API_KEY",
     temperature: 0.3,
     maxTokens: 2048,
     accentColor: "var(--color-primary)",
@@ -68,7 +68,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoGuide",
     tagline: "Interface help & onboarding",
     model: LIGHTWEIGHT_AGENT_MODEL,
-    apiKeyEnv: "GROQ_UX_KEY",
+    apiKeyEnv: "GROQ_API_KEY",
     temperature: 0.1,
     maxTokens: 512,
     accentColor: "var(--color-warning)",
@@ -80,7 +80,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoScribe",
     tagline: "Reports & export writing",
     model: DEFAULT_AGENT_MODEL,
-    apiKeyEnv: "GROQ_WRITER_KEY",
+    apiKeyEnv: "GROQ_API_KEY",
     temperature: 0.2,
     maxTokens: 4096,
     accentColor: "var(--color-text-muted)",
@@ -92,7 +92,6 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoUsability",
     tagline: "Front-end UX audit",
     model: LIGHTWEIGHT_AGENT_MODEL,
-    apiKeyEnv: "GROQ_UX_KEY",
     temperature: 0.1,
     maxTokens: 1024,
     accentColor: "var(--color-success)",
@@ -113,9 +112,13 @@ export function getAgentConfig(agentId: AgentId) {
 }
 
 export function validateAgentEnv() {
+  const hasSharedGroqKey = Boolean(process.env.GROQ_API_KEY?.trim());
   const missing = AGENT_IDS.filter((agentId) => {
-    const envKey = AGENT_CONFIGS[agentId].apiKeyEnv;
-    return !process.env[envKey]?.trim();
+    if (agentId === "geo-usability") {
+      return false;
+    }
+
+    return !hasSharedGroqKey;
   });
 
   if (missing.length) {

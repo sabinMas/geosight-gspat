@@ -1,4 +1,8 @@
-import { AnalysisProviderError, AnalysisResult } from "@/lib/analysis-provider";
+import {
+  AnalysisProviderError,
+  AnalysisResult,
+  isProviderTimeoutError,
+} from "@/lib/analysis-provider";
 import { runGeminiAnalysis } from "@/lib/gemini";
 import { buildFallbackAssessment } from "@/lib/geosight-assistant";
 import { runGroqAnalysis } from "@/lib/groq";
@@ -33,16 +37,25 @@ export async function runAnalysisWithFallback(
     ((provider: "groq" | "gemini", error: unknown) =>
       logAnalysisProviderFailure("analyze", provider, error));
 
+  const failures: unknown[] = [];
+
   try {
     return await runGroqAnalysis(payload, profile);
   } catch (groqError) {
+    failures.push(groqError);
     handleFailure("groq", groqError);
   }
 
   try {
     return await runGeminiAnalysis(payload, profile);
   } catch (geminiError) {
+    failures.push(geminiError);
     handleFailure("gemini", geminiError);
+  }
+
+  const timeoutFailure = failures.find(isProviderTimeoutError);
+  if (timeoutFailure) {
+    throw timeoutFailure;
   }
 
   return {

@@ -46,7 +46,13 @@ interface AnalysisPanelProps {
   children?: React.ReactNode;
 }
 
-const SUPPORTED_LENSES = new Set(["hunt-planner", "trail-scout", "land-quick-check"]);
+const SUPPORTED_LENSES = new Set([
+  "hunt-planner",
+  "trail-scout",
+  "land-quick-check",
+  "road-trip",
+  "general-explore",
+]);
 
 const METRIC_ICON_MAP: Record<
   string,
@@ -309,7 +315,8 @@ export function AnalysisPanel({
 
         {!supportedLens && !isLoading ? (
           <div className="rounded-[1.4rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-sm leading-6 text-[var(--muted-foreground)]">
-            Real deterministic metrics are live now for Trail Scout, Hunt Planner, and Land Quick-Check.
+            Real deterministic metrics are live now for Trail Scout, Hunt Planner, Land Quick-Check,
+            Road Trip, and General Explore.
             This lens is queued for the next batch.
           </div>
         ) : null}

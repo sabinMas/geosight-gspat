@@ -5,7 +5,13 @@ import { ExploreState } from "@/hooks/useExploreState";
 import { getActiveLayerLabels } from "@/lib/map-layers";
 import { LensAnalysisRequestBody, LensAnalysisResult } from "@/types";
 
-const SUPPORTED_LENS_IDS = new Set(["hunt-planner", "trail-scout", "land-quick-check"]);
+const SUPPORTED_LENS_IDS = new Set([
+  "hunt-planner",
+  "trail-scout",
+  "land-quick-check",
+  "road-trip",
+  "general-explore",
+]);
 
 async function readLensAnalysisError(response: Response) {
   try {

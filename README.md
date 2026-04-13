@@ -203,8 +203,6 @@ cp .env.example .env.local
 
 - `NEXT_PUBLIC_CESIUM_ION_TOKEN`
 - `GROQ_API_KEY`
-- `GROQ_API_KEY_2`
-- `GROQ_API_KEY_3`
 - `GEMINI_API_KEY`
 - `NASA_FIRMS_MAP_KEY`
 - `UPSTASH_REDIS_REST_URL`
@@ -213,6 +211,8 @@ cp .env.example .env.local
 Notes:
 
 - `NEXT_PUBLIC_CESIUM_ION_TOKEN` is the main required token for the globe.
+- `GROQ_API_KEY` is the only Groq key the app uses for live Groq requests.
+- `GEMINI_API_KEY` stays configured as the secondary live provider if Groq truly fails.
 - `GROQ_API_KEY` and `GEMINI_API_KEY` enable AI reasoning and report generation.
 - `NASA_FIRMS_MAP_KEY` improves fire coverage.
 - Upstash Redis variables are optional but recommended for shared rate limiting.
