@@ -2,9 +2,9 @@ import Groq from "groq-sdk";
 import {
   AnalysisProviderError,
   AnalysisResult,
-  buildAnalysisProviderMessages,
   normalizeProviderError,
 } from "@/lib/analysis-provider";
+import { buildGroqAnalysisMessages } from "@/lib/geosight-assistant";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
@@ -38,7 +38,7 @@ export async function runGroqAnalysis(
 ) : Promise<AnalysisResult> {
   const apiKey = getGroqKey();
   const model = resolveModel(profile.id);
-  const messages = await buildAnalysisProviderMessages(payload, profile);
+  const messages = await buildGroqAnalysisMessages(payload, profile);
   const groq = new Groq({ apiKey });
 
   const signal = AbortSignal.timeout(GROQ_TIMEOUT_MS);
@@ -77,7 +77,7 @@ export async function runGroqAnalysisStream(
 ): Promise<ReadableStream<Uint8Array>> {
   const apiKey = getGroqKey();
   const model = resolveModel(profile.id);
-  const messages = await buildAnalysisProviderMessages(payload, profile);
+  const messages = await buildGroqAnalysisMessages(payload, profile);
   const groq = new Groq({ apiKey });
   const signal = AbortSignal.timeout(GROQ_TIMEOUT_MS);
 

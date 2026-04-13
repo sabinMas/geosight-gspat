@@ -1,5 +1,5 @@
 import { DEFAULT_PROFILE } from "@/lib/profiles";
-import { injectRagIntoMessages } from "@/lib/rag/inject";
+import { buildRagContext, injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import {
@@ -8,6 +8,7 @@ import {
   DataTrend,
   DataSourceMeta,
   GeodataResult,
+  LandCoverBucket,
   MissionProfile,
   NearbyPlace,
   ResultsMode,
@@ -199,6 +200,161 @@ export async function buildGeoSightMessagesWithRag(
     ],
     payload.question,
   );
+}
+
+function sanitizeConversationHistory(messages?: ConversationMessage[]) {
+  return (messages ?? [])
+    .filter((message): message is ConversationMessage => Boolean(message?.content?.trim()))
+    .map<CoreMessage>((message) => ({
+      role: message.role,
+      content: message.content.trim(),
+    }));
+}
+
+function removeDuplicatedTrailingUserMessage(
+  messages: CoreMessage[],
+  userQuestion: string,
+) {
+  const trimmedQuestion = userQuestion.trim();
+  if (!trimmedQuestion || !messages.length) {
+    return messages;
+  }
+
+  const nextMessages = [...messages];
+  const lastMessage = nextMessages.at(-1);
+  if (
+    lastMessage?.role === "user" &&
+    lastMessage.content.trim() === trimmedQuestion
+  ) {
+    nextMessages.pop();
+  }
+
+  return nextMessages;
+}
+
+function summarizeNearbyPlaces(nearbyPlaces?: NearbyPlace[]) {
+  if (!nearbyPlaces?.length) {
+    return "- No nearby-place context loaded.";
+  }
+
+  return nearbyPlaces.slice(0, 6).map(formatNearbyPlaceLine).join("\n");
+}
+
+function summarizeTrendLines(dataTrends?: DataTrend[]) {
+  if (!dataTrends?.length) {
+    return "- No structured trend objects loaded.";
+  }
+
+  return dataTrends.slice(0, 6).map(formatTrendLine).join("\n");
+}
+
+function summarizeClassification(classification?: LandCoverBucket[]) {
+  if (!classification?.length) {
+    return "- No land-classification summary loaded.";
+  }
+
+  return classification
+    .slice(0, 5)
+    .map((bucket) => `- ${bucket.label}: ${bucket.value}% (confidence ${bucket.confidence}%).`)
+    .join("\n");
+}
+
+function summarizeImageContext(imageSummary?: string) {
+  if (!imageSummary?.trim()) {
+    return "- No uploaded image summary is available for this request.";
+  }
+
+  return `- ${imageSummary.trim()}`;
+}
+
+type GroqContextBlockOptions = {
+  activeLensLabel?: string;
+  visibleLayers?: string[];
+  ragContext?: string;
+  extraContext?: string[];
+};
+
+export function buildGroqAnalysisContextBlock(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+  options: GroqContextBlockOptions = {},
+) {
+  const activeLensLabel = options.activeLensLabel?.trim() || profile.name;
+  const visibleLayers = options.visibleLayers?.filter((layer) => layer.trim()).join(", ");
+  const retrievedKnowledge = options.ragContext?.trim() || "No retrieved knowledge context.";
+  const supportedFacts = buildSupportedFacts(payload)
+    .slice(0, 12)
+    .map((fact) => `- ${fact}`)
+    .join("\n");
+  const extraContext = (options.extraContext ?? [])
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `- ${line}`)
+    .join("\n");
+
+  return `
+Active lens: ${activeLensLabel}
+Selected location: ${formatLocationLabel(payload)}
+Visible layers: ${visibleLayers || "Not provided in this request"}
+Results mode: ${inferResponseMode(payload.question, payload.resultsMode) === "nearby_places" ? "nearby places" : "analysis"}
+
+Retrieved knowledge:
+${retrievedKnowledge}
+
+Live location context:
+${supportedFacts || "- No live location context loaded."}
+
+Nearby place context:
+${summarizeNearbyPlaces(payload.nearbyPlaces)}
+
+Trend context:
+${summarizeTrendLines(payload.dataTrends)}
+
+Image context:
+${summarizeImageContext(payload.imageSummary)}
+
+Land classification:
+${summarizeClassification(payload.classification?.length ? payload.classification : payload.geodata?.landClassification)}
+${extraContext ? `\n\nAdditional context:\n${extraContext}` : ""}
+  `.trim();
+}
+
+export async function buildGroqAnalysisMessages(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+  options: Omit<GroqContextBlockOptions, "ragContext"> = {},
+): Promise<CoreMessage[]> {
+  const { prompt } = buildGeoSightSystemPrompt(payload, profile);
+  const conversationHistory = removeDuplicatedTrailingUserMessage(
+    sanitizeConversationHistory(payload.messages),
+    payload.question,
+  );
+
+  let ragContext = "";
+  try {
+    ragContext = await buildRagContext(payload.question);
+  } catch (error) {
+    console.warn("[RAG] Groq context assembly failed; continuing without RAG context.", error);
+  }
+
+  return [
+    {
+      role: "system",
+      content: prompt.trim(),
+    },
+    {
+      role: "system",
+      content: buildGroqAnalysisContextBlock(payload, profile, {
+        ...options,
+        ragContext,
+      }),
+    },
+    ...conversationHistory,
+    {
+      role: "user",
+      content: payload.question.trim(),
+    },
+  ];
 }
 
 function pickTopLandCover(geodata?: GeodataResult) {

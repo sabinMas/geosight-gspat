@@ -12,10 +12,14 @@ import {
   getAgentConfig,
   isAgentId,
 } from "@/lib/agents/agent-config";
-import { buildFallbackAssessment, formatLocationLabel } from "@/lib/geosight-assistant";
+import {
+  buildFallbackAssessment,
+  buildGroqAnalysisContextBlock,
+  formatLocationLabel,
+} from "@/lib/geosight-assistant";
 import { getGroqKey } from "@/lib/groq";
 import { getProfileById } from "@/lib/profiles";
-import { injectRagIntoMessages } from "@/lib/rag/inject";
+import { buildRagContext } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
 import { formatUiAuditResult, runDeterministicUiAudit } from "@/lib/ux-audit";
 import {
@@ -105,6 +109,19 @@ function parseWorkspaceCardIds(value: unknown) {
   }
 
   return value.filter((entry): entry is WorkspaceCardId => typeof entry === "string") as WorkspaceCardId[];
+}
+
+function parseStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const normalized = value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return normalized.length ? normalized : undefined;
 }
 
 function parseShellMode(value: unknown) {
@@ -309,17 +326,7 @@ const EXPLORER_SYSTEM_PROMPT_SUFFIX =
 
 function buildSystemMessage(config: AgentConfig, context?: GeoSightContext) {
   const modeSuffix = context?.appMode === "explorer" ? EXPLORER_SYSTEM_PROMPT_SUFFIX : "";
-  const basePrompt = `${config.systemPrompt}${modeSuffix}`;
-
-  if (!context) {
-    return basePrompt;
-  }
-
-  return `${basePrompt}\n\nCurrent analysis context: ${JSON.stringify(
-    context,
-    null,
-    2,
-  )}`;
+  return `${config.systemPrompt}${modeSuffix}`;
 }
 
 async function buildCompletionMessages(
@@ -328,19 +335,57 @@ async function buildCompletionMessages(
   context?: GeoSightContext,
   messages: AgentConversationMessage[] = [],
 ): Promise<CoreMessage[]> {
-  return injectRagIntoMessages(
-    [
-      {
-        role: "system",
-        content: buildSystemMessage(config, context),
-      },
-      ...messages.map((entry) => ({
-        role: entry.role,
-        content: entry.content,
-      })),
-    ],
-    message,
-  );
+  const payload = buildAnalyzePayload(message, context, messages);
+  const profile = getProfileById(payload.profileId);
+  const dataBundle = getDataBundle(context);
+  const visibleLayers = parseStringArray(dataBundle?.activeLayerLabels);
+  const conversationHistory = messages
+    .map<CoreMessage>((entry) => ({
+      role: entry.role,
+      content: entry.content.trim(),
+    }))
+    .filter((entry) => entry.content)
+    .slice();
+
+  const lastHistoryMessage = conversationHistory.at(-1);
+  if (
+    lastHistoryMessage?.role === "user" &&
+    lastHistoryMessage.content === message.trim()
+  ) {
+    conversationHistory.pop();
+  }
+
+  let ragContext = "";
+  try {
+    ragContext = await buildRagContext(message);
+  } catch (error) {
+    console.warn("[RAG] Agent context assembly failed; continuing without RAG context.", error);
+  }
+
+  return [
+    {
+      role: "system",
+      content: buildSystemMessage(config, context),
+    },
+    {
+      role: "system",
+      content: buildGroqAnalysisContextBlock(payload, profile, {
+        activeLensLabel: profile.name,
+        visibleLayers,
+        ragContext,
+        extraContext: [
+          `Active agent: ${config.name}`,
+          context?.appMode ? `Workspace mode: ${context.appMode}` : "",
+          context?.uiContext?.shellMode ? `Shell mode: ${context.uiContext.shellMode}` : "",
+        ],
+      }),
+    },
+    ...conversationHistory,
+    {
+      role: "user",
+      content: message.trim(),
+    },
+  ];
 }
 
 function parseGroqChunk(value: string) {
