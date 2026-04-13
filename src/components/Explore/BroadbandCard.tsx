@@ -47,7 +47,9 @@ function getRegionalBroadbandSummary(
 
 export function BroadbandCard({ geodata, score }: BroadbandCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Connectivity baseline" title="Broadband context" loading={true} />
+    );
   }
 
   const broadband = geodata.broadband;

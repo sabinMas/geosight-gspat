@@ -141,7 +141,11 @@ function headerBadge(totalAlerts: number, redAlerts: number, orangeAlerts: numbe
 }
 
 export function DisasterAlertsCard({ geodata }: DisasterAlertsCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Global disaster feed" title="Live disaster alerts" loading={true} />
+    );
+  }
 
   const { hazardAlerts } = geodata;
   const sources = [geodata.sources.hazardAlerts];

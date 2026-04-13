@@ -34,7 +34,9 @@ function getDepthBadge(levelFt: number) {
 
 export function GroundwaterCard({ geodata }: GroundwaterCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Subsurface hydrology" title="Groundwater levels" loading={true} />
+    );
   }
 
   const nearestWell = geodata.groundwater.nearestWell;

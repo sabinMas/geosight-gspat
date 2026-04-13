@@ -40,7 +40,9 @@ function getLabels(source: NonNullable<GeodataResult["epaHazards"]>["source"]) {
 
 export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Environmental due diligence" title="Contamination screening" loading={true} />
+    );
   }
 
   const hazards = geodata.epaHazards;

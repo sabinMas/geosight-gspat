@@ -57,7 +57,11 @@ function catalogSeismicBadge(hazards: GeodataResult["hazards"]) {
 }
 
 export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Structural hazard" title="Seismic risk profile" loading={true} />
+    );
+  }
 
   const trustSummary = summarizeSourceTrust(
     [geodata.sources.seismicDesign, geodata.sources.hazards],

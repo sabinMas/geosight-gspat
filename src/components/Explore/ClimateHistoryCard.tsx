@@ -99,7 +99,9 @@ function formatPrecip(value: number | null) {
 
 export function ClimateHistoryCard({ geodata }: ClimateHistoryCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Historical weather" title="Climate trends (10-year)" loading={true} />
+    );
   }
 
   const climateHistory = geodata.climateHistory;

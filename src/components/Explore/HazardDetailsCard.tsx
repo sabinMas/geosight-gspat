@@ -30,7 +30,11 @@ function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: 
 }
 
 export function HazardDetailsCard({ geodata }: { geodata: GeodataResult | null }) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Hazard parameters" title="Technical hazard data" loading={true} />
+    );
+  }
 
   const { seismicDesign, floodZone, hazards, hazardAlerts, airQuality, climate, epaHazards } = geodata;
 
