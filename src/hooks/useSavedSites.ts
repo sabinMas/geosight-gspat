@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { normalizeProfileId } from "@/lib/lenses";
-import { SavedSite } from "@/types";
+import { DEMO_SAVED_SITES } from "@/lib/demos/registry";
+import type { AppMode, SavedSite } from "@/types";
 
 const STORAGE_KEY = "geosight.saved-sites";
 
-export function useSavedSites(activeProfileId: string) {
+export function useSavedSites(activeProfileId: string, appMode?: AppMode) {
   const normalizedProfileId = normalizeProfileId(activeProfileId) ?? activeProfileId;
   const [allSites, setAllSites] = useState<SavedSite[]>([]);
 
@@ -50,13 +51,17 @@ export function useSavedSites(activeProfileId: string) {
     [normalizedProfileId],
   );
 
-  const sites = useMemo(
-    () =>
-      allSites
-        .filter((site) => site.profileId === normalizedProfileId)
-        .sort((a, b) => b.score.total - a.score.total),
-    [allSites, normalizedProfileId],
-  );
+  const sites = useMemo(() => {
+    const profileSites = allSites
+      .filter((site) => site.profileId === normalizedProfileId)
+      .sort((a, b) => b.score.total - a.score.total);
+
+    if (profileSites.length === 0 && appMode === "pro") {
+      return DEMO_SAVED_SITES.filter((site) => site.profileId === normalizedProfileId);
+    }
+
+    return profileSites;
+  }, [allSites, appMode, normalizedProfileId]);
 
   return { sites, addSite, setSites: setSitesForProfile, isSyncing: false };
 }
