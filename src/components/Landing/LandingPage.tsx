@@ -386,9 +386,15 @@ export function LandingPage() {
                     autoFocus={Boolean(selectedUseCaseId?.startsWith("explorer-"))}
                   />
                 </div>
-                {/* Button row — always interactive so users get feedback if they skip Step 1 */}
-                <div className={`flex gap-3 transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-60"}`}>
-                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
+                {/* Hint shown when no lens is selected */}
+                {!selectedUseCaseId?.startsWith("explorer-") ? (
+                  <p className="text-center text-xs text-[var(--muted-foreground)]">
+                    ← Select a lens above to continue
+                  </p>
+                ) : null}
+                {/* Button row */}
+                <div className={`flex gap-3 transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-50"}`}>
+                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting || !selectedUseCaseId?.startsWith("explorer-")}>
                     {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Explore this place
                   </Button>

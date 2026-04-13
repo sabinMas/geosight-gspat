@@ -41,8 +41,20 @@ export function FactorBreakdown({ score, title = "Factor breakdown", initialExpa
     setMounted(true);
   }, []);
 
-  if (!score) {
-    return null;
+  if (!score || !score.factors || score.factors.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="space-y-3">
+          <div className="eyebrow">Evidence breakdown</div>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-6 text-[var(--foreground-soft)]">
+            Score details are not available for this lens. Switch to a scored lens such as Home Buying, Site Development, or Data Center Cooling to see weighted factor breakdowns.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   const evidenceCounts = score.factors.reduce<Record<string, number>>((acc, factor) => {
