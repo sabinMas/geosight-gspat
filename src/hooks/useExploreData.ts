@@ -104,7 +104,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     activeProfile,
     state.locationReady,
   );
-  const { sites, addSite } = useSavedSites(activeProfile.id);
+  const { sites, addSite } = useSavedSites(activeProfile.id, appMode);
   const {
     housingMarket,
     loading: housingMarketLoading,

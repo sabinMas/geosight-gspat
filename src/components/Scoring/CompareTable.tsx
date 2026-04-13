@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, FileJson } from "lucide-react";
+import { useState } from "react";
+import { Check, Download, FileJson, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,6 +22,7 @@ export function CompareTable({
   title = "Site comparison",
   emptyMessage = "Save sites to compare them here.",
 }: CompareTableProps) {
+  const [copied, setCopied] = useState(false);
   const factorColumns = sites[0]?.score.factors.slice(0, 3) ?? [];
   const exportFactorColumns = sites[0]?.score.factors ?? [];
   const evidenceTone: Record<string, string> = {
@@ -68,6 +70,15 @@ export function CompareTable({
     );
   };
 
+  const handleShare = () => {
+    const ids = sites.map((s) => s.id).join(",");
+    const url = `${window.location.origin}/explore?compare=${encodeURIComponent(ids)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const handleExportJson = () => {
     downloadJsonFile(
       {
@@ -99,6 +110,22 @@ export function CompareTable({
 
           {sites.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
+              {sites.length >= 2 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={handleShare}
+                >
+                  {copied ? (
+                    <Check className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Link className="mr-2 h-4 w-4" />
+                  )}
+                  {copied ? "Copied" : "Share"}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="secondary"
