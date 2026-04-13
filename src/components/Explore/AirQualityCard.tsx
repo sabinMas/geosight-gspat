@@ -30,7 +30,9 @@ function getAqiTone(category: NonNullable<GeodataResult["airQuality"]>["aqiCateg
 
 export function AirQualityCard({ geodata }: AirQualityCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Environmental quality" title="Air quality" loading={true} />
+    );
   }
 
   const trustSummary = summarizeSourceTrust(

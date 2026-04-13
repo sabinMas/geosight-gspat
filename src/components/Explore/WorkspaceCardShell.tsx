@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCardDisplay } from "@/context/CardDisplayContext";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,11 @@ interface WorkspaceCardShellProps {
   headerExtra?: React.ReactNode;
   /** Override the context defaultCollapsed for this card */
   defaultCollapsed?: boolean;
+  /** Optional retry / action button rendered in error and empty states */
+  errorAction?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export function WorkspaceCardShell({
@@ -49,6 +55,7 @@ export function WorkspaceCardShell({
   children,
   headerExtra,
   defaultCollapsed: defaultCollapsedProp,
+  errorAction,
 }: WorkspaceCardShellProps) {
   const { defaultCollapsed: contextCollapsed } = useCardDisplay();
   const startCollapsed = defaultCollapsedProp ?? contextCollapsed;
@@ -115,21 +122,43 @@ export function WorkspaceCardShell({
               <Skeleton className="h-3.5 w-5/6" />
             </div>
           ) : error ? (
-            <StatePanel
-              tone="error"
-              eyebrow={eyebrow}
-              title={`${title} could not load`}
-              description={error}
-              compact
-            />
+            <>
+              <StatePanel
+                tone="error"
+                eyebrow={eyebrow}
+                title={`${title} could not load`}
+                description={error}
+                compact
+              />
+              {errorAction && (
+                <Button
+                  variant="secondary"
+                  className="rounded-full mt-2"
+                  onClick={errorAction.onClick}
+                >
+                  {errorAction.label}
+                </Button>
+              )}
+            </>
           ) : empty ? (
-            <StatePanel
-              tone="unavailable"
-              eyebrow={eyebrow}
-              title={emptyTitle ?? `${title} is not available here`}
-              description={emptyDescription ?? "No data was returned for this location."}
-              compact
-            />
+            <>
+              <StatePanel
+                tone="unavailable"
+                eyebrow={eyebrow}
+                title={emptyTitle ?? `${title} is not available here`}
+                description={emptyDescription ?? "No data was returned for this location."}
+                compact
+              />
+              {errorAction && (
+                <Button
+                  variant="secondary"
+                  className="rounded-full mt-2"
+                  onClick={errorAction.onClick}
+                >
+                  {errorAction.label}
+                </Button>
+              )}
+            </>
           ) : (
             children
           )}

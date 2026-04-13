@@ -84,7 +84,9 @@ export function WeatherForecastCard({ geodata }: WeatherForecastCardProps) {
   const [useFahrenheit, setUseFahrenheit] = useState(false);
 
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Weather outlook" title="7-day forecast" loading={true} />
+    );
   }
 
   const trustSummary = summarizeSourceTrust([geodata.sources.climate], "7-day weather forecast");

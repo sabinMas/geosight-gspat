@@ -204,7 +204,11 @@ function PrecipChart({ summaries }: { summaries: ClimateYearSummary[] }) {
 }
 
 export function DroughtRiskCard({ geodata }: DroughtRiskCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Water stress" title="Drought risk" loading={true} />
+    );
+  }
 
   const climateHistory = geodata.climateHistory;
   const sources = [geodata.sources.climateHistory];

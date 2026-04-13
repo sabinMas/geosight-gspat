@@ -38,7 +38,11 @@ function getGloFASTone(label: string | null | undefined) {
 }
 
 export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Floodplain due diligence" title="Flood risk" loading={true} />
+    );
+  }
 
   const trustSummary = summarizeSourceTrust([geodata.sources.floodZone], "Flood screening");
   const flood = geodata.floodZone;
