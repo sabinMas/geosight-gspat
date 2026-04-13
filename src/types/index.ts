@@ -900,6 +900,8 @@ export interface SiteFactorScore {
   evidenceKind?: ScoreEvidenceKind;
   evidenceLabel?: string;
   evidenceExplanation?: string;
+  /** Source IDs that contributed to this factor (added by WU-3). Optional — may be absent on older score objects. */
+  sourceIds?: string[];
 }
 
 export interface BroadbandScoreSummary {
