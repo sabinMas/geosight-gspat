@@ -34,6 +34,7 @@ import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ProductPreviewSection } from "./ProductPreviewSection";
+import { CapabilityShowcase } from "./CapabilityShowcase";
 
 const ICONS = {
   House,
@@ -166,13 +167,6 @@ export function LandingPage() {
   const [error, setError] = useState<string | null>(null);
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
 
-  const featuredUseCases = useMemo(
-    () =>
-      FEATURED_USE_CASE_IDS.map((useCaseId) =>
-        LANDING_USE_CASES.find((useCase) => useCase.id === useCaseId),
-      ).filter((useCase): useCase is LandingUseCase => Boolean(useCase)),
-    [],
-  );
   const additionalUseCases = useMemo(
     () =>
       LANDING_USE_CASES.filter(
@@ -596,15 +590,8 @@ export function LandingPage() {
             <ProductPreviewSection />
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredUseCases.map((useCase) => (
-              <UseCaseCard
-                key={useCase.id}
-                useCase={useCase}
-                active={useCase.id === selectedUseCaseId}
-                onSelect={handleSelectUseCase}
-              />
-            ))}
+          <div className="mt-4">
+            <CapabilityShowcase />
           </div>
 
           {selectedUseCase && !selectedUseCaseId?.startsWith("explorer-") ? (
