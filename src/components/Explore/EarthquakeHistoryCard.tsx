@@ -6,6 +6,7 @@ import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { AppMode, EarthquakeHistorySummary, GeodataResult } from "@/types";
+import { isExplorerMode } from "@/lib/app-mode";
 
 interface EarthquakeHistoryCardProps {
   geodata: GeodataResult | null;
@@ -112,7 +113,7 @@ export function EarthquakeHistoryCard({
         .map(([year, count]) => ({ year, count }))
     : [];
   const significantEvents = history ? history.events.filter((e) => e.mag >= 4).slice(0, 10) : [];
-  const isExplorer = appMode === "explorer";
+  const isExplorer = isExplorerMode(appMode);
 
   return (
     <WorkspaceCardShell

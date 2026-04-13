@@ -252,7 +252,7 @@ flowchart LR
   User["User"] --> UI["Next.js App Router UI"]
   UI --> Landing["Landing + Guided First Run"]
   UI --> Explore["Explore Workspace"]
-  Explore --> Globe["Cesium + Resium Globe"]
+  Explore --> Globe["Cesium Globe (imperative API)"]
   Explore --> Cards["Primary Panels + Workspace Cards"]
   Cards --> Score["Deterministic Scoring"]
   Cards --> Trust["Source Metadata + Registry Guidance"]

@@ -60,7 +60,7 @@ Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each dr
 ### Mission architecture
 
 - **User question**: Can the same place be evaluated through different mission lenses instead of a single demo-only workflow?
-- **Current implementation**: Four wired mission profiles: data center, hiking, residential, and commercial. The landing page also exposes a General Exploration entry that is honestly labeled as using the residential lens today.
+- **Current implementation**: Five wired mission profiles: data center, hiking, home buying, site development, and commercial. The landing page also exposes a General Exploration entry that is honestly labeled as using the residential lens today.
 
 ### Live geodata and trust stack
 
@@ -122,7 +122,7 @@ Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each dr
 ### QGIS-style drawing tools
 
 - **User question**: Can users draw on the map, measure distances, and define custom areas — in a way that doesn't require GIS expertise?
-- **Current implementation**: Four tools in `DrawingToolbar`: Draw area (polygon), Drop pin (marker), Measure distance, Radius circle. Inline editable pin labels. GeoJSON export. Undo/redo stack (`addDrawnShape` / `undoDrawing` / `redoDrawing` in `useExploreState`). Vertex drag-editing: white handle entities per vertex (polygon + measure), ScreenSpaceEventHandler drag, `updateDrawnShapeVertex` in `useExploreState`. Normal globe click-to-analyze gated on `drawingTool === "none"`.
+- **Current implementation**: Five tools in `AoiDrawingToolbar`: point, polyline, polygon, rectangle, circle. Inline editable pin labels. GeoJSON export. Undo/redo stack (`addDrawnShape` / `undoDrawing` / `redoDrawing` in `useExploreState`). Vertex drag-editing: white handle entities per vertex, ScreenSpaceEventHandler drag, `updateDrawnShapeVertex` in `useExploreState`. Normal globe click-to-analyze gated on `drawingTool === "none"`.
 
 ### Deployment hardening
 

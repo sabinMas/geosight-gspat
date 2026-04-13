@@ -67,7 +67,7 @@ export async function getStore(): Promise<EmbeddedChunk[]> {
   }
 
   if (!storePromise) {
-    console.log("[RAG] Building knowledge store...");
+    console.warn("[RAG] Building knowledge store...");
     storePromise = (async () => {
       const cachedStore = await loadCachedStore();
       if (cachedStore?.length) {

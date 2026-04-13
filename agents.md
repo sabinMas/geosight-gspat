@@ -40,12 +40,10 @@ This agent model is grounded in the repository state, not an abstract wishlist.
 
 ### GeoSight still has major platform gaps
 
-- No drag-and-drop or user-authored saved dashboard layouts yet
 - No true cross-region provider switching in most live routes yet, even though the source registry scaffolding exists
-- Inline provenance is still stronger in dedicated trust surfaces than in every headline result card
-- Hazard coverage is improving, but the live risk stack is still early compared with the long-term ambition
 - Some scoring logic still relies on proxy heuristics where direct live signals do not yet exist
-- Important domains such as travel routing, LiDAR, aviation, Doppler-style weather, and global school or demographic coverage remain incomplete
+- Important domains such as LiDAR, aviation, Doppler-style weather, and global school or demographic coverage remain incomplete
+- Share and export beyond GeoScribe PDF/copy remain limited
 
 ## North Star
 
@@ -121,12 +119,10 @@ The current workspace card registry already captures much of this shape. New car
 
 Based on the current codebase, the next major evolution should focus on:
 
-- richer live hazard and resilience layers
-- stronger inline provenance and confidence on headline cards and AI outputs
-- formal contract-backed cards and saved dashboard layouts
 - more live non-US provider integrations driven by the existing source registry
-- deeper travel, development, and research workflows built from the same card substrate
-- better share or export artifacts that extend the current GeoScribe report workflow
+- better share and export artifacts that extend the current GeoScribe report workflow
+- richer probabilistic hazard data (flood depth, seismic probabilistic curves)
+- global demographic and school coverage beyond current US + Eurostat
 
 ## Final Standard
 

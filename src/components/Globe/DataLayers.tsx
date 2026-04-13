@@ -438,7 +438,7 @@ export function DataLayers({
                           <div className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
                             {option.label}
                             {active ? (
-                              <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-cyan-100">
+                              <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2 py-0.5 text-xs uppercase tracking-[0.14em] text-cyan-100">
                                 Active
                               </span>
                             ) : null}

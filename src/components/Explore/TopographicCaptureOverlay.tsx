@@ -118,7 +118,7 @@ export function TopographicCaptureOverlay({
               >
                 <Compass className="h-8 w-8 text-white" />
               </div>
-              <span className="absolute -top-2 text-[10px] font-semibold tracking-[0.24em] text-white/82">
+              <span className="absolute -top-2 text-xs font-semibold tracking-[0.24em] text-white/82">
                 N
               </span>
             </div>

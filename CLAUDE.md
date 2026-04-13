@@ -40,6 +40,8 @@ src/
       geocode/route.ts              # Place search / coordinate resolution
       score/route.ts                # Deterministic scoring endpoint
       ai-status/route.ts            # Liveness check for AI keys
+      lens-analysis/route.ts        # Lens-specific analysis + AI narrative (Explorer)
+      map-overlays/route.ts         # Live map overlay data
 
   components/
     Landing/LandingPage.tsx         # Landing page — Explorer (simple) + Pro (analyst) flows
@@ -52,6 +54,10 @@ src/
       AddViewTray.tsx               # Suggested-card tray in guided mode
       WorkspaceBoard.tsx            # Board mode card grid
       WorkspaceLibrary.tsx          # Card library browser
+      WorkspaceToolRail.tsx         # Left analyst tool rail (Pro mode)
+      PersistentAiBar.tsx           # Always-available AI prompt bar
+      TopographicCaptureOverlay.tsx # Analyst topographic capture mode
+      WorkspaceCommandPalette.tsx   # Cmd+K command palette
     Results/
       AnalysisTrendsPanel.tsx       # Live context signal grid
       NearbyPlacesList.tsx          # OSM nearby places
@@ -61,10 +67,10 @@ src/
       CapabilityLauncher.tsx        # Structured capability analysis
     Globe/
       CesiumGlobe.tsx               # Globe + drive mode + drawing hooks entry point
-      DataLayers.tsx                # Layer toggles (heatmap, etc.)
-      DrawingToolbar.tsx            # Draw area / Drop pin / Measure / Radius toolbar
-      GlobeViewSelector.tsx         # Satellite / road / hillshade basemap switcher
+      DataLayers.tsx                # Layer toggles + basemap switcher (unified panel)
+      AoiDrawingToolbar.tsx         # AOI drawing toolbar — point / polyline / polygon / rectangle / circle
       RegionSelector.tsx            # Active region display + reset
+      LocationTrackingControls.tsx  # GPS locate / follow / record controls
     Shell/
       Sidebar.tsx                   # Left sidebar — lens selector + quick regions
       ProfileSelector.tsx           # Carousel of mission profiles
@@ -76,12 +82,19 @@ src/
       SourceStatusBadge.tsx         # Live / limited / unavailable badge
       TrustSummaryPanel.tsx         # Trust summary with source list
 
+  context/
+    AnalysisContext.tsx             # Drawing draft state + lens analysis context (critical for AOI tools)
+    AgentPanelContext.tsx           # Agent panel open/close state
+    CardDisplayContext.tsx          # Card display preferences
+
   hooks/
     useExploreState.ts              # All globe/UI state (mode, point, layers, drawing, etc.)
     useExploreData.ts               # Geodata fetch, scoring, cards, sites, report
     useSiteAnalysis.ts              # Scoring orchestration
     useWorkspaceCards.ts            # Card registry, visibility, board layout
-    useGlobeDrawing.ts              # Drawing tools — active interaction + persisted shape rendering
+    useAoiDrawing.ts                # AOI drawing tools — active interaction + persisted shape rendering
+    useLocationTracking.ts          # Browser GPS locate / follow / record
+    useLensAnalysis.ts              # Lens-specific analysis orchestration (Explorer)
     useNearbyPlaces.ts              # OSM nearby fetch
     useHousingMarket.ts             # Housing market data fetch
 
@@ -210,16 +223,16 @@ Implemented in `CesiumGlobe.tsx`. WASD + arrow keys. Important conventions:
 - Vehicle box uses `heading - Math.PI/2` in `HeadingPitchRollQuaternion` to align the box's long axis (local X) with the movement direction
 
 ### Drawing tools
-Four tools built on raw Cesium API (not Resium). State lives in `useExploreState` (`drawingTool`, `drawnShapes`). Two hooks in `src/hooks/useGlobeDrawing.ts`:
+Five AOI tools built on raw Cesium API (not Resium). State lives in `useExploreState` (`drawingTool`, `drawnShapes`). Two hooks exported from `src/hooks/useAoiDrawing.ts`:
 
-- **`useGlobeDrawing`** — registers `ScreenSpaceEventHandler` per tool. Uses `CallbackProperty` for live shape preview while drawing. All in-progress geometry lives in `CustomDataSource("drawing-preview")`.
-- **`useGlobeDrawnShapes`** — rebuilds `CustomDataSource("drawing-shapes")` when `drawnShapes` changes. Shapes survive `viewer.entities.removeAll()` because they are in a separate datasource.
+- **`useAoiDrawing`** — registers `ScreenSpaceEventHandler` per tool. Uses `CallbackProperty` for live shape preview while drawing. In-progress geometry lives in `CustomDataSource("drawing-preview")`.
+- **`useAoiDrawnShapes`** — rebuilds `CustomDataSource("drawing-shapes")` when `drawnShapes` changes. Shapes survive `viewer.entities.removeAll()` because they are in a separate datasource.
 
-Tool colours: polygon=`#a78bfa`, marker=`#fb923c`, measure=`#34d399`, circle=`#f472b6`.
+Drawing draft state (active geometry, vertices, preview) flows through `AnalysisContext` (`src/context/AnalysisContext.tsx`).
 
-Interaction: LEFT_CLICK adds vertices; RIGHT_CLICK closes polygon; single LEFT_CLICK completes marker/measure/circle second point. The existing globe click-to-analyze handler is gated on `drawingTool === "none"` so drawing mode suppresses location lookup.
+`DrawingTool = "none" | "point" | "polyline" | "polygon" | "rectangle" | "circle"`. `DrawnShape` type is in `src/types/index.ts`.
 
-`DrawnShape` type is in `src/types/index.ts`. `DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle"`.
+The existing globe click-to-analyze handler is gated on `drawingTool === "none"` so drawing mode suppresses location lookup.
 
 ---
 
@@ -271,10 +284,10 @@ These are decisions that have been tested and should not be undone:
 
 ### Adding a new drawing tool
 1. Add the new tool ID to the `DrawingTool` union in `src/types/index.ts`
-2. Add a colour entry to `TOOL_COLORS` in `src/hooks/useGlobeDrawing.ts`
-3. Add an interaction block inside `useGlobeDrawing` (click handlers, preview entity via `CallbackProperty`)
-4. Add a render block inside `useGlobeDrawnShapes` to rebuild the persisted entity
-5. Add a button entry to the `TOOLS` array in `src/components/Globe/DrawingToolbar.tsx`
+2. Add a colour entry to `TOOL_COLORS` in `src/hooks/useAoiDrawing.ts`
+3. Add an interaction block inside `useAoiDrawing` (click handlers, preview entity via `CallbackProperty`)
+4. Add a render block inside `useAoiDrawnShapes` to rebuild the persisted entity
+5. Add a button entry to the `TOOLS` array in `src/components/Globe/AoiDrawingToolbar.tsx`
 
 ---
 
