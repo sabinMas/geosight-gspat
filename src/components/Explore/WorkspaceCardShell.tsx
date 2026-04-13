@@ -29,7 +29,7 @@ interface WorkspaceCardShellProps {
   emptyTitle?: string;
   emptyDescription?: string;
   /** Rendered when not loading/error/empty */
-  children: React.ReactNode;
+  children?: React.ReactNode;
   /** Extra content always rendered in CardHeader below the title */
   headerExtra?: React.ReactNode;
   /** Override the context defaultCollapsed for this card */
