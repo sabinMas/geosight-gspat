@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Building2,
   Check,
-  ChevronDown,
   Compass,
   Factory,
   Globe2,
@@ -19,17 +18,15 @@ import {
   ShieldAlert,
   Target,
   Trees,
+  Navigation,
 } from "lucide-react";
-import { LandingUseCase } from "@/types";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
-import { EXPLORER_LENSES, getExplorerLensById } from "@/lib/explorer-lenses";
-import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
+import { EXPLORER_LENSES } from "@/lib/explorer-lenses";
+import { buildExploreHref } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { ProductPreviewSection } from "./ProductPreviewSection";
-import { CapabilityShowcase } from "./CapabilityShowcase";
 import { Footer } from "./Footer";
 
 const ICONS = {
@@ -47,488 +44,208 @@ const ICONS = {
   Layers,
 } as const;
 
-const FEATURED_USE_CASE_IDS = ["home-buying", "market-analysis", "infrastructure"] as const;
-
 function getIcon(iconName: string) {
   return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
-}
-
-function UseCaseCard({
-  useCase,
-  active,
-  onSelect,
-}: {
-  useCase: LandingUseCase;
-  active: boolean;
-  onSelect: (useCaseId: string) => void;
-}) {
-  const Icon = getIcon(useCase.icon);
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(useCase.id)}
-      className="relative rounded-[1.35rem] border p-4 text-left transition duration-300"
-      style={{
-        borderColor: active ? `${useCase.accentColor}55` : "var(--border-soft)",
-        background: active ? `${useCase.accentColor}16` : "var(--surface-raised)",
-        boxShadow: active ? `0 0 0 2px ${useCase.accentColor}22, var(--shadow-soft)` : undefined,
-      }}
-      aria-pressed={active}
-    >
-      {active ? (
-        <span
-          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border"
-          style={{
-            borderColor: `${useCase.accentColor}44`,
-            background: `${useCase.accentColor}1e`,
-            color: useCase.accentColor,
-          }}
-          aria-hidden="true"
-        >
-          <Check className="h-4 w-4" />
-        </span>
-      ) : null}
-      <div className="flex min-w-0 items-start gap-3">
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-          style={{
-            borderColor: active ? `${useCase.accentColor}40` : "var(--border-soft)",
-            background: active ? `${useCase.accentColor}18` : "var(--surface-soft)",
-            color: useCase.accentColor,
-          }}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
-            {useCase.title}
-          </div>
-          <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
-            {useCase.description}
-          </p>
-        </div>
-      </div>
-    </button>
-  );
 }
 
 export function LandingPage() {
   const router = useRouter();
   const { setUiContext } = useAgentPanel();
-  const step2Ref = useRef<HTMLDivElement | null>(null);
-  const [selectedUseCaseId, setSelectedUseCaseId] = useState<string | null>(null);
+  const [selectedLensId, setSelectedLensId] = useState<string>(EXPLORER_LENSES[0].id);
   const [locationQuery, setLocationQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const additionalUseCases = useMemo(
-    () =>
-      LANDING_USE_CASES.filter(
-        (useCase) =>
-          !FEATURED_USE_CASE_IDS.includes(
-            useCase.id as (typeof FEATURED_USE_CASE_IDS)[number],
-          ),
-      ),
-    [],
+  const selectedLens = useMemo(
+    () => EXPLORER_LENSES.find((l) => l.id === selectedLensId) ?? EXPLORER_LENSES[0],
+    [selectedLensId],
   );
-  const selectedUseCase = useMemo(
-    () =>
-      selectedUseCaseId
-        ? LANDING_USE_CASES.find((useCase) => useCase.id === selectedUseCaseId) ?? null
-        : null,
-    [selectedUseCaseId],
-  );
-
-  const activeLens = useMemo(() => {
-    if (!selectedUseCaseId?.startsWith("explorer-")) return null;
-    return getExplorerLensById(selectedUseCaseId.replace("explorer-", "")) ?? null;
-  }, [selectedUseCaseId]);
 
   useEffect(() => {
     setUiContext({
-      activeProfile: selectedUseCase?.profileId,
+      activeProfile: selectedLens.profileId,
       visiblePrimaryCardId: null,
       visibleWorkspaceCardIds: [],
-      visibleControlCount: selectedUseCase ? 8 : 5,
-      visibleTextBlockCount: selectedUseCase ? 7 : 6,
+      visibleControlCount: 5,
+      visibleTextBlockCount: 4,
       shellMode: "minimal",
       locationSelected: false,
       geodataLoaded: false,
       geodataLoading: false,
       reportOpen: false,
     });
-  }, [selectedUseCase?.profileId, selectedUseCase, setUiContext]);
+  }, [selectedLens.profileId, setUiContext]);
 
-  useEffect(() => {
-    if (!selectedUseCase || !step2Ref.current) {
-      return;
-    }
-
-    step2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [selectedUseCase]);
-
-  useEffect(() => {
-    if (!selectedUseCaseId?.startsWith("explorer-")) {
-      return;
-    }
-
-    document.getElementById("step-2")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [selectedUseCaseId]);
-
-  const handleSelectUseCase = (useCaseId: string) => {
-    const nextUseCase =
-      LANDING_USE_CASES.find((useCase) => useCase.id === useCaseId) ?? null;
-    setSelectedUseCaseId(useCaseId);
+  const handleSelectLens = (lensId: string) => {
+    setSelectedLensId(lensId);
     setError(null);
-    setLocationQuery(nextUseCase?.suggestedQuery ?? "");
-  };
-
-  const handleRouteToExplore = (nextLocationQuery?: string) => {
-    if (!selectedUseCase) {
-      setError("Choose a mission lens before opening GeoSight.");
-      return;
-    }
-
-    const href = buildExploreHref({
-      profileId: selectedUseCase.profileId,
-      locationQuery: nextLocationQuery || undefined,
-      entrySource: "landing",
-      appMode: "pro",
-    });
-
-    router.push(href);
+    // Focus the input after lens selection so user flows naturally into typing
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
 
-    if (!selectedUseCase) {
-      setError("Choose a mission lens to unlock the next step.");
-      return;
-    }
-
     if (!locationQuery.trim()) {
-      setError("Enter a city, ZIP code, coordinates, or region to continue.");
+      setError("Enter a city, address, or coordinates to continue.");
       return;
     }
 
     setSubmitting(true);
-    handleRouteToExplore(locationQuery.trim());
+    router.push(
+      buildExploreHref({
+        profileId: selectedLens.profileId,
+        locationQuery: locationQuery.trim(),
+        entrySource: "landing",
+        appMode: "explorer",
+        lensId: selectedLens.id,
+      }),
+    );
   };
 
   const handleUseCurrentLocation = async () => {
     setError(null);
-
-    if (!selectedUseCase) {
-      setError("Choose a mission lens before using your current location.");
-      return;
-    }
-
     setLocating(true);
 
     try {
       const coords = await getCurrentCoordinates();
-      handleRouteToExplore(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+      const coordString = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+      setLocationQuery(coordString);
+      // Auto-submit with coordinates
+      setSubmitting(true);
+      router.push(
+        buildExploreHref({
+          profileId: selectedLens.profileId,
+          locationQuery: coordString,
+          entrySource: "landing",
+          appMode: "explorer",
+          lensId: selectedLens.id,
+        }),
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to read your current location.");
+      setError(err instanceof Error ? err.message : "Unable to read your location.");
     } finally {
       setLocating(false);
     }
   };
 
   return (
-    <main className="min-h-screen px-4 py-4 md:px-6">
-      <div className="mx-auto max-w-[1520px] space-y-6">
-        {/* Explorer hero */}
-        <section className="glass-panel relative overflow-hidden rounded-[2.5rem] p-5 md:p-7 lg:p-8">
-          <div className="hero-orbit right-[-4rem] top-[-3rem]" />
-          <div className="hero-orbit bottom-[-6rem] left-[-5rem]" />
-
-          <div className="relative flex items-center justify-between">
-            <div className="eyebrow text-[var(--accent)]">
-            <span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)] mr-1.5 align-middle" aria-hidden="true" />
-            GeoSight
-          </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/explore?mode=pro")}
-                className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
-              >
-                For professionals →
-              </button>
-              <ThemeToggle compact />
-            </div>
-          </div>
-
-          <div className="relative mt-8 space-y-6">
-            <div className="space-y-3 text-center">
-              <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-6xl">
-                See any place clearly.
-              </h1>
-            </div>
-
-            <p className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
-              STEP 1 — CHOOSE A LENS
-            </p>
-            <div className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {EXPLORER_LENSES.map((lens) => {
-                const Icon = getIcon(lens.icon);
-                const isActive = selectedUseCaseId === `explorer-${lens.id}`;
-                return (
-                  <button
-                    key={lens.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedUseCaseId(`explorer-${lens.id}`);
-                      setError(null);
-                      setLocationQuery("");
-                    }}
-                    className="relative rounded-[1.35rem] border p-4 text-left transition duration-300"
-                    style={{
-                      borderColor: isActive ? "#00e5ff55" : "var(--border-soft)",
-                      background: isActive ? "#00e5ff16" : "var(--surface-raised)",
-                      boxShadow: isActive ? "0 0 0 2px #00e5ff22, var(--shadow-soft)" : undefined,
-                    }}
-                    aria-pressed={isActive}
-                  >
-                    {isActive && (
-                      <span
-                        className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border"
-                        style={{
-                          borderColor: "#00e5ff44",
-                          background: "#00e5ff1e",
-                          color: "#00e5ff",
-                        }}
-                        aria-hidden="true"
-                      >
-                        <Check className="h-4 w-4" />
-                      </span>
-                    )}
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-                        style={{
-                          borderColor: isActive ? "#00e5ff40" : "var(--border-soft)",
-                          background: isActive ? "#00e5ff18" : "var(--surface-soft)",
-                          color: "#00e5ff",
-                        }}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-[var(--foreground)]">
-                          {lens.label}
-                        </div>
-                        <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
-                          {lens.tagline}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Lens selection callout */}
-            {activeLens ? (
-              <div className="mx-auto max-w-xl transition-all duration-300 rounded-xl border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-3">
-                <div className="eyebrow mb-1">{activeLens.label}</div>
-                <p className="text-sm leading-6 text-[var(--foreground-soft)]">
-                  {activeLens.whyItMatters}
-                </p>
-              </div>
-            ) : null}
-
-            {/* Location entry — always visible, dimmed until a lens is selected */}
-            <div id="step-2" className="mx-auto max-w-xl">
-              <p className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
-                STEP 2 — ENTER A LOCATION
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setError(null);
-                  if (!selectedUseCaseId?.startsWith("explorer-")) {
-                    setError("Choose a lens above before searching for a location.");
-                    return;
-                  }
-                  if (!locationQuery.trim()) {
-                    setError("Enter a city, address, or coordinates to continue.");
-                    return;
-                  }
-                  const lensId = selectedUseCaseId.replace("explorer-", "");
-                  const lens = EXPLORER_LENSES.find((l) => l.id === lensId);
-                  if (!lens) return;
-                  setSubmitting(true);
-                  router.push(
-                    buildExploreHref({
-                      profileId: lens.profileId,
-                      locationQuery: locationQuery.trim() || undefined,
-                      entrySource: "landing",
-                      appMode: "explorer",
-                      lensId: lens.id,
-                    }),
-                  );
-                }}
-                className="space-y-4"
-              >
-                {/* Input row — dimmed and non-interactive until a lens is chosen */}
-                <div className={`transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
-                  <Input
-                    value={locationQuery}
-                    onChange={(e) => setLocationQuery(e.target.value)}
-                    placeholder="City, region, or coordinates…"
-                    className="h-12 rounded-[1.5rem]"
-                    autoFocus={Boolean(selectedUseCaseId?.startsWith("explorer-"))}
-                  />
-                </div>
-                {/* Hint shown when no lens is selected */}
-                {!selectedUseCaseId?.startsWith("explorer-") ? (
-                  <p className="text-center text-xs text-[var(--muted-foreground)]">
-                    ← Select a lens above to continue
-                  </p>
-                ) : null}
-                {/* Button row */}
-                <div className={`flex gap-3 transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-50"}`}>
-                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting || !selectedUseCaseId?.startsWith("explorer-")}>
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Explore this place
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-12 rounded-full"
-                    onClick={async () => {
-                      setError(null);
-                      if (!selectedUseCaseId?.startsWith("explorer-")) {
-                        setError("Choose a lens above before using your location.");
-                        return;
-                      }
-                      setLocating(true);
-                      try {
-                        const coords = await getCurrentCoordinates();
-                        setLocationQuery(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
-                      } catch (err) {
-                        setError(
-                          err instanceof Error ? err.message : "Unable to read your location.",
-                        );
-                      } finally {
-                        setLocating(false);
-                      }
-                    }}
-                    disabled={locating}
-                  >
-                    {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Use my location
-                  </Button>
-                </div>
-                {error ? (
-                  <div className="rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
-                    {error}
-                  </div>
-                ) : null}
-              </form>
-            </div>
-          </div>
-        </section>
-
-        {/* Pro / analyst section */}
-        <section className="glass-panel rounded-[2rem] p-5 md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <div className="eyebrow">Professional tools</div>
-              <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-                For analysts, planners, and site teams
-              </h2>
-              <p className="max-w-2xl text-sm leading-7 text-[var(--muted-foreground)]">
-                Factor scoring, source awareness, and full data provenance.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              className="rounded-full"
-              onClick={() => router.push("/explore?mode=pro")}
-            >
-              Open Pro workspace
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="mt-4 mb-5">
-            <ProductPreviewSection />
-          </div>
-
-          <div className="mt-4">
-            <CapabilityShowcase />
-          </div>
-
-          {selectedUseCase && !selectedUseCaseId?.startsWith("explorer-") ? (
-            <div ref={step2Ref} className="step2-appear mt-5 rounded-[1.5rem]">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <div className="eyebrow">Step 2</div>
-                  <h3 className="text-xl font-semibold text-[var(--foreground)]">
-                    Focus a place with the {selectedUseCase.title.toLowerCase()} lens
-                  </h3>
-                  <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                    Suggested start: {selectedUseCase.suggestedQuery}
-                  </p>
-                </div>
-                <Input
-                  value={locationQuery}
-                  onChange={(event) => setLocationQuery(event.target.value)}
-                  placeholder={selectedUseCase.suggestedQuery}
-                  className="h-12 rounded-[1.5rem]"
-                />
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Open Pro workspace
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-12 rounded-full"
-                    onClick={handleUseCurrentLocation}
-                    disabled={locating}
-                  >
-                    {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Use my location
-                  </Button>
-                </div>
-              </form>
-              {error && !selectedUseCaseId?.startsWith("explorer-") ? (
-                <div className="mt-4 rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
-                  {error}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          <details className="group mt-4 rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-[var(--foreground)]">
-              <span>More Pro starting lenses</span>
-              <ChevronDown className="h-4 w-4 transition-transform duration-300 group-open:rotate-180" />
-            </summary>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {additionalUseCases.map((useCase) => (
-                <UseCaseCard
-                  key={useCase.id}
-                  useCase={useCase}
-                  active={useCase.id === selectedUseCaseId}
-                  onSelect={handleSelectUseCase}
-                />
-              ))}
-            </div>
-          </details>
-        </section>
-
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      {/* Topbar */}
+      <div className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+          <span className="text-sm font-semibold text-[var(--foreground)]">GeoSight</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/explore?mode=pro")}
+            className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+          >
+            For professionals
+            <ArrowRight className="ml-1 inline-block h-3 w-3" />
+          </button>
+          <ThemeToggle compact />
+        </div>
       </div>
+
+      {/* Central search card */}
+      <div className="glass-panel relative w-full max-w-xl overflow-hidden rounded-[2rem] p-6 md:p-8">
+        {/* Subtle glow orbs */}
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[var(--accent)] opacity-[0.04] blur-[60px]" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[var(--color-warning)] opacity-[0.04] blur-[50px]" />
+
+        {/* Lens chips */}
+        <div className="relative mb-5 flex flex-wrap gap-2">
+          {EXPLORER_LENSES.map((lens) => {
+            const Icon = getIcon(lens.icon);
+            const isActive = selectedLensId === lens.id;
+            return (
+              <button
+                key={lens.id}
+                type="button"
+                onClick={() => handleSelectLens(lens.id)}
+                aria-pressed={isActive}
+                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition duration-200"
+                style={{
+                  borderColor: isActive ? "var(--accent-strong)" : "var(--border-soft)",
+                  background: isActive ? "var(--accent-soft)" : "var(--surface-soft)",
+                  color: isActive ? "var(--accent-foreground)" : "var(--muted-foreground)",
+                }}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {lens.label}
+                {isActive && <Check className="h-3 w-3 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search form */}
+        <form onSubmit={handleSubmit} className="relative space-y-3">
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              value={locationQuery}
+              onChange={(e) => { setLocationQuery(e.target.value); setError(null); }}
+              placeholder={`Search a place — ${selectedLens.tagline.split("—")[0].trim().toLowerCase()}`}
+              className="h-12 rounded-[1.5rem] pr-12 text-sm"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              disabled={locating}
+              title="Use my current location"
+              aria-label="Use my current location"
+              className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] transition hover:border-[color:var(--border-strong)] hover:text-[var(--foreground)] disabled:opacity-50"
+            >
+              {locating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Navigation className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+
+          <Button
+            type="submit"
+            className="h-11 w-full rounded-full"
+            disabled={submitting}
+          >
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Analyze this place
+          </Button>
+        </form>
+
+        {error ? (
+          <div className="mt-3 rounded-xl border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-2.5 text-sm text-[var(--danger-foreground)]">
+            {error}
+          </div>
+        ) : null}
+
+        {/* Active lens hint */}
+        <p className="mt-4 text-center text-xs leading-5 text-[var(--muted-foreground)]">
+          {selectedLens.tagline}
+        </p>
+      </div>
+
+      {/* Pro link — below card */}
+      <div className="mt-6 flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => router.push("/explore?mode=pro")}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-xs text-[var(--muted-foreground)] transition hover:border-[color:var(--border-strong)] hover:text-[var(--foreground)]"
+        >
+          Open Pro workspace
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
       <Footer />
     </main>
   );

@@ -14,10 +14,9 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DrawingTool } from "@/types";
+import { Input } from "@/components/ui/input";
 
 interface WorkspaceToolRailProps {
   shellMode: "minimal" | "guided" | "board";
@@ -45,12 +44,44 @@ interface WorkspaceToolRailProps {
   onExportBundle: () => void;
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function RailButton({
+  active,
+  label,
+  Icon,
+  onClick,
+  disabled = false,
+}: {
+  active: boolean;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-      {children}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      title={label}
+      className={cn(
+        "group relative flex h-10 w-10 items-center justify-center rounded-full border transition duration-150 disabled:cursor-not-allowed disabled:opacity-40",
+        active
+          ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+          : "border-[color:var(--border-soft)] bg-transparent text-[var(--muted-foreground)] hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {/* Tooltip */}
+      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2.5 hidden -translate-y-1/2 whitespace-nowrap rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-1 text-xs text-[var(--foreground)] shadow-[var(--shadow-panel)] backdrop-blur-sm group-hover:inline-flex">
+        {label}
+      </span>
+    </button>
   );
+}
+
+function RailDivider() {
+  return <div className="mx-auto h-px w-6 bg-[color:var(--border-soft)]" />;
 }
 
 export function WorkspaceToolRail({
@@ -78,193 +109,131 @@ export function WorkspaceToolRail({
   onCapturePng,
   onExportBundle,
 }: WorkspaceToolRailProps) {
-  const toolButtons = [
-    { id: "polygon" as const, label: "Area", Icon: PenTool },
-    { id: "point" as const, label: "Pin", Icon: MapPinned },
-    { id: "polyline" as const, label: "Path", Icon: Ruler },
-    { id: "circle" as const, label: "Radius", Icon: Circle },
-  ];
-
   return (
-    <section className="space-y-4 rounded-[1.6rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
-      <div className="space-y-1">
-        <SectionTitle>Workbench</SectionTitle>
-        <div className="text-sm font-semibold text-[var(--foreground)]">Analyst workbench</div>
-        <p className="text-xs leading-5 text-[var(--muted-foreground)]">
-          Keep the map central, define the area of interest, and export handoff-ready geospatial outputs.
-        </p>
-      </div>
+    <div className="flex flex-col items-center gap-1.5 py-1">
+      {/* View mode */}
+      <RailButton
+        active={shellMode !== "board"}
+        label="Focus mode"
+        Icon={Sparkles}
+        onClick={onOpenFocused}
+      />
+      <RailButton
+        active={shellMode === "board" && viewMode === "board"}
+        label="Evidence board"
+        Icon={Layers3}
+        onClick={onOpenWorkspace}
+      />
+      <RailButton
+        active={shellMode === "board" && viewMode === "library"}
+        label="Panel library"
+        Icon={Grid2x2}
+        onClick={onOpenLibrary}
+      />
+      <RailButton
+        active={false}
+        label="Compare sites"
+        Icon={FileSpreadsheet}
+        onClick={onOpenCompare}
+      />
 
-      <div className="space-y-2">
-        <SectionTitle>Shell</SectionTitle>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={shellMode !== "board" ? "default" : "secondary"}
-            className="justify-start rounded-2xl"
-            onClick={onOpenFocused}
-          >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-            Focus
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={shellMode === "board" && viewMode === "board" ? "default" : "secondary"}
-            className="justify-start rounded-2xl"
-            onClick={onOpenWorkspace}
-          >
-            <Layers3 className="mr-1.5 h-3.5 w-3.5" />
-            Evidence
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={shellMode === "board" && viewMode === "library" ? "default" : "secondary"}
-            className="justify-start rounded-2xl"
-            onClick={onOpenLibrary}
-          >
-            <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
-            Panels
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="justify-start rounded-2xl"
-            onClick={onOpenCompare}
-          >
-            <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
-            Compare
-          </Button>
+      <RailDivider />
+
+      {/* Spatial tools */}
+      <RailButton
+        active={drawingTool === "polygon"}
+        label="Draw area"
+        Icon={PenTool}
+        onClick={() => onSelectDrawingTool(drawingTool === "polygon" ? "none" : "polygon")}
+      />
+      <RailButton
+        active={drawingTool === "point"}
+        label="Drop pin"
+        Icon={MapPinned}
+        onClick={() => onSelectDrawingTool(drawingTool === "point" ? "none" : "point")}
+      />
+      <RailButton
+        active={drawingTool === "polyline"}
+        label="Measure"
+        Icon={Ruler}
+        onClick={() => onSelectDrawingTool(drawingTool === "polyline" ? "none" : "polyline")}
+      />
+      <RailButton
+        active={drawingTool === "circle"}
+        label="Radius"
+        Icon={Circle}
+        onClick={() => onSelectDrawingTool(drawingTool === "circle" ? "none" : "circle")}
+      />
+      <RailButton
+        active={snapToGrid}
+        label="Snap to grid"
+        Icon={Grid2x2}
+        onClick={onToggleSnapGrid}
+      />
+      {drawCount > 0 ? (
+        <RailButton
+          active={false}
+          label={`Clear shapes (${drawCount})`}
+          Icon={X}
+          onClick={onClearDrawings}
+        />
+      ) : null}
+
+      <RailDivider />
+
+      {/* Capture & export */}
+      <RailButton
+        active={captureMode}
+        label={captureMode ? "Exit capture" : "Topographic capture"}
+        Icon={Camera}
+        onClick={onToggleCaptureMode}
+      />
+      <RailButton
+        active={false}
+        label="Export GeoJSON"
+        Icon={Download}
+        onClick={onExportGeoJson}
+        disabled={exportBusy}
+      />
+      <RailButton
+        active={false}
+        label="Export tables"
+        Icon={FileSpreadsheet}
+        onClick={onExportCsv}
+        disabled={exportBusy}
+      />
+      <RailButton
+        active={false}
+        label="Capture PNG"
+        Icon={Camera}
+        onClick={onCapturePng}
+        disabled={exportBusy}
+      />
+      <RailButton
+        active={false}
+        label={exportBusy ? "Bundling…" : "Analyst ZIP"}
+        Icon={FileArchive}
+        onClick={onExportBundle}
+        disabled={exportBusy}
+      />
+
+      {/* Capture mode figure inputs — shown inline below the rail when active */}
+      {captureMode ? (
+        <div className="mt-1 w-full space-y-2 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+          <Input
+            value={figureTitle}
+            onChange={(event) => onFigureTitleChange(event.target.value)}
+            placeholder="Figure title"
+            className="h-9 rounded-xl bg-[var(--surface-panel)] px-3 text-xs"
+          />
+          <Input
+            value={figureSubtitle}
+            onChange={(event) => onFigureSubtitleChange(event.target.value)}
+            placeholder="Subtitle"
+            className="h-9 rounded-xl bg-[var(--surface-panel)] px-3 text-xs"
+          />
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <SectionTitle>Spatial tools</SectionTitle>
-        <div className="grid grid-cols-2 gap-2">
-          {toolButtons.map(({ id, label, Icon }) => (
-            <Button
-              key={id}
-              type="button"
-              size="sm"
-              variant={drawingTool === id ? "default" : "secondary"}
-              className="justify-start rounded-2xl"
-              onClick={() => onSelectDrawingTool(drawingTool === id ? "none" : id)}
-            >
-              <Icon className="mr-1.5 h-3.5 w-3.5" />
-              {label}
-            </Button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={snapToGrid ? "default" : "secondary"}
-            className="justify-start rounded-2xl"
-            onClick={onToggleSnapGrid}
-          >
-            <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
-            Snap grid
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="justify-start rounded-2xl"
-            onClick={onClearDrawings}
-            disabled={drawCount === 0}
-          >
-            <X className="mr-1.5 h-3.5 w-3.5" />
-            Clear {drawCount > 0 ? `(${drawCount})` : ""}
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <SectionTitle>Capture & export</SectionTitle>
-        <div className="space-y-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={captureMode ? "default" : "secondary"}
-            className="w-full justify-start rounded-2xl"
-            onClick={onToggleCaptureMode}
-          >
-            <Camera className="mr-1.5 h-3.5 w-3.5" />
-            {captureMode ? "Exit capture mode" : "Topographic capture"}
-          </Button>
-
-          {captureMode ? (
-            <div className="space-y-2 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
-              <Input
-                value={figureTitle}
-                onChange={(event) => onFigureTitleChange(event.target.value)}
-                placeholder="Figure title"
-                className="h-10 rounded-xl bg-[var(--surface-panel)] px-3"
-              />
-              <Input
-                value={figureSubtitle}
-                onChange={(event) => onFigureSubtitleChange(event.target.value)}
-                placeholder="Figure subtitle"
-                className="h-10 rounded-xl bg-[var(--surface-panel)] px-3"
-              />
-              <p className="text-[11px] leading-5 text-[var(--muted-foreground)]">
-                Leave these blank to use the active location and mission profile automatically.
-              </p>
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="justify-start rounded-2xl"
-              onClick={onExportGeoJson}
-              disabled={exportBusy}
-            >
-              <Download className="mr-1.5 h-3.5 w-3.5" />
-              GeoJSON
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="justify-start rounded-2xl"
-              onClick={onExportCsv}
-              disabled={exportBusy}
-            >
-              <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
-              Tables
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="justify-start rounded-2xl"
-              onClick={onCapturePng}
-              disabled={exportBusy}
-            >
-              <Camera className="mr-1.5 h-3.5 w-3.5" />
-              PNG
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="default"
-              className={cn("justify-start rounded-2xl", exportBusy && "opacity-80")}
-              onClick={onExportBundle}
-              disabled={exportBusy}
-            >
-              <FileArchive className="mr-1.5 h-3.5 w-3.5" />
-              {exportBusy ? "Bundling..." : "Analyst ZIP"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
+      ) : null}
+    </div>
   );
 }

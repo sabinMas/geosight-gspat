@@ -76,7 +76,7 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
   },
   {
     id: "land-quick-check",
-    label: "Land Quick-Check",
+    label: "Site Analysis",
     icon: "Layers",
     tagline: "Flood risk, slope, soil, and access — plain English.",
     profileId: "residential",
@@ -97,7 +97,7 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
   },
   {
     id: "general-explore",
-    label: "General Explore",
+    label: "Explore",
     icon: "Compass",
     tagline: "Just look around and see what stands out.",
     profileId: "residential",

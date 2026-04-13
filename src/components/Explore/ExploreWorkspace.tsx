@@ -26,7 +26,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { PersistentAiBar } from "@/components/Explore/PersistentAiBar";
 import { TopographicCaptureOverlay } from "@/components/Explore/TopographicCaptureOverlay";
@@ -1282,23 +1281,23 @@ export function ExploreWorkspace() {
     <div className="flex flex-col xl:fixed xl:inset-0 xl:overflow-hidden bg-[var(--background)]">
 
       {/* ── Topbar ── */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[52px] xl:py-0" aria-label="GeoSight workspace header">
+      <header className="flex shrink-0 items-center gap-2 border-b border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-3 py-2 xl:h-[52px] xl:py-0 xl:px-4" aria-label="GeoSight workspace header">
         {/* Mobile menu */}
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-11 w-11 shrink-0 rounded-full xl:hidden"
+          className="h-9 w-9 shrink-0 rounded-full xl:hidden"
           onClick={() => setSidebarOpen(true)}
           aria-label="Open sidebar"
         >
           <Menu className="h-4 w-4" />
         </Button>
 
-        {/* Brand */}
+        {/* Brand — compact wordmark */}
         <Link
           href="/"
-          className="relative z-10 shrink-0 text-sm font-semibold text-[var(--foreground)] transition-opacity hover:opacity-70"
+          className="relative z-10 shrink-0 text-xs font-semibold text-[var(--muted-foreground)] transition-opacity hover:text-[var(--foreground)] hover:opacity-100 xl:text-sm"
           onClick={(e) => {
             if (state.drawnShapes.length > 0 && !window.confirm("Leave GeoSight? Your drawn shapes will not be saved.")) {
               e.preventDefault();
@@ -1308,16 +1307,11 @@ export function ExploreWorkspace() {
           GeoSight
         </Link>
 
-        {/* Active profile pill */}
-        <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] pointer-events-none xl:inline">
-          {state.activeProfile.name}
-        </span>
-
-        {/* Lens badge (explorer mode) */}
-        {inExplorer && state.activeLensId && (() => {
+        {/* Active profile / lens pill */}
+        {inExplorer && state.activeLensId ? (() => {
           const lens = getExplorerLensById(state.activeLensId);
           return lens ? (
-            <span className="hidden shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-foreground)] cursor-default select-none xl:inline-flex">
+            <span className="hidden shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] pl-3 pr-1.5 py-1 text-xs text-[var(--accent-foreground)] cursor-default select-none xl:inline-flex">
               {lens.label}
               <button
                 type="button"
@@ -1329,9 +1323,13 @@ export function ExploreWorkspace() {
               </button>
             </span>
           ) : null;
-        })()}
+        })() : (
+          <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] pointer-events-none xl:inline">
+            {state.activeProfile.name}
+          </span>
+        )}
 
-        {/* Search bar — centered, flex-1 */}
+        {/* Search bar — flex-1 center */}
         <div className="min-w-0 flex-1">
           <SearchBar
             submitLabel={state.locationReady ? "Update" : "Analyze"}
@@ -1356,18 +1354,18 @@ export function ExploreWorkspace() {
           />
         </div>
 
-        {/* Right cluster */}
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Right cluster — reduced to 3 actions */}
+        <div className="flex shrink-0 items-center gap-1.5">
           <Button
             type="button"
             size="sm"
             variant="ghost"
             className="hidden rounded-full lg:inline-flex"
             onClick={() => setCommandPaletteOpen(true)}
-            title="Open the workspace command palette"
+            title="Open workspace command palette (Ctrl+K)"
+            aria-label="Open command palette"
           >
-            <Command className="mr-1.5 h-3.5 w-3.5" />
-            Tools
+            <Command className="h-3.5 w-3.5" />
           </Button>
           <ModeSwitcher mode={state.appMode} onSetMode={state.setAppMode} />
           {state.locationReady ? (
@@ -1377,10 +1375,11 @@ export function ExploreWorkspace() {
               variant="ghost"
               className="rounded-full"
               onClick={handleCopyLink}
-              title="Copy a shareable link to this location and profile"
+              title="Copy shareable link"
+              aria-label={copiedLink ? "Link copied" : "Copy shareable link"}
             >
-              <Link2 className="mr-1.5 h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{copiedLink ? "Copied!" : "Share"}</span>
+              <Link2 className="h-3.5 w-3.5" />
+              <span className="ml-1.5 hidden sm:inline">{copiedLink ? "Copied" : "Share"}</span>
             </Button>
           ) : null}
         </div>
@@ -1389,24 +1388,17 @@ export function ExploreWorkspace() {
       {/* ── Body ── */}
       <div className="flex min-h-0 flex-1 flex-col xl:flex-row xl:overflow-hidden">
 
-        {/* Left panel — desktop only */}
-        <aside className="hidden w-80 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)] xl:flex" aria-label="Workspace navigation and quick regions">
+        {/* Left icon rail — desktop only */}
+        <aside className="hidden w-14 shrink-0 flex-col items-center overflow-hidden border-r border-[color:var(--border-soft)] xl:flex" aria-label="Workspace tools">
 
-          {/* Init status */}
-          {state.initStatus === "resolving" ? (
-            <div className="shrink-0 border-b border-[color:var(--border-soft)] px-3 py-2">
-              <p className="text-xs text-[var(--muted-foreground)]">
-                Resolving {state.init.locationQuery}…
-              </p>
-            </div>
-          ) : null}
+          {/* Init error strip */}
           {state.initError ? (
-            <div className="shrink-0 border-b border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger-foreground)]">
-              {state.initError}
+            <div className="w-full shrink-0 border-b border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-2 py-1 text-[10px] text-[var(--danger-foreground)] text-center leading-4">
+              !
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-visible py-3 scrollbar-thin">
             <WorkspaceToolRail
               shellMode={data.shellMode}
               viewMode={data.viewMode}
@@ -1442,23 +1434,7 @@ export function ExploreWorkspace() {
                 void handleExportBundle();
               }}
             />
-
-            {/* Sidebar (profiles + quick regions) */}
-            <div className="min-h-0">{sidebarElement}</div>
           </div>
-
-          {/* AddViewTray — guided mode */}
-          {data.shellMode !== "board" ? (
-            <div className="shrink-0 border-t border-[color:var(--border-soft)]">
-              <AddViewTray
-                cards={data.suggestedCards}
-                pinnedCardIds={data.pinnedCardIds}
-                onOpenCard={data.openCardFromTray}
-                onTogglePinned={data.togglePinnedCard}
-                onOpenBoard={data.openAdvancedBoard}
-              />
-            </div>
-          ) : null}
 
         </aside>
 
@@ -1508,43 +1484,55 @@ export function ExploreWorkspace() {
             </div>
           </ClientErrorBoundary>
 
-          {/* Globe controls */}
-          <div className="absolute right-4 top-4 z-20 flex flex-col gap-2">
-            <Button
+          {/* Globe controls — unified bottom-right pill cluster */}
+          <div className="absolute bottom-12 right-4 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] shadow-[var(--shadow-panel)] backdrop-blur-xl">
+            <button
               type="button"
-              variant={state.globeRotateMode ? "default" : "secondary"}
-              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
               aria-pressed={state.globeRotateMode}
-              aria-label={state.globeRotateMode ? "Disable 3D explore rotate mode" : "Enable 3D explore rotate mode"}
+              aria-label={state.globeRotateMode ? "Disable 3D rotate" : "Enable 3D rotate"}
+              title={state.globeRotateMode ? "Disable 3D rotate" : "Enable 3D rotate"}
               onClick={() => state.setGlobeRotateMode((current) => !current)}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition duration-150",
+                state.globeRotateMode
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+              )}
             >
-              <Globe className="mr-2 h-4 w-4" />
-              {state.globeRotateMode ? "3D explore" : "Rotate"}
-            </Button>
-            <Button
+              <Globe className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-[color:var(--border-soft)]" />
+            <button
               type="button"
-              variant={state.driveMode ? "default" : "secondary"}
-              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
               aria-pressed={state.driveMode}
               aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
-              title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD keys)"}
+              title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD)"}
               onClick={() => state.setDriveMode((current) => !current)}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition duration-150",
+                state.driveMode
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+              )}
             >
-              <Car className="mr-2 h-4 w-4" />
-              {state.driveMode ? "Driving" : "Drive"}
-            </Button>
-            <Button
+              <Car className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-[color:var(--border-soft)]" />
+            <button
               type="button"
-              variant={locationPanelOpen ? "default" : "secondary"}
-              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
               aria-pressed={locationPanelOpen}
               aria-label={locationPanelOpen ? "Hide location tracking" : "Show location tracking"}
               title="Live location tracking"
               onClick={() => setLocationPanelOpen((v) => !v)}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition duration-150",
+                locationPanelOpen
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+              )}
             >
-              <MapPinned className="mr-2 h-4 w-4" />
-              {locationPanelOpen ? "Tracking" : "Location"}
-            </Button>
+              <MapPinned className="h-4 w-4" />
+            </button>
           </div>
 
           {locationPanelOpen ? (
@@ -1657,25 +1645,56 @@ export function ExploreWorkspace() {
           ) : null}
         </main>
 
-        {/* Right panel (desktop) / inline content (mobile) */}
+        {/* Right panel — slide-in overlay on desktop, inline on mobile */}
+        {/* Mobile: renders below globe */}
         {showRightPanel ? (
-          <aside className={cn(
-            "flex flex-col border-t border-[color:var(--border-soft)]",
-            "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
-          )} aria-label="Analysis cards and workspace panels">
+          <aside className="flex flex-col border-t border-[color:var(--border-soft)] xl:hidden" aria-label="Analysis cards and workspace panels">
             <CardDisplayProvider value={{ defaultCollapsed: true }}>
               {rightPanelContent}
             </CardDisplayProvider>
           </aside>
         ) : null}
+
+        {/* Desktop: fixed right slide-in panel */}
+        <aside
+          className={cn(
+            "hidden xl:flex xl:flex-col xl:fixed xl:inset-y-[52px] xl:right-0 xl:w-[380px] xl:overflow-y-auto xl:border-l xl:border-[color:var(--border-soft)] xl:bg-[var(--surface-overlay)] xl:backdrop-blur-xl xl:shadow-[var(--shadow-panel)] xl:z-30",
+            "xl:transition-transform xl:duration-300 xl:ease-out",
+            showRightPanel ? "xl:translate-x-0" : "xl:translate-x-full",
+          )}
+          aria-label="Analysis cards and workspace panels"
+          aria-hidden={!showRightPanel}
+        >
+          <CardDisplayProvider value={{ defaultCollapsed: true }}>
+            {rightPanelContent}
+          </CardDisplayProvider>
+        </aside>
+
+        {/* Pull handle — appears when panel is closed and there is content to show */}
+        {!showRightPanel && (
+          <button
+            type="button"
+            className="hidden xl:flex fixed right-0 top-1/2 z-30 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-l-xl border border-r-0 border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-1.5 py-4 backdrop-blur-xl shadow-[var(--shadow-soft)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition"
+            title="Open analysis panels"
+            aria-label="Open analysis panels"
+            onClick={() => {
+              const firstCard = data.primaryCards[0];
+              if (firstCard) data.setActivePrimaryCardId(firstCard.id);
+            }}
+          >
+            <div className="h-4 w-0.5 rounded-full bg-current opacity-40" />
+            <div className="h-4 w-0.5 rounded-full bg-current opacity-40" />
+          </button>
+        )}
       </div>
 
       {/* ── Bottom bar ── */}
       <footer
-        className="flex shrink-0 flex-col gap-3 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[64px] xl:flex-row xl:items-center xl:py-0"
+        className="flex shrink-0 flex-col gap-2 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-3 py-2 xl:h-[56px] xl:flex-row xl:items-center xl:gap-3 xl:px-4 xl:py-0"
         aria-label="Workspace actions and persistent AI input"
       >
-        <div className="min-w-0 flex-1 xl:max-w-[28rem]">
+        {/* Analysis banner — compact */}
+        <div className="min-w-0 flex-1 xl:max-w-[26rem]">
           {(state.locationReady || data.loading || data.error) ? (
             <AnalysisOverviewBanner
               compact
@@ -1689,18 +1708,22 @@ export function ExploreWorkspace() {
               onOpenSources={() => openCard("source-awareness")}
             />
           ) : (
-            <span className="text-sm text-[var(--muted-foreground)]">
-              Search a location to begin analysis
+            <span className="text-xs text-[var(--muted-foreground)]">
+              Search a place to begin
             </span>
           )}
         </div>
 
-        <PersistentAiBar
-          disabled={!state.locationReady}
-          onSubmit={handlePersistentQuestionSubmit}
-        />
+        {/* AI pill — collapsed by default, expands on click */}
+        <div className="flex shrink-0 items-center justify-center">
+          <PersistentAiBar
+            disabled={!state.locationReady}
+            onSubmit={handlePersistentQuestionSubmit}
+          />
+        </div>
 
-        <div className="flex shrink-0 items-center gap-3 self-end xl:self-auto">
+        {/* Action buttons */}
+        <div className="flex shrink-0 items-center gap-2 self-end xl:self-auto">
           <Button
             type="button"
             variant="secondary"
@@ -1713,8 +1736,8 @@ export function ExploreWorkspace() {
                 : "Save at least two locations to unlock comparison."
             }
           >
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
-          Compare
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Compare
           </Button>
 
           <Button
@@ -1725,11 +1748,11 @@ export function ExploreWorkspace() {
             disabled={data.reportLoading}
             onClick={handleGenerateReport}
           >
-          <FileText className="mr-1.5 h-3.5 w-3.5" />
-          <span className="hidden sm:inline">
-            {data.reportLoading ? "Generating…" : "Generate report"}
-          </span>
-          <span className="sm:hidden">Report</span>
+            <FileText className="mr-1.5 h-3.5 w-3.5" />
+            <span className="hidden sm:inline">
+              {data.reportLoading ? "Generating…" : "Report"}
+            </span>
+            <span className="sm:hidden">Report</span>
           </Button>
         </div>
       </footer>
