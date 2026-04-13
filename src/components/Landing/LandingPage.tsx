@@ -33,6 +33,7 @@ import { LANDING_WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
 import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { ProductPreviewSection } from "./ProductPreviewSection";
 
 const ICONS = {
   House,
@@ -575,6 +576,10 @@ export function LandingPage() {
               Open Pro workspace
               <ArrowRight className="h-4 w-4" />
             </Link>
+          </div>
+
+          <div className="mt-4 mb-5">
+            <ProductPreviewSection />
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
