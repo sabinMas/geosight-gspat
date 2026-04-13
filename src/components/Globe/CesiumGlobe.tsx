@@ -18,6 +18,7 @@ import {
   EllipsoidTerrainProvider,
   HeadingPitchRange,
   HeadingPitchRoll,
+  HeightReference,
   HorizontalOrigin,
   ImageryLayer,
   Ion,
@@ -946,6 +947,25 @@ export function CesiumGlobe({
         }
 
         const cartographic = Cartographic.fromCartesian(earthPosition);
+
+        // Temporary cyan pulse entity — auto-removed after 1.5 s
+        const accentColor = Color.fromCssColorString("#00e5ff");
+        const pulseEntity = viewer.entities.add({
+          position: earthPosition,
+          point: {
+            pixelSize: 18,
+            color: accentColor.withAlpha(0.85),
+            outlineColor: accentColor.withAlpha(0.3),
+            outlineWidth: 8,
+            heightReference: HeightReference.CLAMP_TO_GROUND,
+          },
+        });
+        window.setTimeout(() => {
+          if (viewer && !viewer.isDestroyed()) {
+            viewer.entities.remove(pulseEntity);
+          }
+        }, 1500);
+
         onPointSelect({
           lat: CesiumMath.toDegrees(cartographic.latitude),
           lng: CesiumMath.toDegrees(cartographic.longitude),
