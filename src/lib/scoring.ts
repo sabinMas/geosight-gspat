@@ -795,16 +795,43 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
   return factor.description;
 }
 
-function buildFactorEvidence(factor: ScoringFactor): Pick<
+type FactorEvidenceResult = Pick<
   SiteFactorScore,
-  "evidenceKind" | "evidenceLabel" | "evidenceExplanation"
-> {
-  if (factor.scoreFn === "distance" || factor.scoreFn === "elevation" || factor.scoreFn === "climate") {
+  "evidenceKind" | "evidenceLabel" | "evidenceExplanation" | "sourceIds" | "sourceLastUpdated" | "proxyReason"
+>;
+
+const EVIDENCE_DIRECT_LIVE = "This factor is scored from a live measurement or nearest-feature reading returned directly by the current geodata pipeline.";
+const EVIDENCE_DERIVED_MULTI = "This factor translates one or more live source measurements into a normalized mission score while preserving the underlying source context in the detail text.";
+const EVIDENCE_DERIVED_COMPUTED = "This factor is computed from multiple live inputs rather than a single direct reading.";
+
+function buildFactorEvidence(factor: ScoringFactor): FactorEvidenceResult {
+  if (factor.scoreFn === "distance") {
     return {
       evidenceKind: "direct_live",
       evidenceLabel: "Direct live signal",
-      evidenceExplanation:
-        "This factor is scored from a live measurement or nearest-feature reading returned directly by the current geodata pipeline.",
+      evidenceExplanation: EVIDENCE_DIRECT_LIVE,
+      sourceIds: ["osm-overpass"],
+      sourceLastUpdated: "live",
+    };
+  }
+
+  if (factor.scoreFn === "elevation") {
+    return {
+      evidenceKind: "direct_live",
+      evidenceLabel: "Direct live signal",
+      evidenceExplanation: EVIDENCE_DIRECT_LIVE,
+      sourceIds: ["usgs-epqs", "opentopodata"],
+      sourceLastUpdated: "2024",
+    };
+  }
+
+  if (factor.scoreFn === "climate") {
+    return {
+      evidenceKind: "direct_live",
+      evidenceLabel: "Direct live signal",
+      evidenceExplanation: EVIDENCE_DIRECT_LIVE,
+      sourceIds: ["open-meteo"],
+      sourceLastUpdated: "2024-12",
     };
   }
 
@@ -814,6 +841,7 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
       evidenceLabel: "Derived live analysis",
       evidenceExplanation:
         "This factor is scored from land-cover analysis derived from live or recently fetched map context rather than a single raw measurement.",
+      sourceIds: [],
     };
   }
 
@@ -825,21 +853,86 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
           evidenceLabel: "Derived live analysis",
           evidenceExplanation:
             "This factor uses GeoSight's normalized school-context analysis built from live school records and official metrics where available.",
+          sourceIds: ["nces-edge"],
+          sourceLastUpdated: "2024",
+        };
+      case "floodRisk":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["fema-nfhl"],
+          sourceLastUpdated: "2024-Q3",
+        };
+      case "groundwaterDepth":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["usgs-groundwater"],
+          sourceLastUpdated: "2023",
+          proxyReason:
+            "Groundwater level from nearest USGS monitoring well; well density and aquifer type vary by region",
+        };
+      case "soilBuildability":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["nrcs-ssurgo"],
+          sourceLastUpdated: "2023",
+          proxyReason:
+            "Soil survey data; site-specific conditions may vary from mapped unit",
+        };
+      case "seismicRisk":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["usgs-seismic-design"],
+          sourceLastUpdated: "2023",
+          proxyReason:
+            "Based on probabilistic seismic hazard maps; not a real-time earthquake feed",
+        };
+      case "broadbandConnectivity":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["fcc-broadband", "eurostat"],
+          sourceLastUpdated: "2024",
+        };
+      case "airQuality":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["openaq", "open-meteo"],
+          sourceLastUpdated: "2024-12",
+        };
+      case "contaminationRisk":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["epa-envirofacts"],
+          sourceLastUpdated: "2024-12",
         };
       case "waterAccess":
-      case "floodRisk":
-      case "groundwaterDepth":
-      case "soilBuildability":
-      case "seismicRisk":
-      case "broadbandConnectivity":
-      case "airQuality":
-      case "contaminationRisk":
+        return {
+          evidenceKind: "derived_live",
+          evidenceLabel: "Derived live analysis",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["usgs-streamgauges", "osm-overpass"],
+          sourceLastUpdated: "live",
+        };
       case "trailAccess":
         return {
           evidenceKind: "derived_live",
           evidenceLabel: "Derived live analysis",
-          evidenceExplanation:
-            "This factor translates one or more live source measurements into a normalized mission score while preserving the underlying source context in the detail text.",
+          evidenceExplanation: EVIDENCE_DERIVED_MULTI,
+          sourceIds: ["osm-overpass"],
+          sourceLastUpdated: "live",
         };
       case "hazardAlerts":
         return {
@@ -847,6 +940,8 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
           evidenceLabel: "Direct live signal",
           evidenceExplanation:
             "This factor is scored from the GDACS live global disaster alert feed, using current alert counts and severity levels at the time of the request.",
+          sourceIds: ["gdacs"],
+          sourceLastUpdated: "live",
         };
       case "terrainVariety":
       case "remoteness":
@@ -859,13 +954,17 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
           evidenceLabel: "Proxy heuristic",
           evidenceExplanation:
             "This factor blends live signals into a heuristic score, so it is useful for first-pass comparison but should not be treated as a direct measurement.",
+          sourceIds: ["osm-overpass"],
+          sourceLastUpdated: "live",
+          proxyReason:
+            "Score is a weighted blend of OSM amenity counts, distance, and land-cover signals; not a single authoritative measurement.",
         };
       default:
         return {
           evidenceKind: "derived_live",
           evidenceLabel: "Derived live analysis",
-          evidenceExplanation:
-            "This factor is computed from multiple live inputs rather than a single direct reading.",
+          evidenceExplanation: EVIDENCE_DERIVED_COMPUTED,
+          sourceIds: [],
         };
     }
   }
@@ -874,6 +973,7 @@ function buildFactorEvidence(factor: ScoringFactor): Pick<
     evidenceKind: "derived_live",
     evidenceLabel: "Derived live analysis",
     evidenceExplanation: "This factor is computed from the currently available geospatial inputs.",
+    sourceIds: [],
   };
 }
 
