@@ -15,6 +15,9 @@ import { ExternalRequestTimeoutError } from "@/lib/network";
 import { cn } from "@/lib/utils";
 import { LocationSearchResult } from "@/types";
 
+/** Matches a bare number that looks like a lone coordinate value — e.g. "47.61" */
+const BARE_NUMBER_RE = /^-?\d+(\.\d+)?$/;
+
 interface SearchBarProps {
   className?: string;
   leadingControl?: React.ReactNode;
@@ -96,15 +99,58 @@ export function SearchBar({
     onLocate(suggestion);
   }, [onLocate]);
 
+  /**
+   * Validates coordinate-shaped input before dispatch.
+   * Returns false and sets an error if the input is a bare number or has
+   * out-of-bounds lat/lng values. Returns true for valid coordinates or
+   * non-coordinate input (place names proceed to geocode unchanged).
+   */
+  const validateCoordinateInput = useCallback((query: string): boolean => {
+    // Bare number — hint the user to enter a full lat, lng pair
+    if (BARE_NUMBER_RE.test(query)) {
+      setError("Enter coordinates as lat, lng — e.g. 47.61, -122.33");
+      return false;
+    }
+
+    // parseCoordinates already validates bounds and returns null for out-of-range values.
+    // Detect a coordinate-shaped pair without bounds by checking for a comma/space separator.
+    const looksLikeCoordPair = /^-?\d/.test(query) && /[,\s]/.test(query);
+    if (looksLikeCoordPair && !parseCoordinates(query)) {
+      // Extract the two numbers to surface a specific bound error message
+      const parts = query.split(/[\s,]+/).filter(Boolean);
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0]);
+        const lng = parseFloat(parts[1]);
+        if (Number.isFinite(lat) && (lat < -90 || lat > 90)) {
+          setError(`Latitude must be between -90 and 90 (got ${lat})`);
+          return false;
+        }
+        if (Number.isFinite(lng) && (lng < -180 || lng > 180)) {
+          setError(`Longitude must be between -180 and 180 (got ${lng})`);
+          return false;
+        }
+      }
+      // Malformed coordinate pair — let geocode attempt handle it
+    }
+
+    return true;
+  }, []);
+
   const executeSearch = useCallback(async () => {
     setError(null);
 
-    if (!value.trim()) {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
       setError("Enter a place, ZIP code, address, country, or coordinates to continue.");
       return;
     }
 
-    const coordinates = parseCoordinates(value);
+    if (!validateCoordinateInput(trimmed)) {
+      return;
+    }
+
+    const coordinates = parseCoordinates(trimmed);
     if (coordinates) {
       const name = `${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}`;
       onLocate({
@@ -117,11 +163,11 @@ export function SearchBar({
 
     setLoading(true);
     try {
-      const resolved = await resolveLocationFromQuery(value);
+      const resolved = await resolveLocationFromQuery(trimmed);
       handleSelectSuggestion(resolved);
     } catch (err) {
       if (onSearchFallback) {
-        const fallbackResult = await onSearchFallback(value);
+        const fallbackResult = await onSearchFallback(trimmed);
         if (fallbackResult.handled) {
           setError(null);
           return;
@@ -143,7 +189,7 @@ export function SearchBar({
     } finally {
       setLoading(false);
     }
-  }, [handleSelectSuggestion, onLocate, onSearchFallback, value]);
+  }, [handleSelectSuggestion, onLocate, onSearchFallback, validateCoordinateInput, value]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -192,7 +238,7 @@ export function SearchBar({
           <div className="min-w-0 flex-1">
             <Input
               value={value}
-              onChange={(event) => setValue(event.target.value)}
+              onChange={(event) => { setValue(event.target.value); setError(null); }}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => {
                 window.setTimeout(() => setShowSuggestions(false), 120);
@@ -204,6 +250,11 @@ export function SearchBar({
               aria-controls="location-search-suggestions"
               className="h-12 rounded-2xl border-[color:var(--border-soft)] bg-[var(--background)]/50 text-sm"
             />
+            {error && (
+              <p className="mt-1 px-1 text-xs text-[var(--danger-foreground)]">
+                {error}
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
@@ -279,7 +330,6 @@ export function SearchBar({
         </div>
       ) : null}
 
-      {error ? <div className="text-sm text-[var(--danger-foreground)]">{error}</div> : null}
     </div>
   );
 }
