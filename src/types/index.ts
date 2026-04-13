@@ -900,6 +900,9 @@ export interface SiteFactorScore {
   evidenceKind?: ScoreEvidenceKind;
   evidenceLabel?: string;
   evidenceExplanation?: string;
+  sourceIds?: string[];
+  sourceLastUpdated?: string;
+  proxyReason?: string;
 }
 
 export interface BroadbandScoreSummary {
