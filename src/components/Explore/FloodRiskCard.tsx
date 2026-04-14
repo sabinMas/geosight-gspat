@@ -108,6 +108,20 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
             </div>
           ) : null}
 
+          {flood?.isSpecialFloodHazard && flood.baseFloodElevationFt != null ? (
+            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Base Flood Elevation</div>
+              <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
+                {flood.baseFloodElevationFt.toFixed(1)} ft
+                <span className="ml-2 text-sm font-normal text-[var(--muted-foreground)]">above NAVD88</span>
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                Regulatory flood elevation from FEMA NFHL (layer 17). Finished floors in this
+                Special Flood Hazard Area are typically required at or above this elevation.
+              </div>
+            </div>
+          ) : null}
+
           <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
               Technical details

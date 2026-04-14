@@ -105,13 +105,27 @@ export function SchoolContextCard({
         ) : null}
 
         {schoolContext?.coverageStatus === "outside_us" ? (
-          <StatePanel
-            tone="partial"
-            eyebrow="Education coverage"
-            title="School-quality intelligence is still US-first"
-            description="GeoSight can show mapped nearby schools outside the United States, but official quality and accountability coverage is not yet available for this country."
-            compact
-          />
+          <>
+            <StatePanel
+              tone="partial"
+              eyebrow="Education coverage"
+              title="School-quality intelligence is still US-first"
+              description="GeoSight can show mapped nearby schools outside the United States, but official quality and accountability coverage is not yet available for this country."
+              compact
+            />
+            {schoolContext.nearbySchoolCount > 0 ? (
+              <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+                <div className="eyebrow">OSM school density</div>
+                <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
+                  {schoolContext.nearbySchoolCount}
+                </div>
+                <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                  OpenStreetMap-mapped schools in the active analysis area. This is a presence count,
+                  not a quality score.
+                </div>
+              </div>
+            ) : null}
+          </>
         ) : null}
 
         {schoolContext ? (

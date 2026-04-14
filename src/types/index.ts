@@ -664,6 +664,8 @@ export interface FloodZoneResult {
   peakDischargeCms?: number | null;
   /** GloFAS only: qualitative tier — "Low" | "Moderate" | "Significant" | "Major" */
   dischargeRiskLabel?: string | null;
+  /** FEMA SFHA only: Base Flood Elevation in feet above NAVD88 (from NFHL layer 17) */
+  baseFloodElevationFt?: number | null;
 }
 
 export interface StreamGaugeResult {
@@ -693,6 +695,8 @@ export interface EPAHazardResult {
   triCount: number;
   nearestSuperfundName: string | null;
   nearestSuperfundDistanceKm: number | null;
+  /** "epa" for US EPA Envirofacts; "eea" for EEA E-PRTR industrial facilities */
+  source?: "epa" | "eea";
 }
 
 export interface HousingMarketSeriesPoint {

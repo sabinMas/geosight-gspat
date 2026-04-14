@@ -283,7 +283,7 @@ export function buildGroqAnalysisContextBlock(
   const visibleLayers = options.visibleLayers?.filter((layer) => layer.trim()).join(", ");
   const retrievedKnowledge = options.ragContext?.trim() || "No retrieved knowledge context.";
   const supportedFacts = buildSupportedFacts(payload)
-    .slice(0, 12)
+    .slice(0, 22)
     .map((fact) => `- ${fact}`)
     .join("\n");
   const extraContext = (options.extraContext ?? [])
@@ -617,8 +617,10 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
         : `Broadband context (FCC BroadbandMap, derived live): ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadSpeed || "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadSpeed || "unknown"} Mbps up.`
       : "Broadband context is currently unavailable.",
     payload.geodata?.floodZone
-      ? `FEMA flood zone (FEMA NFHL, derived live — US only): ${payload.geodata.floodZone.label}.`
-      : "FEMA flood-zone context is currently unavailable.",
+      ? payload.geodata.floodZone.source === "glofas"
+        ? `River discharge context (GloFAS via Open-Meteo, derived live — global): ${payload.geodata.floodZone.dischargeRiskLabel ?? "Unknown"} discharge — peak ${payload.geodata.floodZone.peakDischargeCms?.toFixed(0) ?? "unknown"} m³/s (7-day forecast). Scale: Low <50 / Moderate 50–500 / Significant 500–2,000 / Major >2,000 m³/s.`
+        : `FEMA flood zone (FEMA NFHL, derived live — US only): ${payload.geodata.floodZone.label}.`
+      : "Flood-zone or river-discharge context is currently unavailable.",
     nearestGauge
       ? `Nearest USGS stream gauge (USGS NWIS, direct live): ${nearestGauge.siteName} (${formatDistanceKm(nearestGauge.distanceKm, "unknown distance")}) reporting ${nearestGauge.dischargeCfs ?? "unknown"} cfs.`
       : "USGS stream-gauge context is currently unavailable.",
@@ -629,8 +631,10 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
         ? `OpenAQ station unavailable; Open-Meteo AQI is ${payload.geodata.climate.airQualityIndex}. (Open-Meteo, derived live)`
         : "Air-quality context is currently unavailable.",
     payload.geodata?.epaHazards
-      ? `EPA contamination screening (EPA ECHO/TRI, derived live — US only): ${payload.geodata.epaHazards.superfundCount} Superfund sites and ${payload.geodata.epaHazards.triCount} TRI facilities within roughly 50 km; nearest Superfund site ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
-      : "EPA contamination screening is currently unavailable.",
+      ? payload.geodata.epaHazards.source === "eea"
+        ? `EEA E-PRTR contamination screening (EEA industrial registry, derived live — EU/EEA): ${payload.geodata.epaHazards.superfundCount} registered industrial facilities within roughly 50 km; nearest facility ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
+        : `EPA contamination screening (EPA Envirofacts CERCLIS/TRI, derived live — US only): ${payload.geodata.epaHazards.superfundCount} Superfund sites and ${payload.geodata.epaHazards.triCount} TRI facilities within roughly 50 km; nearest Superfund site ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
+      : "Contamination screening is currently unavailable.",
     payload.geodata?.hazards?.earthquakeCount30d !== null &&
     payload.geodata?.hazards?.earthquakeCount30d !== undefined
       ? `Recent seismic context (USGS FDSN, direct live): ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
@@ -654,7 +658,33 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
     topLandCover
       ? `Dominant land cover signal (ML classification, derived live): ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",
-  ];
+    payload.geodata?.soilProfile &&
+    Object.values(payload.geodata.soilProfile).some((v) => v !== null)
+      ? `Soil profile (${payload.geodata.sources.soilProfile.provider}, derived live): drainage class ${payload.geodata.soilProfile.drainageClass ?? "unknown"}, hydrologic group ${payload.geodata.soilProfile.hydrologicGroup ?? "unknown"}, dominant texture ${payload.geodata.soilProfile.dominantTexture ?? "unknown"}${payload.geodata.soilProfile.mapUnitName ? ` (${payload.geodata.soilProfile.mapUnitName})` : ""}.`
+      : "Soil profile data is currently unavailable.",
+    payload.geodata?.seismicDesign &&
+    [payload.geodata.seismicDesign.ss, payload.geodata.seismicDesign.s1, payload.geodata.seismicDesign.pga].some((v) => v !== null)
+      ? `Seismic design parameters (USGS ASCE 7-22, direct live — US only): PGA ${payload.geodata.seismicDesign.pga?.toFixed(2) ?? "unknown"} g, Ss ${payload.geodata.seismicDesign.ss?.toFixed(2) ?? "unknown"} g, S1 ${payload.geodata.seismicDesign.s1?.toFixed(2) ?? "unknown"} g, site class ${payload.geodata.seismicDesign.siteClass ?? "unknown"}.`
+      : "USGS seismic design parameters are US-only; use the earthquake catalog seismicity context for non-US locations.",
+    payload.geodata?.climateHistory && payload.geodata.climateHistory.summaries.length > 0
+      ? (() => {
+          const ch = payload.geodata!.climateHistory!;
+          const delta =
+            ch.recentAvgTempC !== null && ch.baselineAvgTempC !== null
+              ? ch.recentAvgTempC - ch.baselineAvgTempC
+              : null;
+          return `Historical climate trend (Open-Meteo ERA5, derived live — 2015–2024): temperature trend is ${ch.trendDirection ?? "unknown"}${delta !== null ? ` (recent avg ${ch.recentAvgTempC?.toFixed(1)}°C vs baseline ${ch.baselineAvgTempC?.toFixed(1)}°C, Δ${delta > 0 ? "+" : ""}${delta.toFixed(1)}°C)` : ""}; ${ch.summaries.length} year summaries available.`;
+        })()
+      : "Historical climate trend data is currently unavailable.",
+    payload.geodata?.solarResource && payload.geodata.solarResource.annualGhiKwhM2Day !== null
+      ? `Solar resource (NASA POWER, direct live — global 22-year average): annual GHI ${payload.geodata.solarResource.annualGhiKwhM2Day.toFixed(2)} kWh/m²/day, peak sun hours ${payload.geodata.solarResource.peakSunHours?.toFixed(1) ?? "unknown"}, clearness index ${payload.geodata.solarResource.clearnessIndex?.toFixed(2) ?? "unknown"}.`
+      : "Solar resource data is currently unavailable.",
+    payload.geodata?.climate?.coolingDegreeDays !== null &&
+    payload.geodata?.climate?.coolingDegreeDays !== undefined &&
+    payload.geodata?.climate?.averageTempC !== null
+      ? `Thermal load context (Open-Meteo, derived live): average temperature ${payload.geodata.climate.averageTempC?.toFixed(1) ?? "unknown"}°C, cooling degree days ${payload.geodata.climate.coolingDegreeDays}, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h.`
+      : null,
+  ].filter((fact): fact is string => fact !== null);
 }
 
 function formatSourceConfidenceLine(source: DataSourceMeta | null | undefined) {

@@ -5,6 +5,7 @@ import { getNearbyGroundwaterWells } from "@/lib/groundwater";
 import { getAirQuality } from "@/lib/air-quality";
 import { fetchCountyDemographics } from "@/lib/census";
 import { getEPAHazards } from "@/lib/epa-envirofacts";
+import { getEEAIndustrialFacilities } from "@/lib/eea-industrial";
 import { fetchEurostatBroadbandBaseline } from "@/lib/eurostat";
 import { getFloodZone } from "@/lib/fema-flood";
 import { getFCCBroadband } from "@/lib/fcc-broadband";
@@ -76,6 +77,10 @@ function isLikelyCountryCode(value: string | null) {
 
 function isLikelyUsCoordinate(lat: number, lng: number) {
   return lat >= 18 && lat <= 72 && lng >= -180 && lng <= -64;
+}
+
+function isLikelyEuropeanCoordinate(lat: number, lng: number) {
+  return lat >= 34 && lat <= 72 && lng >= -25 && lng <= 45;
 }
 
 function buildNearestFeature(
@@ -261,13 +266,20 @@ export async function GET(request: NextRequest) {
         "seismic design",
       )
     : Promise.resolve(null);
+  const isEuropeanPoint = !isUsPoint && isLikelyEuropeanCoordinate(lat, lng);
   const epaHazardPromise = isUsPoint
     ? withSoftTimeout(
         getEPAHazards(lat, lng),
         OPTIONAL_PROVIDER_TIMEOUTS.epaHazards,
         "epa hazards",
       )
-    : Promise.resolve(null);
+    : isEuropeanPoint
+      ? withSoftTimeout(
+          getEEAIndustrialFacilities(lat, lng),
+          OPTIONAL_PROVIDER_TIMEOUTS.epaHazards,
+          "eea industrial facilities",
+        )
+      : Promise.resolve(null);
   const gdacsAlertPromise = withSoftTimeout(
     fetchGdacsAlertSummary({ lat, lng }),
     OPTIONAL_PROVIDER_TIMEOUTS.gdacsAlerts,
@@ -462,12 +474,19 @@ export async function GET(request: NextRequest) {
     climateHistory,
     solarResource: solarResourceResult.status === "fulfilled" ? solarResourceResult.value : null,
     airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
-    epaHazards: isUsPoint && epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
+    epaHazards: epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
     hazardAlerts: gdacsAlertResult.status === "fulfilled" ? gdacsAlertResult.value : null,
-    schoolContext:
-      schoolResult.status === "fulfilled"
-        ? summarizeSchoolContext(schoolResult.value)
-        : null,
+    schoolContext: (() => {
+      const raw =
+        schoolResult.status === "fulfilled"
+          ? summarizeSchoolContext(schoolResult.value)
+          : null;
+      // For non-US locations, patch in OSM school count as a density proxy
+      if (raw?.coverageStatus === "outside_us" && amenitySignals.schoolCount) {
+        return { ...raw, nearbySchoolCount: amenitySignals.schoolCount };
+      }
+      return raw;
+    })(),
     landClassification: buildLandCoverBuckets(infrastructure),
     sources: {
       elevation: buildRegistryAwareSourceMeta({
@@ -887,24 +906,38 @@ export async function GET(request: NextRequest) {
       epaHazards: buildRegistryAwareSourceMeta({
         id: "epa-hazards",
         label: "Contamination screening",
-        provider: "EPA Envirofacts",
+        provider: isUsPoint
+          ? "EPA Envirofacts"
+          : isEuropeanPoint
+            ? "EEA E-PRTR"
+            : "EPA Envirofacts",
         domain: "environmental",
         context: registryContext,
         status:
-          !isUsPoint
-            ? "unavailable"
-            : epaHazardResult.status === "fulfilled"
+          isUsPoint || isEuropeanPoint
+            ? epaHazardResult.status === "fulfilled" && epaHazardResult.value !== null
               ? "live"
-              : "limited",
+              : "limited"
+            : "unavailable",
         lastUpdated: now,
-        freshness: "Cached up to 12 hours",
-        coverage: "United States only",
-        confidence:
-          !isUsPoint
-            ? "EPA contamination screening is currently US-only."
-            : epaHazardResult.status === "fulfilled"
+        freshness: isUsPoint ? "Cached up to 12 hours" : "Cached up to 24 hours",
+        coverage: isUsPoint
+          ? "United States only"
+          : isEuropeanPoint
+            ? "EU/EEA member states (E-PRTR industrial facility registry)"
+            : "United States only",
+        confidence: isUsPoint
+          ? epaHazardResult.status === "fulfilled"
             ? "Nearby Superfund and TRI counts are screened from EPA public datasets, then distance-filtered around the selected point."
-            : "EPA contamination-screening results could not be assembled for this point.",
+            : "EPA contamination-screening results could not be assembled for this point."
+          : isEuropeanPoint
+            ? epaHazardResult.status === "fulfilled" && epaHazardResult.value !== null
+              ? "EEA E-PRTR industrial facility registry screened within the active bounding box. Counts reflect registered polluting facilities — not a remediation status indicator."
+              : "EEA E-PRTR facility data could not be retrieved for this point."
+            : "Contamination screening is currently only available for US (EPA) and European (EEA E-PRTR) locations.",
+        note: !isUsPoint && !isEuropeanPoint
+          ? "EPA contamination screening is US-only. EEA E-PRTR covers EU/EEA member states. No equivalent dataset is wired for this region yet."
+          : undefined,
       }),
       hazardAlerts: buildRegistryAwareSourceMeta({
         id: "hazard-alerts",
@@ -945,15 +978,20 @@ export async function GET(request: NextRequest) {
       broadbandData?.kind === "regional_household_baseline"
         ? `Eurostat household fixed/mobile broadband percentages provide a ${broadbandData.regionLabel} country-level connectivity baseline for ${broadbandData.referenceYear ?? "the latest available year"}.`
         : null,
-      "NCES nearby public-school baseline with Washington OSPI official accountability when matched.",
-      "NRCS Soil Data Access provides mapped soil drainage, water-table, bedrock, and texture context for US points.",
-      "USGS seismic design maps provide ASCE 7-22 ground-shaking parameters for US points.",
+      "NCES nearby public-school baseline with Washington OSPI official accountability when matched; OSM school count provides density context for non-US locations.",
+      "NRCS Soil Data Access provides mapped soil drainage, water-table, bedrock, and texture context for US points; SoilGrids (ISRIC) provides global soil texture and drainage at 250 m resolution.",
+      "USGS seismic design maps provide ASCE 7-22 ground-shaking parameters for US points; USGS global earthquake catalog provides recent seismicity context globally.",
       "Open-Meteo historical archive powers the 2015-2024 climate trend summaries.",
       "GDACS global disaster notifications provide broad alert context for major current events.",
+      isUsPoint
+        ? "EPA Envirofacts (CERCLIS Superfund + TRI facilities) provides contamination screening for US points."
+        : isEuropeanPoint
+          ? "EEA E-PRTR industrial facility registry provides contamination context for EU/EEA member state locations."
+          : null,
       !isUsPoint
         ? registryContext.scopes.includes("europe")
-          ? "Europe currently uses Eurostat for country-level broadband baselines, while USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening remain US-only. Soil data is global via SoilGrids (ISRIC); flood context is global via GloFAS (Open-Meteo)."
-          : "Broadband point lookups, USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening are currently US-only. Soil data is global via SoilGrids (ISRIC); flood context is global via GloFAS (Open-Meteo)."
+          ? "Europe uses Eurostat for broadband baselines, EEA E-PRTR for contamination, and SoilGrids (ISRIC) + GloFAS for soil and flood context. USGS Water Services, groundwater wells, and seismic design maps remain US-only."
+          : "Broadband point lookups, USGS Water Services, groundwater wells, and seismic design maps are currently US-only. Soil data is global via SoilGrids (ISRIC); flood context is global via GloFAS (Open-Meteo)."
         : null,
     ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
   };
