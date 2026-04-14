@@ -5,6 +5,7 @@ import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { summarizeSourceTrust } from "@/lib/source-trust";
 import { GeodataResult } from "@/types";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from "recharts";
 
 interface SeismicDesignCardProps {
   geodata: GeodataResult | null;
@@ -94,6 +95,58 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
               </div>
             </div>
           </div>
+
+          {seismic.pga !== null ? (
+            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Probabilistic hazard levels</div>
+              <div className="mt-1 text-xs text-[var(--muted-foreground)]">Peak ground acceleration (g) by return period</div>
+              <div className="mt-4 h-36">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      { name: "MCE\u1D63 (2,475 yr)", pga: seismic.pga, returnPeriod: "2% / 50 yr" },
+                      { name: "Design (475 yr)", pga: parseFloat((seismic.pga * (2 / 3)).toFixed(3)), returnPeriod: "10% / 50 yr" },
+                    ]}
+                    margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
+                  >
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => `${v.toFixed(2)}g`}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "var(--surface-raised)" }}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.[0]) return null;
+                        const d = payload[0].payload as { name: string; pga: number; returnPeriod: string };
+                        return (
+                          <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-2 text-xs shadow-lg">
+                            <div className="font-semibold text-[var(--foreground)]">{d.name}</div>
+                            <div className="mt-1 text-[var(--muted-foreground)]">{d.returnPeriod}</div>
+                            <div className="mt-1 text-[var(--foreground)]">{d.pga.toFixed(3)} g PGA</div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="pga" radius={[6, 6, 0, 0]} maxBarSize={64}>
+                      <Cell fill="var(--danger-soft)" stroke="var(--danger-border)" strokeWidth={1} />
+                      <Cell fill="var(--warning-soft)" stroke="var(--warning-border)" strokeWidth={1} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
+                MCE<sub>R</sub> = Maximum Considered Earthquake (risk-targeted). Design level ≈ ²⁄₃ × MCE<sub>R</sub> per ASCE 7-22.
+              </div>
+            </div>
+          ) : null}
 
           <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">

@@ -21,16 +21,35 @@ function getContaminationSummary(hazards: NonNullable<GeodataResult["epaHazards"
   return "None nearby";
 }
 
+function getLabels(source: NonNullable<GeodataResult["epaHazards"]>["source"]) {
+  if (source === "eea") {
+    return {
+      facilityLabel: "EEA industrial facilities",
+      secondaryLabel: "E-PRTR registry",
+      nearestLabel: "Nearest registered facility",
+      providerNote: "EEA E-PRTR (European Pollutant Release and Transfer Register)",
+    };
+  }
+  return {
+    facilityLabel: "Superfund sites",
+    secondaryLabel: "TRI facilities",
+    nearestLabel: "Nearest Superfund site",
+    providerNote: "EPA Envirofacts (CERCLIS Superfund + TRI)",
+  };
+}
+
 export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
   if (!geodata) {
     return null;
   }
 
   const hazards = geodata.epaHazards;
+  const labels = getLabels(hazards?.source);
   const trustSummary = summarizeSourceTrust(
     [geodata.sources.epaHazards],
     "Contamination screening",
   );
+  const isEEA = hazards?.source === "eea";
 
   return (
     <WorkspaceCardShell eyebrow="Environmental due diligence" title="Contamination screening">
@@ -38,8 +57,8 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
           <StatePanel
             tone="unavailable"
             eyebrow="Environmental coverage"
-            title="EPA contamination screening is not supported for this location yet"
-            description={geodata.sources.epaHazards.note ?? "GeoSight cannot currently return Envirofacts contamination context for this point or region."}
+            title="Contamination screening is not supported for this location yet"
+            description={geodata.sources.epaHazards.note ?? "GeoSight currently supports EPA Envirofacts for US locations and EEA E-PRTR for EU/EEA locations. No equivalent dataset is wired for this region."}
             compact
           />
         ) : hazards ? (
@@ -51,8 +70,9 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
             {hazards.nearestSuperfundDistanceKm !== null &&
             hazards.nearestSuperfundDistanceKm <= 10 ? (
               <div className="rounded-[1.5rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] p-4 text-sm leading-6 text-[var(--danger-foreground)]">
-                Warning: a mapped Superfund site falls within 10 km of this point. Treat contamination
-                history and remediation status as required diligence items.
+                {isEEA
+                  ? "Warning: a registered EEA industrial facility falls within 10 km of this point. Review pollutant release records and operational status as part of due diligence."
+                  : "Warning: a mapped Superfund site falls within 10 km of this point. Treat contamination history and remediation status as required diligence items."}
               </div>
             ) : null}
 
@@ -63,8 +83,8 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
               </div>
               <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
                 {hazards.nearestSuperfundDistanceKm === null
-                  ? "No EPA-screened site was returned within roughly 50 km."
-                  : `Nearest mapped Superfund site is about ${formatDistanceKm(hazards.nearestSuperfundDistanceKm)} away.`}
+                  ? `No ${isEEA ? "EEA E-PRTR registered facility" : "EPA-screened site"} was returned within roughly 50 km.`
+                  : `${labels.nearestLabel} is about ${formatDistanceKm(hazards.nearestSuperfundDistanceKm)} away.`}
               </div>
             </div>
 
@@ -74,20 +94,25 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-                  <div className="eyebrow">Superfund sites</div>
+                  <div className="eyebrow">{labels.facilityLabel}</div>
                   <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
                     {hazards.superfundCount}
                   </div>
                 </div>
-                <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-                  <div className="eyebrow">TRI facilities</div>
-                  <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-                    {hazards.triCount}
+                {!isEEA ? (
+                  <div className="rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
+                    <div className="eyebrow">{labels.secondaryLabel}</div>
+                    <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
+                      {hazards.triCount}
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
               <div className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-                Nearest Superfund site: {hazards.nearestSuperfundName ?? "None in current search window"}
+                {labels.nearestLabel}: {hazards.nearestSuperfundName ?? "None in current search window"}
+              </div>
+              <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                Source: {labels.providerNote}
               </div>
             </details>
           </>
@@ -95,8 +120,8 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
           <StatePanel
             tone="partial"
             eyebrow="Environmental coverage"
-            title="EPA contamination screening did not return a usable result"
-            description={geodata.sources.epaHazards.note ?? "GeoSight reached the EPA screening path, but the response was incomplete or empty for this point."}
+            title="Contamination screening did not return a usable result"
+            description={geodata.sources.epaHazards.note ?? "GeoSight reached the contamination screening path, but the response was incomplete or empty for this point."}
             compact
           />
         )}
@@ -104,7 +129,9 @@ export function ContaminationRiskCard({ geodata }: ContaminationRiskCardProps) {
         <TrustSummaryPanel
           summary={trustSummary}
           sources={[geodata.sources.epaHazards]}
-          note="This card is a screening layer based on EPA facilities and site inventories. It highlights where deeper environmental due diligence should start, not whether a parcel is clean."
+          note={isEEA
+            ? "This card shows registered EEA industrial facilities from the E-PRTR registry. It flags where industrial pollution sources are located — not whether a specific site is currently safe or remediated."
+            : "This card is a screening layer based on EPA facilities and site inventories. It highlights where deeper environmental due diligence should start, not whether a parcel is clean."}
         />
     </WorkspaceCardShell>
   );
