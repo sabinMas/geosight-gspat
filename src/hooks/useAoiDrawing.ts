@@ -15,6 +15,7 @@ import {
   LabelStyle,
   Math as CesiumMath,
   PolygonHierarchy,
+  Ray,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   VerticalOrigin,
@@ -60,13 +61,24 @@ function pickPosition(
   viewer: CesiumViewer,
   screenPos: Cartesian2,
 ): Cartesian3 | undefined {
-  return (
-    (viewer.scene.pickPositionSupported
-      ? viewer.scene.pickPosition(screenPos)
-      : undefined) ??
-    viewer.camera.pickEllipsoid(screenPos, viewer.scene.globe.ellipsoid) ??
-    undefined
-  );
+  // globe.pick is the most reliable method for terrain surface — it performs
+  // a ray-terrain intersection and does not depend on the depth buffer or
+  // entity z-values. Use it first so translucent region polygons don't
+  // interfere with coordinate resolution.
+  const ray = viewer.camera.getPickRay(screenPos, new Ray());
+  if (ray) {
+    const globePos = viewer.scene.globe.pick(ray, viewer.scene);
+    if (globePos) return globePos;
+  }
+
+  // Fallback: depth-buffer pick (works on entities + loaded terrain tiles)
+  const depthPicked = viewer.scene.pickPositionSupported
+    ? viewer.scene.pickPosition(screenPos)
+    : undefined;
+  if (depthPicked) return depthPicked;
+
+  // Final fallback: ellipsoid intersection (always succeeds if looking at Earth)
+  return viewer.camera.pickEllipsoid(screenPos, viewer.scene.globe.ellipsoid) ?? undefined;
 }
 
 function toLatLng(pos: Cartesian3): Coordinates {
@@ -774,6 +786,26 @@ export function useAoiDrawing({
     }
 
     if (drawingTool === "rectangle") {
+      // First-corner marker — appears immediately on first click so users get
+      // visual feedback before moving the mouse to reveal the preview rectangle.
+      previewDataSource.entities.add({
+        position: new CallbackPositionProperty(
+          () =>
+            verticesRef.current[0]
+              ? Cartesian3.fromDegrees(verticesRef.current[0].lng, verticesRef.current[0].lat, 8)
+              : Cartesian3.fromDegrees(0, 0, 0),
+          false,
+        ),
+        point: {
+          show: new CallbackProperty(() => verticesRef.current.length === 1 && !previewCoordRef.current, false),
+          color: previewColor,
+          pixelSize: 10,
+          outlineColor: Color.WHITE,
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      });
+
       previewDataSource.entities.add({
         polygon: {
           hierarchy: new CallbackProperty(() => {
@@ -799,6 +831,25 @@ export function useAoiDrawing({
     }
 
     if (drawingTool === "circle") {
+      // Center marker — visible immediately after first click
+      previewDataSource.entities.add({
+        position: new CallbackPositionProperty(
+          () =>
+            verticesRef.current[0]
+              ? Cartesian3.fromDegrees(verticesRef.current[0].lng, verticesRef.current[0].lat, 8)
+              : Cartesian3.fromDegrees(0, 0, 0),
+          false,
+        ),
+        point: {
+          show: new CallbackProperty(() => verticesRef.current.length === 1 && !previewCoordRef.current, false),
+          color: previewColor,
+          pixelSize: 10,
+          outlineColor: Color.WHITE,
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      });
+
       previewDataSource.entities.add({
         polygon: {
           hierarchy: new CallbackProperty(() => {
