@@ -247,6 +247,10 @@ export function SearchBar({
                 window.setTimeout(() => setShowSuggestions(false), 120);
               }}
               placeholder={placeholder}
+              aria-label="Search for a place, address, or coordinates"
+              aria-autocomplete="list"
+              aria-expanded={showSuggestions}
+              aria-controls="location-search-suggestions"
               className="h-12 rounded-2xl border-[color:var(--border-soft)] bg-[var(--background)]/50 text-sm"
             />
             {error && (
@@ -290,7 +294,7 @@ export function SearchBar({
       </form>
 
       {showSuggestions && (suggestionsLoading || suggestions.length) ? (
-        <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+        <div id="location-search-suggestions" role="listbox" className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
           <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             Suggested matches
           </div>

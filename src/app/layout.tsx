@@ -60,6 +60,10 @@ export default function RootLayout({
         />
       </head>
       <body className={`${dmSans.variable} ${jetBrainsMono.variable}`}>
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <ThemeProvider>
           <AgentPanel>{children}</AgentPanel>
         </ThemeProvider>

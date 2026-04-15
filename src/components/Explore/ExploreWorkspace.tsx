@@ -1465,7 +1465,13 @@ export function ExploreWorkspace() {
         </aside>
 
         {/* Globe area */}
-        <main ref={globeAreaRef} className="relative min-h-[55vw] max-h-[55vh] flex-1 xl:max-h-none xl:min-h-0" aria-label="3D globe and map tools">
+        <main
+          id="main-content"
+          ref={globeAreaRef}
+          className="relative min-h-[55vw] max-h-[55vh] flex-1 xl:max-h-none xl:min-h-0"
+          role="region"
+          aria-label="3D globe and map tools"
+        >
           <ClientErrorBoundary
             title="The globe view needs a quick reset"
             message="GeoSight kept the rest of the workspace alive. Retry the globe, switch regions, or keep working from the cards while the globe re-initializes."
@@ -1674,7 +1680,13 @@ export function ExploreWorkspace() {
         {/* Right panel — slide-in overlay on desktop, inline on mobile */}
         {/* Mobile: renders below globe */}
         {showRightPanel ? (
-          <aside className="flex flex-col border-t border-[color:var(--border-soft)] xl:hidden" aria-label="Analysis cards and workspace panels">
+          <aside
+            id="evidence-panel"
+            tabIndex={-1}
+            className="flex flex-col border-t border-[color:var(--border-soft)] xl:hidden"
+            role="region"
+            aria-label="Analysis cards and workspace panels"
+          >
             <CardDisplayProvider value={{ defaultCollapsed: true }}>
               {rightPanelContent}
             </CardDisplayProvider>
@@ -1731,6 +1743,7 @@ export function ExploreWorkspace() {
 
       {/* ── Bottom bar ── */}
       <footer
+        role="toolbar"
         className="flex shrink-0 flex-col gap-2 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-3 py-2 xl:h-[56px] xl:flex-row xl:items-center xl:gap-3 xl:px-4 xl:py-0"
         aria-label="Workspace actions and persistent AI input"
       >

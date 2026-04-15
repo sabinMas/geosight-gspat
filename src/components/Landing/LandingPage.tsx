@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -133,7 +134,7 @@ export function LandingPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+    <main id="main-content" className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
       {/* Topbar */}
       <div className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">

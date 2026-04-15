@@ -125,6 +125,7 @@ export function StatePanel({
         compact ? "space-y-2" : "space-y-3",
         className,
       )}
+      {...(tone === "loading" ? { role: "status", "aria-live": "polite" as const } : {})}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">

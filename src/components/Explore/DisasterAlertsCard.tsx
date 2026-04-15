@@ -73,7 +73,7 @@ function AlertRow({ alert }: { alert: GdacsAlertSummaryItem }) {
         </div>
         <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="min-w-0 truncate text-sm font-semibold leading-snug text-[var(--foreground)]">
+            <span className="min-w-0 truncate text-sm font-semibold leading-snug text-[var(--foreground)]" title={alert.eventLabel || alert.eventType}>
               {alert.eventLabel || alert.eventType}
             </span>
             <span

@@ -1652,12 +1652,26 @@ export function CesiumGlobe({
     <div
       ref={hostRef}
       className="absolute inset-0 h-full w-full"
+      role="application"
+      aria-label="Interactive 3D globe. Press Escape to exit map navigation."
+      tabIndex={0}
       onWheel={(event) => event.stopPropagation()}
       onPointerEnter={() => setPointerInside(true)}
       onPointerLeave={() => setPointerInside(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement).blur();
+          document.getElementById("evidence-panel")?.focus();
+        }
+      }}
     >
       {!globeReady ? (
-        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center"
+          role="status"
+          aria-live="polite"
+        >
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">Loading 3D map...</p>
         </div>

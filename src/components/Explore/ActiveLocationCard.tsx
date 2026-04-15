@@ -248,7 +248,7 @@ export function ActiveLocationCard({
             </p>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3">
             <div className={`rounded-[1.25rem] border p-3 ${overview.strengths.length > 0 ? "border-[color:var(--success-border)] bg-[var(--success-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Strongest signals
@@ -310,6 +310,8 @@ export function ActiveLocationCard({
               <button
                 type="button"
                 className="flex w-full items-center justify-between gap-2 text-left"
+                aria-expanded={dataGapsOpen}
+                aria-controls="data-gaps-list"
                 onClick={() => setDataGapsOpen((v) => !v)}
               >
                 <span className="text-sm text-[var(--warning-foreground)]">
@@ -320,7 +322,7 @@ export function ActiveLocationCard({
                 />
               </button>
               {dataGapsOpen ? (
-                <div className="mt-3 space-y-1">
+                <div id="data-gaps-list" className="mt-3 space-y-1">
                   {overview.dataGaps.map((item) => (
                     <div
                       key={item}

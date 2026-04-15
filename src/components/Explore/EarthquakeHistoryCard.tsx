@@ -210,7 +210,7 @@ export function EarthquakeHistoryCard({
                     M{event.mag.toFixed(1)}
                   </span>
                   <div className="min-w-0 text-sm leading-5">
-                    <div className="truncate text-[var(--foreground)]">{event.place}</div>
+                    <div className="truncate text-[var(--foreground)]" title={event.place}>{event.place}</div>
                     <div className="text-[var(--muted-foreground)]">
                       {formatDate(event.time)} · {event.distanceKm} km away
                       {!isExplorer && event.depth !== null && ` · ${event.depth} km deep`}
