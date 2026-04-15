@@ -63,22 +63,23 @@ type FallbackQuestionType =
 function buildResponseGuidance(mode: ReturnType<typeof inferResponseMode>) {
   if (mode === "nearby_places") {
     return `
-Response format guidance:
-- Favor a list-first answer with the most relevant nearby places near the top.
-- For each item, include name, category, relative distance or direction, and why it is relevant.
-- If live nearby-place data is unavailable, say so explicitly instead of inventing places.
-- Include a short data-status note if nearby-place coverage is partial or unavailable.
-- End with a short summary, the main limitations, and 1-2 next questions.
+Response style:
+- Answer in natural, conversational prose. Lead with the single most relevant result, then mention a few more.
+- Do NOT use markdown headers, numbered lists, or bullet-heavy outlines.
+- Name specific places with their approximate distance and direction when the data is available.
+- If live nearby-place data is unavailable, say so directly instead of inventing places.
+- Keep it concise — 2-4 short paragraphs max. End with one follow-up suggestion if relevant.
 `;
   }
 
   return `
-Response format guidance:
-- Lead with a concise summary of the area through the active mission profile.
-- Include one short "Data status" section that explains whether the answer is leaning on live inputs, derived analysis, or partial coverage.
-- Use the available structured data trends and map context to support your reasoning.
-- Present a few concrete findings, then explain tradeoffs, unknowns, and source gaps.
-- End with next questions or next zoom levels the user should explore.
+Response style:
+- Answer in natural, conversational prose — like a knowledgeable colleague briefing someone at a map table.
+- Lead with the direct answer to what was asked. Do NOT open with a location restatement or mission profile header.
+- Do NOT use markdown headers (##), numbered lists, or bullet-heavy report outlines.
+- Weave data points into sentences naturally. Say "Elevation sits around 340 m with mostly forested land cover" not "- Elevation: 340 m\\n- Land cover: Forested".
+- When discussing data quality, mention it inline (e.g., "flood data comes from FEMA and looks solid here, though school coverage is limited").
+- Keep it concise — 2-4 short paragraphs. End with one or two follow-up questions the user might want to explore next.
 `;
 }
 
@@ -147,17 +148,14 @@ Score factors used by this profile:
 ${factorChecklist}
 
 Behavior rules:
-- Treat the selected location as the center of the answer.
-- Restate the active location clearly.
-- Separate supported observations from approximations or inference.
-- When discussing score-style reasoning, explicitly say whether a point comes from a direct live signal, derived live analysis, or a proxy heuristic.
-- If any important source is limited or unavailable, call that out before offering a strong conclusion.
-- Use any structured nearby-place results or trend objects included in the input JSON.
-- If school context is present, distinguish official government accountability fields from GeoSight-derived normalization.
-- If school coverage is outside the current US-first pipeline or unavailable, say that clearly instead of inferring school quality.
+- Answer the specific question asked — do not give a generic area overview unless that is what was requested.
+- Write in natural conversational prose. Never use markdown headers, numbered lists, or bullet-heavy outlines.
+- Lead with the direct answer, then support it with 2-3 key data points woven into sentences.
+- When a user asks about specific things (schools, restaurants, trails, risks), name the actual items from the data with distances and directions.
+- Mention data confidence inline and briefly (e.g., "this comes from live FEMA data" or "school coverage is limited here").
+- If important data is unavailable, say so in one sentence — do not dedicate a full section to it.
+- Be concise and practical. 2-4 paragraphs is usually enough.
 - Never present proxy heuristics as if they were direct measurements.
-- Never let a polished answer hide a missing or unsupported signal.
-- Be concise, practical, and grounded in the active mission profile.
 
 ${buildResponseGuidance(responseMode)}
 `;
@@ -709,10 +707,10 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
 
 function formatSourceConfidenceLine(source: DataSourceMeta | null | undefined) {
   if (!source) {
-    return "- Source metadata is unavailable for this part of the stack.";
+    return "";
   }
 
-  return `- ${source.label}: ${source.status}. ${source.confidence} Freshness: ${source.freshness}. Coverage: ${source.coverage}.`;
+  return `${source.label} (${source.status}, ${source.freshness})`;
 }
 
 function buildSourceConfidenceSummary(geodata?: GeodataResult) {
@@ -841,12 +839,12 @@ function buildInfrastructureSummary(payload: AnalyzeRequestBody) {
 }
 
 function formatNearbyPlaceLine(place: NearbyPlace) {
-  const distance = place.distanceKm === null ? "distance unavailable" : `${place.distanceKm.toFixed(1)} km`;
-  return `- ${place.name} (${place.category}) - ${distance}, ${place.relativeLocation}. ${place.summary}`;
+  const distance = place.distanceKm === null ? "distance unknown" : `${place.distanceKm.toFixed(1)} km`;
+  return `${place.name} (${place.category}, ${distance} ${place.relativeLocation})`;
 }
 
 function formatTrendLine(trend: DataTrend) {
-  return `- ${trend.label}: ${trend.value}. ${trend.detail}`;
+  return `${trend.label} is ${trend.value} — ${trend.detail}`;
 }
 
 function buildFactorEvidenceLines(profile: MissionProfile) {
@@ -874,230 +872,88 @@ export function buildFallbackAssessment(
     : [];
 
   if (responseMode === "nearby_places") {
-    return [
-      `Mission profile: ${profile.name}`,
-      `Location: ${locationLabel}`,
-      "Result mode: Nearby places",
-      "",
-      "Suggested places:",
-      ...(nearbyPlaceLines.length
-        ? nearbyPlaceLines
-        : [
-            "- Live nearby-place results are unavailable for this category or location right now.",
-          ]),
-      "",
-      "Why these fit:",
-      `- ${buildProfileAssessmentLine(profile.id, payload.geodata)}`,
-      "- Treat these as mapped nearby candidates, then zoom in or cross-check local details before making a final decision.",
-      "",
-      "Supported observations:",
-      ...supportedFacts.map((fact) => `- ${fact}`),
-      "",
-      "Risks and unknowns:",
-      "- Nearby-place ranking still depends on OpenStreetMap completeness for the selected area.",
-      "- Fine-grained hours, reviews, fees, or closures are not available yet unless a real places data source is connected.",
-      "",
-      "Next questions / next zoom levels:",
-      ...nextQuestions.map((question) => `- ${question}`),
-    ].join("\n");
+    const placeSentences = nearbyPlaceLines.length
+      ? nearbyPlaceLines.join(", ")
+      : "Live nearby-place results are unavailable for this category or location right now";
+
+    return `Looking at ${locationLabel} through the ${profile.name} lens, the nearest mapped places include ${placeSentences}.\n\n${buildProfileAssessmentLine(profile.id, payload.geodata)} Treat these as mapped nearby candidates — zoom in or cross-check local details before making a final decision.\n\nNearby-place ranking depends on OpenStreetMap completeness for this area, and fine-grained hours, reviews, or closures are not available yet.`;
   }
 
   if (questionType === "source_confidence") {
-    return [
-      `Mission profile: ${profile.name}`,
-      `Location: ${locationLabel}`,
-      "Question type: Source confidence",
-      "",
-      "Direct answer:",
-      `- ${buildSourceConfidenceSummary(payload.geodata)}`,
-      "",
-      "Key source signals:",
+    const sourceLines = [
       formatSourceConfidenceLine(payload.geodata?.sources.elevation),
       formatSourceConfidenceLine(payload.geodata?.sources.climate),
       formatSourceConfidenceLine(payload.geodata?.sources.hazards),
       formatSourceConfidenceLine(payload.geodata?.sources.school),
       formatSourceConfidenceLine(payload.geodata?.sources.groundwater),
-      "",
-      "What this means:",
-      "- Treat live or derived sources as usable screening evidence.",
-      "- Treat limited or unavailable sources as areas where GeoSight can suggest next checks but not make a final claim.",
-      "",
-      "Next questions / next zoom levels:",
-      ...nextQuestions.map((question) => `- ${question}`),
-    ].join("\n");
+    ].filter(Boolean);
+
+    return `${buildSourceConfidenceSummary(payload.geodata)}\n\nThe main inputs here are ${sourceLines.join("; ")}.\n\nTreat live or derived sources as usable screening evidence, and treat limited or unavailable sources as areas where GeoSight can suggest next checks but not make a final claim.`;
   }
 
   if (questionType === "school_quality") {
-    return [
-      `Mission profile: ${profile.name}`,
-      `Location: ${locationLabel}`,
-      "Question type: Family / school context",
-      "",
-      "Direct answer:",
-      `- ${buildSchoolSummary(payload)}`,
-      "",
-      "Relevant signals:",
-      ...supportedFacts
-        .filter((fact) =>
-          fact.includes("School context") ||
-          fact.includes("Mapped amenities") ||
-          fact.includes("Road access") ||
-          fact.includes("Air-quality") ||
-          fact.includes("FEMA flood zone"),
-        )
-        .map((fact) => `- ${fact}`),
-      "",
-      "Data limits:",
-      "- GeoSight can only treat school quality as strong evidence when official accountability or matched school-context data is loaded.",
-      "- Family fit still depends on neighborhood-scale checks like parks, traffic calming, and housing stock, which are not fully modeled here yet.",
-      "",
-      "Next questions / next zoom levels:",
-      ...nextQuestions.map((question) => `- ${question}`),
-    ].join("\n");
+    const schoolFacts = supportedFacts.filter((fact) =>
+      fact.includes("School context") ||
+      fact.includes("Mapped amenities") ||
+      fact.includes("Air-quality") ||
+      fact.includes("FEMA flood zone"),
+    ).join(" ");
+
+    return `${buildSchoolSummary(payload)}\n\n${schoolFacts}\n\nGeoSight can only treat school quality as strong evidence when official accountability data is loaded. Family fit also depends on neighborhood-scale checks like parks, traffic calming, and housing stock that are not fully modeled yet.`;
   }
 
   if (questionType === "hazard_risk") {
-    return [
-      `Mission profile: ${profile.name}`,
-      `Location: ${locationLabel}`,
-      "Question type: Hazard screening",
-      "",
-      "Direct answer:",
-      `- ${buildHazardSummary(payload)}`,
-      "",
-      "Loaded risk signals:",
-      ...supportedFacts
-        .filter((fact) =>
-          fact.includes("FEMA flood zone") ||
-          fact.includes("Recent seismic context") ||
-          fact.includes("Global disaster alerts") ||
-          fact.includes("Air-quality") ||
-          fact.includes("EPA screening") ||
-          fact.includes("Current weather snapshot"),
-        )
-        .map((fact) => `- ${fact}`),
-      "",
-      "Data limits:",
-      "- This is still a screening-layer risk read, not a substitute for parcel, engineering, insurance, or regulatory diligence.",
-      "- Hazard posture may change once finer wildfire, stormwater, or local regulatory layers are added.",
-      "",
-      "Next questions / next zoom levels:",
-      ...nextQuestions.map((question) => `- ${question}`),
-    ].join("\n");
+    const hazardFacts = supportedFacts.filter((fact) =>
+      fact.includes("FEMA flood zone") ||
+      fact.includes("Recent seismic") ||
+      fact.includes("Global disaster") ||
+      fact.includes("Air-quality") ||
+      fact.includes("EPA"),
+    ).join(" ");
+
+    return `${buildHazardSummary(payload)}\n\n${hazardFacts}\n\nThis is a screening-layer risk read, not a substitute for parcel, engineering, insurance, or regulatory diligence.`;
   }
 
   if (questionType === "terrain_recreation") {
-    return [
-      `Mission profile: ${profile.name}`,
-      `Location: ${locationLabel}`,
-      "Question type: Terrain / recreation fit",
-      "",
-      "Direct answer:",
-      `- ${buildTerrainSummary(payload)}`,
-      "",
-      "Relevant terrain signals:",
-      ...supportedFacts
-        .filter((fact) =>
-          fact.includes("Elevation") ||
-          fact.includes("Dominant land cover") ||
-          fact.includes("Nearest mapped water feature") ||
-          fact.includes("Current weather snapshot") ||
-          fact.includes("Air-quality"),
-        )
-        .map((fact) => `- ${fact}`),
-      "",
-      "Data limits:",
-      "- GeoSight can screen terrain character and access, but it does not yet have full trail-condition, scenic-rating, or seasonal closure coverage.",
-      "",
-      "Next questions / next zoom levels:",
-      ...nextQuestions.map((question) => `- ${question}`),
-    ].join("\n");
+    const terrainFacts = supportedFacts.filter((fact) =>
+      fact.includes("Elevation") ||
+      fact.includes("Dominant land cover") ||
+      fact.includes("Nearest mapped water") ||
+      fact.includes("Current weather") ||
+      fact.includes("Air-quality"),
+    ).join(" ");
+
+    return `${buildTerrainSummary(payload)}\n\n${terrainFacts}\n\nGeoSight can screen terrain character and access, but it does not yet have full trail-condition, scenic-rating, or seasonal closure coverage.`;
   }
 
   if (questionType === "development_fit") {
-    return [
-      `Mission profile: ${profile.name}`,
-      `Location: ${locationLabel}`,
-      "Question type: Neighborhood / development fit",
-      "",
-      "Direct answer:",
-      `- ${buildDevelopmentSummary(payload)}`,
-      "",
-      "Relevant development signals:",
-      ...supportedFacts
-        .filter((fact) =>
-          fact.includes("Road access") ||
-          fact.includes("Broadband context") ||
-          fact.includes("Mapped amenities") ||
-          fact.includes("School context") ||
-          fact.includes("FEMA flood zone") ||
-          fact.includes("Dominant land cover"),
-        )
-        .map((fact) => `- ${fact}`),
-      "",
-      "Data limits:",
-      "- This does not replace parcel-level entitlement, utilities, or local zoning review.",
-      "- GeoSight can screen neighborhood readiness, but not yet full homebuyer-market fit or parcel-by-parcel build cost.",
-      "",
-      "Next questions / next zoom levels:",
-      ...nextQuestions.map((question) => `- ${question}`),
-    ].join("\n");
+    const devFacts = supportedFacts.filter((fact) =>
+      fact.includes("Road access") ||
+      fact.includes("Broadband") ||
+      fact.includes("Mapped amenities") ||
+      fact.includes("School context") ||
+      fact.includes("FEMA flood zone") ||
+      fact.includes("Dominant land cover"),
+    ).join(" ");
+
+    return `${buildDevelopmentSummary(payload)}\n\n${devFacts}\n\nThis does not replace parcel-level entitlement, utilities, or local zoning review.`;
   }
 
   if (questionType === "infrastructure_fit") {
-    return [
-      `Mission profile: ${profile.name}`,
-      `Location: ${locationLabel}`,
-      "Question type: Infrastructure fit",
-      "",
-      "Direct answer:",
-      `- ${buildInfrastructureSummary(payload)}`,
-      "",
-      "Relevant infrastructure signals:",
-      ...supportedFacts
-        .filter((fact) =>
-          fact.includes("Nearest mapped water feature") ||
-          fact.includes("Nearest mapped power infrastructure") ||
-          fact.includes("Broadband context") ||
-          fact.includes("Road access") ||
-          fact.includes("FEMA flood zone") ||
-          fact.includes("Current weather snapshot"),
-        )
-        .map((fact) => `- ${fact}`),
-      "",
-      "Data limits:",
-      "- GeoSight can screen utility and access posture, but it does not replace utility queue, transmission, or permitting diligence.",
-      "",
-      "Next questions / next zoom levels:",
-      ...nextQuestions.map((question) => `- ${question}`),
-    ].join("\n");
+    const infraFacts = supportedFacts.filter((fact) =>
+      fact.includes("Nearest mapped water") ||
+      fact.includes("Nearest mapped power") ||
+      fact.includes("Broadband") ||
+      fact.includes("Road access") ||
+      fact.includes("FEMA flood zone") ||
+      fact.includes("Current weather"),
+    ).join(" ");
+
+    return `${buildInfrastructureSummary(payload)}\n\n${infraFacts}\n\nGeoSight can screen utility and access posture, but it does not replace utility queue, transmission, or permitting diligence.`;
   }
 
-  return [
-    `Mission profile: ${profile.name}`,
-    `Location: ${locationLabel}`,
-    "Question type: General analysis",
-    "",
-    "Direct answer:",
-    `- ${buildProfileAssessmentLine(profile.id, payload.geodata)}`,
-    "",
-    "Key supporting signals:",
-    "",
-    ...supportedFacts.map((fact) => `- ${fact}`),
-    "",
-    "Evidence mix:",
-    ...buildFactorEvidenceLines(profile),
-    "",
-    "Trend snapshot:",
-    ...(trendLines.length
-      ? trendLines
-      : ["- Structured trend objects are not available yet, so this read relies directly on the raw geospatial context."]),
-    "",
-    "Risks and unknowns:",
-    "- This analysis is based on the currently loaded live, derived, and mapped context, so anything beyond those signals should still be treated as a screening-level inference.",
-    "- Regulations, parcel ownership, and detailed hazard layers are not yet part of this response unless explicitly provided.",
-    "",
-    "Next questions / next zoom levels:",
-    ...nextQuestions.map((question) => `- ${question}`),
-  ].join("\n");
+  const keyFacts = supportedFacts.filter((f) => !f.includes("unavailable")).slice(0, 6).join(" ");
+  const trendNote = trendLines.length ? " " + trendLines.join(" ") : "";
+
+  return `${buildProfileAssessmentLine(profile.id, payload.geodata)}\n\n${keyFacts}${trendNote}\n\nThis analysis is based on currently loaded live, derived, and mapped context — anything beyond those signals should be treated as screening-level inference. ${nextQuestions[0] ?? ""}`;
 }
