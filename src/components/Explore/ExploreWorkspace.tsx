@@ -11,6 +11,7 @@ import {
   FileText,
   Globe,
   Grid2x2,
+  HelpCircle,
   Keyboard,
   Layers3,
   Library,
@@ -1698,6 +1699,15 @@ export function ExploreWorkspace() {
 
         {/* Right cluster */}
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setWalkthroughOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
+            aria-label="Start guided tour"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            Tour
+          </button>
           <Button
             type="button"
             size="sm"

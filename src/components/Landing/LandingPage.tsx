@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,6 +12,7 @@ import {
   Database,
   Factory,
   Globe2,
+  HelpCircle,
   House,
   Layers,
   LineChart,
@@ -23,10 +24,12 @@ import {
   Trees,
 } from "lucide-react";
 import { LandingUseCase } from "@/types";
+import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
 import { EXPLORER_LENSES } from "@/lib/explorer-lenses";
+import { LANDING_WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
 import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -149,6 +152,8 @@ function UseCaseCard({
   );
 }
 
+const LANDING_WALKTHROUGH_STORAGE_KEY = "geosight-landing-walkthrough-seen";
+
 export function LandingPage() {
   const router = useRouter();
   const { setUiContext } = useAgentPanel();
@@ -159,6 +164,7 @@ export function LandingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
 
   const featuredUseCases = useMemo(
     () =>
@@ -215,6 +221,20 @@ export function LandingPage() {
 
     explorerStep2Ref.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedUseCaseId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(LANDING_WALKTHROUGH_STORAGE_KEY) === "true") return;
+    const timeout = window.setTimeout(() => setWalkthroughOpen(true), 600);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  const dismissLandingWalkthrough = useCallback(() => {
+    setWalkthroughOpen(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LANDING_WALKTHROUGH_STORAGE_KEY, "true");
+    }
+  }, []);
 
   const handleSelectUseCase = (useCaseId: string) => {
     const nextUseCase =
@@ -295,6 +315,15 @@ export function LandingPage() {
               >
                 For professionals →
               </Link>
+              <button
+                type="button"
+                onClick={() => setWalkthroughOpen(true)}
+                className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
+                aria-label="Start guided tour"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+                Tour
+              </button>
               <ThemeToggle compact />
             </div>
           </div>
@@ -322,7 +351,7 @@ export function LandingPage() {
             <h2 className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
               STEP 1 — CHOOSE A LENS
             </h2>
-            <div role="radiogroup" aria-label="Analysis lens" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div role="radiogroup" aria-label="Analysis lens" data-walkthrough="landing-lens-grid" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {EXPLORER_LENSES.map((lens) => {
                 const Icon = getIcon(lens.icon);
                 const isActive = selectedUseCaseId === `explorer-${lens.id}`;
@@ -416,7 +445,7 @@ export function LandingPage() {
                 className="space-y-4"
               >
                 {/* Input row — dimmed and non-interactive until a lens is chosen */}
-                <div className={`transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+                <div data-walkthrough="landing-location-input" className={`transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
                   <Input
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
@@ -428,7 +457,7 @@ export function LandingPage() {
                 </div>
                 {/* Button row — always interactive so users get feedback if they skip Step 1 */}
                 <div className={`flex gap-3 transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-60"}`}>
-                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
+                  <Button type="submit" data-walkthrough="landing-explore-button" className="h-12 flex-1 rounded-full" disabled={submitting}>
                     {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Explore this place
                   </Button>
@@ -614,6 +643,12 @@ export function LandingPage() {
         </section>
 
       </div>
+
+      <WalkthroughOverlay
+        open={walkthroughOpen}
+        steps={LANDING_WALKTHROUGH_STEPS}
+        onClose={dismissLandingWalkthrough}
+      />
     </main>
   );
 }

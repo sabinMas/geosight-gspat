@@ -4,6 +4,27 @@ export type WalkthroughStep = {
   description: string;
 };
 
+export const LANDING_WALKTHROUGH_STEPS: WalkthroughStep[] = [
+  {
+    target: "landing-lens-grid",
+    title: "Pick a Lens First",
+    description:
+      "Start by choosing what matters to you — home buying, hiking, infrastructure, or another focus. This tells GeoSight which data sources to prioritize.",
+  },
+  {
+    target: "landing-location-input",
+    title: "Then Enter a Location",
+    description:
+      "Type a city, address, ZIP code, or coordinates. The search unlocks after you pick a lens above.",
+  },
+  {
+    target: "landing-explore-button",
+    title: "Launch the Analysis",
+    description:
+      "Hit Explore to open the full spatial intelligence workspace for your chosen place and lens.",
+  },
+];
+
 export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   {
     target: "lens-selector",
