@@ -1846,6 +1846,7 @@ export function ExploreWorkspace() {
 
         {/* Globe area */}
         <main
+          id="main-content"
           ref={globeAreaRef}
           className="relative min-h-[55vw] max-h-[55vh] flex-1 xl:max-h-none xl:min-h-0"
           role="region"
@@ -2025,10 +2026,16 @@ export function ExploreWorkspace() {
 
         {/* Right panel (desktop) / inline content (mobile) */}
         {rightPanelOpen ? (
-          <aside className={cn(
-            "flex flex-col border-t border-[color:var(--border-soft)]",
-            "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
-          )} role="region" aria-label="Analysis cards and workspace panels">
+          <aside
+            id="evidence-panel"
+            tabIndex={-1}
+            className={cn(
+              "flex flex-col border-t border-[color:var(--border-soft)]",
+              "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
+            )}
+            role="region"
+            aria-label="Analysis cards and workspace panels"
+          >
             <CardDisplayProvider value={{ defaultCollapsed: true }}>
               {rightPanelContent}
             </CardDisplayProvider>
@@ -2038,6 +2045,7 @@ export function ExploreWorkspace() {
 
       {/* ── Bottom bar ── */}
       <footer
+        role="toolbar"
         className="flex shrink-0 flex-col gap-3 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[64px] xl:flex-row xl:items-center xl:py-0"
         aria-label="Workspace actions and persistent AI input"
       >

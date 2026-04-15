@@ -148,7 +148,7 @@ export function ImageUpload({ onClassify, previewUrl }: ImageUploadProps) {
         <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-4 py-6 text-sm text-[var(--foreground-soft)]">
           <Upload className="h-4 w-4 text-[var(--accent)]" />
           <span>{fileName || "Upload PNG, JPG, or TIFF imagery for land cover classification."}</span>
-          <Input type="file" accept=".png,.jpg,.jpeg,.tif,.tiff" className="hidden" onChange={handleFile} />
+          <Input type="file" accept=".png,.jpg,.jpeg,.tif,.tiff" className="hidden" aria-label="Upload satellite imagery for classification" onChange={handleFile} />
         </label>
 
         {previewUrl ? (

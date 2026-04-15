@@ -65,6 +65,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${jetBrainsMono.variable}`}>
         <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <ThemeProvider>
           <WebVitalsReporter />
           <AgentPanel>{children}</AgentPanel>

@@ -96,6 +96,10 @@ export function PersistentAiBar({
         <Send className="mr-1.5 h-3.5 w-3.5" />
         {loading ? "Sending" : "Ask"}
       </Button>
+
+      <div role="status" aria-live="polite" className="sr-only">
+        {loading ? "Sending question to GeoSight" : ""}
+      </div>
     </form>
   );
 }

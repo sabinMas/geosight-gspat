@@ -98,7 +98,7 @@ export function NearbyPlacesList({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-[var(--foreground)]">{place.name}</div>
+                  <div className="text-sm font-semibold text-[var(--foreground)]" title={place.name}>{place.name}</div>
                   <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
                     {place.category}
                   </div>

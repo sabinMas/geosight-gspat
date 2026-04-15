@@ -86,7 +86,7 @@ export function WorkspaceLibrary({
                           <WorkspaceCardIcon icon={card.icon} className="h-4 w-4" />
                         </div>
                         <div>
-                          <div className="text-base font-semibold text-[var(--foreground)]">{card.title}</div>
+                          <div className="text-base font-semibold text-[var(--foreground)]" title={card.title}>{card.title}</div>
                           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">{card.summary}</p>
                           {card.questionAnswered ? (
                             <p className="mt-1 text-xs italic leading-5 text-[var(--muted-foreground)]/70">

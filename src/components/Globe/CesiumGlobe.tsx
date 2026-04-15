@@ -1620,9 +1620,19 @@ export function CesiumGlobe({
     <div
       ref={hostRef}
       className="absolute inset-0 h-full w-full"
+      role="application"
+      aria-label="Interactive 3D globe. Press Escape to exit map navigation."
+      tabIndex={0}
       onWheel={(event) => event.stopPropagation()}
       onPointerEnter={() => setPointerInside(true)}
       onPointerLeave={() => setPointerInside(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement).blur();
+          document.getElementById("evidence-panel")?.focus();
+        }
+      }}
     >
       {terrainUnavailable ? (
         <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-2 text-xs font-medium text-[var(--warning-foreground)] shadow-[var(--shadow-panel)]">
@@ -1631,7 +1641,11 @@ export function CesiumGlobe({
       ) : null}
 
       {!globeReady ? (
-        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center"
+          role="status"
+          aria-live="polite"
+        >
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">Loading 3D map...</p>
         </div>

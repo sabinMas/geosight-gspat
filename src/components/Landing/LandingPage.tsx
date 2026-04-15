@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -108,7 +109,8 @@ function UseCaseCard({
         background: active ? `${useCase.accentColor}16` : "var(--surface-raised)",
         boxShadow: active ? `0 0 0 2px ${useCase.accentColor}22, var(--shadow-soft)` : undefined,
       }}
-      aria-pressed={active}
+      role="radio"
+      aria-checked={active}
     >
       {active ? (
         <span
@@ -277,7 +279,7 @@ export function LandingPage() {
   };
 
   return (
-    <main className="min-h-screen px-4 py-4 md:px-6">
+    <main id="main-content" className="min-h-screen px-4 py-4 md:px-6">
       <div className="mx-auto max-w-[1520px] space-y-6">
         {/* Explorer hero */}
         <section className="glass-panel relative overflow-hidden rounded-[2.5rem] p-5 md:p-7 lg:p-8">
@@ -287,13 +289,12 @@ export function LandingPage() {
           <div className="relative flex items-center justify-between">
             <div className="eyebrow text-[var(--accent)]">GeoSight</div>
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/explore?mode=pro")}
+              <Link
+                href="/explore?mode=pro"
                 className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
               >
                 For professionals →
-              </button>
+              </Link>
               <ThemeToggle compact />
             </div>
           </div>
@@ -318,10 +319,10 @@ export function LandingPage() {
               </div>
             </div>
 
-            <p className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
+            <h2 className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
               STEP 1 — CHOOSE A LENS
-            </p>
-            <div className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            </h2>
+            <div role="radiogroup" aria-label="Analysis lens" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {EXPLORER_LENSES.map((lens) => {
                 const Icon = getIcon(lens.icon);
                 const isActive = selectedUseCaseId === `explorer-${lens.id}`;
@@ -340,7 +341,8 @@ export function LandingPage() {
                       background: isActive ? "#00e5ff16" : "var(--surface-raised)",
                       boxShadow: isActive ? "0 0 0 2px #00e5ff22, var(--shadow-soft)" : undefined,
                     }}
-                    aria-pressed={isActive}
+                    role="radio"
+                    aria-checked={isActive}
                   >
                     {isActive && (
                       <span
@@ -382,9 +384,9 @@ export function LandingPage() {
 
             {/* Location entry — always visible, dimmed until a lens is selected */}
             <div ref={explorerStep2Ref} className="mx-auto max-w-xl">
-              <p className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
+              <h2 className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
                 STEP 2 — ENTER A LOCATION
-              </p>
+              </h2>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -419,6 +421,7 @@ export function LandingPage() {
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     placeholder="City, region, or coordinates…"
+                    aria-label="Enter a city, region, or coordinates"
                     className="h-12 rounded-[1.5rem]"
                     autoFocus={Boolean(selectedUseCaseId?.startsWith("explorer-"))}
                   />
@@ -529,15 +532,13 @@ export function LandingPage() {
                 Factor scoring, source awareness, and full data provenance.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              className="rounded-full"
-              onClick={() => router.push("/explore?mode=pro")}
+            <Link
+              href="/explore?mode=pro"
+              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
             >
               Open Pro workspace
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

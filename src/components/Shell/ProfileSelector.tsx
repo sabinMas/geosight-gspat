@@ -102,7 +102,7 @@ export function ProfileSelector({
           ref={scrollRef}
           className="flex w-full overflow-x-auto px-1 pb-2 scrollbar-none"
         >
-          <div className="flex gap-2">
+          <div role="radiogroup" aria-label="Mission profile" className="flex gap-2">
             {orderedProfiles.map((profile) => {
               const Icon =
                 PROFILE_ICON_BY_ID[profile.id as keyof typeof PROFILE_ICON_BY_ID] ??
@@ -114,7 +114,8 @@ export function ProfileSelector({
                 <button
                   key={profile.id}
                   type="button"
-                  aria-pressed={isActive}
+                  role="radio"
+                  aria-checked={isActive}
                   onClick={() => onSelectProfile(profile)}
                   className="shrink-0 overflow-hidden rounded-xl border bg-[var(--surface-raised)] px-3 py-3 text-left transition hover:bg-[var(--surface-soft)]"
                   style={{
@@ -151,7 +152,7 @@ export function ProfileSelector({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2 lg:flex lg:overflow-x-auto lg:pb-1">
+    <div role="radiogroup" aria-label="Mission profile" className="grid grid-cols-2 gap-2 lg:flex lg:overflow-x-auto lg:pb-1">
       {profiles.map((profile) => {
         const Icon = ICONS[profile.icon as keyof typeof ICONS] ?? Building2;
         const isActive = profile.id === activeProfileId;
@@ -160,7 +161,8 @@ export function ProfileSelector({
           <button
             key={profile.id}
             type="button"
-            aria-pressed={isActive}
+            role="radio"
+            aria-checked={isActive}
             onClick={() => onSelectProfile(profile)}
             className="min-w-[82px] rounded-2xl border px-3 py-3 text-left transition"
             style={

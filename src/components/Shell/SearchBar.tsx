@@ -198,7 +198,7 @@ export function SearchBar({
                 window.setTimeout(() => setShowSuggestions(false), 120);
               }}
               placeholder={placeholder}
-              aria-label="Search for a place"
+              aria-label="Search for a place, address, or coordinates"
               aria-autocomplete="list"
               aria-expanded={showSuggestions}
               aria-controls="location-search-suggestions"

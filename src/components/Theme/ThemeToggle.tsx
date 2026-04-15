@@ -26,6 +26,8 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
   if (compact) {
     return (
       <div
+        role="radiogroup"
+        aria-label="Color theme"
         className="flex items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-1 shadow-[var(--shadow-soft)]"
         title="Toggle workspace theme"
       >
@@ -48,7 +50,7 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div role="radiogroup" aria-label="Color theme" className="flex flex-wrap items-center gap-2">
       {OPTIONS.map((option) => {
         const Icon = option.icon;
         return (
@@ -90,7 +92,8 @@ function ThemeToggleButton({
       className={active ? "rounded-full ring-2 ring-[var(--accent)]/40" : "rounded-full"}
       onClick={() => setMode(value)}
       aria-label={`Switch to ${label} theme`}
-      aria-pressed={active}
+      role="radio"
+      aria-checked={active}
       title={`Switch to ${label} theme`}
     >
       {children}
