@@ -8,6 +8,8 @@ import { Coordinates, GeodataResult, MissionProfile, SiteScore } from "@/types";
 
 const GEODATA_REQUEST_TIMEOUT_MS = 18_000;
 const GEODATA_CACHE_TTL_MS = 2 * 60 * 1000;
+export const GEODATA_RATE_LIMIT_MESSAGE =
+  "Analysis rate limited — please wait a moment and try again.";
 
 type GeodataCacheEntry = {
   data: GeodataResult;
@@ -35,6 +37,10 @@ function buildGeodataErrorMessage(error: unknown) {
     return "Live location data is taking longer than expected. GeoSight will keep working with partial context where possible.";
   }
 
+  if (error instanceof Error && error.message === GEODATA_RATE_LIMIT_MESSAGE) {
+    return GEODATA_RATE_LIMIT_MESSAGE;
+  }
+
   if (error instanceof Error && error.message.trim()) {
     return error.message;
   }
@@ -60,6 +66,10 @@ async function fetchGeodataForPoint(lat: number, lng: number, requestKey: string
       GEODATA_REQUEST_TIMEOUT_MS,
     );
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error(GEODATA_RATE_LIMIT_MESSAGE);
+      }
+
       throw new Error("GeoSight couldn't load this location right now.");
     }
 

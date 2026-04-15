@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect, useState } from "react";
 import { fetchWithTimeout } from "@/lib/network";
 import type { HousingMarketResult } from "@/types";
@@ -58,7 +59,10 @@ export function useHousingMarket(
         if (!controller.signal.aborted) {
           setHousingMarket(null);
           setError(null);
-          console.warn("[housing-market] request failed", requestError);
+          Sentry.captureMessage("Housing market request failed", {
+            level: "warning",
+            extra: { error: String(requestError), locationLabel, countyName, stateCode },
+          });
         }
       } finally {
         if (!controller.signal.aborted) {

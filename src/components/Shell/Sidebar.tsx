@@ -23,7 +23,11 @@ export function Sidebar({
   selectedRegion,
 }: SidebarProps) {
   return (
-    <aside className="glass-panel z-20 flex h-full w-full min-w-0 flex-col gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
+    <aside
+      className="glass-panel z-20 flex h-full w-full min-w-0 flex-col gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]"
+      role="region"
+      aria-label="Mission controls and quick regions"
+    >
       <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4">
         <Card className="overflow-hidden">
           <CardHeader>
@@ -62,6 +66,7 @@ export function Sidebar({
                 type="button"
                 onClick={() => onSelectRegion(region)}
                 aria-pressed={selectedRegion.id === region.id}
+                aria-label={`Select quick region ${region.name}`}
                 className={`w-full rounded-xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40 ${
                   selectedRegion.id === region.id
                     ? "bg-[var(--surface-soft)]"

@@ -1,14 +1,16 @@
 "use client";
 
-import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useQuickRegions } from "@/hooks/useQuickRegions";
 import { resolveLocationQuery } from "@/lib/cesium-search";
+import type { ImportedLayer } from "@/lib/file-import";
 import { GENERAL_EXPLORATION_PROFILE_ID } from "@/lib/landing";
 import { getProfileById } from "@/lib/profiles";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
+import type { WmsLayerDefinition } from "@/lib/wms-layers";
 import {
   AppMode,
   DrawnShape,
@@ -83,6 +85,19 @@ export interface ExploreState {
   setDrawingTool: Dispatch<SetStateAction<DrawingTool>>;
   drawnShapes: DrawnShape[];
   setDrawnShapes: Dispatch<SetStateAction<DrawnShape[]>>;
+  importedLayers: ImportedLayer[];
+  activeImportedLayerId: string | null;
+  setActiveImportedLayerId: Dispatch<SetStateAction<string | null>>;
+  selectedImportedFeatureId: string | null;
+  setSelectedImportedFeatureId: Dispatch<SetStateAction<string | null>>;
+  addImportedLayer: (layer: ImportedLayer) => void;
+  removeImportedLayer: (id: string) => void;
+  toggleImportedLayerVisibility: (id: string) => void;
+  wmsLayers: WmsLayerDefinition[];
+  addWmsLayer: (layer: WmsLayerDefinition) => void;
+  removeWmsLayer: (id: string) => void;
+  toggleWmsLayerVisibility: (id: string) => void;
+  setWmsLayerOpacity: (id: string, opacity: number) => void;
   addDrawnShape: (shape: DrawnShape) => void;
   undoDrawing: () => void;
   redoDrawing: () => void;
@@ -107,6 +122,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const selectPointUrlSyncTimeoutRef = useRef<number | null>(null);
   const [appMode, setAppModeState] = useState<AppMode>(init.appMode ?? "explorer");
 
   const setAppMode = useCallback(
@@ -153,16 +169,23 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     (coords: { lat: number; lng: number }, label?: string, displayLabel?: string) => {
       setLocationReady(true);
       selectGlobePoint(coords, label, displayLabel);
-      // Keep URL in sync so the page is bookmarkable / shareable
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("lat", coords.lat.toFixed(6));
-      params.set("lng", coords.lng.toFixed(6));
-      if (label) {
-        params.set("location", label);
-      } else {
-        params.delete("location");
+      if (selectPointUrlSyncTimeoutRef.current !== null) {
+        window.clearTimeout(selectPointUrlSyncTimeoutRef.current);
       }
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+
+      selectPointUrlSyncTimeoutRef.current = window.setTimeout(() => {
+        // Keep URL in sync so the page is bookmarkable / shareable
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("lat", coords.lat.toFixed(6));
+        params.set("lng", coords.lng.toFixed(6));
+        if (label) {
+          params.set("location", label);
+        } else {
+          params.delete("location");
+        }
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        selectPointUrlSyncTimeoutRef.current = null;
+      }, 150);
     },
     [selectGlobePoint, router, pathname, searchParams],
   );
@@ -184,8 +207,65 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [driveMode, setDriveMode] = useState(false);
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
   const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);
+  const [importedLayers, setImportedLayers] = useState<ImportedLayer[]>([]);
+  const [activeImportedLayerId, setActiveImportedLayerId] = useState<string | null>(null);
+  const [selectedImportedFeatureId, setSelectedImportedFeatureId] = useState<string | null>(null);
+  const [wmsLayers, setWmsLayers] = useState<WmsLayerDefinition[]>([]);
   const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
+
+  const addImportedLayer = useCallback((layer: ImportedLayer) => {
+    setImportedLayers((prev) => [...prev, layer]);
+    setActiveImportedLayerId((current) => current ?? layer.id);
+  }, []);
+
+  const removeImportedLayer = useCallback((id: string) => {
+    setImportedLayers((prev) => {
+      const next = prev.filter((layer) => layer.id !== id);
+      setActiveImportedLayerId((current) => (current === id ? next[0]?.id ?? null : current));
+      setSelectedImportedFeatureId(null);
+      return next;
+    });
+  }, []);
+
+  const toggleImportedLayerVisibility = useCallback((id: string) => {
+    setImportedLayers((prev) =>
+      prev.map((layer) =>
+        layer.id === id ? { ...layer, visible: !layer.visible } : layer,
+      ),
+    );
+  }, []);
+
+  const addWmsLayer = useCallback((layer: WmsLayerDefinition) => {
+    setWmsLayers((prev) => [
+      ...prev.filter((existingLayer) => existingLayer.id !== layer.id),
+      {
+        ...layer,
+        visible: layer.visible ?? true,
+        opacity: layer.opacity ?? 0.82,
+      },
+    ]);
+  }, []);
+
+  const removeWmsLayer = useCallback((id: string) => {
+    setWmsLayers((prev) => prev.filter((layer) => layer.id !== id));
+  }, []);
+
+  const toggleWmsLayerVisibility = useCallback((id: string) => {
+    setWmsLayers((prev) =>
+      prev.map((layer) =>
+        layer.id === id ? { ...layer, visible: !(layer.visible ?? true) } : layer,
+      ),
+    );
+  }, []);
+
+  const setWmsLayerOpacity = useCallback((id: string, opacity: number) => {
+    setWmsLayers((prev) =>
+      prev.map((layer) =>
+        layer.id === id ? { ...layer, opacity } : layer,
+      ),
+    );
+  }, []);
 
   const addDrawnShape = useCallback((shape: DrawnShape) => {
     setDrawnShapes((prev) => [...prev, shape]);
@@ -239,6 +319,14 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   useEffect(() => {
     setLayers(activeProfile.defaultLayers);
   }, [activeProfile]);
+
+  useEffect(() => {
+    return () => {
+      if (selectPointUrlSyncTimeoutRef.current !== null) {
+        window.clearTimeout(selectPointUrlSyncTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const locationQuery = init.locationQuery;
@@ -330,6 +418,19 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setDrawingTool,
     drawnShapes,
     setDrawnShapes,
+    importedLayers,
+    activeImportedLayerId,
+    setActiveImportedLayerId,
+    selectedImportedFeatureId,
+    setSelectedImportedFeatureId,
+    addImportedLayer,
+    removeImportedLayer,
+    toggleImportedLayerVisibility,
+    wmsLayers,
+    addWmsLayer,
+    removeWmsLayer,
+    toggleWmsLayerVisibility,
+    setWmsLayerOpacity,
     addDrawnShape,
     undoDrawing,
     redoDrawing,

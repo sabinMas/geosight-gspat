@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect, useMemo, useState } from "react";
 import { reverseGeocodeCoordinates } from "@/lib/location-search";
 import { Coordinates, RegionSelection } from "@/types";
@@ -181,7 +182,14 @@ export function useQuickRegions(
         setQuickRegions(generated.map((region) => toRegionSelection(region, profileId)));
       } catch (error) {
         if (!cancelled) {
-          console.warn("[quick-regions] failed to generate dynamic quick regions", error);
+          Sentry.captureMessage("Quick regions generation failed", {
+            level: "warning",
+            extra: {
+              error: String(error),
+              selectedPoint,
+              profileId,
+            },
+          });
           setQuickRegions([]);
         }
       } finally {

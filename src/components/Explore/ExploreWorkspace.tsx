@@ -6,13 +6,12 @@ import Link from "next/link";
 import { toPng } from "html-to-image";
 import {
   Car,
-  Check,
   Command,
-  Copy,
   Download,
   FileText,
   Globe,
   Grid2x2,
+  Keyboard,
   Layers3,
   Library,
   Link2,
@@ -28,13 +27,17 @@ import {
 } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
+import { AttributeTable } from "@/components/Explore/AttributeTable";
 import { PersistentAiBar } from "@/components/Explore/PersistentAiBar";
+import { PrintLayout } from "@/components/Explore/PrintLayout";
 import { TopographicCaptureOverlay } from "@/components/Explore/TopographicCaptureOverlay";
+import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
 import {
   WorkspaceCommandItem,
   WorkspaceCommandPalette,
 } from "@/components/Explore/WorkspaceCommandPalette";
 import { WorkspaceToolRail } from "@/components/Explore/WorkspaceToolRail";
+import { FileDropZone, type FileDropZoneHandle } from "@/components/Globe/FileDropZone";
 import { MapCallout } from "@/components/Globe/MapCallout";
 import { CardDisplayProvider } from "@/context/CardDisplayContext";
 import { GeoScribeReportPanel } from "@/components/Explore/GeoScribeReportPanel";
@@ -49,11 +52,14 @@ import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
+import { KeyboardShortcuts } from "@/components/Shell/KeyboardShortcuts";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
 import { isExplorerMode } from "@/lib/app-mode";
+import { WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
 import { getExplorerLensById } from "@/lib/explorer-lenses";
+import { toLensParam } from "@/lib/lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
@@ -70,9 +76,16 @@ import {
   downloadBlob,
   downloadText,
 } from "@/lib/analysis-export";
+import type { ImportedLayer } from "@/lib/file-import";
 import { PROFILES } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
-import { CaptureFigureOptions, DrawnShape, GlobeViewSnapshot, WorkspaceCardId } from "@/types";
+import {
+  CaptureFigureOptions,
+  DrawnShape,
+  GlobeViewSnapshot,
+  RegionSelection,
+  WorkspaceCardId,
+} from "@/types";
 import { Button } from "../ui/button";
 import { useExploreInit } from "./ExploreProvider";
 
@@ -90,6 +103,20 @@ const CesiumGlobe = dynamic(
 );
 
 const BOARD_MODE_NOTICE_STORAGE_KEY = "geosight-board-mode-notice-shown";
+const WALKTHROUGH_STORAGE_KEY = "geosight-explore-walkthrough-seen";
+
+function isTypingContext(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target.isContentEditable
+  );
+}
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
@@ -97,12 +124,52 @@ export function ExploreWorkspace() {
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const inExplorer = isExplorerMode(state.appMode);
+  const {
+    addSite,
+    closeCard,
+    generateReport,
+    geodata,
+    handleLocationSelection,
+    handleQuestionIntent,
+    loading,
+    openAdvancedBoard,
+    openCard: openWorkspaceCard,
+    openCardFromTray,
+    openLibrary,
+    setCardVisible,
+    setShellMode,
+    setViewMode,
+    siteScore,
+    sites,
+    visibility,
+  } = data;
+  const {
+    activeProfile,
+    addDrawnShape,
+    addImportedLayer,
+    drawingTool,
+    importedLayers,
+    locationReady,
+    selectPoint: selectWorkspacePoint,
+    selectedLocationName,
+    selectedPoint,
+    selectedRegion,
+    setActiveProfile,
+    setActiveImportedLayerId,
+    setActiveLensId,
+    setDrawingTool,
+    setSelectedImportedFeatureId,
+    setSelectedRegion,
+  } = state;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedCoords, setCopiedCoords] = useState(false);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
+  const [layersPanelOpen, setLayersPanelOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState(false);
+  const [printLayoutOpen, setPrintLayoutOpen] = useState(false);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const [captureOverlayArmed, setCaptureOverlayArmed] = useState(false);
   const [captureViewSnapshot, setCaptureViewSnapshot] = useState<GlobeViewSnapshot | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
@@ -116,32 +183,16 @@ export function ExploreWorkspace() {
     emphasizeAoi: true,
   });
   const globeAreaRef = useRef<HTMLElement | null>(null);
+  const fileDropZoneRef = useRef<FileDropZoneHandle | null>(null);
+  const rightPanelContentRef = useRef<HTMLDivElement | null>(null);
   const globeApiRef = useRef<{
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
+    flyToBounds: (bounds: [number, number, number, number]) => void;
+    flyToPoint: (point: { lat: number; lng: number }, region: RegionSelection) => void;
   } | null>(null);
 
   const captureOverlayVisible = captureMode || captureOverlayArmed;
-
-  // ESC closes mobile sidebar
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setSidebarOpen(false); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [sidebarOpen]);
-
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setCommandPaletteOpen(true);
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
 
   useEffect(() => {
     if (!captureOverlayVisible) {
@@ -182,29 +233,62 @@ export function ExploreWorkspace() {
     return () => window.clearTimeout(timeout);
   }, [workspaceNotice]);
 
-  const handleSaveCurrentSite = () => {
-    if (!data.geodata || !data.siteScore) {
+  const dismissWalkthrough = useCallback(() => {
+    setWalkthroughOpen(false);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(WALKTHROUGH_STORAGE_KEY, "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
       return;
     }
 
-    data.addSite({
+    if (window.localStorage.getItem(WALKTHROUGH_STORAGE_KEY) === "true") {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setWalkthroughOpen(true);
+    }, 900);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  const handleSaveCurrentSite = useCallback(() => {
+    if (!geodata || !siteScore) {
+      return;
+    }
+
+    addSite({
       id: crypto.randomUUID(),
-      name: `${state.activeProfile.name} Site ${data.sites.length + 1}`,
-      regionName: state.selectedLocationName,
-      profileId: state.activeProfile.id,
-      coordinates: state.selectedPoint,
-      geodata: data.geodata,
-      score: data.siteScore,
+      name: `${activeProfile.name} Site ${sites.length + 1}`,
+      regionName: selectedLocationName,
+      profileId: activeProfile.id,
+      coordinates: selectedPoint,
+      geodata,
+      score: siteScore,
     });
 
     setWorkspaceNotice({
       tone: "info",
-      message: `${state.selectedLocationName} saved.`,
+      message: `${selectedLocationName} saved.`,
     });
-  };
+  }, [
+    activeProfile.id,
+    activeProfile.name,
+    addSite,
+    geodata,
+    selectedLocationName,
+    selectedPoint,
+    siteScore,
+    sites.length,
+  ]);
 
-  const handleOpenGuidedMode = () => {
-    if (!state.locationReady) {
+  const handleOpenGuidedMode = useCallback(() => {
+    if (!locationReady) {
       setWorkspaceNotice({
         tone: "warning",
         message: "Select a location first.",
@@ -212,16 +296,16 @@ export function ExploreWorkspace() {
       return;
     }
 
-    data.setShellMode("guided");
-    data.setViewMode("board");
+    setShellMode("guided");
+    setViewMode("board");
     setWorkspaceNotice({
       tone: "info",
       message: "Focused mode active.",
     });
-  };
+  }, [locationReady, setShellMode, setViewMode]);
 
-  const handleOpenBoardMode = () => {
-    data.openAdvancedBoard();
+  const handleOpenBoardMode = useCallback(() => {
+    openAdvancedBoard();
 
     if (typeof window === "undefined") {
       return;
@@ -236,20 +320,27 @@ export function ExploreWorkspace() {
         message: "Workspace mode active.",
       });
     }
-  };
+  }, [openAdvancedBoard]);
 
-  const openCard = (cardId: WorkspaceCardId) => {
+  const openCard = useCallback((cardId: WorkspaceCardId) => {
     if (data.shellMode === "board") {
-      if (!data.visibility[cardId]) {
-        data.setCardVisible(cardId, true);
+      if (!visibility[cardId]) {
+        setCardVisible(cardId, true);
       }
-      data.openCard(cardId);
-      data.setViewMode("board");
+      openWorkspaceCard(cardId);
+      setViewMode("board");
       return;
     }
 
-    data.openCardFromTray(cardId);
-  };
+    openCardFromTray(cardId);
+  }, [
+    data.shellMode,
+    openCardFromTray,
+    openWorkspaceCard,
+    setCardVisible,
+    setViewMode,
+    visibility,
+  ]);
 
   const resultsHeader = (
     <ResultsModeToggle mode={state.resultsMode} onChange={state.setResultsMode} />
@@ -276,25 +367,30 @@ export function ExploreWorkspace() {
     [data.geodata],
   );
 
-  const handleOpenLibraryMode = () => {
-    data.openLibrary();
-  };
+  const handleOpenLibraryMode = useCallback(() => {
+    openLibrary();
+  }, [openLibrary]);
 
   const handleSelectRegion = useCallback(
-    (region: typeof state.selectedRegion) => {
+    (region: RegionSelection) => {
       const regionLabel =
-        state.activeProfile.id === "home-buying"
+        activeProfile.id === "home-buying"
           ? region.secondaryLabel?.split(" · ")[0] ?? region.name
           : region.name;
-      state.setSelectedRegion(region);
-      state.selectPoint(region.center, regionLabel, regionLabel);
-      data.handleLocationSelection();
+      setSelectedRegion(region);
+      selectWorkspacePoint(region.center, regionLabel, regionLabel);
+      handleLocationSelection();
     },
-    [data, state],
+    [
+      activeProfile.id,
+      handleLocationSelection,
+      selectWorkspacePoint,
+      setSelectedRegion,
+    ],
   );
 
-  const handleGenerateReport = () => {
-    if (!data.geodata) {
+  const handleGenerateReport = useCallback(() => {
+    if (!geodata) {
       setWorkspaceNotice({
         tone: "warning",
         message: "Select a location first to generate a report.",
@@ -302,7 +398,7 @@ export function ExploreWorkspace() {
       return;
     }
 
-    if (data.loading) {
+    if (loading) {
       setWorkspaceNotice({
         tone: "warning",
         message: "Analysis still loading — try again shortly.",
@@ -311,12 +407,12 @@ export function ExploreWorkspace() {
     }
 
     primeAgent("geo-scribe", reportPrompt);
-    void data.generateReport();
-  };
+    void generateReport();
+  }, [generateReport, geodata, loading, primeAgent, reportPrompt]);
 
   const handlePersistentQuestionSubmit = useCallback(
     (question: string) => {
-      if (!state.locationReady) {
+      if (!locationReady) {
         setWorkspaceNotice({
           tone: "warning",
           message: "Select a location first to ask GeoSight about it.",
@@ -324,25 +420,191 @@ export function ExploreWorkspace() {
         return;
       }
 
-      data.handleQuestionIntent(question);
+      handleQuestionIntent(question);
       submitAgentPrompt("geo-analyst", question);
     },
-    [data, state.locationReady, submitAgentPrompt],
+    [handleQuestionIntent, locationReady, submitAgentPrompt],
   );
 
   const handleGlobeApiChange = useCallback((api: {
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
+    flyToBounds: (bounds: [number, number, number, number]) => void;
+    flyToPoint: (point: { lat: number; lng: number }, region: RegionSelection) => void;
   } | null) => {
     globeApiRef.current = api;
   }, []);
 
   const handleShapeComplete = useCallback((shape: DrawnShape) => {
-    state.addDrawnShape(shape);
+    addDrawnShape(shape);
     if (shape.type !== "marker") {
-      state.setDrawingTool("none");
+      setDrawingTool("none");
     }
-  }, [state]);
+  }, [addDrawnShape, setDrawingTool]);
+
+  const handleOpenImport = useCallback(() => {
+    fileDropZoneRef.current?.openFilePicker();
+  }, []);
+
+  const handleImportedLayer = useCallback((layer: ImportedLayer) => {
+    addImportedLayer(layer);
+    setWorkspaceNotice({
+      tone: "info",
+      message: `Imported ${layer.name} (${layer.features.features.length} features).`,
+    });
+  }, [addImportedLayer]);
+
+  const activeImportedLayer = useMemo(
+    () =>
+      importedLayers.find((layer) => layer.id === state.activeImportedLayerId) ??
+      importedLayers[0] ??
+      null,
+    [importedLayers, state.activeImportedLayerId],
+  );
+
+  const attributeTableOpen = data.openCardIds.includes("attribute-table");
+  const stackedOpenBoardCards = useMemo(
+    () => data.openBoardCards.filter((card) => card.id !== "attribute-table"),
+    [data.openBoardCards],
+  );
+
+  const handleOpenImportedLayerTable = useCallback(
+    (layer: ImportedLayer) => {
+      setActiveImportedLayerId(layer.id);
+      setSelectedImportedFeatureId(null);
+      openCard("attribute-table");
+    },
+    [openCard, setActiveImportedLayerId, setSelectedImportedFeatureId],
+  );
+
+  const handleCloseAttributeTable = useCallback(() => {
+    closeCard("attribute-table");
+    setSelectedImportedFeatureId(null);
+  }, [closeCard, setSelectedImportedFeatureId]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen(true);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+
+        if (commandPaletteOpen) {
+          setCommandPaletteOpen(false);
+          return;
+        }
+
+        if (keyboardShortcutsOpen) {
+          setKeyboardShortcutsOpen(false);
+          return;
+        }
+
+        if (walkthroughOpen) {
+          dismissWalkthrough();
+          return;
+        }
+
+        if (printLayoutOpen) {
+          setPrintLayoutOpen(false);
+          return;
+        }
+
+        if (attributeTableOpen) {
+          handleCloseAttributeTable();
+          return;
+        }
+
+        if (layersPanelOpen) {
+          setLayersPanelOpen(false);
+          return;
+        }
+
+        if (sidebarOpen) {
+          setSidebarOpen(false);
+          return;
+        }
+
+        if (drawingTool !== "none") {
+          setDrawingTool("none");
+        }
+        return;
+      }
+
+      if (isTypingContext(event.target)) {
+        return;
+      }
+
+      if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
+        event.preventDefault();
+        setKeyboardShortcutsOpen(true);
+        return;
+      }
+
+      if (event.altKey || event.metaKey || event.ctrlKey) {
+        return;
+      }
+
+      if (/^[1-5]$/.test(event.key)) {
+        const profileIndex = Number.parseInt(event.key, 10) - 1;
+        const nextProfile = PROFILES[profileIndex];
+        if (!nextProfile) {
+          return;
+        }
+
+        event.preventDefault();
+        setActiveProfile(nextProfile);
+        setActiveLensId(toLensParam(nextProfile.id) ?? null);
+        return;
+      }
+
+      switch (event.key.toLowerCase()) {
+        case "d":
+          event.preventDefault();
+          setDrawingTool((current) => (current === "none" ? "polygon" : "none"));
+          return;
+        case "l":
+          event.preventDefault();
+          setLayersPanelOpen((current) => !current);
+          return;
+        case "m":
+          event.preventDefault();
+          setDrawingTool((current) => (current === "measure" ? "none" : "measure"));
+          return;
+        case "f":
+          event.preventDefault();
+          if (locationReady) {
+            globeApiRef.current?.flyToPoint(selectedPoint, selectedRegion);
+          }
+          return;
+        default:
+          return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    attributeTableOpen,
+    commandPaletteOpen,
+    dismissWalkthrough,
+    handleCloseAttributeTable,
+    keyboardShortcutsOpen,
+    layersPanelOpen,
+    printLayoutOpen,
+    sidebarOpen,
+    drawingTool,
+    locationReady,
+    selectedPoint,
+    selectedRegion,
+    setActiveProfile,
+    setActiveLensId,
+    setDrawingTool,
+    walkthroughOpen,
+  ]);
 
   const visibleUiCardIds = useMemo(
     () =>
@@ -358,9 +620,25 @@ export function ExploreWorkspace() {
     if (state.layers.power) labels.push("Power");
     if (state.layers.roads) labels.push("Roads");
     if (state.layers.heatmap) labels.push("Elevation heat");
+    const visibleWmsLayers = state.wmsLayers.filter((layer) => layer.visible ?? true);
+    if (visibleWmsLayers.length > 0) {
+      labels.push(`Map services: ${visibleWmsLayers.map((layer) => layer.name).join(", ")}`);
+    }
+    const visibleImportedLayers = state.importedLayers.filter((layer) => layer.visible);
+    if (visibleImportedLayers.length > 0) {
+      labels.push(`Imported: ${visibleImportedLayers.map((layer) => layer.name).join(", ")}`);
+    }
     labels.push(`Basemap: ${state.globeViewMode}`);
     return labels;
-  }, [state.globeViewMode, state.layers.heatmap, state.layers.power, state.layers.roads, state.layers.water]);
+  }, [
+    state.globeViewMode,
+    state.importedLayers,
+    state.layers.heatmap,
+    state.layers.power,
+    state.layers.roads,
+    state.layers.water,
+    state.wmsLayers,
+  ]);
 
   const siteSummaryCsv = useMemo(
     () =>
@@ -619,6 +897,22 @@ export function ExploreWorkspace() {
         keywords: "share link url copy",
       },
       {
+        id: "action-keyboard-shortcuts",
+        label: "Show keyboard shortcuts",
+        description: "Review navigation, lens, and workspace hotkeys.",
+        section: "Actions",
+        Icon: Keyboard,
+        keywords: "keyboard shortcuts hotkeys help",
+      },
+      {
+        id: "action-start-walkthrough",
+        label: "Start guided walkthrough",
+        description: "Highlight the key workspace controls step by step.",
+        section: "Actions",
+        Icon: Sparkles,
+        keywords: "walkthrough onboarding guided tour",
+      },
+      {
         id: "action-save-site",
         label: "Save current site",
         description: data.geodata && data.siteScore
@@ -824,6 +1118,12 @@ export function ExploreWorkspace() {
             handleCopyLink();
           }
           return;
+        case "action-keyboard-shortcuts":
+          setKeyboardShortcutsOpen(true);
+          return;
+        case "action-start-walkthrough":
+          setWalkthroughOpen(true);
+          return;
         case "action-save-site":
           handleSaveCurrentSite();
           return;
@@ -937,7 +1237,8 @@ export function ExploreWorkspace() {
       profiles={PROFILES}
       selectedRegion={state.selectedRegion}
       onSelectProfile={(profile) => {
-        state.setActiveProfile(profile);
+        setActiveProfile(profile);
+        setActiveLensId(toLensParam(profile.id) ?? null);
         setSidebarOpen(false);
       }}
       onSelectRegion={(region) => {
@@ -957,13 +1258,14 @@ export function ExploreWorkspace() {
 
   const rightPanelOpen = Boolean(
     data.activePrimaryCard ||
-    data.openBoardCards.length > 0 ||
+    stackedOpenBoardCards.length > 0 ||
+    attributeTableOpen ||
     data.shellMode === "board"
   );
 
   // Card content rendered in right panel (desktop) or inline below globe (mobile)
   const rightPanelContent = (
-    <div className="space-y-4 p-4">
+    <div ref={rightPanelContentRef} className="space-y-4 p-4">
       <div className="rounded-[1.4rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-3 shadow-[var(--shadow-soft)]">
         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
           Evidence tray
@@ -1004,13 +1306,13 @@ export function ExploreWorkspace() {
       ) : null}
 
       {/* Open workspace cards (guided mode) */}
-      {data.shellMode !== "board" && data.openBoardCards.length > 0 ? (
+      {data.shellMode !== "board" && stackedOpenBoardCards.length > 0 ? (
         <section className="space-y-3">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             <Sparkles className="h-4 w-4 text-[var(--accent)]" />
             Supporting panel
           </div>
-          {data.openBoardCards.map((card) => (
+          {stackedOpenBoardCards.map((card) => (
             <ExploreWorkspacePanel
               key={card.id}
               cardId={card.id}
@@ -1039,9 +1341,9 @@ export function ExploreWorkspace() {
             onUpdateActiveBoard={data.updateActiveBoard}
             onRenameBoard={data.renameBoard}
           >
-            {data.openBoardCards.length > 0 ? (
+            {stackedOpenBoardCards.length > 0 ? (
               <div className="space-y-4">
-                {data.openBoardCards.map((card) => (
+                {stackedOpenBoardCards.map((card) => (
                   <ExploreWorkspacePanel
                     key={card.id}
                     cardId={card.id}
@@ -1050,6 +1352,10 @@ export function ExploreWorkspace() {
                     onOpenCard={openCard}
                   />
                 ))}
+              </div>
+            ) : attributeTableOpen ? (
+              <div className="flex min-h-[120px] items-center justify-center rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 text-sm text-[var(--muted-foreground)]">
+                Attribute table is docked below the globe.
               </div>
             ) : (
               <div className="flex min-h-[120px] items-center justify-center">
@@ -1089,6 +1395,7 @@ export function ExploreWorkspace() {
           className="h-11 w-11 shrink-0 rounded-full xl:hidden"
           onClick={() => setSidebarOpen(true)}
           aria-label="Open sidebar"
+          data-walkthrough="lens-selector"
         >
           <Menu className="h-4 w-4" />
         </Button>
@@ -1120,7 +1427,7 @@ export function ExploreWorkspace() {
         })()}
 
         {/* Search bar — centered, flex-1 */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1" data-walkthrough="search-bar">
           <SearchBar
             submitLabel={state.locationReady ? "Update" : "Analyze"}
             syncValue={
@@ -1175,7 +1482,11 @@ export function ExploreWorkspace() {
       <div className="flex min-h-0 flex-1 flex-col xl:flex-row xl:overflow-hidden">
 
         {/* Left panel — desktop only */}
-        <aside className="hidden w-80 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)] xl:flex" aria-label="Workspace navigation and quick regions">
+        <aside
+          className="hidden w-80 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)] xl:flex"
+          role="region"
+          aria-label="Workspace navigation and quick regions"
+        >
 
           {/* Init status */}
           {state.initStatus === "resolving" ? (
@@ -1207,6 +1518,7 @@ export function ExploreWorkspace() {
               onOpenLibrary={handleOpenLibraryMode}
               onOpenCompare={() => openCard("compare")}
               onSelectDrawingTool={state.setDrawingTool}
+              onOpenImport={handleOpenImport}
               onToggleSnapGrid={() => state.setSnapToGrid((value) => !value)}
               onClearDrawings={() => state.setDrawnShapes([])}
               onToggleCaptureMode={() => setCaptureMode((value) => !value)}
@@ -1226,10 +1538,11 @@ export function ExploreWorkspace() {
               onExportBundle={() => {
                 void handleExportBundle();
               }}
+              onOpenPrint={() => setPrintLayoutOpen(true)}
             />
 
             {/* Sidebar (profiles + quick regions) */}
-            <div className="min-h-0">{sidebarElement}</div>
+            <div className="min-h-0" data-walkthrough="lens-selector">{sidebarElement}</div>
           </div>
 
           {/* AddViewTray — guided mode */}
@@ -1248,7 +1561,23 @@ export function ExploreWorkspace() {
         </aside>
 
         {/* Globe area */}
-        <main ref={globeAreaRef} className="relative min-h-[55vw] max-h-[55vh] flex-1 xl:max-h-none xl:min-h-0" aria-label="3D globe and map tools">
+        <main
+          ref={globeAreaRef}
+          className="relative min-h-[55vw] max-h-[55vh] flex-1 xl:max-h-none xl:min-h-0"
+          role="region"
+          aria-label="3D globe and map tools"
+          data-walkthrough="globe"
+        >
+          <FileDropZone
+            ref={fileDropZoneRef}
+            onImportLayer={handleImportedLayer}
+            onImportError={(message) =>
+              setWorkspaceNotice({
+                tone: "warning",
+                message,
+              })
+            }
+          >
           <ClientErrorBoundary
             title="The globe view needs a quick reset"
             message="GeoSight kept the rest of the workspace alive. Retry the globe, switch regions, or keep working from the cards while the globe re-initializes."
@@ -1275,6 +1604,10 @@ export function ExploreWorkspace() {
                 onExitDriveMode={() => state.setDriveMode(false)}
                 drawingTool={state.drawingTool}
                 drawnShapes={state.drawnShapes}
+                importedLayers={state.importedLayers}
+                activeImportedLayerId={state.activeImportedLayerId}
+                selectedImportedFeatureId={state.selectedImportedFeatureId}
+                wmsLayers={state.wmsLayers}
                 onShapeComplete={handleShapeComplete}
                 onVertexDrag={state.updateDrawnShapeVertex}
                 snapToGrid={state.snapToGrid}
@@ -1316,7 +1649,23 @@ export function ExploreWorkspace() {
             onChange={state.setGlobeViewMode}
             subsurfaceRenderMode={state.subsurfaceRenderMode}
           />
-          <DataLayers layers={state.layers} onChange={state.setLayers} />
+          <DataLayers
+            layers={state.layers}
+            onChange={state.setLayers}
+            open={layersPanelOpen}
+            onOpenChange={setLayersPanelOpen}
+            importedLayers={state.importedLayers}
+            activeImportedLayerId={state.activeImportedLayerId}
+            onToggleImportedLayerVisibility={state.toggleImportedLayerVisibility}
+            onRemoveImportedLayer={state.removeImportedLayer}
+            onFlyToImportedLayer={(layer) => globeApiRef.current?.flyToBounds(layer.bounds)}
+            onOpenImportedLayerTable={handleOpenImportedLayerTable}
+            wmsLayers={state.wmsLayers}
+            onAddWmsLayer={state.addWmsLayer}
+            onRemoveWmsLayer={state.removeWmsLayer}
+            onToggleWmsLayerVisibility={state.toggleWmsLayerVisibility}
+            onSetWmsLayerOpacity={state.setWmsLayerOpacity}
+          />
           <RegionSelector
             region={state.selectedRegion}
             locationTooltip={state.selectedLocationName}
@@ -1360,6 +1709,7 @@ export function ExploreWorkspace() {
                 onExportGeoJSON={handleExportGeoJson}
                 snapToGrid={state.snapToGrid}
                 onToggleSnapToGrid={() => state.setSnapToGrid((v) => !v)}
+                onOpenImport={handleOpenImport}
               />
             </div>
           </div>
@@ -1381,23 +1731,7 @@ export function ExploreWorkspace() {
           ) : null}
 
           {/* Coord readout — click to copy */}
-          {state.selectedPoint ? (
-            <button
-              type="button"
-              title="Copy coordinates to clipboard"
-              className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-1 text-xs text-[var(--muted-foreground)] backdrop-blur-sm transition-colors hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
-              onClick={() => {
-                const text = `${state.selectedPoint!.lat.toFixed(5)}, ${state.selectedPoint!.lng.toFixed(5)}`;
-                void navigator.clipboard.writeText(text).then(() => {
-                  setCopiedCoords(true);
-                  setTimeout(() => setCopiedCoords(false), 1500);
-                });
-              }}
-            >
-              {state.selectedPoint.lat.toFixed(5)}, {state.selectedPoint.lng.toFixed(5)}
-              {copiedCoords ? <Check className="h-3 w-3 text-[var(--accent)]" /> : <Copy className="h-3 w-3" />}
-            </button>
-          ) : null}
+          </FileDropZone>
         </main>
 
         {/* Right panel (desktop) / inline content (mobile) */}
@@ -1405,7 +1739,7 @@ export function ExploreWorkspace() {
           <aside className={cn(
             "flex flex-col border-t border-[color:var(--border-soft)]",
             "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
-          )} aria-label="Analysis cards and workspace panels">
+          )} role="region" aria-label="Analysis cards and workspace panels">
             <CardDisplayProvider value={{ defaultCollapsed: true }}>
               {rightPanelContent}
             </CardDisplayProvider>
@@ -1418,7 +1752,7 @@ export function ExploreWorkspace() {
         className="flex shrink-0 flex-col gap-3 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[64px] xl:flex-row xl:items-center xl:py-0"
         aria-label="Workspace actions and persistent AI input"
       >
-        <div className="min-w-0 flex-1 xl:max-w-[28rem]">
+        <div className="min-w-0 flex-1 xl:max-w-[28rem]" data-walkthrough="score-card">
           {(state.locationReady || data.loading || data.error) ? (
             <AnalysisOverviewBanner
               compact
@@ -1478,6 +1812,25 @@ export function ExploreWorkspace() {
       </footer>
 
       {/* Workspace notice — floating toast */}
+      <PrintLayout
+        open={printLayoutOpen}
+        locationName={state.selectedLocationName}
+        profileName={state.activeProfile.name}
+        siteScore={data.siteScore}
+        geodata={data.geodata}
+        workspaceContentRef={rightPanelContentRef}
+        captureMapSnapshot={captureGlobeArea}
+        onClose={() => setPrintLayoutOpen(false)}
+      />
+
+      <AttributeTable
+        open={attributeTableOpen}
+        layer={activeImportedLayer}
+        selectedFeatureId={state.selectedImportedFeatureId}
+        onSelectFeature={state.setSelectedImportedFeatureId}
+        onClose={handleCloseAttributeTable}
+      />
+
       {workspaceNotice ? (
         <div
           className={cn(
@@ -1486,10 +1839,33 @@ export function ExploreWorkspace() {
               ? "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]"
               : "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent-foreground)]",
           )}
+          role="status"
+          aria-live="polite"
         >
           {workspaceNotice.message}
         </div>
       ) : null}
+
+      {data.rateLimitToast ? (
+        <div
+          className="fixed bottom-36 left-1/2 z-50 -translate-x-1/2 rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-2 text-sm text-[var(--warning-foreground)] backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          {data.rateLimitToast}
+        </div>
+      ) : null}
+
+      <KeyboardShortcuts
+        open={keyboardShortcutsOpen}
+        onClose={() => setKeyboardShortcutsOpen(false)}
+      />
+
+      <WalkthroughOverlay
+        open={walkthroughOpen}
+        steps={WALKTHROUGH_STEPS}
+        onClose={dismissWalkthrough}
+      />
 
       <WorkspaceCommandPalette
         open={commandPaletteOpen}
@@ -1525,7 +1901,7 @@ export function ExploreWorkspace() {
                 Panels
               </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-hidden">{sidebarElement}</div>
+            <div className="min-h-0 flex-1 overflow-hidden" data-walkthrough="lens-selector">{sidebarElement}</div>
           </div>
         </div>
       ) : null}

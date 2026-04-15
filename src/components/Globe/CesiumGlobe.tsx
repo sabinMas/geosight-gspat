@@ -11,11 +11,14 @@ import {
   Cartesian3,
   Cartographic,
   Color,
+  ColorMaterialProperty,
+  ConstantProperty,
   createWorldImageryAsync,
   createWorldTerrainAsync,
   CustomDataSource,
   EllipsoidGeodesic,
   EllipsoidTerrainProvider,
+  GeoJsonDataSource,
   HeadingPitchRange,
   HeadingPitchRoll,
   ImageryLayer,
@@ -25,14 +28,21 @@ import {
   Matrix4,
   PolygonHierarchy,
   Quaternion,
+  Rectangle,
   sampleTerrainMostDetailed,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Transforms,
   Viewer as CesiumViewer,
+  WebMapServiceImageryProvider,
 } from "cesium";
 import { estimateRegionSpanKm } from "@/lib/geospatial";
+import {
+  IMPORTED_FEATURE_ID_PROPERTY,
+  type ImportedLayer,
+} from "@/lib/file-import";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
+import type { WmsLayerDefinition } from "@/lib/wms-layers";
 import {
   Coordinates,
   DrawnShape,
@@ -46,6 +56,7 @@ import {
   SubsurfaceRenderMode,
 } from "@/types";
 import { useGlobeDrawing, useGlobeDrawnShapes } from "@/hooks/useGlobeDrawing";
+import { CoordinateDisplay } from "./CoordinateDisplay";
 import { LayerState } from "./DataLayers";
 
 if (typeof window !== "undefined") {
@@ -73,6 +84,90 @@ function getFlyToHeight(
   return Math.round(Math.min(Math.max(spanKm * 900, 2500), 24000));
 }
 
+function getRectangleFromBounds(bounds: [number, number, number, number]) {
+  let [west, south, east, north] = bounds;
+
+  if (east - west < 0.02) {
+    const padding = (0.02 - (east - west)) / 2;
+    west -= padding;
+    east += padding;
+  }
+
+  if (north - south < 0.02) {
+    const padding = (0.02 - (north - south)) / 2;
+    south -= padding;
+    north += padding;
+  }
+
+  south = Math.max(-89.9, south);
+  north = Math.min(89.9, north);
+
+  return Rectangle.fromDegrees(west, south, east, north);
+}
+
+function flyToImportedBounds(
+  viewer: CesiumViewer,
+  bounds: [number, number, number, number],
+) {
+  viewer.camera.flyTo({
+    destination: getRectangleFromBounds(bounds),
+    duration: 1.5,
+  });
+}
+
+function flyToLocation(
+  viewer: CesiumViewer,
+  point: Coordinates,
+  region: RegionSelection,
+  isFirstTarget = false,
+) {
+  const flyToHeight = getFlyToHeight(point, region, isFirstTarget);
+  const regionSpanKm = estimateRegionSpanKm(region.bbox);
+
+  viewer.camera.flyTo({
+    destination: Cartesian3.fromDegrees(point.lng, point.lat, flyToHeight),
+    orientation: {
+      heading: viewer.camera.heading,
+      pitch: -CesiumMath.toRadians(regionSpanKm <= 8 ? 68 : 82),
+      roll: 0,
+    },
+    duration: 1.8,
+  });
+}
+
+function styleImportedDataSource(dataSource: GeoJsonDataSource, layer: ImportedLayer) {
+  const strokeColor = Color.fromCssColorString(layer.style.color).withAlpha(layer.style.opacity);
+  const fillColor = Color.fromCssColorString(layer.style.color).withAlpha(
+    Math.max(layer.style.opacity * 0.25, 0.16),
+  );
+
+  for (const entity of dataSource.entities.values) {
+    if (entity.polyline) {
+      entity.polyline.material = new ColorMaterialProperty(strokeColor);
+      entity.polyline.width = new ConstantProperty(layer.style.weight);
+      entity.polyline.clampToGround = new ConstantProperty(true);
+    }
+
+    if (entity.polygon) {
+      entity.polygon.material = new ColorMaterialProperty(fillColor);
+      entity.polygon.outline = new ConstantProperty(true);
+      entity.polygon.outlineColor = new ConstantProperty(strokeColor);
+    }
+
+    if (entity.point) {
+      entity.point.color = new ConstantProperty(strokeColor);
+      entity.point.outlineColor = new ConstantProperty(Color.WHITE.withAlpha(0.8));
+      entity.point.outlineWidth = new ConstantProperty(1);
+      entity.point.pixelSize = new ConstantProperty(10);
+    }
+
+    if (entity.billboard) {
+      entity.billboard.color = new ConstantProperty(strokeColor);
+      entity.billboard.scale = new ConstantProperty(0.95);
+    }
+  }
+}
+
 interface CesiumGlobeProps {
   selectedPoint: Coordinates;
   selectedRegion: RegionSelection;
@@ -89,6 +184,10 @@ interface CesiumGlobeProps {
   onExitDriveMode?: () => void;
   drawingTool?: DrawingTool;
   drawnShapes?: DrawnShape[];
+  importedLayers?: ImportedLayer[];
+  activeImportedLayerId?: string | null;
+  selectedImportedFeatureId?: string | null;
+  wmsLayers?: WmsLayerDefinition[];
   onShapeComplete?: (shape: DrawnShape) => void;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
   snapToGrid?: boolean;
@@ -96,6 +195,8 @@ interface CesiumGlobeProps {
   onGlobeApiChange?: (api: {
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
+    flyToBounds: (bounds: [number, number, number, number]) => void;
+    flyToPoint: (point: Coordinates, region: RegionSelection) => void;
   } | null) => void;
 }
 
@@ -115,6 +216,10 @@ export function CesiumGlobe({
   onExitDriveMode,
   drawingTool = "none",
   drawnShapes = [],
+  importedLayers = [],
+  activeImportedLayerId = null,
+  selectedImportedFeatureId = null,
+  wmsLayers = [],
   onShapeComplete,
   onVertexDrag,
   snapToGrid = false,
@@ -126,6 +231,11 @@ export function CesiumGlobe({
   const viewerRef = useRef<CesiumViewer | null>(null);
   const clickHandlerRef = useRef<ScreenSpaceEventHandler | null>(null);
   const dragHandlerRef = useRef<ScreenSpaceEventHandler | null>(null);
+  const baseImageryLayerRef = useRef<ImageryLayer | null>(null);
+  const importedDataSourcesRef = useRef(new Map<string, GeoJsonDataSource>());
+  const importedHighlightDataSourceRef = useRef<GeoJsonDataSource | null>(null);
+  const wmsImageryLayersRef = useRef(new Map<string, ImageryLayer>());
+  const importedLayerIdsRef = useRef<string[]>([]);
   const lastFlyTargetRef = useRef<string | null>(null);
   const resizeFrameRef = useRef<number | null>(null);
   const resetTimeoutRef = useRef<number | null>(null);
@@ -135,19 +245,12 @@ export function CesiumGlobe({
   const isDraggingPinRef = useRef(false);
   const [viewerReady, setViewerReady] = useState(false);
   const [globeReady, setGlobeReady] = useState(false);
+  const [terrainUnavailable, setTerrainUnavailable] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
   const [pointerInside, setPointerInside] = useState(false);
   const driveHudSpeedRef = useRef<HTMLSpanElement | null>(null);
   const driveHudAltRef = useRef<HTMLSpanElement | null>(null);
   const terrainExaggerationRef = useRef(terrainExaggeration);
-  const terrainProviderPromise = useMemo(
-    () =>
-      createWorldTerrainAsync().catch((error) => {
-        console.warn("[cesium-globe] world terrain unavailable, using ellipsoid terrain", error);
-        return new EllipsoidTerrainProvider();
-      }),
-    [],
-  );
   const subsurfaceFootprint = useMemo(
     () =>
       selectedRegion.polygon.length > 0 ? selectedRegion.polygon : [selectedPoint],
@@ -223,6 +326,8 @@ export function CesiumGlobe({
     if (!host) {
       return;
     }
+    const importedDataSources = importedDataSourcesRef.current;
+    const wmsImageryLayers = wmsImageryLayersRef.current;
 
     setViewerReady(false);
     setGlobeReady(false);
@@ -256,6 +361,9 @@ export function CesiumGlobe({
       }
 
       viewerRef.current = null;
+      baseImageryLayerRef.current = null;
+      importedDataSources.clear();
+      wmsImageryLayers.clear();
       setViewerReady(false);
       setGlobeReady(false);
 
@@ -272,20 +380,33 @@ export function CesiumGlobe({
     }
 
     let cancelled = false;
+    setTerrainUnavailable(false);
 
-    void terrainProviderPromise.then((provider) => {
-      if (cancelled || !isViewerUsable(viewer)) {
-        return;
-      }
+    void createWorldTerrainAsync()
+      .then((provider) => {
+        if (cancelled || !isViewerUsable(viewer)) {
+          return;
+        }
 
-      viewer.terrainProvider = provider;
-      viewer.scene.requestRender();
-    });
+        setTerrainUnavailable(false);
+        viewer.terrainProvider = provider;
+        viewer.scene.requestRender();
+      })
+      .catch((error) => {
+        if (cancelled || !isViewerUsable(viewer)) {
+          return;
+        }
+
+        setTerrainUnavailable(true);
+        console.warn("[cesium-globe] world terrain unavailable, using ellipsoid terrain", error);
+        viewer.terrainProvider = new EllipsoidTerrainProvider();
+        viewer.scene.requestRender();
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [terrainProviderPromise, viewerReady]);
+  }, [viewerReady]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -333,24 +454,10 @@ export function CesiumGlobe({
     }
 
     const isFirstTarget = lastFlyTargetRef.current === null;
-    const flyToHeight = getFlyToHeight(selectedPoint, selectedRegion, isFirstTarget);
-    const regionSpanKm = estimateRegionSpanKm(selectedRegion.bbox);
     lastFlyTargetRef.current = nextTarget;
 
     try {
-      viewer.camera.flyTo({
-        destination: Cartesian3.fromDegrees(
-          selectedPoint.lng,
-          selectedPoint.lat,
-          flyToHeight,
-        ),
-        orientation: {
-          heading: viewer.camera.heading,
-          pitch: -CesiumMath.toRadians(regionSpanKm <= 8 ? 68 : 82),
-          roll: 0,
-        },
-        duration: 1.8,
-      });
+      flyToLocation(viewer, selectedPoint, selectedRegion, isFirstTarget);
     } catch (error) {
       console.warn("[cesium-globe] camera flyTo failed", error);
     }
@@ -402,8 +509,16 @@ export function CesiumGlobe({
           return;
         }
 
-        viewer.imageryLayers.removeAll();
+        const existingBaseLayer = baseImageryLayerRef.current;
+        if (existingBaseLayer && viewer.imageryLayers.contains(existingBaseLayer)) {
+          viewer.imageryLayers.remove(existingBaseLayer, true);
+        } else if (viewer.imageryLayers.length > 0) {
+          const initialLayer = viewer.imageryLayers.get(0);
+          viewer.imageryLayers.remove(initialLayer, true);
+        }
+
         viewer.imageryLayers.add(layer, 0);
+        baseImageryLayerRef.current = layer;
         viewer.scene.requestRender();
       } catch (error) {
         console.warn("[cesium-globe] basemap swap failed", error);
@@ -416,6 +531,222 @@ export function CesiumGlobe({
       cancelled = true;
     };
   }, [globeViewMode, viewerReady]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    const nextLayerIds = new Set(wmsLayers.map((layer) => layer.id));
+    const activeImageryLayers = wmsImageryLayersRef.current;
+
+    for (const [layerId, imageryLayer] of activeImageryLayers.entries()) {
+      if (nextLayerIds.has(layerId)) {
+        continue;
+      }
+
+      if (viewer.imageryLayers.contains(imageryLayer)) {
+        viewer.imageryLayers.remove(imageryLayer, true);
+      }
+      activeImageryLayers.delete(layerId);
+    }
+
+    for (const layer of wmsLayers) {
+      const existingImageryLayer = activeImageryLayers.get(layer.id);
+      if (existingImageryLayer) {
+        existingImageryLayer.show = layer.visible ?? true;
+        existingImageryLayer.alpha = layer.opacity ?? 0.82;
+        continue;
+      }
+
+      const provider = new WebMapServiceImageryProvider({
+        url: layer.url,
+        layers: layer.layers,
+        parameters: {
+          transparent: true,
+          format: "image/png",
+        },
+      });
+
+      const imageryLayer = viewer.imageryLayers.addImageryProvider(provider);
+      imageryLayer.show = layer.visible ?? true;
+      imageryLayer.alpha = layer.opacity ?? 0.82;
+      activeImageryLayers.set(layer.id, imageryLayer);
+    }
+
+    viewer.scene.requestRender();
+  }, [viewerReady, wmsLayers]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    let cancelled = false;
+    const nextLayerIds = new Set(importedLayers.map((layer) => layer.id));
+    const previousLayerIds = new Set(importedLayerIdsRef.current);
+
+    for (const [layerId, dataSource] of importedDataSourcesRef.current.entries()) {
+      if (nextLayerIds.has(layerId)) {
+        continue;
+      }
+
+      void viewer.dataSources.remove(dataSource, true);
+      importedDataSourcesRef.current.delete(layerId);
+    }
+
+    importedLayerIdsRef.current = importedLayers.map((layer) => layer.id);
+
+    for (const layer of importedLayers) {
+      const existingDataSource = importedDataSourcesRef.current.get(layer.id);
+      if (existingDataSource) {
+        existingDataSource.show = layer.visible;
+        styleImportedDataSource(existingDataSource, layer);
+        continue;
+      }
+
+      void (async () => {
+        const strokeColor = Color.fromCssColorString(layer.style.color);
+        const fillColor = strokeColor.withAlpha(Math.max(layer.style.opacity * 0.25, 0.16));
+
+        const dataSource = await GeoJsonDataSource.load(layer.features, {
+          stroke: strokeColor.withAlpha(layer.style.opacity),
+          fill: fillColor,
+          strokeWidth: layer.style.weight,
+          markerColor: strokeColor,
+          clampToGround: true,
+        });
+
+        if (cancelled || !isViewerUsable(viewer)) {
+          return;
+        }
+
+        dataSource.name = layer.name;
+        dataSource.show = layer.visible;
+        styleImportedDataSource(dataSource, layer);
+        await viewer.dataSources.add(dataSource);
+
+        if (cancelled || !isViewerUsable(viewer)) {
+          void viewer.dataSources.remove(dataSource, true);
+          return;
+        }
+
+        importedDataSourcesRef.current.set(layer.id, dataSource);
+
+        if (!previousLayerIds.has(layer.id) && layer.visible) {
+          flyToImportedBounds(viewer, layer.bounds);
+        }
+
+        viewer.scene.requestRender();
+      })();
+    }
+
+    viewer.scene.requestRender();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [importedLayers, viewerReady]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) {
+      return;
+    }
+
+    const removeHighlight = () => {
+      const currentHighlight = importedHighlightDataSourceRef.current;
+      if (!currentHighlight) {
+        return;
+      }
+
+      if (viewer.dataSources.contains(currentHighlight)) {
+        void viewer.dataSources.remove(currentHighlight, true);
+      }
+      importedHighlightDataSourceRef.current = null;
+    };
+
+    const layer = importedLayers.find((entry) => entry.id === activeImportedLayerId);
+    const feature = layer?.features.features.find((entry, index) => {
+      const featureId =
+        entry.properties?.[IMPORTED_FEATURE_ID_PROPERTY] ?? entry.id ?? `${layer?.id ?? "layer"}-${index}`;
+      return String(featureId) === selectedImportedFeatureId;
+    });
+
+    if (!layer || !feature || !selectedImportedFeatureId) {
+      removeHighlight();
+      viewer.scene.requestRender();
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      removeHighlight();
+
+      const highlightDataSource = await GeoJsonDataSource.load(
+        {
+          type: "FeatureCollection",
+          features: [feature],
+        } satisfies GeoJSON.FeatureCollection,
+        {
+          stroke: Color.WHITE,
+          fill: Color.fromCssColorString(layer.style.color).withAlpha(0.28),
+          strokeWidth: Math.max(layer.style.weight + 2, 4),
+          markerColor: Color.WHITE,
+          clampToGround: true,
+        },
+      );
+
+      if (cancelled || !isViewerUsable(viewer)) {
+        return;
+      }
+
+      for (const entity of highlightDataSource.entities.values) {
+        if (entity.polyline) {
+          entity.polyline.material = new ColorMaterialProperty(Color.WHITE);
+          entity.polyline.width = new ConstantProperty(Math.max(layer.style.weight + 2, 4));
+          entity.polyline.clampToGround = new ConstantProperty(true);
+        }
+
+        if (entity.polygon) {
+          entity.polygon.material = new ColorMaterialProperty(
+            Color.fromCssColorString(layer.style.color).withAlpha(0.22),
+          );
+          entity.polygon.outline = new ConstantProperty(true);
+          entity.polygon.outlineColor = new ConstantProperty(Color.WHITE);
+        }
+
+        if (entity.point) {
+          entity.point.color = new ConstantProperty(Color.WHITE);
+          entity.point.outlineColor = new ConstantProperty(
+            Color.fromCssColorString(layer.style.color),
+          );
+          entity.point.outlineWidth = new ConstantProperty(2);
+          entity.point.pixelSize = new ConstantProperty(14);
+        }
+      }
+
+      highlightDataSource.name = `${layer.name} highlight`;
+      importedHighlightDataSourceRef.current = highlightDataSource;
+      await viewer.dataSources.add(highlightDataSource);
+      await viewer.flyTo(highlightDataSource, {
+        duration: 0.9,
+      });
+      viewer.scene.requestRender();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeImportedLayerId,
+    importedLayers,
+    selectedImportedFeatureId,
+    viewerReady,
+  ]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -1037,6 +1368,23 @@ export function CesiumGlobe({
 
         viewer.scene.requestRender();
       },
+      flyToBounds: (bounds) => {
+        const viewer = viewerRef.current;
+        if (!isViewerUsable(viewer)) {
+          return;
+        }
+
+        flyToImportedBounds(viewer, bounds);
+      },
+      flyToPoint: (point, region) => {
+        const viewer = viewerRef.current;
+        if (!isViewerUsable(viewer)) {
+          return;
+        }
+
+        lastFlyTargetRef.current = `${point.lat.toFixed(6)}:${point.lng.toFixed(6)}`;
+        flyToLocation(viewer, point, region, false);
+      },
     });
 
     return () => {
@@ -1103,6 +1451,12 @@ export function CesiumGlobe({
       onPointerEnter={() => setPointerInside(true)}
       onPointerLeave={() => setPointerInside(false)}
     >
+      {terrainUnavailable ? (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-2 text-xs font-medium text-[var(--warning-foreground)] shadow-[var(--shadow-panel)]">
+          Terrain data unavailable — showing flat globe
+        </div>
+      ) : null}
+
       {!globeReady ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--surface-overlay)] text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--border-soft)] border-t-[var(--accent)]" />
@@ -1178,6 +1532,8 @@ export function CesiumGlobe({
           </div>
         </div>
       ) : null}
+
+      <CoordinateDisplay viewerRef={viewerRef} viewerReady={viewerReady} />
     </div>
   );
 }

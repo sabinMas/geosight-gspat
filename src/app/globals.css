@@ -240,6 +240,10 @@ textarea {
   animation: pulse-border 0.6s ease-out;
 }
 
+.print-only {
+  display: none;
+}
+
 @keyframes pulse-border {
   0% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
@@ -262,5 +266,20 @@ textarea {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: white;
+    color: black;
   }
 }

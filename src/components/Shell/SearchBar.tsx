@@ -186,7 +186,7 @@ export function SearchBar({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3" role="search" aria-label="Location search">
         <div className="flex flex-col gap-3 lg:flex-row">
           {leadingControl ? <div className="lg:w-[190px]">{leadingControl}</div> : null}
           <div className="min-w-0 flex-1">
@@ -198,6 +198,10 @@ export function SearchBar({
                 window.setTimeout(() => setShowSuggestions(false), 120);
               }}
               placeholder={placeholder}
+              aria-label="Search for a place"
+              aria-autocomplete="list"
+              aria-expanded={showSuggestions}
+              aria-controls="location-search-suggestions"
               className="h-12 rounded-2xl border-[color:var(--border-soft)] bg-[var(--background)]/50 text-sm"
             />
           </div>
@@ -206,6 +210,7 @@ export function SearchBar({
               type="button"
               className="h-12 min-w-[144px] rounded-2xl"
               disabled={loading}
+              aria-label="Search selected location"
               onClick={() => {
                 void executeSearch();
               }}
@@ -223,6 +228,7 @@ export function SearchBar({
               className="h-12 rounded-2xl"
               onClick={handleUseCurrentLocation}
               disabled={locating}
+              aria-label={locationButtonLabel}
             >
               {locating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -236,7 +242,12 @@ export function SearchBar({
       </form>
 
       {showSuggestions && (suggestionsLoading || suggestions.length) ? (
-        <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
+        <div
+          id="location-search-suggestions"
+          className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3"
+          role="region"
+          aria-label="Location suggestions"
+        >
           <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             Suggested matches
           </div>
@@ -252,6 +263,7 @@ export function SearchBar({
                   key={`${suggestion.name}-${suggestion.coordinates.lat}-${suggestion.coordinates.lng}`}
                   type="button"
                   onClick={() => handleSelectSuggestion(suggestion)}
+                  aria-label={`Select ${suggestion.name}`}
                   className="w-full rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-4 py-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
                 >
                   <div className="text-sm font-medium text-[var(--foreground)]">

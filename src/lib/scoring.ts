@@ -16,7 +16,7 @@ import {
 
 type DistanceSource = "water" | "power" | "road";
 
-function scoreCountSignal(
+export function scoreCountSignal(
   count: number | null,
   idealCount: number,
   maxUsefulCount: number = idealCount * 2,
@@ -29,12 +29,23 @@ function scoreCountSignal(
     return 15;
   }
 
-  const effectiveMax = Math.max(maxUsefulCount, idealCount);
-  const ratio = Math.min(count, effectiveMax) / effectiveMax;
-  return clamp(Math.round(20 + ratio * 80), 15, 100);
+  if (count >= idealCount) {
+    return 100;
+  }
+
+  const effectiveIdeal = Math.max(idealCount, 1);
+  const effectiveMax = Math.max(maxUsefulCount, effectiveIdeal);
+  const ratio = Math.min(count, effectiveIdeal) / effectiveIdeal;
+  const scaled = 15 + ratio * 85;
+
+  return clamp(
+    Math.round(count >= effectiveMax ? 100 : scaled),
+    15,
+    100,
+  );
 }
 
-function scoreFromDistance(
+export function scoreFromDistance(
   distanceKm: number | null,
   idealKm: number,
   cutoffKm: number,
@@ -69,7 +80,7 @@ function scoreFromDistance(
   return clamp(Math.round(ratio * 100), 15, 100);
 }
 
-function scoreTerrain(elevation: number | null, mode: string = "cooling") {
+export function scoreTerrain(elevation: number | null, mode: string = "cooling") {
   if (elevation === null) {
     return 55;
   }
@@ -142,7 +153,7 @@ function scoreDischargeVolume(dischargeCfs: number | null) {
   return 28;
 }
 
-function scoreClimate(
+export function scoreClimate(
   tempC: number | null,
   coolingDegreeDays: number | null,
   precipitationMm: number | null,
@@ -170,7 +181,10 @@ function landCoverLookup(classification: LandCoverBucket[]) {
   );
 }
 
-function scoreLandCover(classification: LandCoverBucket[], mode: string = "developed") {
+export function scoreLandCover(
+  classification: LandCoverBucket[],
+  mode: string = "developed",
+) {
   if (!classification.length) {
     return 50;
   }
@@ -244,7 +258,7 @@ function dominantLandCover(classification: LandCoverBucket[]) {
   return [...classification].sort((a, b) => b.value - a.value)[0];
 }
 
-function scoreBroadbandAvailability(
+export function scoreBroadbandAvailability(
   geodata: GeodataResult,
   mode: "data_center" | "residential" = "residential",
 ) {
@@ -306,7 +320,7 @@ function scoreBroadbandAvailability(
   );
 }
 
-function scoreFloodRisk(geodata: GeodataResult) {
+export function scoreFloodRisk(geodata: GeodataResult) {
   if (geodata.sources.floodZone.status === "unavailable") {
     return 60;
   }
@@ -335,7 +349,7 @@ function scoreFloodRisk(geodata: GeodataResult) {
   return 75;
 }
 
-function scoreAirQualityContext(geodata: GeodataResult) {
+export function scoreAirQualityContext(geodata: GeodataResult) {
   if (geodata.airQuality) {
     switch (geodata.airQuality.aqiCategory) {
       case "Good":
@@ -376,7 +390,7 @@ function scoreAirQualityContext(geodata: GeodataResult) {
   return 18;
 }
 
-function scoreContaminationRisk(geodata: GeodataResult) {
+export function scoreContaminationRisk(geodata: GeodataResult) {
   if (geodata.sources.epaHazards.status === "unavailable") {
     return 60;
   }
@@ -393,10 +407,10 @@ function scoreContaminationRisk(geodata: GeodataResult) {
       ? 28
       : 0;
 
-  return clamp(Math.round(92 - superfundPenalty - triPenalty - proximityPenalty), 15, 100);
+  return clamp(Math.round(95 - superfundPenalty - triPenalty - proximityPenalty), 15, 100);
 }
 
-function scoreWaterAccess(geodata: GeodataResult) {
+export function scoreWaterAccess(geodata: GeodataResult) {
   const waterDistance = geodata.nearestWaterBody.distanceKm;
   const nearestGauge = getNearestStreamGauge(geodata);
 
@@ -512,7 +526,7 @@ function scoreHazardAlerts(hazardAlerts: GdacsAlertSummary | null): number {
   return 85;
 }
 
-function scoreSeismicRisk(geodata: GeodataResult) {
+export function scoreSeismicRisk(geodata: GeodataResult) {
   const pga = geodata.seismicDesign?.pga;
   if (pga === null || pga === undefined) {
     return 60;
@@ -959,7 +973,7 @@ export function calculateSiteScore(geodata: GeodataResult): SiteScore {
   return calculateProfileScore(geodata, DEFAULT_PROFILE);
 }
 
-function scoreFireRisk(geodata: GeodataResult): number {
+export function scoreFireRisk(geodata: GeodataResult): number {
   const count = geodata.hazards.activeFireCount7d;
   const nearestKm = geodata.hazards.nearestFireKm;
   if (count === null) return 70;
@@ -967,6 +981,40 @@ function scoreFireRisk(geodata: GeodataResult): number {
   let score = count >= 20 ? 20 : count >= 10 ? 35 : count >= 5 ? 50 : 65;
   if (nearestKm !== null && nearestKm < 5) score = Math.min(score, 25);
   return score;
+}
+
+export function scoreWeatherRisk(geodata: GeodataResult): number {
+  const weatherSummary = geodata.climate.weatherRiskSummary?.toLowerCase() ?? "";
+  const windSpeedKph = geodata.climate.windSpeedKph;
+
+  if (weatherSummary.includes("extreme") || weatherSummary.includes("major")) {
+    return 25;
+  }
+  if (
+    weatherSummary.includes("warning") ||
+    weatherSummary.includes("storm") ||
+    weatherSummary.includes("red flag") ||
+    weatherSummary.includes("severe")
+  ) {
+    return 40;
+  }
+  if (weatherSummary.includes("elevated") || weatherSummary.includes("watch")) {
+    return 58;
+  }
+
+  if (windSpeedKph === null || windSpeedKph === undefined) {
+    return 70;
+  }
+  if (windSpeedKph <= 20) {
+    return 92;
+  }
+  if (windSpeedKph <= 40) {
+    return 78;
+  }
+  if (windSpeedKph <= 70) {
+    return 55;
+  }
+  return 30;
 }
 
 function getHazardTier(score: number): HazardRiskTier {
@@ -1027,6 +1075,20 @@ export function buildHazardResilienceSummary(geodata: GeodataResult): HazardResi
       coverage: "global",
     },
     {
+      domain: "weather",
+      label: "Weather",
+      score: scoreWeatherRisk(geodata),
+      tier: getHazardTier(scoreWeatherRisk(geodata)),
+      detail: geodata.climate.weatherRiskSummary
+        ? geodata.climate.weatherRiskSummary
+        : geodata.climate.windSpeedKph !== null
+          ? `Open-Meteo wind ${geodata.climate.windSpeedKph.toFixed(0)} km/h`
+          : "Weather risk context unavailable",
+      available:
+        geodata.climate.weatherRiskSummary !== null || geodata.climate.windSpeedKph !== null,
+      coverage: "global",
+    },
+    {
       domain: "air",
       label: "Air quality",
       score: scoreAirQualityContext(geodata),
@@ -1053,11 +1115,12 @@ export function buildHazardResilienceSummary(geodata: GeodataResult): HazardResi
   ];
 
   const weights: Record<string, number> = {
-    seismic: 0.20,
-    flood: 0.20,
-    fire: 0.20,
-    alerts: 0.15,
-    air: 0.15,
+    seismic: 0.17,
+    flood: 0.18,
+    fire: 0.18,
+    alerts: 0.12,
+    weather: 0.13,
+    air: 0.12,
     contamination: 0.10,
   };
 

@@ -87,7 +87,7 @@ export function WorkspaceBoard({
   const atLimit = savedBoards.length >= 5 && activeBoardId === null;
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" role="region" aria-label="Workspace board panels">
       {/* Board header */}
       <div className="rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-5 shadow-[var(--shadow-panel)] backdrop-blur-xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -97,7 +97,13 @@ export function WorkspaceBoard({
               Supporting analysis panels
             </h2>
           </div>
-          <Button type="button" variant="secondary" className="rounded-full shrink-0" onClick={onOpenLibrary}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="rounded-full shrink-0"
+            aria-label="Open panel library"
+            onClick={onOpenLibrary}
+          >
             Customize panels
           </Button>
         </div>
@@ -143,6 +149,7 @@ export function WorkspaceBoard({
                     type="button"
                     onClick={() => onToggleCard(card.id)}
                     aria-pressed={isOpen}
+                    aria-label={`${isOpen ? "Hide" : "Show"} ${card.title} panel`}
                     className="inline-flex items-center gap-2 py-2.5 pr-4 text-left"
                   >
                     <div className={cn(
@@ -193,6 +200,7 @@ export function WorkspaceBoard({
                 ref={inputRef}
                 value={savingName}
                 onChange={(e) => setSavingName(e.target.value)}
+                aria-label="Name new analyst layout"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCommitSave();
                   if (e.key === "Escape") setSavingName(null);
@@ -200,10 +208,10 @@ export function WorkspaceBoard({
                 placeholder="Name this layout"
                 className="h-9 w-40 rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[color:var(--accent)]"
               />
-              <Button type="button" size="sm" className="rounded-full" onClick={handleCommitSave}>
+              <Button type="button" size="sm" className="rounded-full" aria-label="Save new layout" onClick={handleCommitSave}>
                 Save
               </Button>
-              <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={() => setSavingName(null)}>
+              <Button type="button" size="sm" variant="ghost" className="rounded-full" aria-label="Cancel saving new layout" onClick={() => setSavingName(null)}>
                 Cancel
               </Button>
             </div>
@@ -215,6 +223,7 @@ export function WorkspaceBoard({
                   size="sm"
                   variant="secondary"
                   className="rounded-full"
+                  aria-label="Update active saved layout"
                   onClick={onUpdateActiveBoard}
                 >
                   <RefreshCw aria-hidden className="mr-1.5 h-3.5 w-3.5" />
@@ -226,6 +235,7 @@ export function WorkspaceBoard({
                 size="sm"
                 variant="secondary"
                 className="rounded-full"
+                aria-label="Save current layout as new"
                 onClick={handleBeginSave}
                 disabled={atLimit}
               >
@@ -256,16 +266,17 @@ export function WorkspaceBoard({
                         ref={renameInputRef}
                         value={renamingValue}
                         onChange={(e) => setRenamingValue(e.target.value)}
+                        aria-label={`Rename layout "${board.name}"`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleCommitRename();
                           if (e.key === "Escape") handleCancelRename();
                         }}
                         className="h-7 w-32 rounded-[1rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2 text-sm text-[var(--foreground)] outline-none focus:border-[color:var(--accent)]"
                       />
-                      <Button type="button" size="sm" className="rounded-full h-7 px-2.5 text-xs" onClick={handleCommitRename}>
+                      <Button type="button" size="sm" className="rounded-full h-7 px-2.5 text-xs" aria-label={`Save renamed layout "${board.name}"`} onClick={handleCommitRename}>
                         Save
                       </Button>
-                      <Button type="button" size="sm" variant="ghost" className="rounded-full h-7 px-2.5 text-xs" onClick={handleCancelRename}>
+                      <Button type="button" size="sm" variant="ghost" className="rounded-full h-7 px-2.5 text-xs" aria-label="Cancel renaming layout" onClick={handleCancelRename}>
                         Cancel
                       </Button>
                     </div>
@@ -274,6 +285,8 @@ export function WorkspaceBoard({
                       <button
                         type="button"
                         onClick={() => onRestoreBoard(board.id)}
+                        aria-label={`Restore layout "${board.name}"`}
+                        aria-pressed={isActive}
                         className="flex items-center gap-1.5 text-left"
                       >
                         <span className={cn("text-sm font-semibold", isActive ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]")}>

@@ -7,6 +7,7 @@ import { LandClassifier } from "@/components/Analysis/LandClassifier";
 import { ActiveLocationCard } from "@/components/Explore/ActiveLocationCard";
 import { AirQualityCard } from "@/components/Explore/AirQualityCard";
 import { BroadbandCard } from "@/components/Explore/BroadbandCard";
+import { CardSkeleton } from "@/components/Explore/CardSkeleton";
 import { ClimateHistoryCard } from "@/components/Explore/ClimateHistoryCard";
 import { ContaminationRiskCard } from "@/components/Explore/ContaminationRiskCard";
 import { DemographicsCard } from "@/components/Explore/DemographicsCard";
@@ -170,13 +171,15 @@ function getDataDependencyPlaceholder(
   }
 
   if (geodataCards.has(cardId) && !data.geodata) {
+    if (data.loading) {
+      return <CardSkeleton />;
+    }
+
     return (
       <WorkspaceCardPlaceholder
         cardId={cardId}
         detail={
-          data.loading
-            ? `GeoSight is still gathering live geodata for ${locationLabel}. This supporting view will fill in once the location load finishes.`
-            : `Live geodata is unavailable for ${locationLabel} right now, so GeoSight cannot populate this view yet. Try another region, rerun the search, or inspect the trust panel for provider status.`
+          `Live geodata is unavailable for ${locationLabel} right now, so GeoSight cannot populate this view yet. Try another region, rerun the search, or inspect the trust panel for provider status.`
         }
       />
     );

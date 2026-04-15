@@ -8,6 +8,7 @@ import {
   Check,
   ChevronDown,
   Compass,
+  Database,
   Factory,
   Globe2,
   House,
@@ -45,6 +46,42 @@ const ICONS = {
 } as const;
 
 const FEATURED_USE_CASE_IDS = ["home-buying", "market-analysis", "infrastructure"] as const;
+const HERO_STATS = [
+  "35+ Live Data Sources",
+  "23 Analysis Cards",
+  "5 Mission Lenses",
+  "7 Hazard Domains",
+  "5 Drawing Tools",
+] as const;
+
+const WHAT_GEOSIGHT_DOES = [
+  {
+    title: "Multi-Source Intelligence",
+    description: "35+ live data sources aggregated in seconds so every place starts with evidence, not guesswork.",
+    Icon: Database,
+  },
+  {
+    title: "Mission-Driven Scoring",
+    description: "The same location can tell a very different story depending on the lens you choose and the factors you weight.",
+    Icon: Target,
+  },
+  {
+    title: "Transparent Trust",
+    description: "Every signal is labeled with source freshness, coverage, and confidence so you can see what is direct, derived, or limited.",
+    Icon: ShieldAlert,
+  },
+] as const;
+
+const POWERED_BY_PROVIDERS = [
+  "USGS",
+  "NOAA",
+  "NASA",
+  "OpenStreetMap",
+  "FEMA",
+  "EPA",
+  "NRCS",
+  "Open-Meteo",
+] as const;
 
 function getIcon(iconName: string) {
   return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
@@ -266,6 +303,19 @@ export function LandingPage() {
               <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-6xl">
                 See any place clearly.
               </h1>
+              <p className="mx-auto max-w-2xl text-sm leading-7 text-[var(--foreground-soft)] sm:text-base">
+                GeoSight turns maps, hazards, climate, infrastructure, and trust signals into a single spatial intelligence workspace.
+              </p>
+              <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 pt-2">
+                {HERO_STATS.map((stat) => (
+                  <span
+                    key={stat}
+                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)]"
+                  >
+                    {stat}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <p className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
@@ -413,6 +463,56 @@ export function LandingPage() {
                   </div>
                 ) : null}
               </form>
+            </div>
+          </div>
+        </section>
+
+        <section className="glass-panel rounded-[2rem] p-5 md:p-6">
+          <div className="space-y-2">
+            <div className="eyebrow">What GeoSight does</div>
+            <h2 className="text-2xl font-semibold text-[var(--foreground)]">
+              Spatial intelligence that stays grounded in evidence
+            </h2>
+            <p className="max-w-3xl text-sm leading-7 text-[var(--muted-foreground)]">
+              GeoSight is built to help people move from a place name to a defensible first-pass decision without needing a GIS workstation.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-3">
+            {WHAT_GEOSIGHT_DOES.map(({ title, description, Icon }) => (
+              <div
+                key={title}
+                className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-5 shadow-[var(--shadow-soft)]"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-[var(--foreground)]">{title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted-foreground)]">
+                  {description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="eyebrow">Powered by</div>
+                <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+                  Public geospatial and environmental data providers that keep the analysis grounded in live or official context.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {POWERED_BY_PROVIDERS.map((provider) => (
+                  <span
+                    key={provider}
+                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)]"
+                  >
+                    {provider}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </section>

@@ -37,7 +37,8 @@ import { getNearbyStreamGauges } from "@/lib/water";
 import { getSolarResource } from "@/lib/solar-resource";
 import { GeodataResult } from "@/types";
 
-const OPTIONAL_PROVIDER_TIMEOUTS = {
+const PROVIDER_TIMEOUTS = {
+  infrastructure: 20_000,
   fire: 6_500,
   schools: 7_000,
   broadband: 6_500,
@@ -226,51 +227,51 @@ export async function GET(request: NextRequest) {
   const broadbandPromise = isUsPoint
     ? withSoftTimeout(
         getFCCBroadband(lat, lng),
-        OPTIONAL_PROVIDER_TIMEOUTS.broadband,
+        PROVIDER_TIMEOUTS.broadband,
         "broadband",
       )
     : Promise.resolve(null);
   const floodZonePromise = withSoftTimeout(
     getFloodZone(lat, lng),
-    OPTIONAL_PROVIDER_TIMEOUTS.flood,
+    PROVIDER_TIMEOUTS.flood,
     "flood zone",
   );
   const waterGaugePromise = isUsPoint
     ? withSoftTimeout(
         getNearbyStreamGauges(lat, lng),
-        OPTIONAL_PROVIDER_TIMEOUTS.water,
+        PROVIDER_TIMEOUTS.water,
         "stream gauges",
       )
     : Promise.resolve([]);
   const groundwaterPromise = isUsPoint
     ? withSoftTimeout(
         getNearbyGroundwaterWells({ lat, lng }),
-        OPTIONAL_PROVIDER_TIMEOUTS.groundwater,
+        PROVIDER_TIMEOUTS.groundwater,
         "groundwater",
       )
     : Promise.resolve({ wells: [], nearestWell: null, wellCount: 0 });
   const soilProfilePromise = withSoftTimeout(
     getSoilProfile({ lat, lng }),
-    OPTIONAL_PROVIDER_TIMEOUTS.soil,
+    PROVIDER_TIMEOUTS.soil,
     "soil profile",
   );
   const seismicDesignPromise = isUsPoint
     ? withSoftTimeout(
         getSeismicDesignParams({ lat, lng }),
-        OPTIONAL_PROVIDER_TIMEOUTS.seismic,
+        PROVIDER_TIMEOUTS.seismic,
         "seismic design",
       )
     : Promise.resolve(null);
   const epaHazardPromise = isUsPoint
     ? withSoftTimeout(
         getEPAHazards(lat, lng),
-        OPTIONAL_PROVIDER_TIMEOUTS.epaHazards,
+        PROVIDER_TIMEOUTS.epaHazards,
         "epa hazards",
       )
     : Promise.resolve(null);
   const gdacsAlertPromise = withSoftTimeout(
     fetchGdacsAlertSummary({ lat, lng }),
-    OPTIONAL_PROVIDER_TIMEOUTS.gdacsAlerts,
+    PROVIDER_TIMEOUTS.gdacsAlerts,
     "gdacs alerts",
   );
 
@@ -296,16 +297,20 @@ export async function GET(request: NextRequest) {
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
-      withSoftTimeout(fetchNearbyInfrastructure(bbox), 20_000, "infrastructure"),
+      withSoftTimeout(
+        fetchNearbyInfrastructure(bbox),
+        PROVIDER_TIMEOUTS.infrastructure,
+        "infrastructure",
+      ),
       fetchClimateSnapshot({ lat, lng }),
       fetchCountyDemographics({ lat, lng }),
       fetchEarthquakeSummary({ lat, lng }),
       withSoftTimeout(
         fetchFireHazardSummary({ lat, lng }),
-        OPTIONAL_PROVIDER_TIMEOUTS.fire,
+        PROVIDER_TIMEOUTS.fire,
         "fire hazard",
       ),
-      withSoftTimeout(fetchSchoolContext({ lat, lng }), OPTIONAL_PROVIDER_TIMEOUTS.schools, "schools"),
+      withSoftTimeout(fetchSchoolContext({ lat, lng }), PROVIDER_TIMEOUTS.schools, "schools"),
       broadbandPromise,
       floodZonePromise,
       waterGaugePromise,
@@ -314,162 +319,176 @@ export async function GET(request: NextRequest) {
       seismicDesignPromise,
       withSoftTimeout(
         getClimateHistory({ lat, lng }),
-        OPTIONAL_PROVIDER_TIMEOUTS.climateHistory,
+        PROVIDER_TIMEOUTS.climateHistory,
         "climate history",
       ),
-      withSoftTimeout(getAirQuality(lat, lng), OPTIONAL_PROVIDER_TIMEOUTS.airQuality, "air quality"),
+      withSoftTimeout(getAirQuality(lat, lng), PROVIDER_TIMEOUTS.airQuality, "air quality"),
       epaHazardPromise,
       gdacsAlertPromise,
-      withSoftTimeout(getSolarResource({ lat, lng }), OPTIONAL_PROVIDER_TIMEOUTS.solar, "solar resource"),
+      withSoftTimeout(getSolarResource({ lat, lng }), PROVIDER_TIMEOUTS.solar, "solar resource"),
     ]);
+  const responseHeaders = {
+    "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
+    ...rateLimitHeaders(rateLimit),
+    "X-Cache": "MISS",
+  };
+  const partial: Partial<GeodataResult> = {};
 
-  const infrastructure =
-    infrastructureResult.status === "fulfilled" ? infrastructureResult.value.elements ?? [] : [];
-  const roads = infrastructure.filter((item) => item.tags?.highway);
-  const power = infrastructure.filter((item) => item.tags?.power);
-  const waterways = infrastructure.filter(
-    (item) => item.tags?.waterway || item.tags?.natural === "water",
-  );
-  const amenitySignals = buildAmenitySignals(infrastructure);
-  const now = new Date().toISOString();
-  const derivedLocationCode =
-    (demographicsResult.status === "fulfilled" ? demographicsResult.value.stateCode : null) ??
-    (schoolResult.status === "fulfilled" &&
-    schoolResult.value.coverageStatus === "state_accountability_supported"
-      ? "WA"
-      : null);
-  const registryContext = resolveSourceRegistryContext({
-    countryCode: isLikelyCountryCode(derivedLocationCode) ? derivedLocationCode : null,
-    stateCode: derivedLocationCode === "WA" ? derivedLocationCode : null,
-  });
-  const soilProfile =
-    soilProfileResult.status === "fulfilled" ? soilProfileResult.value : null;
-  const seismicDesign =
-    seismicDesignResult.status === "fulfilled" ? seismicDesignResult.value : null;
-  const effectiveDemographics =
-    demographicsResult.status === "fulfilled"
-      ? demographicsResult.value
-      : {
-          countyName: null,
-          stateCode: null,
-          population: null,
-          medianHouseholdIncome: null,
-          medianHomeValue: null,
-          geographicGranularity: "country" as const,
-          populationReferenceYear: null,
-          incomeReferenceYear: null,
-          incomeDefinition: null,
-        };
-  const climateHistory =
-    climateHistoryResult.status === "fulfilled" ? climateHistoryResult.value : null;
-  const eurostatBroadband =
-    !isUsPoint &&
-    registryContext.countryCode &&
-    registryContext.scopes.includes("europe")
-      ? await withSoftTimeout(
-          fetchEurostatBroadbandBaseline(
-            registryContext.countryCode,
-            effectiveDemographics.countyName ?? registryContext.countryCode,
-          ),
-          OPTIONAL_PROVIDER_TIMEOUTS.broadband,
-          "eurostat broadband",
-        ).catch(() => null)
-      : null;
-  const broadbandData =
-    isUsPoint && broadbandResult.status === "fulfilled"
-      ? broadbandResult.value
-      : eurostatBroadband;
-  const streamGauges =
-    isUsPoint && waterGaugeResult.status === "fulfilled"
-      ? sanitizeStreamGauges(waterGaugeResult.value)
-      : [];
-  const hasSoilProfile =
-    soilProfile !== null && Object.values(soilProfile).some((value) => value !== null);
-  const hasSeismicDesign =
-    seismicDesign !== null &&
-    [seismicDesign.ss, seismicDesign.s1, seismicDesign.pga].some((value) => value !== null);
-  const hasClimateHistory = climateHistory !== null && climateHistory.summaries.length > 0;
+  try {
+    const infrastructure =
+      infrastructureResult.status === "fulfilled" ? infrastructureResult.value.elements ?? [] : [];
+    const roads = infrastructure.filter((item) => item.tags?.highway);
+    const power = infrastructure.filter((item) => item.tags?.power);
+    const waterways = infrastructure.filter(
+      (item) => item.tags?.waterway || item.tags?.natural === "water",
+    );
+    const amenitySignals = buildAmenitySignals(infrastructure);
+    const now = new Date().toISOString();
+    const derivedLocationCode =
+      (demographicsResult.status === "fulfilled" ? demographicsResult.value.stateCode : null) ??
+      (schoolResult.status === "fulfilled" &&
+      schoolResult.value.coverageStatus === "state_accountability_supported"
+        ? "WA"
+        : null);
+    const registryContext = resolveSourceRegistryContext({
+      countryCode: isLikelyCountryCode(derivedLocationCode) ? derivedLocationCode : null,
+      stateCode: derivedLocationCode === "WA" ? derivedLocationCode : null,
+    });
+    const soilProfile =
+      soilProfileResult.status === "fulfilled" ? soilProfileResult.value : null;
+    const seismicDesign =
+      seismicDesignResult.status === "fulfilled" ? seismicDesignResult.value : null;
+    const effectiveDemographics =
+      demographicsResult.status === "fulfilled"
+        ? demographicsResult.value
+        : {
+            countyName: null,
+            stateCode: null,
+            population: null,
+            medianHouseholdIncome: null,
+            medianHomeValue: null,
+            geographicGranularity: "country" as const,
+            populationReferenceYear: null,
+            incomeReferenceYear: null,
+            incomeDefinition: null,
+          };
+    const climateHistory =
+      climateHistoryResult.status === "fulfilled" ? climateHistoryResult.value : null;
+    const eurostatBroadband =
+      !isUsPoint &&
+      registryContext.countryCode &&
+      registryContext.scopes.includes("europe")
+        ? await withSoftTimeout(
+            fetchEurostatBroadbandBaseline(
+              registryContext.countryCode,
+              effectiveDemographics.countyName ?? registryContext.countryCode,
+            ),
+            PROVIDER_TIMEOUTS.broadband,
+            "eurostat broadband",
+          ).catch(() => null)
+        : null;
+    const broadbandData =
+      isUsPoint && broadbandResult.status === "fulfilled"
+        ? broadbandResult.value
+        : eurostatBroadband;
+    const streamGauges =
+      isUsPoint && waterGaugeResult.status === "fulfilled"
+        ? sanitizeStreamGauges(waterGaugeResult.value)
+        : [];
+    const hasSoilProfile =
+      soilProfile !== null && Object.values(soilProfile).some((value) => value !== null);
+    const hasSeismicDesign =
+      seismicDesign !== null &&
+      [seismicDesign.ss, seismicDesign.s1, seismicDesign.pga].some((value) => value !== null);
+    const hasClimateHistory = climateHistory !== null && climateHistory.summaries.length > 0;
 
-  const geodata: GeodataResult = {
-    elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
-    nearestWaterBody: buildNearestFeature({ lat, lng }, waterways, "Nearby mapped waterway"),
-    nearestRoad: buildNearestFeature({ lat, lng }, roads, "Road network"),
-    nearestPower: buildNearestFeature({ lat, lng }, power, "Transmission infrastructure"),
-    climate:
-      climateResult.status === "fulfilled"
-        ? climateResult.value.climate
-        : {
-            currentTempC: null,
-            averageTempC: null,
-            dailyHighTempC: null,
-            dailyLowTempC: null,
-            coolingDegreeDays: null,
-            precipitationMm: null,
-            windSpeedKph: null,
-            airQualityIndex: null,
-            weatherRiskSummary: null,
-          },
-    weatherForecast:
-      climateResult.status === "fulfilled" ? climateResult.value.forecast : [],
-    hazards:
-      hazardResult.status === "fulfilled"
-        ? {
-            ...hazardResult.value,
-            activeFireCount7d:
-              fireHazardResult.status === "fulfilled"
-                ? fireHazardResult.value.activeFireCount7d
-                : null,
-            nearestFireKm:
-              fireHazardResult.status === "fulfilled"
-                ? fireHazardResult.value.nearestFireKm
-                : null,
-          }
-        : {
-            earthquakeCount30d: null,
-            strongestEarthquakeMagnitude30d: null,
-            nearestEarthquakeKm: null,
-            activeFireCount7d:
-              fireHazardResult.status === "fulfilled"
-                ? fireHazardResult.value.activeFireCount7d
-                : null,
-            nearestFireKm:
-              fireHazardResult.status === "fulfilled"
-                ? fireHazardResult.value.nearestFireKm
-                : null,
-          },
-    demographics: effectiveDemographics,
-    amenities:
-      infrastructureResult.status === "fulfilled"
-        ? amenitySignals
-        : {
-            schoolCount: null,
-            healthcareCount: null,
-            foodAndDrinkCount: null,
-            transitStopCount: null,
-            parkCount: null,
-            trailheadCount: null,
-            commercialCount: null,
-          },
-    broadband: broadbandData,
-    floodZone: floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
-    streamGauges,
-    groundwater:
-      groundwaterResult.status === "fulfilled"
-        ? groundwaterResult.value
-        : { wells: [], nearestWell: null, wellCount: 0 },
-    soilProfile,
-    seismicDesign,
-    climateHistory,
-    solarResource: solarResourceResult.status === "fulfilled" ? solarResourceResult.value : null,
-    airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
-    epaHazards: isUsPoint && epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
-    hazardAlerts: gdacsAlertResult.status === "fulfilled" ? gdacsAlertResult.value : null,
-    schoolContext:
-      schoolResult.status === "fulfilled"
-        ? summarizeSchoolContext(schoolResult.value)
-        : null,
-    landClassification: buildLandCoverBuckets(infrastructure),
-    sources: {
+    const assembledData = {
+      elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
+      nearestWaterBody: buildNearestFeature({ lat, lng }, waterways, "Nearby mapped waterway"),
+      nearestRoad: buildNearestFeature({ lat, lng }, roads, "Road network"),
+      nearestPower: buildNearestFeature({ lat, lng }, power, "Transmission infrastructure"),
+      climate:
+        climateResult.status === "fulfilled"
+          ? climateResult.value.climate
+          : {
+              currentTempC: null,
+              averageTempC: null,
+              dailyHighTempC: null,
+              dailyLowTempC: null,
+              coolingDegreeDays: null,
+              precipitationMm: null,
+              windSpeedKph: null,
+              airQualityIndex: null,
+              weatherRiskSummary: null,
+            },
+      weatherForecast:
+        climateResult.status === "fulfilled" ? climateResult.value.forecast : [],
+      hazards:
+        hazardResult.status === "fulfilled"
+          ? {
+              ...hazardResult.value,
+              activeFireCount7d:
+                fireHazardResult.status === "fulfilled"
+                  ? fireHazardResult.value.activeFireCount7d
+                  : null,
+              nearestFireKm:
+                fireHazardResult.status === "fulfilled"
+                  ? fireHazardResult.value.nearestFireKm
+                  : null,
+            }
+          : {
+              earthquakeCount30d: null,
+              strongestEarthquakeMagnitude30d: null,
+              nearestEarthquakeKm: null,
+              activeFireCount7d:
+                fireHazardResult.status === "fulfilled"
+                  ? fireHazardResult.value.activeFireCount7d
+                  : null,
+              nearestFireKm:
+                fireHazardResult.status === "fulfilled"
+                  ? fireHazardResult.value.nearestFireKm
+                  : null,
+            },
+      demographics: effectiveDemographics,
+      amenities:
+        infrastructureResult.status === "fulfilled"
+          ? amenitySignals
+          : {
+              schoolCount: null,
+              healthcareCount: null,
+              foodAndDrinkCount: null,
+              transitStopCount: null,
+              parkCount: null,
+              trailheadCount: null,
+              commercialCount: null,
+            },
+      broadband: broadbandData,
+      floodZone: floodZoneResult.status === "fulfilled" ? floodZoneResult.value : null,
+      streamGauges,
+      groundwater:
+        groundwaterResult.status === "fulfilled"
+          ? groundwaterResult.value
+          : { wells: [], nearestWell: null, wellCount: 0 },
+      soilProfile,
+      seismicDesign,
+      climateHistory,
+      solarResource: solarResourceResult.status === "fulfilled" ? solarResourceResult.value : null,
+      airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
+      epaHazards:
+        isUsPoint && epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
+      hazardAlerts: gdacsAlertResult.status === "fulfilled" ? gdacsAlertResult.value : null,
+      schoolContext:
+        schoolResult.status === "fulfilled"
+          ? summarizeSchoolContext(schoolResult.value)
+          : null,
+      landClassification: buildLandCoverBuckets(infrastructure),
+    } satisfies Omit<GeodataResult, "sources" | "sourceNotes">;
+
+    Object.assign(partial, assembledData);
+
+    const geodata: GeodataResult = {
+      ...assembledData,
+      sources: {
       elevation: buildRegistryAwareSourceMeta({
         id: "elevation",
         label: "Elevation",
@@ -930,7 +949,7 @@ export async function GET(request: NextRequest) {
           "GDACS provides broad global disaster notifications for earthquakes, floods, volcanoes, drought, tropical cyclones, and related events.",
       }),
     },
-    sourceNotes: [
+      sourceNotes: [
       "Elevation via USGS EPQS in the US, with OpenTopoData SRTM fallback for global coverage.",
       "Overpass OSM features for roads, power lines, waterways, amenities, and land-use context.",
       "Open-Meteo current weather, forecast, and air-quality snapshots.",
@@ -955,17 +974,26 @@ export async function GET(request: NextRequest) {
           ? "Europe currently uses Eurostat for country-level broadband baselines, while USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening remain US-only. Soil data is global via SoilGrids (ISRIC); flood context is global via GloFAS (Open-Meteo)."
           : "Broadband point lookups, USGS Water Services, groundwater wells, seismic design maps, and EPA contamination screening are currently US-only. Soil data is global via SoilGrids (ISRIC); flood context is global via GloFAS (Open-Meteo)."
         : null,
-    ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
-  };
+      ].filter((note): note is string => typeof note === "string" && note.trim().length > 0),
+    };
 
-  // Cache the assembled result (fire-and-forget)
-  setGeodataCache(lat, lng, geodata);
+    // Cache the assembled result (fire-and-forget)
+    setGeodataCache(lat, lng, geodata);
 
-  return NextResponse.json(geodata, {
-    headers: {
-      "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
-      ...rateLimitHeaders(rateLimit),
-      "X-Cache": "MISS",
-    },
-  });
+    return NextResponse.json(geodata, {
+      headers: responseHeaders,
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        error: "Data assembly failed",
+        retryable: true,
+        partial,
+      },
+      {
+        status: 500,
+        headers: responseHeaders,
+      },
+    );
+  }
 }

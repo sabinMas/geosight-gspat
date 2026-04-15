@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildCapabilityFallbackResponse,
@@ -23,7 +24,7 @@ import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useHousingMarket } from "@/hooks/useHousingMarket";
 import { useSavedSites } from "@/hooks/useSavedSites";
 import { useSchoolContext } from "@/hooks/useSchoolContext";
-import { useSiteAnalysis } from "@/hooks/useSiteAnalysis";
+import { GEODATA_RATE_LIMIT_MESSAGE, useSiteAnalysis } from "@/hooks/useSiteAnalysis";
 import { useWorkspaceCards } from "@/hooks/useWorkspaceCards";
 import { useWorkspacePresentation } from "@/hooks/useWorkspacePresentation";
 import { ExploreState } from "@/hooks/useExploreState";
@@ -38,6 +39,8 @@ interface UseExploreDataArgs {
   state: ExploreState;
   setGeoContext: (context: GeoSightContext) => void;
 }
+
+const REPORT_STREAM_TIMEOUT_MS = 30_000;
 
 async function readAgentRouteError(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
@@ -60,6 +63,28 @@ async function readResponseTextWithTimeout(response: Response, timeoutMs: number
       new Promise<string>((_, reject) => {
         timeoutHandle = setTimeout(() => {
           reject(new Error("The AI response took too long to finish."));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
+
+async function readStreamChunkWithTimeout(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutMs: number,
+) {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      reader.read(),
+      new Promise<ReadableStreamReadResult<Uint8Array>>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error("GeoScribe timed out after 30 seconds without new report data."));
         }, timeoutMs);
       }),
     ]);
@@ -239,6 +264,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportMode, setReportMode] = useState<AgentExecutionMode | null>(null);
   const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(null);
+  const [rateLimitToast, setRateLimitToast] = useState<string | null>(null);
   const [capabilityAnalysisLoading, setCapabilityAnalysisLoading] = useState(false);
   const [capabilityAnalysisError, setCapabilityAnalysisError] = useState<string | null>(
     null,
@@ -337,6 +363,26 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   }, [agentContext, setGeoContext]);
 
   useEffect(() => {
+    if (error === GEODATA_RATE_LIMIT_MESSAGE) {
+      setRateLimitToast(GEODATA_RATE_LIMIT_MESSAGE);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (!rateLimitToast) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setRateLimitToast(null);
+    }, 5_000);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [rateLimitToast]);
+
+  useEffect(() => {
     reportRequestIdRef.current += 1;
     reportAbortControllerRef.current?.abort();
     reportAbortControllerRef.current = null;
@@ -349,6 +395,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setReportError(null);
     setReportMode(null);
     setReportGeneratedAt(null);
+    setRateLimitToast(null);
     setCapabilityAnalysisLoading(false);
     setCapabilityAnalysisError(null);
     setCapabilityAnalysisResult(null);
@@ -399,6 +446,9 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
           return;
         }
 
+        const isActiveCapabilityRequest = () =>
+          requestId === capabilityRequestIdRef.current && !controller.signal.aborted;
+
         const response = await fetchWithTimeout(
           `/api/agents/${targetAgentId}`,
           {
@@ -415,12 +465,16 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
           25_000,
         );
 
+        if (!isActiveCapabilityRequest()) {
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(await readAgentRouteError(response));
         }
 
         const content = (await readResponseTextWithTimeout(response, 12_000)).trim();
-        if (requestId !== capabilityRequestIdRef.current || controller.signal.aborted) {
+        if (!isActiveCapabilityRequest()) {
           return;
         }
 
@@ -446,7 +500,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
           return;
         }
 
-        console.warn("[capability-analysis] using deterministic fallback", analysisError);
+        Sentry.captureMessage("Capability analysis fell back to deterministic", {
+          level: "warning",
+          extra: { error: String(analysisError) },
+        });
         setCapabilityAnalysisResult({
           analysisId,
           title: capability.title,
@@ -496,6 +553,8 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     setReportGeneratedAt(null);
 
     try {
+      const isActiveReportRequest = () =>
+        requestId === reportRequestIdRef.current && !controller.signal.aborted;
       const response = await fetch("/api/agents/geo-scribe", {
         method: "POST",
         headers: {
@@ -507,6 +566,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
         }),
         signal: controller.signal,
       });
+
+      if (!isActiveReportRequest()) {
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(await readAgentRouteError(response));
@@ -523,17 +586,33 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       let accumulated = "";
 
       while (true) {
-        const { done, value } = await reader.read();
+        let chunk: ReadableStreamReadResult<Uint8Array>;
+
+        try {
+          chunk = await readStreamChunkWithTimeout(reader, REPORT_STREAM_TIMEOUT_MS);
+        } catch (streamError) {
+          controller.abort();
+          await reader.cancel();
+          throw streamError;
+        }
+
+        const { done, value } = chunk;
         if (done) break;
-        if (requestId !== reportRequestIdRef.current || controller.signal.aborted) {
+        if (!isActiveReportRequest()) {
           await reader.cancel();
           return;
         }
         accumulated += decoder.decode(value, { stream: true });
+        if (!isActiveReportRequest()) {
+          await reader.cancel();
+          return;
+        }
         setReportMarkdown(accumulated);
       }
 
-      if (requestId !== reportRequestIdRef.current || controller.signal.aborted) {
+      accumulated += decoder.decode();
+
+      if (!isActiveReportRequest()) {
         return;
       }
 
@@ -722,6 +801,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     reportError,
     reportMode,
     reportGeneratedAt,
+    rateLimitToast,
     generateReport,
     closeReportPanel,
   };

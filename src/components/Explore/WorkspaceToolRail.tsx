@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   Camera,
   Circle,
@@ -10,8 +11,10 @@ import {
   Layers3,
   MapPinned,
   PenTool,
+  Printer,
   Ruler,
   Sparkles,
+  Upload,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +37,7 @@ interface WorkspaceToolRailProps {
   onOpenLibrary: () => void;
   onOpenCompare: () => void;
   onSelectDrawingTool: (tool: DrawingTool) => void;
+  onOpenImport: () => void;
   onToggleSnapGrid: () => void;
   onClearDrawings: () => void;
   onToggleCaptureMode: () => void;
@@ -43,9 +47,10 @@ interface WorkspaceToolRailProps {
   onExportCsv: () => void;
   onCapturePng: () => void;
   onExportBundle: () => void;
+  onOpenPrint: () => void;
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
       {children}
@@ -68,6 +73,7 @@ export function WorkspaceToolRail({
   onOpenLibrary,
   onOpenCompare,
   onSelectDrawingTool,
+  onOpenImport,
   onToggleSnapGrid,
   onClearDrawings,
   onToggleCaptureMode,
@@ -77,6 +83,7 @@ export function WorkspaceToolRail({
   onExportCsv,
   onCapturePng,
   onExportBundle,
+  onOpenPrint,
 }: WorkspaceToolRailProps) {
   const toolButtons = [
     { id: "polygon" as const, label: "Area", Icon: PenTool },
@@ -86,7 +93,11 @@ export function WorkspaceToolRail({
   ];
 
   return (
-    <section className="space-y-4 rounded-[1.6rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]">
+    <section
+      className="space-y-4 rounded-[1.6rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]"
+      role="region"
+      aria-label="Analyst workbench tools"
+    >
       <div className="space-y-1">
         <SectionTitle>Workbench</SectionTitle>
         <div className="text-sm font-semibold text-[var(--foreground)]">Analyst workbench</div>
@@ -103,6 +114,8 @@ export function WorkspaceToolRail({
             size="sm"
             variant={shellMode !== "board" ? "default" : "secondary"}
             className="justify-start rounded-2xl"
+            aria-label="Open focused workspace mode"
+            aria-pressed={shellMode !== "board"}
             onClick={onOpenFocused}
           >
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
@@ -113,6 +126,8 @@ export function WorkspaceToolRail({
             size="sm"
             variant={shellMode === "board" && viewMode === "board" ? "default" : "secondary"}
             className="justify-start rounded-2xl"
+            aria-label="Open evidence workspace mode"
+            aria-pressed={shellMode === "board" && viewMode === "board"}
             onClick={onOpenWorkspace}
           >
             <Layers3 className="mr-1.5 h-3.5 w-3.5" />
@@ -123,6 +138,9 @@ export function WorkspaceToolRail({
             size="sm"
             variant={shellMode === "board" && viewMode === "library" ? "default" : "secondary"}
             className="justify-start rounded-2xl"
+            aria-label="Open panel library"
+            aria-pressed={shellMode === "board" && viewMode === "library"}
+            data-walkthrough="card-library"
             onClick={onOpenLibrary}
           >
             <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
@@ -133,6 +151,7 @@ export function WorkspaceToolRail({
             size="sm"
             variant="secondary"
             className="justify-start rounded-2xl"
+            aria-label="Open comparison panel"
             onClick={onOpenCompare}
           >
             <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
@@ -141,8 +160,19 @@ export function WorkspaceToolRail({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2" data-walkthrough="drawing-tools">
         <SectionTitle>Spatial tools</SectionTitle>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="w-full justify-start rounded-2xl"
+          aria-label="Import a geospatial file"
+          onClick={onOpenImport}
+        >
+          <Upload className="mr-1.5 h-3.5 w-3.5" />
+          Import layer
+        </Button>
         <div className="grid grid-cols-2 gap-2">
           {toolButtons.map(({ id, label, Icon }) => (
             <Button
@@ -151,6 +181,8 @@ export function WorkspaceToolRail({
               size="sm"
               variant={drawingTool === id ? "default" : "secondary"}
               className="justify-start rounded-2xl"
+              aria-label={`${drawingTool === id ? "Stop" : "Start"} ${label.toLowerCase()} drawing tool`}
+              aria-pressed={drawingTool === id}
               onClick={() => onSelectDrawingTool(drawingTool === id ? "none" : id)}
             >
               <Icon className="mr-1.5 h-3.5 w-3.5" />
@@ -164,6 +196,8 @@ export function WorkspaceToolRail({
             size="sm"
             variant={snapToGrid ? "default" : "secondary"}
             className="justify-start rounded-2xl"
+            aria-label={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
+            aria-pressed={snapToGrid}
             onClick={onToggleSnapGrid}
           >
             <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
@@ -174,6 +208,7 @@ export function WorkspaceToolRail({
             size="sm"
             variant="secondary"
             className="justify-start rounded-2xl"
+            aria-label="Clear all drawn shapes"
             onClick={onClearDrawings}
             disabled={drawCount === 0}
           >
@@ -191,6 +226,8 @@ export function WorkspaceToolRail({
             size="sm"
             variant={captureMode ? "default" : "secondary"}
             className="w-full justify-start rounded-2xl"
+            aria-label={captureMode ? "Exit topographic capture mode" : "Enter topographic capture mode"}
+            aria-pressed={captureMode}
             onClick={onToggleCaptureMode}
           >
             <Camera className="mr-1.5 h-3.5 w-3.5" />
@@ -203,12 +240,14 @@ export function WorkspaceToolRail({
                 value={figureTitle}
                 onChange={(event) => onFigureTitleChange(event.target.value)}
                 placeholder="Figure title"
+                aria-label="Capture figure title"
                 className="h-10 rounded-xl bg-[var(--surface-panel)] px-3"
               />
               <Input
                 value={figureSubtitle}
                 onChange={(event) => onFigureSubtitleChange(event.target.value)}
                 placeholder="Figure subtitle"
+                aria-label="Capture figure subtitle"
                 className="h-10 rounded-xl bg-[var(--surface-panel)] px-3"
               />
               <p className="text-[11px] leading-5 text-[var(--muted-foreground)]">
@@ -217,12 +256,25 @@ export function WorkspaceToolRail({
             </div>
           ) : null}
 
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="w-full justify-start rounded-2xl"
+            aria-label="Open print layout composer"
+            onClick={onOpenPrint}
+          >
+            <Printer className="mr-1.5 h-3.5 w-3.5" />
+            Print layout
+          </Button>
+
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
               size="sm"
               variant="secondary"
               className="justify-start rounded-2xl"
+              aria-label="Export area of interest as GeoJSON"
               onClick={onExportGeoJson}
               disabled={exportBusy}
             >
@@ -234,6 +286,7 @@ export function WorkspaceToolRail({
               size="sm"
               variant="secondary"
               className="justify-start rounded-2xl"
+              aria-label="Export analysis tables"
               onClick={onExportCsv}
               disabled={exportBusy}
             >
@@ -245,6 +298,7 @@ export function WorkspaceToolRail({
               size="sm"
               variant="secondary"
               className="justify-start rounded-2xl"
+              aria-label="Capture map as PNG"
               onClick={onCapturePng}
               disabled={exportBusy}
             >
@@ -256,6 +310,7 @@ export function WorkspaceToolRail({
               size="sm"
               variant="default"
               className={cn("justify-start rounded-2xl", exportBusy && "opacity-80")}
+              aria-label="Export analyst ZIP bundle"
               onClick={onExportBundle}
               disabled={exportBusy}
             >

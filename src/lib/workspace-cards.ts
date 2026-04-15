@@ -687,6 +687,30 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     emptyState: "Select a US location to see active stream gauges and surface water availability.",
   },
   {
+    id: "attribute-table",
+    title: "Attribute table",
+    summary: "Inspect imported layer records in a searchable feature table.",
+    questionAnswered: "What attributes are attached to the features in my imported layer?",
+    regionCoverage: "Global - driven by the user's imported data",
+    failureMode: "Prompts for an imported layer when none is available and auto-detects property columns from uploaded features.",
+    freshnessWindow: "Immediate on imported-layer change",
+    nextActions: [
+      "Import another geospatial file",
+      "Filter the table by property value",
+      "Select a row to highlight the feature on the globe",
+    ],
+    icon: "Table2",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: false,
+    defaultOrder: 133,
+    requiredData: ["imported-layer"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
+    emptyState: "Import a geospatial layer to inspect its feature attributes.",
+  },
+  {
     id: "solar-resource",
     title: "Solar resource",
     summary: "NASA POWER satellite-derived irradiance: annual GHI, peak sun hours, clearness index, and monthly profile — global coverage, no API key required.",
@@ -751,6 +775,8 @@ function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
       return ["ask_climate", "location_selected"];
     case "stream-gauges":
       return ["ask_hazard", "location_selected"];
+    case "attribute-table":
+      return ["location_selected"];
     case "solar-resource":
       return ["ask_climate", "location_selected"];
     case "outdoor-fit":
@@ -849,6 +875,7 @@ function getAudience(cardId: WorkspaceCardId): CardAudience {
     "contamination-risk",
     "weather-forecast",
     "demographics-context",
+    "attribute-table",
   ]);
   if (proOnly.has(cardId)) return "pro";
   if (cardId === "outdoor-fit" || cardId === "trip-summary") return "public";
@@ -867,6 +894,7 @@ function getComplexity(cardId: WorkspaceCardId): CardComplexity {
     "soil-profile",
     "seismic-design",
     "contamination-risk",
+    "attribute-table",
     "image-upload",
     "land-classifier",
   ]);

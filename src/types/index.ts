@@ -99,7 +99,8 @@ export type WorkspaceDataRequirement =
   | "classification"
   | "image"
   | "source-metadata"
-  | "school-context";
+  | "school-context"
+  | "imported-layer";
 export type WorkspaceCardId =
   | "active-location"
   | "chat"
@@ -141,7 +142,8 @@ export type WorkspaceCardId =
   | "wildfire-risk"
   | "thermal-load"
   | "stream-gauges"
-  | "solar-resource";
+  | "solar-resource"
+  | "attribute-table";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"

@@ -41,7 +41,12 @@ export function AnalysisOverviewBanner({
 
   if (compact) {
     return (
-      <div className="flex min-w-0 items-center gap-2">
+      <div
+        className="flex min-w-0 items-center gap-2"
+        role="region"
+        aria-label="Analysis overview"
+        aria-live="polite"
+      >
         <StateBadge tone={overview.tone} />
         <span className="truncate text-sm font-semibold text-[var(--foreground)]">
           {loading ? "Analyzing…" : locationName || "Select a location"}
@@ -68,7 +73,7 @@ export function AnalysisOverviewBanner({
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden" role="region" aria-label="Analysis overview" aria-live="polite">
       <CardHeader className="space-y-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
