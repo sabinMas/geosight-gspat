@@ -116,6 +116,12 @@ function formatArea(sqm: number): string {
 
 // ── Render persisted shapes ───────────────────────────────────────────────────
 
+function formatRadiusLabel(radiusKm: number): string {
+  return radiusKm >= 1
+    ? `${radiusKm.toFixed(1)} km radius`
+    : `${(radiusKm * 1000).toFixed(0)} m radius`;
+}
+
 export function useGlobeDrawnShapes({
   viewerRef,
   viewerReady,
@@ -540,9 +546,20 @@ export function useGlobeDrawing({
           if (verts.length < 3) return;
           const ring = [...verts.map((v) => [v.lng, v.lat] as [number, number]), [verts[0].lng, verts[0].lat] as [number, number]];
           let areaLabel = "";
+          let metrics: DrawnShape["metrics"] | undefined;
           try {
-            const sqm = turf.area(turf.polygon([ring]));
-            areaLabel = formatArea(sqm);
+            const polygon = turf.polygon([ring]);
+            const sqm = turf.area(polygon);
+            const perimeterKm = turf.length(turf.lineString(ring), { units: "kilometers" });
+            const areaSqKm = sqm / 1_000_000;
+            const areaAcres = sqm * 0.000247105;
+            metrics = {
+              areaSqKm,
+              areaAcres,
+              perimeterKm,
+              perimeterMiles: perimeterKm * 0.621371,
+            };
+            areaLabel = `${areaAcres.toFixed(1)} ac • ${formatArea(sqm)}`;
           } catch {
             areaLabel = `${verts.length} pts`;
           }
@@ -551,6 +568,7 @@ export function useGlobeDrawing({
             type: "polygon",
             coordinates: verts,
             measurementLabel: areaLabel,
+            metrics,
             color: toolColor,
           });
         },
@@ -675,12 +693,19 @@ export function useGlobeDrawing({
             });
           } else {
             const center = firstPointRef.current;
-            const radiusM = haversineMetres(center, latlng);
+            const radiusKm = turf.distance(
+              turf.point([center.lng, center.lat]),
+              turf.point([latlng.lng, latlng.lat]),
+              { units: "kilometers" },
+            );
             onShapeComplete({
               id: crypto.randomUUID(),
               type: "circle",
               coordinates: [center, latlng],
-              measurementLabel: `r = ${formatDistance(radiusM)}`,
+              measurementLabel: formatRadiusLabel(radiusKm),
+              metrics: {
+                radiusKm,
+              },
               color: toolColor,
             });
           }

@@ -2,6 +2,7 @@
 
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import LZString from "lz-string";
 import { LayerState } from "@/components/Globe/DataLayers";
 import { useGlobeInteraction } from "@/hooks/useGlobeInteraction";
 import { useQuickRegions } from "@/hooks/useQuickRegions";
@@ -26,6 +27,22 @@ import {
 } from "@/types";
 
 export type ExploreInitParams = ExploreInitState;
+type LayerMoveDirection = "up" | "down";
+const SHAPES_URL_SYNC_DEBOUNCE_MS = 150;
+
+export interface ExploreProjectStatePatch {
+  appMode?: AppMode;
+  activeProfileId?: string;
+  activeLensId?: string | null;
+  selectedPoint?: { lat: number; lng: number };
+  selectedLocationName?: string;
+  selectedLocationDisplayName?: string;
+  layers?: LayerState;
+  globeViewMode?: GlobeViewMode;
+  drawnShapes?: DrawnShape[];
+  importedLayers?: ImportedLayer[];
+  wmsLayers?: WmsLayerDefinition[];
+}
 
 export interface ExploreState {
   init: ExploreInitParams;
@@ -93,11 +110,17 @@ export interface ExploreState {
   addImportedLayer: (layer: ImportedLayer) => void;
   removeImportedLayer: (id: string) => void;
   toggleImportedLayerVisibility: (id: string) => void;
+  updateImportedLayerStyle: (
+    id: string,
+    stylePatch: Partial<ImportedLayer["style"]>,
+  ) => void;
+  moveImportedLayer: (id: string, direction: LayerMoveDirection) => void;
   wmsLayers: WmsLayerDefinition[];
   addWmsLayer: (layer: WmsLayerDefinition) => void;
   removeWmsLayer: (id: string) => void;
   toggleWmsLayerVisibility: (id: string) => void;
   setWmsLayerOpacity: (id: string, opacity: number) => void;
+  moveWmsLayer: (id: string, direction: LayerMoveDirection) => void;
   addDrawnShape: (shape: DrawnShape) => void;
   undoDrawing: () => void;
   redoDrawing: () => void;
@@ -108,6 +131,7 @@ export interface ExploreState {
   canRedo: boolean;
   snapToGrid: boolean;
   setSnapToGrid: Dispatch<SetStateAction<boolean>>;
+  applyProjectState: (patch: ExploreProjectStatePatch) => void;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -118,15 +142,43 @@ function getInitialProfile(profileId?: string) {
   return getProfileById(profileId);
 }
 
+function moveItemInList<T extends { id: string }>(
+  items: T[],
+  id: string,
+  direction: LayerMoveDirection,
+) {
+  const currentIndex = items.findIndex((item) => item.id === id);
+  if (currentIndex === -1) {
+    return items;
+  }
+
+  const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (nextIndex < 0 || nextIndex >= items.length) {
+    return items;
+  }
+
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(currentIndex, 1);
+  nextItems.splice(nextIndex, 0, movedItem);
+  return nextItems;
+}
+
 export function useExploreState(init: ExploreInitParams): ExploreState {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectPointUrlSyncTimeoutRef = useRef<number | null>(null);
+  const shapesUrlSyncTimeoutRef = useRef<number | null>(null);
+  const hydratedShapesFromUrlRef = useRef(false);
+  const lastShapesParamRef = useRef<string | null>(searchParams.get("shapes"));
+  const pendingProjectLayersRef = useRef<LayerState | null>(null);
+  const appModeRef = useRef<AppMode>(init.appMode ?? "explorer");
+  const drawnShapesRef = useRef<DrawnShape[]>([]);
   const [appMode, setAppModeState] = useState<AppMode>(init.appMode ?? "explorer");
 
   const setAppMode = useCallback(
     (mode: AppMode) => {
+      appModeRef.current = mode;
       setAppModeState(mode);
       const params = new URLSearchParams(searchParams.toString());
       params.set("mode", mode);
@@ -178,6 +230,16 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
         const params = new URLSearchParams(searchParams.toString());
         params.set("lat", coords.lat.toFixed(6));
         params.set("lng", coords.lng.toFixed(6));
+        params.set("mode", appModeRef.current);
+        const currentShapesParam =
+          drawnShapesRef.current.length > 0
+            ? LZString.compressToEncodedURIComponent(JSON.stringify(drawnShapesRef.current))
+            : null;
+        if (currentShapesParam) {
+          params.set("shapes", currentShapesParam);
+        } else {
+          params.delete("shapes");
+        }
         if (label) {
           params.set("location", label);
         } else {
@@ -185,7 +247,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
         }
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
         selectPointUrlSyncTimeoutRef.current = null;
-      }, 150);
+      }, SHAPES_URL_SYNC_DEBOUNCE_MS);
     },
     [selectGlobePoint, router, pathname, searchParams],
   );
@@ -214,6 +276,58 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
 
+  useEffect(() => {
+    drawnShapesRef.current = drawnShapes;
+  }, [drawnShapes]);
+
+  const applyProjectState = useCallback((patch: ExploreProjectStatePatch) => {
+    if (patch.appMode) {
+      setAppMode(patch.appMode);
+    }
+
+    if (patch.activeProfileId) {
+      if (patch.layers) {
+        pendingProjectLayersRef.current = patch.layers;
+      }
+      setActiveProfile(getProfileById(patch.activeProfileId));
+    }
+
+    if (patch.activeLensId !== undefined) {
+      setActiveLensId(patch.activeLensId);
+    }
+
+    if (patch.layers && !patch.activeProfileId) {
+      setLayers(patch.layers);
+    }
+
+    if (patch.globeViewMode) {
+      setGlobeViewMode(patch.globeViewMode);
+    }
+
+    if (patch.drawnShapes) {
+      setDrawnShapes(patch.drawnShapes);
+      setRedoStack([]);
+    }
+
+    if (patch.importedLayers) {
+      setImportedLayers(patch.importedLayers);
+      setActiveImportedLayerId(patch.importedLayers[0]?.id ?? null);
+      setSelectedImportedFeatureId(null);
+    }
+
+    if (patch.wmsLayers) {
+      setWmsLayers(patch.wmsLayers);
+    }
+
+    if (patch.selectedPoint) {
+      selectPoint(
+        patch.selectedPoint,
+        patch.selectedLocationName,
+        patch.selectedLocationDisplayName ?? patch.selectedLocationName,
+      );
+    }
+  }, [selectPoint, setAppMode]);
+
   const addImportedLayer = useCallback((layer: ImportedLayer) => {
     setImportedLayers((prev) => [...prev, layer]);
     setActiveImportedLayerId((current) => current ?? layer.id);
@@ -234,6 +348,29 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
         layer.id === id ? { ...layer, visible: !layer.visible } : layer,
       ),
     );
+  }, []);
+
+  const updateImportedLayerStyle = useCallback((
+    id: string,
+    stylePatch: Partial<ImportedLayer["style"]>,
+  ) => {
+    setImportedLayers((prev) =>
+      prev.map((layer) =>
+        layer.id === id
+          ? {
+              ...layer,
+              style: {
+                ...layer.style,
+                ...stylePatch,
+              },
+            }
+          : layer,
+      ),
+    );
+  }, []);
+
+  const moveImportedLayer = useCallback((id: string, direction: LayerMoveDirection) => {
+    setImportedLayers((prev) => moveItemInList(prev, id, direction));
   }, []);
 
   const addWmsLayer = useCallback((layer: WmsLayerDefinition) => {
@@ -265,6 +402,10 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
         layer.id === id ? { ...layer, opacity } : layer,
       ),
     );
+  }, []);
+
+  const moveWmsLayer = useCallback((id: string, direction: LayerMoveDirection) => {
+    setWmsLayers((prev) => moveItemInList(prev, id, direction));
   }, []);
 
   const addDrawnShape = useCallback((shape: DrawnShape) => {
@@ -317,13 +458,103 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   );
 
   useEffect(() => {
+    if (pendingProjectLayersRef.current) {
+      setLayers(pendingProjectLayersRef.current);
+      pendingProjectLayersRef.current = null;
+      return;
+    }
+
     setLayers(activeProfile.defaultLayers);
   }, [activeProfile]);
+
+  useEffect(() => {
+    appModeRef.current = appMode;
+  }, [appMode]);
+
+  useEffect(() => {
+    const shapesParam = searchParams.get("shapes");
+    if (shapesParam === lastShapesParamRef.current && hydratedShapesFromUrlRef.current) {
+      return;
+    }
+
+    if (!shapesParam) {
+      if (lastShapesParamRef.current !== null) {
+        setDrawnShapes([]);
+        setRedoStack([]);
+      }
+      lastShapesParamRef.current = null;
+      hydratedShapesFromUrlRef.current = true;
+      return;
+    }
+
+    try {
+      const serialized = LZString.decompressFromEncodedURIComponent(shapesParam);
+      if (!serialized) {
+        throw new Error("Shapes payload could not be decompressed.");
+      }
+
+      const parsed = JSON.parse(serialized);
+      if (!Array.isArray(parsed)) {
+        throw new Error("Shapes payload is not an array.");
+      }
+
+      setDrawnShapes(parsed as DrawnShape[]);
+      setRedoStack([]);
+      lastShapesParamRef.current = shapesParam;
+    } catch {
+      lastShapesParamRef.current = null;
+    } finally {
+      hydratedShapesFromUrlRef.current = true;
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!hydratedShapesFromUrlRef.current) {
+      return;
+    }
+
+    const nextShapesParam =
+      drawnShapes.length > 0
+        ? LZString.compressToEncodedURIComponent(JSON.stringify(drawnShapes))
+        : null;
+    const currentShapesParam = searchParams.get("shapes");
+
+    if (nextShapesParam === currentShapesParam) {
+      lastShapesParamRef.current = nextShapesParam;
+      return;
+    }
+
+    if (shapesUrlSyncTimeoutRef.current !== null) {
+      window.clearTimeout(shapesUrlSyncTimeoutRef.current);
+    }
+
+    shapesUrlSyncTimeoutRef.current = window.setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextShapesParam) {
+        params.set("shapes", nextShapesParam);
+      } else {
+        params.delete("shapes");
+      }
+
+      lastShapesParamRef.current = nextShapesParam;
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      shapesUrlSyncTimeoutRef.current = null;
+    }, SHAPES_URL_SYNC_DEBOUNCE_MS);
+
+    return () => {
+      if (shapesUrlSyncTimeoutRef.current !== null) {
+        window.clearTimeout(shapesUrlSyncTimeoutRef.current);
+      }
+    };
+  }, [drawnShapes, pathname, router, searchParams]);
 
   useEffect(() => {
     return () => {
       if (selectPointUrlSyncTimeoutRef.current !== null) {
         window.clearTimeout(selectPointUrlSyncTimeoutRef.current);
+      }
+      if (shapesUrlSyncTimeoutRef.current !== null) {
+        window.clearTimeout(shapesUrlSyncTimeoutRef.current);
       }
     };
   }, []);
@@ -426,11 +657,14 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     addImportedLayer,
     removeImportedLayer,
     toggleImportedLayerVisibility,
+    updateImportedLayerStyle,
+    moveImportedLayer,
     wmsLayers,
     addWmsLayer,
     removeWmsLayer,
     toggleWmsLayerVisibility,
     setWmsLayerOpacity,
+    moveWmsLayer,
     addDrawnShape,
     undoDrawing,
     redoDrawing,
@@ -441,5 +675,6 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     canRedo: redoStack.length > 0,
     snapToGrid,
     setSnapToGrid,
+    applyProjectState,
   };
 }

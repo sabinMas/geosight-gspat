@@ -7,12 +7,14 @@ import {
   Download,
   FileArchive,
   FileSpreadsheet,
+  FolderOpen,
   Grid2x2,
   Layers3,
   MapPinned,
   PenTool,
   Printer,
   Ruler,
+  Save,
   Sparkles,
   Upload,
   X,
@@ -48,6 +50,8 @@ interface WorkspaceToolRailProps {
   onCapturePng: () => void;
   onExportBundle: () => void;
   onOpenPrint: () => void;
+  onSaveProject: () => void;
+  onLoadProject: () => void;
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -84,6 +88,8 @@ export function WorkspaceToolRail({
   onCapturePng,
   onExportBundle,
   onOpenPrint,
+  onSaveProject,
+  onLoadProject,
 }: WorkspaceToolRailProps) {
   const toolButtons = [
     { id: "polygon" as const, label: "Area", Icon: PenTool },
@@ -221,6 +227,31 @@ export function WorkspaceToolRail({
       <div className="space-y-2">
         <SectionTitle>Capture & export</SectionTitle>
         <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="justify-start rounded-2xl"
+              aria-label="Save the current GeoSight project"
+              onClick={onSaveProject}
+            >
+              <Save className="mr-1.5 h-3.5 w-3.5" />
+              Save
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="justify-start rounded-2xl"
+              aria-label="Load a saved GeoSight project"
+              onClick={onLoadProject}
+            >
+              <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
+              Load
+            </Button>
+          </div>
+
           <Button
             type="button"
             size="sm"

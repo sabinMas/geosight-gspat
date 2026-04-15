@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Layers3, Link2, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, Layers3, Link2, Plus, X } from "lucide-react";
+import { LayerStyleEditor } from "@/components/Globe/LayerStyleEditor";
 import { LayerToggle } from "@/components/Shell/LayerToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ImportedLayer } from "@/lib/file-import";
+import type { DrawnShape } from "@/types";
 import {
   normalizeWmsEndpoint,
   validateWmsEndpoint,
@@ -28,14 +30,18 @@ interface DataLayersProps {
   importedLayers?: ImportedLayer[];
   activeImportedLayerId?: string | null;
   onToggleImportedLayerVisibility?: (id: string) => void;
+  onUpdateImportedLayerStyle?: (id: string, stylePatch: Partial<ImportedLayer["style"]>) => void;
   onRemoveImportedLayer?: (id: string) => void;
   onFlyToImportedLayer?: (layer: ImportedLayer) => void;
   onOpenImportedLayerTable?: (layer: ImportedLayer) => void;
+  onMoveImportedLayer?: (id: string, direction: "up" | "down") => void;
+  drawnShapes?: DrawnShape[];
   wmsLayers?: WmsLayerDefinition[];
   onAddWmsLayer?: (layer: WmsLayerDefinition) => void;
   onRemoveWmsLayer?: (id: string) => void;
   onToggleWmsLayerVisibility?: (id: string) => void;
   onSetWmsLayerOpacity?: (id: string, opacity: number) => void;
+  onMoveWmsLayer?: (id: string, direction: "up" | "down") => void;
 }
 
 export function DataLayers({
@@ -46,14 +52,18 @@ export function DataLayers({
   importedLayers = [],
   activeImportedLayerId = null,
   onToggleImportedLayerVisibility,
+  onUpdateImportedLayerStyle,
   onRemoveImportedLayer,
   onFlyToImportedLayer,
   onOpenImportedLayerTable,
+  onMoveImportedLayer,
+  drawnShapes = [],
   wmsLayers = [],
   onAddWmsLayer,
   onRemoveWmsLayer,
   onToggleWmsLayerVisibility,
   onSetWmsLayerOpacity,
+  onMoveWmsLayer,
 }: DataLayersProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [customWmsOpen, setCustomWmsOpen] = useState(false);
@@ -61,9 +71,11 @@ export function DataLayers({
   const [customWmsError, setCustomWmsError] = useState<string | null>(null);
   const [customWmsHint, setCustomWmsHint] = useState<string | null>(null);
   const [customWmsBusy, setCustomWmsBusy] = useState(false);
+  const [editingImportedLayerId, setEditingImportedLayerId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const wmsLayersById = new Map(wmsLayers.map((layer) => [layer.id, layer]));
   const open = controlledOpen ?? internalOpen;
+  const hasRadiusShape = drawnShapes.some((shape) => shape.type === "circle");
 
   const setOpen = useCallback((value: boolean | ((current: boolean) => boolean)) => {
     const nextValue = typeof value === "function" ? value(open) : value;
@@ -345,8 +357,32 @@ export function DataLayers({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="truncate text-sm font-medium text-[var(--foreground)]">
-                            {layer.name}
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 rounded-full"
+                              aria-label={`Move ${layer.name} up`}
+                              disabled={wmsLayers[0]?.id === layer.id}
+                              onClick={() => onMoveWmsLayer?.(layer.id, "up")}
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 rounded-full"
+                              aria-label={`Move ${layer.name} down`}
+                              disabled={wmsLayers[wmsLayers.length - 1]?.id === layer.id}
+                              onClick={() => onMoveWmsLayer?.(layer.id, "down")}
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </Button>
+                            <div className="truncate text-sm font-medium text-[var(--foreground)]">
+                              {layer.name}
+                            </div>
                           </div>
                           <div className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
                             <Link2 className="h-3 w-3" />
@@ -432,31 +468,86 @@ export function DataLayers({
                       key={layer.id}
                       className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)]"
                     >
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-3 px-3 py-3 text-left"
-                        onClick={() => onFlyToImportedLayer?.(layer)}
-                        aria-label={`Fly to imported layer ${layer.name}`}
-                      >
-                        <span
-                          className="h-3 w-3 shrink-0 rounded-full border border-white/20"
+                      <div className="flex items-center gap-3 px-3 py-3">
+                        <button
+                          type="button"
+                          className="h-4 w-4 shrink-0 rounded-full border border-white/20"
                           style={{ backgroundColor: layer.style.color, opacity: layer.visible ? 1 : 0.45 }}
+                          aria-label={`Edit style for ${layer.name}`}
+                          aria-pressed={editingImportedLayerId === layer.id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setEditingImportedLayerId((current) =>
+                              current === layer.id ? null : layer.id,
+                            );
+                          }}
                         />
                         <div className="min-w-0 flex-1">
-                          <div
-                            className="truncate text-sm font-medium text-[var(--foreground)]"
-                            style={{ opacity: layer.visible ? 1 : 0.65 }}
-                          >
-                            {layer.name}
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 rounded-full"
+                              aria-label={`Move ${layer.name} up`}
+                              disabled={importedLayers[0]?.id === layer.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onMoveImportedLayer?.(layer.id, "up");
+                              }}
+                            >
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 rounded-full"
+                              aria-label={`Move ${layer.name} down`}
+                              disabled={importedLayers[importedLayers.length - 1]?.id === layer.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onMoveImportedLayer?.(layer.id, "down");
+                              }}
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </Button>
+                            <div
+                              className="truncate text-sm font-medium text-[var(--foreground)]"
+                              style={{ opacity: layer.visible ? 1 : 0.65 }}
+                            >
+                              {layer.name}
+                            </div>
                           </div>
                           <div className="text-xs text-[var(--muted-foreground)]">
                             {layer.format.toUpperCase()} · {layer.features.features.length} features
                           </div>
                         </div>
-                        <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-[11px] text-[var(--muted-foreground)]">
-                          {layer.visible ? "Visible" : "Hidden"}
-                        </span>
-                      </button>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-[11px] text-[var(--muted-foreground)]">
+                            {layer.visible ? "Visible" : "Hidden"}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full"
+                            aria-label={`Fly to imported layer ${layer.name}`}
+                            onClick={() => onFlyToImportedLayer?.(layer)}
+                          >
+                            Fly to
+                          </Button>
+                        </div>
+                      </div>
+
+                      {editingImportedLayerId === layer.id ? (
+                        <div className="px-3 pb-3">
+                          <LayerStyleEditor
+                            style={layer.style}
+                            onChange={(stylePatch) => onUpdateImportedLayerStyle?.(layer.id, stylePatch)}
+                          />
+                        </div>
+                      ) : null}
 
                       <div className="flex items-center justify-end gap-2 border-t border-[color:var(--border-soft)] px-3 py-2">
                         <Button
@@ -505,6 +596,12 @@ export function DataLayers({
                   Import GeoJSON, KML, CSV, or GPX to add your own data overlays.
                 </div>
               )}
+
+              {hasRadiusShape ? (
+                <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-3 text-xs leading-5 text-[var(--muted-foreground)]">
+                  Circle tools show proximity zones — use the GeoSight analysis panel to query what falls within this area.
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}

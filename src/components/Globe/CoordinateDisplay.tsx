@@ -67,26 +67,20 @@ export function CoordinateDisplay({
 
     const handleMouseMove = (event: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      const position = new Cartesian2(
-        event.clientX - rect.left,
-        event.clientY - rect.top,
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const cartesian = viewer.camera.pickEllipsoid(
+        new Cartesian2(x, y),
+        viewer.scene.globe.ellipsoid,
       );
-      const ray = viewer.camera.getPickRay(position);
-      const terrainPosition = ray ? viewer.scene.globe.pick(ray, viewer.scene) : undefined;
-      const earthPosition =
-        terrainPosition ??
-        ((viewer.scene.pickPositionSupported
-          ? viewer.scene.pickPosition(position)
-          : undefined) ??
-          viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid));
 
-      if (!earthPosition) {
+      if (!cartesian) {
         setCursorCoordinates(null);
         updateCameraAltitude();
         return;
       }
 
-      const cartographic = Cartographic.fromCartesian(earthPosition);
+      const cartographic = Cartographic.fromCartesian(cartesian);
       setCursorCoordinates({
         lat: CesiumMath.toDegrees(cartographic.latitude),
         lng: CesiumMath.toDegrees(cartographic.longitude),

@@ -16,6 +16,7 @@ import {
   createWorldImageryAsync,
   createWorldTerrainAsync,
   CustomDataSource,
+  Entity,
   EllipsoidGeodesic,
   EllipsoidTerrainProvider,
   GeoJsonDataSource,
@@ -24,6 +25,7 @@ import {
   ImageryLayer,
   Ion,
   IonWorldImageryStyle,
+  JulianDate,
   Math as CesiumMath,
   Matrix4,
   PolygonHierarchy,
@@ -57,6 +59,7 @@ import {
 } from "@/types";
 import { useGlobeDrawing, useGlobeDrawnShapes } from "@/hooks/useGlobeDrawing";
 import { CoordinateDisplay } from "./CoordinateDisplay";
+import { DEFAULT_OVERLAY_LEGEND_ITEMS, LegendPanel } from "./LegendPanel";
 import { LayerState } from "./DataLayers";
 
 if (typeof window !== "undefined") {
@@ -138,7 +141,7 @@ function flyToLocation(
 function styleImportedDataSource(dataSource: GeoJsonDataSource, layer: ImportedLayer) {
   const strokeColor = Color.fromCssColorString(layer.style.color).withAlpha(layer.style.opacity);
   const fillColor = Color.fromCssColorString(layer.style.color).withAlpha(
-    Math.max(layer.style.opacity * 0.25, 0.16),
+    layer.style.filled ? layer.style.fillOpacity : 0,
   );
 
   for (const entity of dataSource.entities.values) {
@@ -152,6 +155,7 @@ function styleImportedDataSource(dataSource: GeoJsonDataSource, layer: ImportedL
       entity.polygon.material = new ColorMaterialProperty(fillColor);
       entity.polygon.outline = new ConstantProperty(true);
       entity.polygon.outlineColor = new ConstantProperty(strokeColor);
+      entity.polygon.outlineWidth = new ConstantProperty(layer.style.weight);
     }
 
     if (entity.point) {
@@ -166,6 +170,58 @@ function styleImportedDataSource(dataSource: GeoJsonDataSource, layer: ImportedL
       entity.billboard.scale = new ConstantProperty(0.95);
     }
   }
+}
+
+type IdentifyPopupState = {
+  left: number;
+  top: number;
+  layerName: string;
+  geometryType: string;
+  properties: Array<{ key: string; value: string }>;
+};
+
+function formatIdentifyValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  if (typeof value === "string") {
+    return value.length > 0 ? value : "—";
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function getIdentifyPopupPosition(position: Cartesian2, viewer: CesiumViewer) {
+  const width = 280;
+  const height = 240;
+  const padding = 16;
+  const canvas = viewer.scene.canvas;
+  const maxLeft = Math.max(padding, canvas.clientWidth - width - padding);
+  const maxTop = Math.max(padding, canvas.clientHeight - height - padding);
+
+  return {
+    left: Math.min(Math.max(position.x + 14, padding), maxLeft),
+    top: Math.min(Math.max(position.y + 14, padding), maxTop),
+  };
+}
+
+function getImportedFeatureId(
+  layer: ImportedLayer,
+  feature: GeoJSON.Feature,
+  index: number,
+) {
+  return String(
+    feature.properties?.[IMPORTED_FEATURE_ID_PROPERTY] ?? feature.id ?? `${layer.id}-${index}`,
+  );
 }
 
 interface CesiumGlobeProps {
@@ -248,6 +304,7 @@ export function CesiumGlobe({
   const [terrainUnavailable, setTerrainUnavailable] = useState(false);
   const [viewerKey, setViewerKey] = useState(0);
   const [pointerInside, setPointerInside] = useState(false);
+  const [identifyPopup, setIdentifyPopup] = useState<IdentifyPopupState | null>(null);
   const driveHudSpeedRef = useRef<HTMLSpanElement | null>(null);
   const driveHudAltRef = useRef<HTMLSpanElement | null>(null);
   const terrainExaggerationRef = useRef(terrainExaggeration);
@@ -273,6 +330,22 @@ export function CesiumGlobe({
         Cartesian3.fromDegrees(point.lng, point.lat, 120),
       ),
     [selectedPoint, selectedRegion.polygon],
+  );
+
+  const overlayLegendItems = useMemo(
+    () =>
+      DEFAULT_OVERLAY_LEGEND_ITEMS.map((item) => {
+        if (item.id === "roads") {
+          return { ...item, active: layers.roads };
+        }
+
+        if (item.id === "water") {
+          return { ...item, active: layers.water };
+        }
+
+        return item;
+      }),
+    [layers.roads, layers.water],
   );
 
   const isViewerUsable = (viewer: CesiumViewer | null): viewer is CesiumViewer =>
@@ -575,6 +648,15 @@ export function CesiumGlobe({
       activeImageryLayers.set(layer.id, imageryLayer);
     }
 
+    [...wmsLayers].reverse().forEach((layer) => {
+      const imageryLayer = activeImageryLayers.get(layer.id);
+      if (!imageryLayer || !viewer.imageryLayers.contains(imageryLayer)) {
+        return;
+      }
+
+      viewer.imageryLayers.raiseToTop(imageryLayer);
+    });
+
     viewer.scene.requestRender();
   }, [viewerReady, wmsLayers]);
 
@@ -609,7 +691,9 @@ export function CesiumGlobe({
 
       void (async () => {
         const strokeColor = Color.fromCssColorString(layer.style.color);
-        const fillColor = strokeColor.withAlpha(Math.max(layer.style.opacity * 0.25, 0.16));
+        const fillColor = strokeColor.withAlpha(
+          layer.style.filled ? layer.style.fillOpacity : 0,
+        );
 
         const dataSource = await GeoJsonDataSource.load(layer.features, {
           stroke: strokeColor.withAlpha(layer.style.opacity),
@@ -639,8 +723,40 @@ export function CesiumGlobe({
           flyToImportedBounds(viewer, layer.bounds);
         }
 
+        [...importedLayers].reverse().forEach((entry) => {
+          const dataSource = importedDataSourcesRef.current.get(entry.id);
+          if (!dataSource || !viewer.dataSources.contains(dataSource)) {
+            return;
+          }
+
+          viewer.dataSources.raiseToTop(dataSource);
+        });
+
+        if (
+          importedHighlightDataSourceRef.current &&
+          viewer.dataSources.contains(importedHighlightDataSourceRef.current)
+        ) {
+          viewer.dataSources.raiseToTop(importedHighlightDataSourceRef.current);
+        }
+
         viewer.scene.requestRender();
       })();
+    }
+
+    [...importedLayers].reverse().forEach((layer) => {
+      const dataSource = importedDataSourcesRef.current.get(layer.id);
+      if (!dataSource || !viewer.dataSources.contains(dataSource)) {
+        return;
+      }
+
+      viewer.dataSources.raiseToTop(dataSource);
+    });
+
+    if (
+      importedHighlightDataSourceRef.current &&
+      viewer.dataSources.contains(importedHighlightDataSourceRef.current)
+    ) {
+      viewer.dataSources.raiseToTop(importedHighlightDataSourceRef.current);
     }
 
     viewer.scene.requestRender();
@@ -876,11 +992,60 @@ export function CesiumGlobe({
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
     clickHandlerRef.current = handler;
 
+    const identifyImportedFeature = (position: Cartesian2): IdentifyPopupState | null => {
+      const currentTime = JulianDate.now();
+      const picks = viewer.scene.drillPick(position);
+
+      for (const pick of picks) {
+        const entity = (pick as { id?: Entity }).id;
+        if (!(entity instanceof Entity)) {
+          continue;
+        }
+
+        for (const layer of importedLayers) {
+          const dataSource = importedDataSourcesRef.current.get(layer.id);
+          if (!dataSource || !dataSource.show || !dataSource.entities.contains(entity)) {
+            continue;
+          }
+
+          const propertyValues =
+            (entity.properties?.getValue(currentTime) as Record<string, unknown> | undefined) ??
+            undefined;
+          const importedFeatureId = String(
+            propertyValues?.[IMPORTED_FEATURE_ID_PROPERTY] ?? entity.id,
+          );
+          const matchedFeature = layer.features.features.find((feature, index) =>
+            getImportedFeatureId(layer, feature, index) === importedFeatureId,
+          );
+          const geometryType = matchedFeature?.geometry?.type ?? "Unknown";
+          const properties = Object.entries(matchedFeature?.properties ?? propertyValues ?? {})
+            .filter(([key]) => key !== IMPORTED_FEATURE_ID_PROPERTY)
+            .map(([key, value]) => ({ key, value: formatIdentifyValue(value) }));
+          const popupPosition = getIdentifyPopupPosition(position, viewer);
+
+          return {
+            ...popupPosition,
+            layerName: layer.name,
+            geometryType,
+            properties,
+          };
+        }
+      }
+
+      return null;
+    };
+
     handler.setInputAction((event: { position: Cartesian2 }) => {
       // Yield to drawing mode — drawing hook has its own handler
       if (drawingTool !== "none") return;
 
       try {
+        const importedFeaturePopup = identifyImportedFeature(event.position);
+        if (importedFeaturePopup) {
+          setIdentifyPopup(importedFeaturePopup);
+          return;
+        }
+
         const earthPosition =
           (viewer.scene.pickPositionSupported
             ? viewer.scene.pickPosition(event.position)
@@ -888,9 +1053,11 @@ export function CesiumGlobe({
           viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid);
 
         if (!earthPosition) {
+          setIdentifyPopup(null);
           return;
         }
 
+        setIdentifyPopup(null);
         const cartographic = Cartographic.fromCartesian(earthPosition);
         onPointSelect({
           lat: CesiumMath.toDegrees(cartographic.latitude),
@@ -910,7 +1077,13 @@ export function CesiumGlobe({
         clickHandlerRef.current = null;
       }
     };
-  }, [drawingTool, onPointSelect, viewerKey, viewerReady]);
+  }, [drawingTool, importedLayers, onPointSelect, viewerKey, viewerReady]);
+
+  useEffect(() => {
+    if (drawingTool !== "none") {
+      setIdentifyPopup(null);
+    }
+  }, [drawingTool]);
 
   // ── Pin drag interaction ──────────────────────────────────────────────────
   useEffect(() => {
@@ -1488,6 +1661,12 @@ export function CesiumGlobe({
         </div>
       ) : null}
 
+      <LegendPanel
+        importedLayers={importedLayers}
+        wmsLayers={wmsLayers}
+        overlayItems={overlayLegendItems}
+      />
+
       {driveMode ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center pb-5">
           {/* Speed + alt bar */}
@@ -1529,6 +1708,54 @@ export function CesiumGlobe({
             >
               Exit drive
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {identifyPopup ? (
+        <div
+          className="pointer-events-auto absolute z-20 w-[min(280px,calc(100%-2rem))] rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] glass-panel"
+          style={{ left: identifyPopup.left, top: identifyPopup.top, maxWidth: 280 }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-[var(--foreground)]">
+                {identifyPopup.layerName}
+              </div>
+              <div className="text-xs text-[var(--muted-foreground)]">
+                {identifyPopup.geometryType}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-1 text-xs text-[var(--foreground)]"
+              onClick={() => setIdentifyPopup(null)}
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-3 max-h-56 overflow-y-auto rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)]">
+            {identifyPopup.properties.length > 0 ? (
+              <table className="w-full border-collapse text-left text-xs">
+                <tbody>
+                  {identifyPopup.properties.map((property) => (
+                    <tr key={property.key} className="border-t border-[color:var(--border-soft)] first:border-t-0">
+                      <th className="w-24 px-3 py-2 align-top font-medium text-[var(--foreground-soft)]">
+                        {property.key}
+                      </th>
+                      <td className="px-3 py-2 text-[var(--foreground)] break-words">
+                        {property.value}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="px-3 py-4 text-xs text-[var(--muted-foreground)]">
+                No properties available for this feature.
+              </div>
+            )}
           </div>
         </div>
       ) : null}

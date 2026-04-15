@@ -29,6 +29,13 @@ export interface DrawnShape {
   label?: string;
   measurementLabel?: string;
   color: string;
+  metrics?: {
+    areaSqKm?: number;
+    areaAcres?: number;
+    perimeterKm?: number;
+    perimeterMiles?: number;
+    radiusKm?: number;
+  };
 }
 
 export type DataSourceStatus = "live" | "derived" | "limited" | "demo" | "unavailable";

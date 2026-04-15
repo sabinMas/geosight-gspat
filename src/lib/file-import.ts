@@ -35,6 +35,8 @@ export type ImportedLayer = {
     color: string;
     opacity: number;
     weight: number;
+    fillOpacity: number;
+    filled: boolean;
   };
   visible: boolean;
 };
@@ -476,6 +478,8 @@ export async function parseGeoFile(file: File): Promise<ImportedLayer> {
       color: nextLayerColor(),
       opacity: 0.8,
       weight: 2,
+      fillOpacity: 0.22,
+      filled: true,
     },
     visible: true,
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { toPng } from "html-to-image";
@@ -77,6 +77,13 @@ import {
   downloadText,
 } from "@/lib/analysis-export";
 import type { ImportedLayer } from "@/lib/file-import";
+import {
+  deserializeProject,
+  downloadProject,
+  loadProjectFromFile,
+  serializeProject,
+  type GeoSightProject,
+} from "@/lib/project";
 import { PROFILES } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
 import {
@@ -104,6 +111,9 @@ const CesiumGlobe = dynamic(
 
 const BOARD_MODE_NOTICE_STORAGE_KEY = "geosight-board-mode-notice-shown";
 const WALKTHROUGH_STORAGE_KEY = "geosight-explore-walkthrough-seen";
+const AUTOSAVE_STORAGE_KEY = "geosight.autosave.v1";
+const AUTOSAVE_DEBOUNCE_MS = 2_000;
+const AUTOSAVE_MAX_IMPORTED_LAYER_BYTES = 5 * 1024 * 1024;
 
 function isTypingContext(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
@@ -116,6 +126,20 @@ function isTypingContext(target: EventTarget | null) {
     target instanceof HTMLSelectElement ||
     target.isContentEditable
   );
+}
+
+function locationsRoughlyMatch(
+  project: GeoSightProject,
+  point: { lat: number; lng: number },
+  locationName: string,
+) {
+  const latDiff = Math.abs(project.location.lat - point.lat);
+  const lngDiff = Math.abs(project.location.lng - point.lng);
+  const sameCoordinates = latDiff < 0.0005 && lngDiff < 0.0005;
+  const sameName =
+    project.location.name.trim().toLowerCase() === locationName.trim().toLowerCase();
+
+  return sameCoordinates || sameName;
 }
 
 export function ExploreWorkspace() {
@@ -184,7 +208,9 @@ export function ExploreWorkspace() {
   });
   const globeAreaRef = useRef<HTMLElement | null>(null);
   const fileDropZoneRef = useRef<FileDropZoneHandle | null>(null);
+  const projectFileInputRef = useRef<HTMLInputElement | null>(null);
   const rightPanelContentRef = useRef<HTMLDivElement | null>(null);
+  const autosaveBannerCheckedRef = useRef(false);
   const globeApiRef = useRef<{
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
@@ -220,6 +246,7 @@ export function ExploreWorkspace() {
     tone: "info" | "warning";
     message: string;
   } | null>(null);
+  const [restoreAutosaveProject, setRestoreAutosaveProject] = useState<GeoSightProject | null>(null);
 
   useEffect(() => {
     if (!workspaceNotice) {
@@ -454,6 +481,152 @@ export function ExploreWorkspace() {
     });
   }, [addImportedLayer]);
 
+  const buildSerializableProject = useCallback(
+    (importedLayersOverride?: ImportedLayer[]) =>
+      serializeProject({
+        selectedPoint: state.selectedPoint,
+        selectedLocationName: state.selectedLocationName,
+        activeProfileId: state.activeProfile.id,
+        activeLensId: state.activeLensId,
+        appMode: state.appMode,
+        drawnShapes: state.drawnShapes,
+        openCardIds: data.openCardIds,
+        wmsLayers: state.wmsLayers,
+        importedLayers: importedLayersOverride ?? state.importedLayers,
+        layers: state.layers,
+        globeViewMode: state.globeViewMode,
+      }),
+    [
+      data.openCardIds,
+      state.activeLensId,
+      state.activeProfile.id,
+      state.appMode,
+      state.drawnShapes,
+      state.globeViewMode,
+      state.importedLayers,
+      state.layers,
+      state.selectedLocationName,
+      state.selectedPoint,
+      state.wmsLayers,
+    ],
+  );
+
+  const buildAutosaveProject = useCallback(() => {
+    const serializedImportedLayers = JSON.stringify(
+      state.importedLayers.map((layer) => ({
+        name: layer.name,
+        format: layer.format,
+        features: layer.features,
+        style: {
+          color: layer.style.color,
+          opacity: layer.style.opacity,
+          weight: layer.style.weight,
+          fillOpacity: layer.style.fillOpacity,
+          filled: layer.style.filled,
+        },
+        visible: layer.visible,
+      })),
+    );
+    const importedLayerBytes = new Blob([serializedImportedLayers]).size;
+
+    return buildSerializableProject(
+      importedLayerBytes > AUTOSAVE_MAX_IMPORTED_LAYER_BYTES ? [] : state.importedLayers,
+    );
+  }, [buildSerializableProject, state.importedLayers]);
+
+  const applyLoadedProject = useCallback(
+    (project: GeoSightProject) => {
+      const restored = deserializeProject(project);
+
+      state.applyProjectState({
+        appMode: restored.appMode,
+        activeProfileId: restored.activeProfileId,
+        activeLensId: restored.activeLensId,
+        selectedPoint: restored.selectedPoint,
+        selectedLocationName: restored.selectedLocationName,
+        selectedLocationDisplayName: restored.selectedLocationName,
+        layers: restored.layers,
+        globeViewMode: restored.globeViewMode,
+        drawnShapes: restored.drawnShapes,
+        importedLayers: restored.importedLayers,
+        wmsLayers: restored.wmsLayers,
+      });
+
+      for (const cardId of data.openCardIds) {
+        closeCard(cardId);
+      }
+
+      for (const cardId of restored.openCardIds) {
+        if (!visibility[cardId]) {
+          setCardVisible(cardId, true);
+        }
+        openWorkspaceCard(cardId);
+      }
+
+      if (restored.openCardIds.length > 0) {
+        setShellMode("board");
+        setViewMode("board");
+      }
+
+      setRestoreAutosaveProject(null);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(project));
+      }
+      setWorkspaceNotice({
+        tone: "info",
+        message: `Loaded project: ${restored.selectedLocationName}.`,
+      });
+    },
+    [
+      closeCard,
+      data.openCardIds,
+      openWorkspaceCard,
+      setCardVisible,
+      setShellMode,
+      setViewMode,
+      state,
+      visibility,
+    ],
+  );
+
+  const handleSaveProject = useCallback(() => {
+    const project = buildSerializableProject();
+    downloadProject(project);
+    setWorkspaceNotice({
+      tone: "info",
+      message: `Saved project for ${project.location.name}.`,
+    });
+  }, [buildSerializableProject]);
+
+  const handleOpenProjectFile = useCallback(() => {
+    projectFileInputRef.current?.click();
+  }, []);
+
+  const handleLoadProjectFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      try {
+        const project = await loadProjectFromFile(file);
+        applyLoadedProject(project);
+      } catch (error) {
+        setWorkspaceNotice({
+          tone: "warning",
+          message:
+            error instanceof Error
+              ? error.message
+              : "The selected project could not be loaded.",
+        });
+      } finally {
+        event.target.value = "";
+      }
+    },
+    [applyLoadedProject],
+  );
+
   const activeImportedLayer = useMemo(
     () =>
       importedLayers.find((layer) => layer.id === state.activeImportedLayerId) ??
@@ -481,6 +654,81 @@ export function ExploreWorkspace() {
     closeCard("attribute-table");
     setSelectedImportedFeatureId(null);
   }, [closeCard, setSelectedImportedFeatureId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !state.locationReady) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          AUTOSAVE_STORAGE_KEY,
+          JSON.stringify(buildAutosaveProject()),
+        );
+      } catch {
+        // Ignore quota / serialization failures so the workspace stays responsive.
+      }
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    buildAutosaveProject,
+    data.openCardIds,
+    state.drawnShapes,
+    state.globeViewMode,
+    state.importedLayers,
+    state.layers,
+    state.locationReady,
+    state.selectedPoint,
+    state.wmsLayers,
+  ]);
+
+  useEffect(() => {
+    if (
+      autosaveBannerCheckedRef.current ||
+      typeof window === "undefined" ||
+      !state.locationReady ||
+      state.initStatus === "resolving"
+    ) {
+      return;
+    }
+
+    autosaveBannerCheckedRef.current = true;
+    const stored = window.localStorage.getItem(AUTOSAVE_STORAGE_KEY);
+    if (!stored) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as GeoSightProject;
+      if (locationsRoughlyMatch(parsed, state.selectedPoint, state.selectedLocationName)) {
+        setRestoreAutosaveProject(parsed);
+      }
+    } catch {
+      window.localStorage.removeItem(AUTOSAVE_STORAGE_KEY);
+    }
+  }, [
+    state.initStatus,
+    state.locationReady,
+    state.selectedLocationName,
+    state.selectedPoint,
+  ]);
+
+  const handleAcceptAutosaveRestore = useCallback(() => {
+    if (!restoreAutosaveProject) {
+      return;
+    }
+
+    applyLoadedProject(restoreAutosaveProject);
+  }, [applyLoadedProject, restoreAutosaveProject]);
+
+  const handleDismissAutosaveRestore = useCallback(() => {
+    setRestoreAutosaveProject(null);
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(AUTOSAVE_STORAGE_KEY);
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1478,6 +1726,40 @@ export function ExploreWorkspace() {
         </div>
       </header>
 
+      {restoreAutosaveProject ? (
+        <div className="border-b border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-[var(--foreground)]">
+                Restore previous session?
+              </div>
+              <p className="text-sm text-[var(--muted-foreground)]">
+                GeoSight found an autosave for {restoreAutosaveProject.location.name}.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="rounded-full"
+                onClick={handleDismissAutosaveRestore}
+              >
+                Dismiss
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-full"
+                onClick={handleAcceptAutosaveRestore}
+              >
+                Restore
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* ── Body ── */}
       <div className="flex min-h-0 flex-1 flex-col xl:flex-row xl:overflow-hidden">
 
@@ -1539,6 +1821,8 @@ export function ExploreWorkspace() {
                 void handleExportBundle();
               }}
               onOpenPrint={() => setPrintLayoutOpen(true)}
+              onSaveProject={handleSaveProject}
+              onLoadProject={handleOpenProjectFile}
             />
 
             {/* Sidebar (profiles + quick regions) */}
@@ -1657,18 +1941,23 @@ export function ExploreWorkspace() {
             importedLayers={state.importedLayers}
             activeImportedLayerId={state.activeImportedLayerId}
             onToggleImportedLayerVisibility={state.toggleImportedLayerVisibility}
+            onUpdateImportedLayerStyle={state.updateImportedLayerStyle}
             onRemoveImportedLayer={state.removeImportedLayer}
+            onMoveImportedLayer={state.moveImportedLayer}
             onFlyToImportedLayer={(layer) => globeApiRef.current?.flyToBounds(layer.bounds)}
             onOpenImportedLayerTable={handleOpenImportedLayerTable}
+            drawnShapes={state.drawnShapes}
             wmsLayers={state.wmsLayers}
             onAddWmsLayer={state.addWmsLayer}
             onRemoveWmsLayer={state.removeWmsLayer}
             onToggleWmsLayerVisibility={state.toggleWmsLayerVisibility}
             onSetWmsLayerOpacity={state.setWmsLayerOpacity}
+            onMoveWmsLayer={state.moveWmsLayer}
           />
           <RegionSelector
             region={state.selectedRegion}
             locationTooltip={state.selectedLocationName}
+            drawnShapes={state.drawnShapes}
             onReset={() => {
               state.selectPoint(
                 state.selectedPoint,
@@ -1872,6 +2161,16 @@ export function ExploreWorkspace() {
         items={commandPaletteItems}
         onClose={() => setCommandPaletteOpen(false)}
         onSelect={handleCommandPaletteSelect}
+      />
+
+      <input
+        ref={projectFileInputRef}
+        type="file"
+        accept=".geosight,.json,application/json"
+        className="hidden"
+        onChange={(event) => {
+          void handleLoadProjectFile(event);
+        }}
       />
 
       {/* Mobile sidebar overlay */}
