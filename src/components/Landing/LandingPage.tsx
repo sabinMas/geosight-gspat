@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,6 +10,7 @@ import {
   Compass,
   Factory,
   Globe2,
+  HelpCircle,
   House,
   Layers,
   LineChart,
@@ -22,13 +23,17 @@ import {
   Navigation,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
+import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
+import { LANDING_WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
 import { EXPLORER_LENSES } from "@/lib/explorer-lenses";
 import { buildExploreHref } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Footer } from "./Footer";
+
+const LANDING_WALKTHROUGH_STORAGE_KEY = "geosight-landing-walkthrough-seen";
 
 const ICONS = {
   House,
@@ -57,7 +62,22 @@ export function LandingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const dismissWalkthrough = useCallback(() => {
+    setWalkthroughOpen(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LANDING_WALKTHROUGH_STORAGE_KEY, "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(LANDING_WALKTHROUGH_STORAGE_KEY) === "true") return;
+    const timeout = window.setTimeout(() => setWalkthroughOpen(true), 900);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   const selectedLens = useMemo(
     () => EXPLORER_LENSES.find((l) => l.id === selectedLensId) ?? EXPLORER_LENSES[0],
@@ -144,6 +164,16 @@ export function LandingPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
+            onClick={() => setWalkthroughOpen(true)}
+            aria-label="Open guided tour"
+            title="Guided tour"
+            className="inline-flex items-center gap-1 text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            Tour
+          </button>
+          <button
+            type="button"
             onClick={() => router.push("/explore?mode=pro")}
             className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
           >
@@ -161,7 +191,10 @@ export function LandingPage() {
         <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[var(--color-warning)] opacity-[0.04] blur-[50px]" />
 
         {/* Lens chips */}
-        <div className="relative mb-5 flex flex-wrap gap-2">
+        <div
+          data-walkthrough="landing-lenses"
+          className="relative mb-5 flex flex-wrap gap-2"
+        >
           {EXPLORER_LENSES.map((lens) => {
             const Icon = getIcon(lens.icon);
             const isActive = selectedLensId === lens.id;
@@ -188,7 +221,11 @@ export function LandingPage() {
         </div>
 
         {/* Search form */}
-        <form onSubmit={handleSubmit} className="relative space-y-3">
+        <form
+          data-walkthrough="landing-search"
+          onSubmit={handleSubmit}
+          className="relative space-y-3"
+        >
           <div className="relative">
             <Input
               ref={inputRef}
@@ -240,6 +277,7 @@ export function LandingPage() {
       <div className="mt-6 flex items-center gap-4">
         <button
           type="button"
+          data-walkthrough="landing-pro"
           onClick={() => router.push("/explore?mode=pro")}
           className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-xs text-[var(--muted-foreground)] transition hover:border-[color:var(--border-strong)] hover:text-[var(--foreground)]"
         >
@@ -249,6 +287,12 @@ export function LandingPage() {
       </div>
 
       <Footer />
+
+      <WalkthroughOverlay
+        open={walkthroughOpen}
+        steps={LANDING_WALKTHROUGH_STEPS}
+        onClose={dismissWalkthrough}
+      />
     </main>
   );
 }

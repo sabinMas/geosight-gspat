@@ -4,6 +4,27 @@ export type WalkthroughStep = {
   description: string;
 };
 
+export const LANDING_WALKTHROUGH_STEPS: WalkthroughStep[] = [
+  {
+    target: "landing-lenses",
+    title: "Pick a Lens",
+    description:
+      "Each lens focuses the analysis on what matters for that decision — homes, sites, trips, or hazards.",
+  },
+  {
+    target: "landing-search",
+    title: "Enter a Location",
+    description:
+      "Type a city, address, or coordinates. The arrow button fills in your current location automatically.",
+  },
+  {
+    target: "landing-pro",
+    title: "Need the Full Workspace?",
+    description:
+      "Analysts can jump straight to the Pro workspace for layers, drawing tools, and side-by-side comparisons.",
+  },
+];
+
 export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   {
     target: "lens-selector",
