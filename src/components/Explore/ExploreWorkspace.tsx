@@ -14,6 +14,7 @@ import {
   FileText,
   Globe,
   Grid2x2,
+  HelpCircle,
   Layers3,
   Library,
   Link2,
@@ -35,6 +36,8 @@ import {
   WorkspaceCommandPalette,
 } from "@/components/Explore/WorkspaceCommandPalette";
 import { WorkspaceToolRail } from "@/components/Explore/WorkspaceToolRail";
+import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
+import { WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
 import { MapCallout } from "@/components/Globe/MapCallout";
 import { AoiDrawingToolbar } from "@/components/Globe/AoiDrawingToolbar";
 import { LocationTrackingControls } from "@/components/Globe/LocationTrackingControls";
@@ -95,6 +98,7 @@ const CesiumGlobe = dynamic(
 );
 
 const BOARD_MODE_NOTICE_STORAGE_KEY = "geosight-board-mode-notice-shown";
+const WALKTHROUGH_STORAGE_KEY = "geosight-explore-walkthrough-seen";
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
@@ -115,6 +119,21 @@ export function ExploreWorkspace() {
   const [captureViewSnapshot, setCaptureViewSnapshot] = useState<GlobeViewSnapshot | null>(null);
   const [overlayMetersPerPixel, setOverlayMetersPerPixel] = useState<number | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+
+  const dismissWalkthrough = useCallback(() => {
+    setWalkthroughOpen(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(WALKTHROUGH_STORAGE_KEY, "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(WALKTHROUGH_STORAGE_KEY) === "true") return;
+    const timeout = window.setTimeout(() => setWalkthroughOpen(true), 900);
+    return () => window.clearTimeout(timeout);
+  }, []);
   const [captureFigure, setCaptureFigure] = useState<CaptureFigureOptions>({
     title: "",
     subtitle: "",
@@ -1382,6 +1401,16 @@ export function ExploreWorkspace() {
 
         {/* Right cluster — reduced to 3 actions */}
         <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setWalkthroughOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
+            aria-label="Start guided tour"
+            title="Guided tour"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            Tour
+          </button>
           <Button
             type="button"
             size="sm"
@@ -1830,6 +1859,12 @@ export function ExploreWorkspace() {
         items={commandPaletteItems}
         onClose={() => setCommandPaletteOpen(false)}
         onSelect={handleCommandPaletteSelect}
+      />
+
+      <WalkthroughOverlay
+        open={walkthroughOpen}
+        steps={WALKTHROUGH_STEPS}
+        onClose={dismissWalkthrough}
       />
 
       {/* Mobile sidebar overlay */}
