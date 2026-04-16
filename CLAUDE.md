@@ -349,7 +349,8 @@ See `docs/BACKLOG.md` for full detail. Short version:
 - ~~Intent routing for new cards~~ — shipped: `workspace-intent.ts` has `"wildfire"` / `"alerts"` / `"climate"` intents; question → card suggestion wired for all synthesis cards
 
 **P1 — global coverage**
-- Live non-US provider integrations (flood, soil, seismic, school beyond Eurostat) — **next P1 target**
+- ~~Live non-US flood provider~~ — shipped: GloFAS via Open-Meteo flood API in `src/lib/fema-flood.ts` as a global fallback to FEMA NFHL; `FloodZoneResult.source === "glofas"` branch surfaces in `FloodRiskCard.tsx`, GeoAnalyst `buildSupportedFacts`, and the `land-quick-check` lens analyzer.
+- Live non-US provider integrations remaining: soil (ISRIC World Soil Information), seismic (GEM OpenQuake), school data beyond Eurostat — **next P1 target**
 - Regional provider selection exposed in UI
 
 **P1 — domain expansion**

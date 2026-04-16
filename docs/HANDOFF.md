@@ -1,6 +1,6 @@
 ﻿# GeoSight â€” Agent Handoff Document
 
-Last updated: 2026-04-11 (post unified layer-control + AOI cleanup batch)
+Last updated: 2026-04-16 (explorer-lens analyzers now complete for all five lenses; Pro-lens analyzers remain the outstanding gap)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
 
@@ -143,17 +143,18 @@ Smoke-test note:
 - existing `react-hooks/exhaustive-deps` warnings in `src/components/Explore/ExploreWorkspace.tsx` are still present and unchanged from prior work
 - Trail Scout distance/gain quality depends heavily on the fidelity of the drawn route; the current smoke-test geometry was intentionally short
 - live location modes are wired for the globe and AOI flow, but there is not yet a broader saved-session/history surface for tracks
-- unsupported explorer lenses still need real deterministic analyzers
+- all five explorer lenses (`hunt-planner`, `trail-scout`, `land-quick-check`, `road-trip`, `general-explore`) now have deterministic analyzers wired through `/api/lens-analysis`; Pro-profile lenses are the remaining gap
 - fire overlays require `NASA_FIRMS_MAP_KEY`; without it the layer stays empty instead of fabricating detections
 
 ### Recommended next pickup from here
 
-1. Extend deterministic analyzers to `road-trip`, `general-explore`, and the Pro lenses.
+1. ~~Extend deterministic analyzers to `road-trip`, `general-explore`~~ — **shipped**: `src/lib/analysis/roadTrip.ts`, `src/lib/analysis/generalExplore.ts`, matching prompt builders under `src/lib/prompts/`, and `src/app/api/lens-analysis/route.ts` accepts both lens ids. Pro lens deterministic analyzers are still open.
 2. Add debounced viewport-based overlay refresh and zoom gating so roads / fires / flood layers do not over-fetch while panning.
 3. Start the save/share/export batch using the now-stable shared contracts:
    - `LayerState`
    - AOI GeoJSON
    - deterministic lens results
+4. Pro lens deterministic analyzers (data-center, site-development, commercial, residential fits beyond `land-quick-check`).
 
 ---
 

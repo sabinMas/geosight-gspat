@@ -624,6 +624,17 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
     nearestGauge
       ? `Nearest USGS stream gauge (USGS NWIS, direct live): ${nearestGauge.siteName} (${formatDistanceKm(nearestGauge.distanceKm, "unknown distance")}) reporting ${nearestGauge.dischargeCfs ?? "unknown"} cfs.`
       : "USGS stream-gauge context is currently unavailable.",
+    payload.geodata?.groundwater && payload.geodata.groundwater.wellCount > 0
+      ? `Groundwater monitoring (USGS NWIS, direct live — US only): ${payload.geodata.groundwater.wellCount} monitored wells within the screening area${
+          payload.geodata.groundwater.nearestWell
+            ? `; nearest well ${payload.geodata.groundwater.nearestWell.siteName} at ${payload.geodata.groundwater.nearestWell.distanceKm.toFixed(1)} km${
+                payload.geodata.groundwater.nearestWell.currentLevelFt !== null
+                  ? ` with a depth-to-water of ${payload.geodata.groundwater.nearestWell.currentLevelFt} ft`
+                  : ""
+              }`
+            : ""
+        }.`
+      : "Groundwater monitoring context (USGS NWIS) is currently unavailable.",
     payload.geodata?.airQuality
       ? `Nearest air-quality station (OpenAQ, direct live): ${payload.geodata.airQuality.stationName} with PM2.5 ${payload.geodata.airQuality.pm25 ?? "unknown"} ug/m3, PM10 ${payload.geodata.airQuality.pm10 ?? "unknown"} ug/m3, category ${payload.geodata.airQuality.aqiCategory}.`
       : payload.geodata?.climate?.airQualityIndex !== null &&
@@ -639,6 +650,15 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
     payload.geodata?.hazards?.earthquakeCount30d !== undefined
       ? `Recent seismic context (USGS FDSN, direct live): ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
       : "Recent seismic context is currently unavailable.",
+    payload.geodata?.hazards?.activeFireCount7d !== null &&
+    payload.geodata?.hazards?.activeFireCount7d !== undefined
+      ? `Active fire detections (NASA FIRMS, direct live — global): ${payload.geodata.hazards.activeFireCount7d} detections within roughly 50 km over the last 7 days${
+          payload.geodata.hazards.nearestFireKm !== null &&
+          payload.geodata.hazards.nearestFireKm !== undefined
+            ? `; nearest detection ${payload.geodata.hazards.nearestFireKm.toFixed(1)} km away`
+            : ""
+        }.`
+      : "Active fire detection context (NASA FIRMS) is currently unavailable.",
     payload.geodata?.hazardAlerts
       ? `Global disaster alerts (GDACS, direct live): ${payload.geodata.hazardAlerts.totalCurrentAlerts} current events worldwide; ${payload.geodata.hazardAlerts.elevatedCurrentAlerts} elevated (orange/red); nearest event ${payload.geodata.hazardAlerts.nearestAlert ? `${payload.geodata.hazardAlerts.nearestAlert.eventLabel} at ${payload.geodata.hazardAlerts.nearestAlert.distanceKm ?? "unknown"} km (${payload.geodata.hazardAlerts.nearestAlert.alertLevel})` : "none with known distance"}.`
       : "Global disaster alert context (GDACS) is currently unavailable.",

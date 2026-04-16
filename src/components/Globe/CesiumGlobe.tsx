@@ -489,7 +489,34 @@ export function CesiumGlobe({
       }
 
       const { bbox, snapshot } = getOverlayViewportState(viewer);
-      setOverlayViewportBbox(bbox);
+      // Quantize the bbox to ~0.01° (~1.1 km) so micro-pans and scroll-wheel
+      // zoom increments do not keep kicking dependent overlay effects
+      // (fire fetches, flood tiles, contour tiles) into a fresh fetch cycle.
+      // Identity is preserved when the quantized bbox matches the previous
+      // value so React bails out and the fetch effects stay put.
+      const quantized = bbox
+        ? {
+            west: Math.round(bbox.west * 100) / 100,
+            south: Math.round(bbox.south * 100) / 100,
+            east: Math.round(bbox.east * 100) / 100,
+            north: Math.round(bbox.north * 100) / 100,
+          }
+        : null;
+      setOverlayViewportBbox((prev) => {
+        if (!quantized) {
+          return prev === null ? prev : null;
+        }
+        if (
+          prev &&
+          prev.west === quantized.west &&
+          prev.south === quantized.south &&
+          prev.east === quantized.east &&
+          prev.north === quantized.north
+        ) {
+          return prev;
+        }
+        return quantized;
+      });
       setOverlayViewportSnapshot(snapshot);
     };
 
