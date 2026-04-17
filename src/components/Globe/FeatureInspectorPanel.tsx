@@ -142,7 +142,7 @@ function HitRow({ hit, defaultOpen }: { hit: IdentifyHit; defaultOpen: boolean }
 /* ------------------------------------------------------------------ */
 
 interface FeatureInspectorPanelProps {
-  result: IdentifyResult;
+  result: IdentifyResult | null;
   onClose: () => void;
 }
 
@@ -150,6 +150,7 @@ export function FeatureInspectorPanel({
   result,
   onClose,
 }: FeatureInspectorPanelProps) {
+  if (!result) return null;
   return (
     <div className="absolute bottom-14 left-4 z-20 flex w-80 max-h-[60vh] flex-col rounded-2xl border border-[color:var(--border-soft)] bg-[var(--background)] shadow-[var(--shadow-panel)] backdrop-blur-md">
       {/* Header */}

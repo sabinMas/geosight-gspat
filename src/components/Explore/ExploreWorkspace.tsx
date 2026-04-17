@@ -7,6 +7,7 @@ import { toPng } from "html-to-image";
 import {
   Car,
   Command,
+  Crosshair,
   Download,
   FileText,
   Globe,
@@ -23,6 +24,7 @@ import {
   Plus,
   Route,
   Ruler,
+  ScanSearch,
   Sparkles,
   X,
 } from "lucide-react";
@@ -50,6 +52,8 @@ import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
 import { WorkspaceLibrary } from "@/components/Explore/WorkspaceLibrary";
 import { DataLayers } from "@/components/Globe/DataLayers";
 import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
+import { FeatureInspectorPanel } from "@/components/Globe/FeatureInspectorPanel";
+import { GoToCoordinateDialog } from "@/components/Globe/GoToCoordinateDialog";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
@@ -172,9 +176,16 @@ export function ExploreWorkspace() {
     activeProfile,
     addDrawnShape,
     addImportedLayer,
+    addCustomLayer,
+    customLayers,
     drawingTool,
+    featureInspectMode,
+    goToCoordsOpen,
+    identifyResult,
     importedLayers,
     locationReady,
+    moveCustomLayer,
+    removeCustomLayer,
     selectPoint: selectWorkspacePoint,
     selectedLocationName,
     selectedPoint,
@@ -182,9 +193,14 @@ export function ExploreWorkspace() {
     setActiveProfile,
     setActiveImportedLayerId,
     setActiveLensId,
+    setCustomLayerOpacity,
     setDrawingTool,
+    setFeatureInspectMode,
+    setGoToCoordsOpen,
+    setIdentifyResult,
     setSelectedImportedFeatureId,
     setSelectedRegion,
+    toggleCustomLayer,
   } = state;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -736,6 +752,18 @@ export function ExploreWorkspace() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setCommandPaletteOpen(true);
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "g") {
+        event.preventDefault();
+        setGoToCoordsOpen(true);
+        return;
+      }
+
+      const tag = (event.target as HTMLElement)?.tagName;
+      if (event.key.toLowerCase() === "i" && tag !== "INPUT" && tag !== "TEXTAREA") {
+        setFeatureInspectMode((v) => !v);
         return;
       }
 
@@ -1699,6 +1727,27 @@ export function ExploreWorkspace() {
 
         {/* Right cluster */}
         <div className="flex shrink-0 items-center gap-2">
+          {/* GIS analyst tools */}
+          <button
+            type="button"
+            onClick={() => setFeatureInspectMode((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs transition cursor-pointer ${featureInspectMode ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)] hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"}`}
+            aria-label={featureInspectMode ? "Exit identify mode" : "Identify features (I)"}
+            title="Identify features (I)"
+          >
+            <ScanSearch className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Identify</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGoToCoordsOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)] cursor-pointer"
+            aria-label="Go to coordinates (Ctrl+G)"
+            title="Go to coordinates (Ctrl+G)"
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Go to</span>
+          </button>
           <button
             type="button"
             onClick={() => setWalkthroughOpen(true)}
@@ -1964,6 +2013,12 @@ export function ExploreWorkspace() {
             onToggleWmsLayerVisibility={state.toggleWmsLayerVisibility}
             onSetWmsLayerOpacity={state.setWmsLayerOpacity}
             onMoveWmsLayer={state.moveWmsLayer}
+            customLayers={customLayers}
+            onAddCustomLayer={addCustomLayer}
+            onRemoveCustomLayer={removeCustomLayer}
+            onToggleCustomLayer={toggleCustomLayer}
+            onSetCustomLayerOpacity={setCustomLayerOpacity}
+            onMoveCustomLayer={moveCustomLayer}
           />
           <RegionSelector
             region={state.selectedRegion}
@@ -2173,6 +2228,20 @@ export function ExploreWorkspace() {
         open={walkthroughOpen}
         steps={WALKTHROUGH_STEPS}
         onClose={dismissWalkthrough}
+      />
+
+      <FeatureInspectorPanel
+        result={identifyResult}
+        onClose={() => { setIdentifyResult(null); setFeatureInspectMode(false); }}
+      />
+
+      <GoToCoordinateDialog
+        open={goToCoordsOpen}
+        onClose={() => setGoToCoordsOpen(false)}
+        onGoTo={(coords) => {
+          selectWorkspacePoint(coords, `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`, undefined);
+          setGoToCoordsOpen(false);
+        }}
       />
 
       <WorkspaceCommandPalette
