@@ -241,7 +241,11 @@ function DriverRow({ driver }: { driver: DriverScore }) {
 }
 
 export function ThermalLoadCard({ geodata }: ThermalLoadCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Thermal environment" title="Cooling load" loading={true} />
+    );
+  }
 
   const assessment = buildThermalAssessment(geodata);
   const colors = tierColors(assessment.tier);

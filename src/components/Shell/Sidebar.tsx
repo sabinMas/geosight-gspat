@@ -1,5 +1,5 @@
+import { MapPin } from "lucide-react";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MissionProfile, RegionSelection } from "@/types";
 import { ProfileSelector } from "./ProfileSelector";
 
@@ -24,77 +24,103 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <aside
-      className="glass-panel z-20 flex h-full w-full min-w-0 flex-col gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]"
+      className="z-20 flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border shadow-[var(--shadow-panel)]"
+      style={{ background: "var(--surface-panel)", borderColor: "var(--border-soft)" }}
       role="region"
       aria-label="Mission controls and quick regions"
     >
-      <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4">
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle>Lens</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <nav className="flex-1 overflow-y-auto overscroll-contain" aria-label="Workspace navigation">
+        {/* Lens section */}
+        <div className="border-b" style={{ borderColor: "var(--border-soft)" }}>
+          <h2
+            className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Lens
+          </h2>
+          <div className="px-2 pb-3">
             <ProfileSelector
               activeProfileId={activeProfile.id}
               profiles={profiles}
               onSelectProfile={onSelectProfile}
               variant="sidebar-carousel"
             />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick regions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {quickRegionsLoading ? (
-              <div className="rounded-xl border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
-                Generating nearby regions from the active location...
-              </div>
-            ) : null}
-
-            {!quickRegionsLoading && quickRegions.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
-                Select a place to build nearby quick regions.
-              </div>
-            ) : null}
-
-            {quickRegions.map((region) => (
-              <button
-                key={region.id}
-                type="button"
-                onClick={() => onSelectRegion(region)}
-                aria-pressed={selectedRegion.id === region.id}
-                aria-label={`Select quick region ${region.name}`}
-                className={`w-full rounded-xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40 ${
-                  selectedRegion.id === region.id
-                    ? "bg-[var(--surface-soft)]"
-                    : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] hover:bg-[var(--surface-soft)]"
-                }`}
-                style={
-                  selectedRegion.id === region.id
-                    ? { borderColor: activeProfile.accentColor }
-                    : undefined
-                }
-              >
-                <div className="text-sm font-medium text-[var(--foreground)]">{region.name}</div>
-                {region.secondaryLabel ? (
-                  <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                    {region.secondaryLabel}
-                  </div>
-                ) : null}
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-
-        <div className="flex items-center justify-between rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3">
-          <div>
-            <div className="text-sm font-medium text-[var(--foreground)]">Theme</div>
           </div>
-          <ThemeToggle compact />
         </div>
+
+        {/* Quick regions section */}
+        <div>
+          <h2
+            className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Quick regions
+          </h2>
+          <ul className="px-2 pb-3" role="list">
+            {quickRegionsLoading && (
+              <li
+                className="rounded-xl border border-dashed px-3 py-2.5 text-xs"
+                style={{ borderColor: "var(--border-soft)", color: "var(--muted-foreground)", background: "var(--surface-soft)" }}
+              >
+                Generating nearby regions…
+              </li>
+            )}
+            {!quickRegionsLoading && quickRegions.length === 0 && (
+              <li
+                className="rounded-xl border border-dashed px-3 py-2.5 text-xs"
+                style={{ borderColor: "var(--border-soft)", color: "var(--muted-foreground)", background: "var(--surface-soft)" }}
+              >
+                Select a place to build quick regions.
+              </li>
+            )}
+            {quickRegions.map((region) => {
+              const isSelected = selectedRegion.id === region.id;
+              return (
+                <li key={region.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectRegion(region)}
+                    aria-pressed={isSelected}
+                    aria-label={`Select quick region ${region.name}`}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2"
+                    style={{
+                      background: isSelected ? "var(--surface-soft)" : "transparent",
+                      color: "var(--foreground)",
+                      borderLeft: isSelected ? `2px solid ${activeProfile.accentColor}` : "2px solid transparent",
+                    }}
+                  >
+                    <MapPin
+                      className="h-3.5 w-3.5 shrink-0"
+                      style={{ color: isSelected ? activeProfile.accentColor : "var(--muted-foreground)" }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{region.name}</div>
+                      {region.secondaryLabel ? (
+                        <div className="truncate text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          {region.secondaryLabel}
+                        </div>
+                      ) : null}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </nav>
+
+      {/* Rail foot — theme toggle */}
+      <div
+        className="flex items-center justify-between border-t px-4 py-3"
+        style={{ borderColor: "var(--border-soft)" }}
+      >
+        <span
+          className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          Theme
+        </span>
+        <ThemeToggle compact />
       </div>
     </aside>
   );

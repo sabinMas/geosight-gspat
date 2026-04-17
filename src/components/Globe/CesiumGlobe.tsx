@@ -22,6 +22,8 @@ import {
   GeoJsonDataSource,
   HeadingPitchRange,
   HeadingPitchRoll,
+  HeightReference,
+  HorizontalOrigin,
   ImageryLayer,
   Ion,
   IonWorldImageryStyle,
@@ -37,6 +39,8 @@ import {
   Transforms,
   Viewer as CesiumViewer,
   WebMapServiceImageryProvider,
+  WebMapTileServiceImageryProvider,
+  UrlTemplateImageryProvider,
 } from "cesium";
 import { estimateRegionSpanKm } from "@/lib/geospatial";
 import {
@@ -47,11 +51,14 @@ import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import type { WmsLayerDefinition } from "@/lib/wms-layers";
 import {
   Coordinates,
+  CustomLayer,
   DrawnShape,
   DrawingTool,
   EarthquakeEvent,
   GlobeViewMode,
   GlobeViewSnapshot,
+  IdentifyHit,
+  IdentifyResult,
   RegionSelection,
   SavedSite,
   SubsurfaceDataset,
@@ -244,6 +251,9 @@ interface CesiumGlobeProps {
   activeImportedLayerId?: string | null;
   selectedImportedFeatureId?: string | null;
   wmsLayers?: WmsLayerDefinition[];
+  customLayers?: CustomLayer[];
+  featureInspectMode?: boolean;
+  onIdentifyResult?: (result: IdentifyResult) => void;
   onShapeComplete?: (shape: DrawnShape) => void;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
   snapToGrid?: boolean;
@@ -276,6 +286,9 @@ export function CesiumGlobe({
   activeImportedLayerId = null,
   selectedImportedFeatureId = null,
   wmsLayers = [],
+  customLayers = [],
+  featureInspectMode = false,
+  onIdentifyResult,
   onShapeComplete,
   onVertexDrag,
   snapToGrid = false,
@@ -660,6 +673,35 @@ export function CesiumGlobe({
     viewer.scene.requestRender();
   }, [viewerReady, wmsLayers]);
 
+  // Custom user-added layers (WMS/WMTS/XYZ)
+  const customImageryLayersRef = useRef<Map<string, ImageryLayer>>(new Map());
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) return;
+    const active = customImageryLayersRef.current;
+    const nextIds = new Set(customLayers.map((l) => l.id));
+    for (const [id, il] of active.entries()) {
+      if (!nextIds.has(id)) { if (viewer.imageryLayers.contains(il)) viewer.imageryLayers.remove(il, true); active.delete(id); }
+    }
+    for (const layer of customLayers) {
+      const existing = active.get(layer.id);
+      if (existing) { existing.show = layer.visible; existing.alpha = layer.opacity; continue; }
+      let provider: WebMapServiceImageryProvider | WebMapTileServiceImageryProvider | UrlTemplateImageryProvider;
+      try {
+        if (layer.type === "wms") {
+          provider = new WebMapServiceImageryProvider({ url: layer.url, layers: layer.wmsLayers ?? "", parameters: { transparent: true, format: "image/png" } });
+        } else if (layer.type === "wmts") {
+          provider = new WebMapTileServiceImageryProvider({ url: layer.url, layer: layer.wmsLayers ?? "", style: "", format: "image/png", tileMatrixSetID: "default" });
+        } else {
+          provider = new UrlTemplateImageryProvider({ url: layer.url });
+        }
+        const il = viewer.imageryLayers.addImageryProvider(provider);
+        il.show = layer.visible; il.alpha = layer.opacity; active.set(layer.id, il);
+      } catch { /* invalid URL — skip silently */ }
+    }
+    viewer.scene.requestRender();
+  }, [viewerReady, customLayers]);
+
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!isViewerUsable(viewer) || !viewerReady) {
@@ -1039,6 +1081,40 @@ export function CesiumGlobe({
       // Yield to drawing mode — drawing hook has its own handler
       if (drawingTool !== "none") return;
 
+      // Feature inspector / identify mode
+      if (featureInspectMode && onIdentifyResult) {
+        try {
+          const earthPosition =
+            (viewer.scene.pickPositionSupported
+              ? viewer.scene.pickPosition(event.position)
+              : undefined) ??
+            viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid);
+          const cartographic = earthPosition ? Cartographic.fromCartesian(earthPosition) : null;
+          const clickCoordinates: Coordinates = cartographic
+            ? { lat: CesiumMath.toDegrees(cartographic.latitude), lng: CesiumMath.toDegrees(cartographic.longitude) }
+            : { lat: 0, lng: 0 };
+          const hits: IdentifyHit[] = [];
+          // Entity pick
+          const pickedObject = viewer.scene.pick(event.position);
+          if (pickedObject?.id) {
+            const entity = pickedObject.id;
+            const attrs: Record<string, string | number | boolean | null> = {};
+            if (entity.properties) {
+              const names = entity.properties.propertyNames ?? [];
+              for (const name of names) {
+                const val = entity.properties[name]?.getValue?.();
+                attrs[name] = val ?? null;
+              }
+            }
+            hits.push({ layerName: String(entity.name ?? entity.id ?? "Entity"), featureType: "entity", attributes: attrs, coordinates: clickCoordinates });
+          }
+          onIdentifyResult({ clickCoordinates, hits, timestamp: Date.now() });
+        } catch {
+          // identify failed silently
+        }
+        return;
+      }
+
       try {
         const importedFeaturePopup = identifyImportedFeature(event.position);
         if (importedFeaturePopup) {
@@ -1059,6 +1135,25 @@ export function CesiumGlobe({
 
         setIdentifyPopup(null);
         const cartographic = Cartographic.fromCartesian(earthPosition);
+
+        // Temporary cyan pulse entity — auto-removed after 1.5 s
+        const accentColor = Color.fromCssColorString("#00e5ff");
+        const pulseEntity = viewer.entities.add({
+          position: earthPosition,
+          point: {
+            pixelSize: 18,
+            color: accentColor.withAlpha(0.85),
+            outlineColor: accentColor.withAlpha(0.3),
+            outlineWidth: 8,
+            heightReference: HeightReference.CLAMP_TO_GROUND,
+          },
+        });
+        window.setTimeout(() => {
+          if (viewer && !viewer.isDestroyed()) {
+            viewer.entities.remove(pulseEntity);
+          }
+        }, 1500);
+
         onPointSelect({
           lat: CesiumMath.toDegrees(cartographic.latitude),
           lng: CesiumMath.toDegrees(cartographic.longitude),

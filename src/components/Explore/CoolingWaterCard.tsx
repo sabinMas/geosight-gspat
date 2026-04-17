@@ -11,7 +11,9 @@ interface CoolingWaterCardProps {
 
 export function CoolingWaterCard({ geodata }: CoolingWaterCardProps) {
   if (!geodata) {
-    return null;
+    return (
+      <WorkspaceCardShell eyebrow="Cooling infrastructure" title="Cooling water" loading={true} />
+    );
   }
 
   const nearestGauge = getNearestStreamGauge(geodata);

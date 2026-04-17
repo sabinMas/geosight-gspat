@@ -7,6 +7,7 @@ import { toPng } from "html-to-image";
 import {
   Car,
   Command,
+  Crosshair,
   Download,
   FileText,
   Globe,
@@ -23,6 +24,7 @@ import {
   Plus,
   Route,
   Ruler,
+  ScanSearch,
   Sparkles,
   X,
 } from "lucide-react";
@@ -50,6 +52,8 @@ import { WorkspaceBoard } from "@/components/Explore/WorkspaceBoard";
 import { WorkspaceLibrary } from "@/components/Explore/WorkspaceLibrary";
 import { DataLayers } from "@/components/Globe/DataLayers";
 import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
+import { FeatureInspectorPanel } from "@/components/Globe/FeatureInspectorPanel";
+import { GoToCoordinateDialog } from "@/components/Globe/GoToCoordinateDialog";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
 import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
@@ -105,6 +109,19 @@ const CesiumGlobe = dynamic(
     loading: () => (
       <div className="flex h-full items-center justify-center bg-[var(--surface-panel)] text-[var(--muted-foreground)]">
         Loading 3D globe...
+      </div>
+    ),
+  },
+);
+
+const MapLibreMap = dynamic(
+  () =>
+    import("@/components/Globe/MapLibreMap").then((mod) => mod.MapLibreMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center bg-[var(--surface-panel)] text-[var(--muted-foreground)]">
+        Loading 2D map...
       </div>
     ),
   },
@@ -172,9 +189,16 @@ export function ExploreWorkspace() {
     activeProfile,
     addDrawnShape,
     addImportedLayer,
+    addCustomLayer,
+    customLayers,
     drawingTool,
+    featureInspectMode,
+    goToCoordsOpen,
+    identifyResult,
     importedLayers,
     locationReady,
+    moveCustomLayer,
+    removeCustomLayer,
     selectPoint: selectWorkspacePoint,
     selectedLocationName,
     selectedPoint,
@@ -182,9 +206,14 @@ export function ExploreWorkspace() {
     setActiveProfile,
     setActiveImportedLayerId,
     setActiveLensId,
+    setCustomLayerOpacity,
     setDrawingTool,
+    setFeatureInspectMode,
+    setGoToCoordsOpen,
+    setIdentifyResult,
     setSelectedImportedFeatureId,
     setSelectedRegion,
+    toggleCustomLayer,
   } = state;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -736,6 +765,18 @@ export function ExploreWorkspace() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setCommandPaletteOpen(true);
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "g") {
+        event.preventDefault();
+        setGoToCoordsOpen(true);
+        return;
+      }
+
+      const tag = (event.target as HTMLElement)?.tagName;
+      if (event.key.toLowerCase() === "i" && tag !== "INPUT" && tag !== "TEXTAREA") {
+        setFeatureInspectMode((v) => !v);
         return;
       }
 
@@ -1699,6 +1740,27 @@ export function ExploreWorkspace() {
 
         {/* Right cluster */}
         <div className="flex shrink-0 items-center gap-2">
+          {/* GIS analyst tools */}
+          <button
+            type="button"
+            onClick={() => setFeatureInspectMode((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs transition cursor-pointer ${featureInspectMode ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--muted-foreground)] hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"}`}
+            aria-label={featureInspectMode ? "Exit identify mode" : "Identify features (I)"}
+            title="Identify features (I)"
+          >
+            <ScanSearch className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Identify</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setGoToCoordsOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)] cursor-pointer"
+            aria-label="Go to coordinates (Ctrl+G)"
+            title="Go to coordinates (Ctrl+G)"
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Go to</span>
+          </button>
           <button
             type="button"
             onClick={() => setWalkthroughOpen(true)}
@@ -1879,64 +1941,108 @@ export function ExploreWorkspace() {
           >
             <div className="absolute inset-0">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
-              <CesiumGlobe
-                selectedPoint={state.selectedPoint}
-                selectedRegion={state.selectedRegion}
-                globeViewMode={state.globeViewMode}
-                globeRotateMode={state.globeRotateMode}
-                subsurfaceRenderMode={state.subsurfaceRenderMode}
-                onPointSelect={(coords) => {
-                  setCalloutDismissed(false);
-                  state.selectPoint(coords);
-                  data.handleLocationSelection();
-                }}
-                savedSites={data.sites}
-                layers={state.layers}
-                subsurfaceDatasets={data.subsurfaceDatasets}
-                terrainExaggeration={state.terrainExaggeration}
-                earthquakeMarkers={state.earthquakeMarkers}
-                driveMode={state.driveMode}
-                onExitDriveMode={() => state.setDriveMode(false)}
-                drawingTool={state.drawingTool}
-                drawnShapes={state.drawnShapes}
-                importedLayers={state.importedLayers}
-                activeImportedLayerId={state.activeImportedLayerId}
-                selectedImportedFeatureId={state.selectedImportedFeatureId}
-                wmsLayers={state.wmsLayers}
-                onShapeComplete={handleShapeComplete}
-                onVertexDrag={state.updateDrawnShapeVertex}
-                snapToGrid={state.snapToGrid}
-                captureMode={captureOverlayVisible}
-                onGlobeApiChange={handleGlobeApiChange}
-              />
+              {state.mapEngine === "maplibre" ? (
+                <MapLibreMap
+                  selectedPoint={state.selectedPoint}
+                  selectedRegion={state.selectedRegion}
+                  globeViewMode={state.globeViewMode}
+                  onPointSelect={(coords) => {
+                    setCalloutDismissed(false);
+                    state.selectPoint(coords);
+                    data.handleLocationSelection();
+                  }}
+                />
+              ) : (
+                <CesiumGlobe
+                  selectedPoint={state.selectedPoint}
+                  selectedRegion={state.selectedRegion}
+                  globeViewMode={state.globeViewMode}
+                  globeRotateMode={state.globeRotateMode}
+                  subsurfaceRenderMode={state.subsurfaceRenderMode}
+                  onPointSelect={(coords) => {
+                    setCalloutDismissed(false);
+                    state.selectPoint(coords);
+                    data.handleLocationSelection();
+                  }}
+                  savedSites={data.sites}
+                  layers={state.layers}
+                  subsurfaceDatasets={data.subsurfaceDatasets}
+                  terrainExaggeration={state.terrainExaggeration}
+                  earthquakeMarkers={state.earthquakeMarkers}
+                  driveMode={state.driveMode}
+                  onExitDriveMode={() => state.setDriveMode(false)}
+                  drawingTool={state.drawingTool}
+                  drawnShapes={state.drawnShapes}
+                  importedLayers={state.importedLayers}
+                  activeImportedLayerId={state.activeImportedLayerId}
+                  selectedImportedFeatureId={state.selectedImportedFeatureId}
+                  wmsLayers={state.wmsLayers}
+                  onShapeComplete={handleShapeComplete}
+                  onVertexDrag={state.updateDrawnShapeVertex}
+                  snapToGrid={state.snapToGrid}
+                  captureMode={captureOverlayVisible}
+                  onGlobeApiChange={handleGlobeApiChange}
+                  featureInspectMode={state.featureInspectMode}
+                  onIdentifyResult={state.setIdentifyResult}
+                  customLayers={state.customLayers}
+                />
+              )}
             </div>
           </ClientErrorBoundary>
 
-          {/* Globe controls */}
-          <div className="absolute right-4 top-4 z-20 flex flex-col gap-2">
-            <Button
+          {/* Globe controls — pill cluster bottom-right */}
+          <div className="absolute bottom-12 right-4 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] shadow-[var(--shadow-panel)] backdrop-blur-xl">
+            <button
               type="button"
-              variant={state.globeRotateMode ? "default" : "secondary"}
-              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
-              aria-pressed={state.globeRotateMode}
-              aria-label={state.globeRotateMode ? "Disable 3D explore rotate mode" : "Enable 3D explore rotate mode"}
-              onClick={() => state.setGlobeRotateMode((current) => !current)}
+              aria-pressed={state.mapEngine === "cesium"}
+              aria-label="Switch to 3D globe"
+              title="3D globe (Cesium)"
+              onClick={() => state.setMapEngine("cesium")}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition duration-150",
+                state.mapEngine === "cesium"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+              )}
             >
-              <Globe className="mr-2 h-4 w-4" />
-              {state.globeRotateMode ? "3D explore" : "Rotate"}
-            </Button>
-            <Button
+              <Globe className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-[color:var(--border-soft)]" />
+            <button
               type="button"
-              variant={state.driveMode ? "default" : "secondary"}
-              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
-              aria-pressed={state.driveMode}
-              aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
-              title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD keys)"}
-              onClick={() => state.setDriveMode((current) => !current)}
+              aria-pressed={state.mapEngine === "maplibre"}
+              aria-label="Switch to 2D map"
+              title="2D flat map (MapLibre)"
+              onClick={() => state.setMapEngine("maplibre")}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition duration-150",
+                state.mapEngine === "maplibre"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+              )}
             >
-              <Car className="mr-2 h-4 w-4" />
-              {state.driveMode ? "Driving" : "Drive"}
-            </Button>
+              <Map className="h-4 w-4" />
+            </button>
+            {state.mapEngine === "cesium" && (
+              <>
+                <div className="h-px bg-[color:var(--border-soft)]" />
+                <button
+                  type="button"
+                  aria-pressed={state.driveMode}
+                  aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
+                  title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD)"}
+                  onClick={() => state.setDriveMode((current) => !current)}
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center transition duration-150",
+                    state.driveMode
+                      ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                      : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+                  )}
+                >
+                  <Car className="h-4 w-4" />
+                </button>
+              </>
+            )}
           </div>
 
           <GlobeViewSelector
@@ -1964,6 +2070,12 @@ export function ExploreWorkspace() {
             onToggleWmsLayerVisibility={state.toggleWmsLayerVisibility}
             onSetWmsLayerOpacity={state.setWmsLayerOpacity}
             onMoveWmsLayer={state.moveWmsLayer}
+            customLayers={customLayers}
+            onAddCustomLayer={addCustomLayer}
+            onRemoveCustomLayer={removeCustomLayer}
+            onToggleCustomLayer={toggleCustomLayer}
+            onSetCustomLayerOpacity={setCustomLayerOpacity}
+            onMoveCustomLayer={moveCustomLayer}
           />
           <RegionSelector
             region={state.selectedRegion}
@@ -2022,6 +2134,7 @@ export function ExploreWorkspace() {
               profile={state.activeProfile}
               locationName={state.selectedLocationName}
               loading={data.loading}
+              pendingCoords={state.selectedPoint}
               onOpenAnalysis={() => {
                 const firstCard = data.primaryCards[0];
                 if (firstCard) data.setActivePrimaryCardId(firstCard.id);
@@ -2172,6 +2285,20 @@ export function ExploreWorkspace() {
         open={walkthroughOpen}
         steps={WALKTHROUGH_STEPS}
         onClose={dismissWalkthrough}
+      />
+
+      <FeatureInspectorPanel
+        result={identifyResult}
+        onClose={() => { setIdentifyResult(null); setFeatureInspectMode(false); }}
+      />
+
+      <GoToCoordinateDialog
+        open={goToCoordsOpen}
+        onClose={() => setGoToCoordsOpen(false)}
+        onGoTo={(coords) => {
+          selectWorkspacePoint(coords, `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`, undefined);
+          setGoToCoordsOpen(false);
+        }}
       />
 
       <WorkspaceCommandPalette

@@ -4,7 +4,7 @@ import { ArrowRight, X } from "lucide-react";
 import { StateBadge } from "@/components/Status/StatePanel";
 import { Button } from "@/components/ui/button";
 import { buildAnalysisOverview } from "@/lib/analysis-summary";
-import { GeodataResult, MissionProfile, SiteScore } from "@/types";
+import { Coordinates, GeodataResult, MissionProfile, SiteScore } from "@/types";
 
 interface MapCalloutProps {
   geodata: GeodataResult | null;
@@ -12,8 +12,15 @@ interface MapCalloutProps {
   profile: MissionProfile;
   locationName: string;
   loading: boolean;
+  pendingCoords?: Coordinates | null;
   onOpenAnalysis: () => void;
   onDismiss: () => void;
+}
+
+function formatCoord(lat: number, lng: number): string {
+  const latDir = lat >= 0 ? "N" : "S";
+  const lngDir = lng >= 0 ? "E" : "W";
+  return `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`;
 }
 
 export function MapCallout({
@@ -22,6 +29,7 @@ export function MapCallout({
   profile,
   locationName,
   loading,
+  pendingCoords,
   onOpenAnalysis,
   onDismiss,
 }: MapCalloutProps) {
@@ -53,7 +61,13 @@ export function MapCallout({
           <div className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">
             {loading && !locationName ? "Analyzing…" : locationName}
           </div>
-          <div className="text-xs text-[var(--muted-foreground)]">{profile.name}</div>
+          {loading && !locationName && pendingCoords ? (
+            <div className="text-xs text-[var(--muted-foreground)]">
+              {formatCoord(pendingCoords.lat, pendingCoords.lng)}
+            </div>
+          ) : (
+            <div className="text-xs text-[var(--muted-foreground)]">{profile.name}</div>
+          )}
         </div>
         <button
           type="button"

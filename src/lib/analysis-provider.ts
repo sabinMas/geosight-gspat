@@ -23,6 +23,20 @@ export class AnalysisProviderError extends Error {
   }
 }
 
+export class ProviderTimeoutError extends Error {
+  readonly provider: AnalysisProviderName;
+
+  constructor(provider: AnalysisProviderName) {
+    super(`${provider} analysis timed out`);
+    this.name = "ProviderTimeoutError";
+    this.provider = provider;
+  }
+}
+
+export function isProviderTimeoutError(error: unknown): error is ProviderTimeoutError {
+  return error instanceof ProviderTimeoutError;
+}
+
 export async function buildAnalysisProviderMessages(
   payload: AnalyzeRequestBody,
   profile: MissionProfile,

@@ -81,7 +81,11 @@ function buildRows(geodata: GeodataResult): UtilityRow[] {
 }
 
 export function InfrastructureAccessCard({ geodata }: { geodata: GeodataResult | null }) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Site development" title="Infrastructure access" loading={true} />
+    );
+  }
 
   const rows = buildRows(geodata);
   const sources = [

@@ -103,15 +103,30 @@ function circlePolygon(
 }
 
 function formatDistance(metres: number): string {
-  return metres >= 1000
-    ? `${(metres / 1000).toFixed(2)} km`
-    : `${metres.toFixed(0)} m`;
+  const km = metres / 1000;
+  const mi = km * 0.621371;
+  return `${mi.toFixed(2)} mi / ${km.toFixed(2)} km`;
 }
 
 function formatArea(sqm: number): string {
-  return sqm >= 1_000_000
-    ? `${(sqm / 1_000_000).toFixed(2)} km²`
-    : `${sqm.toFixed(0)} m²`;
+  const acres = sqm * 0.000247105;
+  const ha = sqm / 10_000;
+  const km2 = sqm / 1_000_000;
+  if (km2 >= 1) return `${acres.toFixed(1)} ac / ${ha.toFixed(1)} ha / ${km2.toFixed(2)} km²`;
+  return `${acres.toFixed(2)} ac / ${ha.toFixed(2)} ha`;
+}
+
+function bearingDegrees(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLng = toRad(b.lng - a.lng);
+  const y = Math.sin(dLng) * Math.cos(toRad(b.lat));
+  const x = Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) - Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(dLng);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+const CARDINAL = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+function bearingDisplay(deg: number): string {
+  return `${Math.round(deg).toString().padStart(3, "0")}° ${CARDINAL[Math.round(deg / 45) % 8]}`;
 }
 
 // ── Render persisted shapes ───────────────────────────────────────────────────
@@ -546,6 +561,7 @@ export function useGlobeDrawing({
           if (verts.length < 3) return;
           const ring = [...verts.map((v) => [v.lng, v.lat] as [number, number]), [verts[0].lng, verts[0].lat] as [number, number]];
           let areaLabel = "";
+          let measurement: DrawnShape["measurement"];
           let metrics: DrawnShape["metrics"] | undefined;
           try {
             const polygon = turf.polygon([ring]);
@@ -553,13 +569,16 @@ export function useGlobeDrawing({
             const perimeterKm = turf.length(turf.lineString(ring), { units: "kilometers" });
             const areaSqKm = sqm / 1_000_000;
             const areaAcres = sqm * 0.000247105;
-            metrics = {
-              areaSqKm,
-              areaAcres,
-              perimeterKm,
-              perimeterMiles: perimeterKm * 0.621371,
+            const areaHa = sqm / 10_000;
+            const areaMi2 = areaSqKm * 0.386102;
+            const perimeterMi = perimeterKm * 0.621371;
+            metrics = { areaSqKm, areaAcres, perimeterKm, perimeterMiles: perimeterMi };
+            areaLabel = formatArea(sqm);
+            measurement = {
+              kind: "area", value: areaAcres, unit: "acres", display: areaLabel,
+              areaHa, areaKm2: areaSqKm, areaAcres, areaMi2,
+              perimeterKm, perimeterMi,
             };
-            areaLabel = `${areaAcres.toFixed(1)} ac • ${formatArea(sqm)}`;
           } catch {
             areaLabel = `${verts.length} pts`;
           }
@@ -568,6 +587,7 @@ export function useGlobeDrawing({
             type: "polygon",
             coordinates: verts,
             measurementLabel: areaLabel,
+            measurement,
             metrics,
             color: toolColor,
           });
@@ -635,11 +655,20 @@ export function useGlobeDrawing({
           } else {
             const start = firstPointRef.current;
             const metres = haversineMetres(start, latlng);
+            const km = metres / 1000;
+            const mi = km * 0.621371;
+            const deg = bearingDegrees(start, latlng);
+            const distLabel = formatDistance(metres);
+            const bDisplay = bearingDisplay(deg);
             onShapeComplete({
               id: crypto.randomUUID(),
               type: "measure",
               coordinates: [start, latlng],
-              measurementLabel: formatDistance(metres),
+              measurementLabel: `${distLabel} · ${bDisplay}`,
+              measurement: {
+                kind: "distance", value: mi, unit: "miles", display: distLabel,
+                distanceKm: km, distanceMi: mi, bearingDeg: deg, bearingDisplay: bDisplay,
+              },
               color: toolColor,
             });
           }
@@ -698,14 +727,18 @@ export function useGlobeDrawing({
               turf.point([latlng.lng, latlng.lat]),
               { units: "kilometers" },
             );
+            const radiusMi = radiusKm * 0.621371;
+            const radiusLabel = `${radiusMi.toFixed(2)} mi / ${radiusKm.toFixed(2)} km radius`;
             onShapeComplete({
               id: crypto.randomUUID(),
               type: "circle",
               coordinates: [center, latlng],
-              measurementLabel: formatRadiusLabel(radiusKm),
-              metrics: {
-                radiusKm,
+              measurementLabel: radiusLabel,
+              measurement: {
+                kind: "distance", value: radiusMi, unit: "miles", display: radiusLabel,
+                distanceKm: radiusKm, distanceMi: radiusMi,
               },
+              metrics: { radiusKm },
               color: toolColor,
             });
           }

@@ -1,654 +1,677 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { ComponentType, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   ArrowRight,
-  Building2,
   Check,
-  ChevronDown,
   Compass,
-  Database,
-  Factory,
+  FlaskConical,
   Globe2,
   HelpCircle,
-  House,
   Layers,
-  LineChart,
+  Leaf,
   Loader2,
   Map,
-  Route,
+  Navigation,
+  Pin,
   ShieldAlert,
+  ShieldCheck,
   Target,
   Trees,
+  Zap,
 } from "lucide-react";
-import { LandingUseCase } from "@/types";
-import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
+import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { getCurrentCoordinates } from "@/lib/cesium-search";
-import { EXPLORER_LENSES } from "@/lib/explorer-lenses";
 import { LANDING_WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
-import { buildExploreHref, LANDING_USE_CASES } from "@/lib/landing";
+import { ExplorerLens, EXPLORER_LENSES } from "@/lib/explorer-lenses";
+import { buildExploreHref } from "@/lib/landing";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Footer } from "./Footer";
 
-const ICONS = {
-  House,
-  Trees,
-  Route,
-  Building2,
-  LineChart,
-  ShieldAlert,
-  Globe2,
-  Factory,
+const LANDING_WALKTHROUGH_STORAGE_KEY = "geosight-landing-walkthrough-seen";
+
+const ICONS: Record<string, ComponentType<{ className?: string; size?: number }>> = {
   Target,
-  Compass,
+  Trees,
   Map,
   Layers,
-} as const;
+  Compass,
+  Zap,
+  Leaf,
+  ShieldAlert,
+  FlaskConical,
+  Globe2,
+};
 
-const FEATURED_USE_CASE_IDS = ["home-buying", "market-analysis", "infrastructure"] as const;
-const HERO_STATS = [
-  "35+ Live Data Sources",
-  "23 Analysis Cards",
-  "5 Mission Lenses",
-  "7 Hazard Domains",
-  "5 Drawing Tools",
-] as const;
+const LENS_COLORS: Record<string, string> = {
+  "hunt-planner": "#fb923c",
+  "trail-scout": "#34d399",
+  "road-trip": "#60a5fa",
+  "land-quick-check": "#a78bfa",
+  "general-explore": "#00e5ff",
+  "energy-solar": "#f59e0b",
+  agriculture: "#22c55e",
+  "emergency-response": "#ef4444",
+  "field-research": "#8b5cf6",
+};
 
-const WHAT_GEOSIGHT_DOES = [
-  {
-    title: "Multi-Source Intelligence",
-    description: "35+ live data sources aggregated in seconds so every place starts with evidence, not guesswork.",
-    Icon: Database,
-  },
-  {
-    title: "Mission-Driven Scoring",
-    description: "The same location can tell a very different story depending on the lens you choose and the factors you weight.",
-    Icon: Target,
-  },
-  {
-    title: "Transparent Trust",
-    description: "Every signal is labeled with source freshness, coverage, and confidence so you can see what is direct, derived, or limited.",
-    Icon: ShieldAlert,
-  },
-] as const;
+const TRUST_SOURCES = ["USGS", "NOAA", "NASA FIRMS", "FEMA", "Sentinel-2", "OpenStreetMap"];
 
-const POWERED_BY_PROVIDERS = [
-  "USGS",
-  "NOAA",
-  "NASA",
-  "OpenStreetMap",
-  "FEMA",
-  "EPA",
-  "NRCS",
-  "Open-Meteo",
-] as const;
+const LOCATION_SUGGESTIONS = [
+  "Olympic National Park, WA",
+  "Boulder, CO",
+  "Marin County, CA",
+  "Austin, TX",
+];
 
-function getIcon(iconName: string) {
-  return ICONS[iconName as keyof typeof ICONS] ?? Globe2;
+function getLensIcon(iconName: string) {
+  return ICONS[iconName] ?? Globe2;
 }
 
-function UseCaseCard({
-  useCase,
-  active,
-  onSelect,
-}: {
-  useCase: LandingUseCase;
-  active: boolean;
-  onSelect: (useCaseId: string) => void;
-}) {
-  const Icon = getIcon(useCase.icon);
+function getLensColor(lensId: string) {
+  return LENS_COLORS[lensId] ?? "var(--accent)";
+}
 
+// ── Stepper dot ───────────────────────────────────────────────────────────────
+
+interface StepDotProps {
+  n: number;
+  label: string;
+  active: boolean;
+  done: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}
+
+function StepDot({ n, label, active, done, disabled, onClick }: StepDotProps) {
   return (
     <button
       type="button"
-      onClick={() => onSelect(useCase.id)}
-      className="relative rounded-[1.35rem] border p-4 text-left transition duration-300"
-      style={{
-        borderColor: active ? `${useCase.accentColor}55` : "var(--border-soft)",
-        background: active ? `${useCase.accentColor}16` : "var(--surface-raised)",
-        boxShadow: active ? `0 0 0 2px ${useCase.accentColor}22, var(--shadow-soft)` : undefined,
-      }}
-      role="radio"
-      aria-checked={active}
+      onClick={onClick}
+      disabled={disabled}
+      aria-current={active ? "step" : undefined}
+      className="inline-flex items-center gap-2.5 rounded-full px-1 py-1 transition disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {active ? (
-        <span
-          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border"
-          style={{
-            borderColor: `${useCase.accentColor}44`,
-            background: `${useCase.accentColor}1e`,
-            color: useCase.accentColor,
-          }}
-          aria-hidden="true"
-        >
-          <Check className="h-4 w-4" />
-        </span>
-      ) : null}
-      <div className="flex min-w-0 items-start gap-3">
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-          style={{
-            borderColor: active ? `${useCase.accentColor}40` : "var(--border-soft)",
-            background: active ? `${useCase.accentColor}18` : "var(--surface-soft)",
-            color: useCase.accentColor,
-          }}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="line-clamp-2 text-sm font-semibold text-[var(--foreground)]">
-            {useCase.title}
-          </div>
-          <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--muted-foreground)]">
-            {useCase.description}
-          </p>
-        </div>
-      </div>
+      <span
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold tabular-nums transition"
+        style={{
+          background: active ? "var(--accent)" : done ? "var(--surface-panel)" : "var(--surface-soft)",
+          borderColor: active ? "var(--accent)" : done ? "var(--accent-strong)" : "var(--border-strong)",
+          color: active ? "var(--accent-foreground)" : done ? "var(--accent)" : "var(--muted-foreground)",
+        }}
+      >
+        {done ? <Check className="h-3 w-3" /> : n}
+      </span>
+      <span
+        className="pr-2 text-xs font-medium"
+        style={{ color: active ? "var(--foreground)" : "var(--muted-foreground)" }}
+      >
+        {label}
+      </span>
     </button>
   );
 }
 
-const LANDING_WALKTHROUGH_STORAGE_KEY = "geosight-landing-walkthrough-seen";
+// ── Lens card grid ────────────────────────────────────────────────────────────
+
+function LensGrid({
+  lenses,
+  selectedId,
+  onSelect,
+}: {
+  lenses: ExplorerLens[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div
+      className="grid gap-3"
+      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
+    >
+      {lenses.map((lens) => {
+        const Icon = getLensIcon(lens.icon);
+        const color = getLensColor(lens.id);
+        const selected = selectedId === lens.id;
+        return (
+          <button
+            key={lens.id}
+            type="button"
+            onClick={() => onSelect(lens.id)}
+            aria-pressed={selected}
+            className="grid text-left transition duration-150 hover:-translate-y-px"
+            style={{
+              gridTemplateColumns: "36px 1fr",
+              gridTemplateRows: "auto auto",
+              gap: "4px 14px",
+              padding: "18px",
+              background: "var(--surface-panel)",
+              border: `1px solid ${selected ? color : "var(--border-soft)"}`,
+              borderRadius: "12px",
+              boxShadow: selected ? `0 0 0 3px color-mix(in srgb, ${color} 15%, transparent)` : undefined,
+            }}
+          >
+            <span
+              className="flex h-9 w-9 items-center justify-center rounded-lg"
+              style={{ color, background: `color-mix(in srgb, ${color} 15%, transparent)` }}
+            >
+              <Icon size={18} />
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold leading-tight" style={{ color: "var(--foreground)" }}>
+                {lens.label}
+              </span>
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                {lens.tagline}
+              </span>
+            </div>
+            {lens.factors && lens.factors.length > 0 && (
+              <div className="col-span-2 mt-2.5 flex flex-wrap gap-1.5">
+                {lens.factors.slice(0, 5).map((f) => (
+                  <span
+                    key={f}
+                    className="whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px]"
+                    style={{
+                      background: "var(--surface-soft)",
+                      color: "var(--muted-foreground)",
+                      borderColor: "var(--border-soft)",
+                    }}
+                  >
+                    {f}
+                  </span>
+                ))}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Trust strip ───────────────────────────────────────────────────────────────
+
+function TrustStrip() {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-4"
+      style={{ borderColor: "var(--border-soft)" }}
+    >
+      <span className="eyebrow">Data provenance</span>
+      {TRUST_SOURCES.map((src) => (
+        <span
+          key={src}
+          className="inline-flex items-center gap-1 text-xs"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          <ShieldCheck className="h-3 w-3" style={{ color: "var(--accent)" }} />
+          {src}
+        </span>
+      ))}
+      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+        +34 sources
+      </span>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function LandingPage() {
   const router = useRouter();
   const { setUiContext } = useAgentPanel();
-  const step2Ref = useRef<HTMLDivElement | null>(null);
-  const explorerStep2Ref = useRef<HTMLDivElement | null>(null);
-  const [selectedUseCaseId, setSelectedUseCaseId] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [selectedLensId, setSelectedLensId] = useState<string | null>(null);
   const [locationQuery, setLocationQuery] = useState("");
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const featuredUseCases = useMemo(
-    () =>
-      FEATURED_USE_CASE_IDS.map((useCaseId) =>
-        LANDING_USE_CASES.find((useCase) => useCase.id === useCaseId),
-      ).filter((useCase): useCase is LandingUseCase => Boolean(useCase)),
-    [],
-  );
-  const additionalUseCases = useMemo(
-    () =>
-      LANDING_USE_CASES.filter(
-        (useCase) =>
-          !FEATURED_USE_CASE_IDS.includes(
-            useCase.id as (typeof FEATURED_USE_CASE_IDS)[number],
-          ),
-      ),
-    [],
-  );
-  const selectedUseCase = useMemo(
-    () =>
-      selectedUseCaseId
-        ? LANDING_USE_CASES.find((useCase) => useCase.id === selectedUseCaseId) ?? null
-        : null,
-    [selectedUseCaseId],
-  );
-
-  useEffect(() => {
-    setUiContext({
-      activeProfile: selectedUseCase?.profileId,
-      visiblePrimaryCardId: null,
-      visibleWorkspaceCardIds: [],
-      visibleControlCount: selectedUseCase ? 8 : 5,
-      visibleTextBlockCount: selectedUseCase ? 7 : 6,
-      shellMode: "minimal",
-      locationSelected: false,
-      geodataLoaded: false,
-      geodataLoading: false,
-      reportOpen: false,
-    });
-  }, [selectedUseCase?.profileId, selectedUseCase, setUiContext]);
-
-  useEffect(() => {
-    if (!selectedUseCase || !step2Ref.current) {
-      return;
-    }
-
-    step2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [selectedUseCase]);
-
-  useEffect(() => {
-    if (!selectedUseCaseId?.startsWith("explorer-") || !explorerStep2Ref.current) {
-      return;
-    }
-
-    explorerStep2Ref.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [selectedUseCaseId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.localStorage.getItem(LANDING_WALKTHROUGH_STORAGE_KEY) === "true") return;
-    const timeout = window.setTimeout(() => setWalkthroughOpen(true), 600);
-    return () => window.clearTimeout(timeout);
-  }, []);
-
-  const dismissLandingWalkthrough = useCallback(() => {
+  const dismissWalkthrough = useCallback(() => {
     setWalkthroughOpen(false);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LANDING_WALKTHROUGH_STORAGE_KEY, "true");
     }
   }, []);
 
-  const handleSelectUseCase = (useCaseId: string) => {
-    const nextUseCase =
-      LANDING_USE_CASES.find((useCase) => useCase.id === useCaseId) ?? null;
-    setSelectedUseCaseId(useCaseId);
-    setError(null);
-    setLocationQuery(nextUseCase?.suggestedQuery ?? "");
-  };
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(LANDING_WALKTHROUGH_STORAGE_KEY) === "true") return;
+    const timeout = window.setTimeout(() => setWalkthroughOpen(true), 900);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
-  const handleRouteToExplore = (nextLocationQuery?: string) => {
-    if (!selectedUseCase) {
-      setError("Choose a mission lens before opening GeoSight.");
-      return;
-    }
+  const selectedLens = useMemo(
+    () => (selectedLensId ? EXPLORER_LENSES.find((l) => l.id === selectedLensId) : null) ?? null,
+    [selectedLensId],
+  );
 
-    const href = buildExploreHref({
-      profileId: selectedUseCase.profileId,
-      locationQuery: nextLocationQuery || undefined,
-      entrySource: "landing",
-      appMode: "pro",
+  useEffect(() => {
+    setUiContext({
+      activeProfile: selectedLens?.profileId ?? EXPLORER_LENSES[0].profileId,
+      visiblePrimaryCardId: null,
+      visibleWorkspaceCardIds: [],
+      visibleControlCount: 5,
+      visibleTextBlockCount: 4,
+      shellMode: "minimal",
+      locationSelected: false,
+      geodataLoaded: false,
+      geodataLoading: false,
+      reportOpen: false,
     });
+  }, [selectedLens?.profileId, setUiContext]);
 
-    router.push(href);
+  const handleSelectLens = (lensId: string) => {
+    setSelectedLensId(lensId);
+    setTimeout(() => setStep(2), 180);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-
-    if (!selectedUseCase) {
-      setError("Choose a mission lens to unlock the next step.");
+  const handleSubmitLocation = () => {
+    if (locationQuery.trim().length < 2) {
+      setLocationError("Enter a place, address, or coordinates.");
       return;
     }
+    setLocationError(null);
+    setStep(3);
+  };
 
-    if (!locationQuery.trim()) {
-      setError("Enter a city, ZIP code, coordinates, or region to continue.");
-      return;
-    }
-
+  const handleLaunch = () => {
+    if (!selectedLens) return;
     setSubmitting(true);
-    handleRouteToExplore(locationQuery.trim());
+    router.push(
+      buildExploreHref({
+        profileId: selectedLens.profileId,
+        locationQuery: locationQuery.trim(),
+        entrySource: "landing",
+        appMode: "explorer",
+        lensId: selectedLens.id,
+      }),
+    );
   };
 
   const handleUseCurrentLocation = async () => {
-    setError(null);
-
-    if (!selectedUseCase) {
-      setError("Choose a mission lens before using your current location.");
-      return;
-    }
-
+    setLocationError(null);
     setLocating(true);
-
     try {
       const coords = await getCurrentCoordinates();
-      handleRouteToExplore(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+      const coordString = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+      setLocationQuery(coordString);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to read your current location.");
+      setLocationError(err instanceof Error ? err.message : "Unable to read your location.");
     } finally {
       setLocating(false);
     }
   };
 
+  const stepFillPct1 = Math.min(100, (step - 1) * 50);
+  const stepFillPct2 = Math.min(100, (step - 2) * 100);
+  const lensColor = selectedLens ? getLensColor(selectedLens.id) : "var(--accent)";
+  const SelectedLensIcon = selectedLens ? getLensIcon(selectedLens.icon) : Globe2;
+
   return (
-    <main id="main-content" className="min-h-screen px-4 py-4 md:px-6">
-      <div className="mx-auto max-w-[1520px] space-y-6">
-        {/* Explorer hero */}
-        <section className="glass-panel relative overflow-hidden rounded-[2.5rem] p-5 md:p-7 lg:p-8">
-          <div className="hero-orbit right-[-4rem] top-[-3rem]" />
-          <div className="hero-orbit bottom-[-6rem] left-[-5rem]" />
-
-          <div className="relative flex items-center justify-between">
-            <div className="eyebrow text-[var(--accent)]">GeoSight</div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/explore?mode=pro"
-                className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
-              >
-                For professionals →
-              </Link>
-              <button
-                type="button"
-                onClick={() => setWalkthroughOpen(true)}
-                className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
-                aria-label="Start guided tour"
-              >
-                <HelpCircle className="h-3.5 w-3.5" />
-                Tour
-              </button>
-              <ThemeToggle compact />
-            </div>
-          </div>
-
-          <div className="relative mt-8 space-y-6">
-            <div className="space-y-3 text-center">
-              <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-6xl">
-                See any place clearly.
-              </h1>
-              <p className="mx-auto max-w-2xl text-sm leading-7 text-[var(--foreground-soft)] sm:text-base">
-                GeoSight turns maps, hazards, climate, infrastructure, and trust signals into a single spatial intelligence workspace.
-              </p>
-              <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 pt-2">
-                {HERO_STATS.map((stat) => (
-                  <span
-                    key={stat}
-                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)]"
-                  >
-                    {stat}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <h2 className="text-center text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
-              STEP 1 — CHOOSE A LENS
-            </h2>
-            <div role="radiogroup" aria-label="Analysis lens" data-walkthrough="landing-lens-grid" className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {EXPLORER_LENSES.map((lens) => {
-                const Icon = getIcon(lens.icon);
-                const isActive = selectedUseCaseId === `explorer-${lens.id}`;
-                return (
-                  <button
-                    key={lens.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedUseCaseId(`explorer-${lens.id}`);
-                      setError(null);
-                      setLocationQuery("");
-                    }}
-                    className="relative rounded-[1.35rem] border p-4 text-left transition duration-300"
-                    style={{
-                      borderColor: isActive ? "#00e5ff55" : "var(--border-soft)",
-                      background: isActive ? "#00e5ff16" : "var(--surface-raised)",
-                      boxShadow: isActive ? "0 0 0 2px #00e5ff22, var(--shadow-soft)" : undefined,
-                    }}
-                    role="radio"
-                    aria-checked={isActive}
-                  >
-                    {isActive && (
-                      <span
-                        className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border"
-                        style={{
-                          borderColor: "#00e5ff44",
-                          background: "#00e5ff1e",
-                          color: "#00e5ff",
-                        }}
-                        aria-hidden="true"
-                      >
-                        <Check className="h-4 w-4" />
-                      </span>
-                    )}
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-                        style={{
-                          borderColor: isActive ? "#00e5ff40" : "var(--border-soft)",
-                          background: isActive ? "#00e5ff18" : "var(--surface-soft)",
-                          color: "#00e5ff",
-                        }}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-[var(--foreground)]">
-                          {lens.label}
-                        </div>
-                        <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
-                          {lens.tagline}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Location entry — always visible, dimmed until a lens is selected */}
-            <div ref={explorerStep2Ref} className="mx-auto max-w-xl">
-              <h2 className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] mb-2">
-                STEP 2 — ENTER A LOCATION
-              </h2>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setError(null);
-                  if (!selectedUseCaseId?.startsWith("explorer-")) {
-                    setError("Choose a lens above before searching for a location.");
-                    return;
-                  }
-                  if (!locationQuery.trim()) {
-                    setError("Enter a city, address, or coordinates to continue.");
-                    return;
-                  }
-                  const lensId = selectedUseCaseId.replace("explorer-", "");
-                  const lens = EXPLORER_LENSES.find((l) => l.id === lensId);
-                  if (!lens) return;
-                  setSubmitting(true);
-                  router.push(
-                    buildExploreHref({
-                      profileId: lens.profileId,
-                      locationQuery: locationQuery.trim() || undefined,
-                      entrySource: "landing",
-                      appMode: "explorer",
-                      lensId: lens.id,
-                    }),
-                  );
-                }}
-                className="space-y-4"
-              >
-                {/* Input row — dimmed and non-interactive until a lens is chosen */}
-                <div data-walkthrough="landing-location-input" className={`transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
-                  <Input
-                    value={locationQuery}
-                    onChange={(e) => setLocationQuery(e.target.value)}
-                    placeholder="City, region, or coordinates…"
-                    aria-label="Enter a city, region, or coordinates"
-                    className="h-12 rounded-[1.5rem]"
-                    autoFocus={Boolean(selectedUseCaseId?.startsWith("explorer-"))}
-                  />
-                </div>
-                {/* Button row — always interactive so users get feedback if they skip Step 1 */}
-                <div className={`flex gap-3 transition-opacity duration-200 ${selectedUseCaseId?.startsWith("explorer-") ? "opacity-100" : "opacity-60"}`}>
-                  <Button type="submit" data-walkthrough="landing-explore-button" className="h-12 flex-1 rounded-full" disabled={submitting}>
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Explore this place
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-12 rounded-full"
-                    onClick={async () => {
-                      setError(null);
-                      if (!selectedUseCaseId?.startsWith("explorer-")) {
-                        setError("Choose a lens above before using your location.");
-                        return;
-                      }
-                      setLocating(true);
-                      try {
-                        const coords = await getCurrentCoordinates();
-                        setLocationQuery(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
-                      } catch (err) {
-                        setError(
-                          err instanceof Error ? err.message : "Unable to read your location.",
-                        );
-                      } finally {
-                        setLocating(false);
-                      }
-                    }}
-                    disabled={locating}
-                  >
-                    {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Use my location
-                  </Button>
-                </div>
-                {error ? (
-                  <div className="rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
-                    {error}
-                  </div>
-                ) : null}
-              </form>
-            </div>
-          </div>
-        </section>
-
-        <section className="glass-panel rounded-[2rem] p-5 md:p-6">
-          <div className="space-y-2">
-            <div className="eyebrow">What GeoSight does</div>
-            <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-              Spatial intelligence that stays grounded in evidence
-            </h2>
-            <p className="max-w-3xl text-sm leading-7 text-[var(--muted-foreground)]">
-              GeoSight is built to help people move from a place name to a defensible first-pass decision without needing a GIS workstation.
-            </p>
-          </div>
-
-          <div className="mt-5 grid gap-3 lg:grid-cols-3">
-            {WHAT_GEOSIGHT_DOES.map(({ title, description, Icon }) => (
-              <div
-                key={title}
-                className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-5 shadow-[var(--shadow-soft)]"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-[var(--foreground)]">{title}</h3>
-                <p className="mt-2 text-sm leading-7 text-[var(--muted-foreground)]">
-                  {description}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="eyebrow">Powered by</div>
-                <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-                  Public geospatial and environmental data providers that keep the analysis grounded in live or official context.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {POWERED_BY_PROVIDERS.map((provider) => (
-                  <span
-                    key={provider}
-                    className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)]"
-                  >
-                    {provider}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Pro / analyst section */}
-        <section className="glass-panel rounded-[2rem] p-5 md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <div className="eyebrow">Professional tools</div>
-              <h2 className="text-2xl font-semibold text-[var(--foreground)]">
-                For analysts, planners, and site teams
-              </h2>
-              <p className="max-w-2xl text-sm leading-7 text-[var(--muted-foreground)]">
-                Factor scoring, source awareness, and full data provenance.
-              </p>
-            </div>
-            <Link
-              href="/explore?mode=pro"
-              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-raised)]"
-            >
-              Open Pro workspace
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredUseCases.map((useCase) => (
-              <UseCaseCard
-                key={useCase.id}
-                useCase={useCase}
-                active={useCase.id === selectedUseCaseId}
-                onSelect={handleSelectUseCase}
+    <div
+      className="flex min-h-screen flex-col overflow-y-auto"
+      style={{
+        background: `radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%), var(--background)`,
+      }}
+    >
+      {/* Sticky topbar */}
+      <header
+        className="sticky top-0 z-30 flex items-center justify-between border-b px-8 py-4 backdrop-blur-md"
+        style={{
+          borderColor: "var(--border-soft)",
+          background: "color-mix(in srgb, var(--background) 90%, transparent)",
+        }}
+      >
+        <div className="flex items-center gap-2.5">
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-lg border"
+            style={{ borderColor: "var(--border-soft)", background: "var(--surface-panel)", color: "var(--accent)" }}
+            aria-hidden="true"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M3 12h18M12 3c2.5 3 3.8 6 3.8 9s-1.3 6-3.8 9c-2.5-3-3.8-6-3.8-9s1.3-6 3.8-9z"
+                stroke="currentColor"
+                strokeWidth="1.5"
               />
-            ))}
-          </div>
+              <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+            </svg>
+          </span>
+          <span className="text-base font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>
+            GeoSight
+          </span>
+          <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+            spatial intelligence
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setWalkthroughOpen(true)}
+            aria-label="Open guided tour"
+            className="inline-flex items-center gap-1 text-xs transition"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            Tour
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/explore?mode=pro")}
+            className="inline-flex items-center gap-1 text-xs transition"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            For professionals
+            <ArrowRight className="h-3 w-3" />
+          </button>
+          <ThemeToggle compact />
+        </div>
+      </header>
 
-          {selectedUseCase && !selectedUseCaseId?.startsWith("explorer-") ? (
-            <div ref={step2Ref} className="step2-appear mt-5 rounded-[1.5rem]">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <div className="eyebrow">Step 2</div>
-                  <h3 className="text-xl font-semibold text-[var(--foreground)]">
-                    Focus a place with the {selectedUseCase.title.toLowerCase()} lens
-                  </h3>
-                  <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                    Suggested start: {selectedUseCase.suggestedQuery}
-                  </p>
-                </div>
-                <Input
-                  value={locationQuery}
-                  onChange={(event) => setLocationQuery(event.target.value)}
-                  placeholder={selectedUseCase.suggestedQuery}
-                  className="h-12 rounded-[1.5rem]"
-                />
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button type="submit" className="h-12 flex-1 rounded-full" disabled={submitting}>
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Open Pro workspace
-                  </Button>
-                  <Button
+      {/* Main content */}
+      <main
+        id="main-content"
+        className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-8 pb-12 pt-16"
+      >
+        {/* Hero */}
+        <div className="max-w-2xl">
+          <h1 className="mb-5 text-5xl font-medium leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
+            Ground truth for any place,{" "}
+            <span style={{ color: "var(--muted-foreground)" }}>in under a minute.</span>
+          </h1>
+          <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+            GeoSight pulls signals from 40+ authoritative datasets and synthesizes them through the lens of your work. Start by choosing one.
+          </p>
+        </div>
+
+        {/* Stepper */}
+        <div
+          className="flex w-fit items-center gap-3 rounded-xl border px-5 py-4"
+          role="group"
+          aria-label="Set up your analysis"
+          style={{ background: "var(--surface-panel)", borderColor: "var(--border-soft)" }}
+        >
+          <StepDot n={1} label="Choose a lens" active={step === 1} done={step > 1} onClick={() => setStep(1)} />
+          {/* Rail 1 */}
+          <div className="h-0.5 min-w-8 max-w-20 flex-1 overflow-hidden rounded-full" style={{ background: "var(--border-soft)" }}>
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${stepFillPct1}%`, background: "var(--accent)" }}
+            />
+          </div>
+          <StepDot
+            n={2}
+            label="Pick a place"
+            active={step === 2}
+            done={step > 2}
+            disabled={!selectedLensId}
+            onClick={() => selectedLensId && setStep(2)}
+          />
+          {/* Rail 2 */}
+          <div className="h-0.5 min-w-8 max-w-20 flex-1 overflow-hidden rounded-full" style={{ background: "var(--border-soft)" }}>
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${stepFillPct2}%`, background: "var(--accent)" }}
+            />
+          </div>
+          <StepDot
+            n={3}
+            label="Review & launch"
+            active={step === 3}
+            done={false}
+            disabled={step < 3}
+            onClick={() => step >= 3 && setStep(3)}
+          />
+        </div>
+
+        {/* Step panels */}
+        <section aria-live="polite" className="min-h-72">
+          {/* ── Step 1: Choose lens ── */}
+          {step === 1 && (
+            <LensGrid
+              lenses={EXPLORER_LENSES}
+              selectedId={selectedLensId}
+              onSelect={handleSelectLens}
+            />
+          )}
+
+          {/* ── Step 2: Pick location ── */}
+          {step === 2 && selectedLens && (
+            <div className="flex max-w-2xl flex-col gap-5">
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="location-input"
+                  className="text-lg font-semibold"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  Where should we analyze?
+                </label>
+                <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+                  Address, place name, lat/long, or drop a KML/GeoJSON. For the{" "}
+                  <strong>{selectedLens.label}</strong> lens.
+                </span>
+              </div>
+
+              <div className="flex gap-2.5">
+                <div
+                  className="flex min-h-12 flex-1 items-center gap-2.5 rounded-xl border px-4 transition focus-within:ring-2"
+                  style={{
+                    background: "var(--surface-panel)",
+                    borderColor: "var(--border-soft)",
+                    ["--tw-ring-color" as string]: "var(--accent-soft)",
+                  }}
+                >
+                  <Navigation className="h-4 w-4 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                  <input
+                    id="location-input"
+                    ref={inputRef}
+                    autoFocus
+                    value={locationQuery}
+                    onChange={(e) => { setLocationQuery(e.target.value); setLocationError(null); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSubmitLocation()}
+                    placeholder={`e.g. ${selectedLens.tagline.split(".")[0]}`}
+                    aria-describedby={locationError ? "location-error" : undefined}
+                    aria-invalid={!!locationError}
+                    className="flex-1 bg-transparent py-3 text-[15px] outline-none"
+                    style={{ color: "var(--foreground)" }}
+                  />
+                  <button
                     type="button"
-                    variant="secondary"
-                    className="h-12 rounded-full"
                     onClick={handleUseCurrentLocation}
                     disabled={locating}
+                    title="Use my current location"
+                    aria-label="Use my current location"
+                    className="flex h-8 w-8 items-center justify-center rounded-md transition hover:opacity-80 disabled:opacity-40"
+                    style={{ color: "var(--muted-foreground)" }}
                   >
-                    {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Use my location
-                  </Button>
+                    {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
+                  </button>
                 </div>
-              </form>
-              {error && !selectedUseCaseId?.startsWith("explorer-") ? (
-                <div className="mt-4 rounded-[1.35rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger-foreground)]">
-                  {error}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                <Button
+                  type="button"
+                  onClick={handleSubmitLocation}
+                  className="h-12 rounded-xl px-5"
+                >
+                  Continue <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Button>
+              </div>
 
-          <details className="group mt-4 rounded-[1.35rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-[var(--foreground)]">
-              <span>More Pro starting lenses</span>
-              <ChevronDown className="h-4 w-4 transition-transform duration-300 group-open:rotate-180" />
-            </summary>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {additionalUseCases.map((useCase) => (
-                <UseCaseCard
-                  key={useCase.id}
-                  useCase={useCase}
-                  active={useCase.id === selectedUseCaseId}
-                  onSelect={handleSelectUseCase}
-                />
-              ))}
+              {locationError && (
+                <div
+                  id="location-error"
+                  role="alert"
+                  className="flex w-fit items-center gap-1.5 rounded-lg border px-3 py-2 text-sm"
+                  style={{
+                    color: "var(--danger-foreground)",
+                    background: "var(--danger-soft)",
+                    borderColor: "var(--danger-border)",
+                  }}
+                >
+                  {locationError}
+                </div>
+              )}
+
+              {/* Suggestions */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="eyebrow mr-1">Try one</span>
+                {[selectedLens.tagline.split(",")[0], ...LOCATION_SUGGESTIONS].slice(0, 4).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => { setLocationQuery(s); setLocationError(null); }}
+                    className="rounded-full border px-2.5 py-1 text-xs transition"
+                    style={{
+                      background: "var(--surface-panel)",
+                      borderColor: "var(--border-soft)",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              {/* Nav */}
+              <div className="flex items-center justify-between pt-2">
+                <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                  <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back to lenses
+                </Button>
+              </div>
             </div>
-          </details>
+          )}
+
+          {/* ── Step 3: Review & launch ── */}
+          {step === 3 && selectedLens && (
+            <div className="flex max-w-2xl flex-col gap-5">
+              <div
+                className="flex flex-col gap-4 rounded-2xl border p-6"
+                style={{ background: "var(--surface-panel)", borderColor: "var(--border-soft)" }}
+              >
+                {/* Lens row */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="eyebrow">Lens</span>
+                  <div className="flex items-center gap-2.5 text-[15px]" style={{ color: "var(--foreground)" }}>
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-md"
+                      style={{ color: lensColor, background: `color-mix(in srgb, ${lensColor} 15%, transparent)` }}
+                    >
+                      <SelectedLensIcon size={13} />
+                    </span>
+                    <strong>{selectedLens.label}</strong>
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="ml-auto text-xs font-medium hover:underline"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+
+                {/* Location row */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="eyebrow">Location</span>
+                  <div className="flex items-center gap-2 text-[15px]" style={{ color: "var(--foreground)" }}>
+                    <Pin className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--muted-foreground)" }} />
+                    <strong>{locationQuery.trim()}</strong>
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="ml-auto text-xs font-medium hover:underline"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+
+                {/* Factors row */}
+                {selectedLens.factors && selectedLens.factors.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="eyebrow">You&apos;ll get</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedLens.factors.map((f) => (
+                        <span
+                          key={f}
+                          className="rounded-full border px-2.5 py-1 text-xs"
+                          style={{
+                            background: "var(--surface-soft)",
+                            borderColor: "var(--border-soft)",
+                            color: "var(--muted-foreground)",
+                          }}
+                        >
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Blurb */}
+                <p
+                  className="border-t pt-4 text-sm leading-relaxed"
+                  style={{ borderColor: "var(--border-soft)", color: "var(--muted-foreground)" }}
+                >
+                  {selectedLens.whyItMatters}
+                </p>
+              </div>
+
+              {/* Nav */}
+              <div className="flex items-center justify-between pt-2">
+                <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+                  <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleLaunch}
+                  disabled={submitting}
+                  size="lg"
+                  className="rounded-xl px-6"
+                >
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Launch workspace <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
 
-      </div>
+        {/* Trust strip */}
+        <TrustStrip />
+
+        {/* Pro link */}
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => router.push("/explore?mode=pro")}
+            className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs transition"
+            style={{
+              background: "var(--surface-soft)",
+              borderColor: "var(--border-soft)",
+              color: "var(--muted-foreground)",
+            }}
+          >
+            Open Pro workspace <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <Footer />
+      </main>
 
       <WalkthroughOverlay
         open={walkthroughOpen}
         steps={LANDING_WALKTHROUGH_STEPS}
-        onClose={dismissLandingWalkthrough}
+        onClose={dismissWalkthrough}
       />
-    </main>
+    </div>
   );
 }

@@ -39,7 +39,11 @@ function DomainRow({ domain }: { domain: HazardDomainScore }) {
 }
 
 export function MultiHazardResilienceCard({ geodata }: { geodata: GeodataResult | null }) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Hazard resilience" title="Multi-hazard resilience" loading={true} />
+    );
+  }
 
   const summary = buildHazardResilienceSummary(geodata);
   const overallStyle = TIER_STYLES[summary.tier];

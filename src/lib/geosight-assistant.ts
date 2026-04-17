@@ -1,5 +1,5 @@
 import { DEFAULT_PROFILE } from "@/lib/profiles";
-import { injectRagIntoMessages } from "@/lib/rag/inject";
+import { buildRagContext, injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import {
@@ -8,6 +8,7 @@ import {
   DataTrend,
   DataSourceMeta,
   GeodataResult,
+  LandCoverBucket,
   MissionProfile,
   NearbyPlace,
   ResultsMode,
@@ -197,6 +198,161 @@ export async function buildGeoSightMessagesWithRag(
     ],
     payload.question,
   );
+}
+
+function sanitizeConversationHistory(messages?: ConversationMessage[]) {
+  return (messages ?? [])
+    .filter((message): message is ConversationMessage => Boolean(message?.content?.trim()))
+    .map<CoreMessage>((message) => ({
+      role: message.role,
+      content: message.content.trim(),
+    }));
+}
+
+function removeDuplicatedTrailingUserMessage(
+  messages: CoreMessage[],
+  userQuestion: string,
+) {
+  const trimmedQuestion = userQuestion.trim();
+  if (!trimmedQuestion || !messages.length) {
+    return messages;
+  }
+
+  const nextMessages = [...messages];
+  const lastMessage = nextMessages.at(-1);
+  if (
+    lastMessage?.role === "user" &&
+    lastMessage.content.trim() === trimmedQuestion
+  ) {
+    nextMessages.pop();
+  }
+
+  return nextMessages;
+}
+
+function summarizeNearbyPlaces(nearbyPlaces?: NearbyPlace[]) {
+  if (!nearbyPlaces?.length) {
+    return "- No nearby-place context loaded.";
+  }
+
+  return nearbyPlaces.slice(0, 6).map(formatNearbyPlaceLine).join("\n");
+}
+
+function summarizeTrendLines(dataTrends?: DataTrend[]) {
+  if (!dataTrends?.length) {
+    return "- No structured trend objects loaded.";
+  }
+
+  return dataTrends.slice(0, 6).map(formatTrendLine).join("\n");
+}
+
+function summarizeClassification(classification?: LandCoverBucket[]) {
+  if (!classification?.length) {
+    return "- No land-classification summary loaded.";
+  }
+
+  return classification
+    .slice(0, 5)
+    .map((bucket) => `- ${bucket.label}: ${bucket.value}% (confidence ${bucket.confidence}%).`)
+    .join("\n");
+}
+
+function summarizeImageContext(imageSummary?: string) {
+  if (!imageSummary?.trim()) {
+    return "- No uploaded image summary is available for this request.";
+  }
+
+  return `- ${imageSummary.trim()}`;
+}
+
+type GroqContextBlockOptions = {
+  activeLensLabel?: string;
+  visibleLayers?: string[];
+  ragContext?: string;
+  extraContext?: string[];
+};
+
+export function buildGroqAnalysisContextBlock(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+  options: GroqContextBlockOptions = {},
+) {
+  const activeLensLabel = options.activeLensLabel?.trim() || profile.name;
+  const visibleLayers = options.visibleLayers?.filter((layer) => layer.trim()).join(", ");
+  const retrievedKnowledge = options.ragContext?.trim() || "No retrieved knowledge context.";
+  const supportedFacts = buildSupportedFacts(payload)
+    .slice(0, 22)
+    .map((fact) => `- ${fact}`)
+    .join("\n");
+  const extraContext = (options.extraContext ?? [])
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `- ${line}`)
+    .join("\n");
+
+  return `
+Active lens: ${activeLensLabel}
+Selected location: ${formatLocationLabel(payload)}
+Visible layers: ${visibleLayers || "Not provided in this request"}
+Results mode: ${inferResponseMode(payload.question, payload.resultsMode) === "nearby_places" ? "nearby places" : "analysis"}
+
+Retrieved knowledge:
+${retrievedKnowledge}
+
+Live location context:
+${supportedFacts || "- No live location context loaded."}
+
+Nearby place context:
+${summarizeNearbyPlaces(payload.nearbyPlaces)}
+
+Trend context:
+${summarizeTrendLines(payload.dataTrends)}
+
+Image context:
+${summarizeImageContext(payload.imageSummary)}
+
+Land classification:
+${summarizeClassification(payload.classification?.length ? payload.classification : payload.geodata?.landClassification)}
+${extraContext ? `\n\nAdditional context:\n${extraContext}` : ""}
+  `.trim();
+}
+
+export async function buildGroqAnalysisMessages(
+  payload: AnalyzeRequestBody,
+  profile: MissionProfile = DEFAULT_PROFILE,
+  options: Omit<GroqContextBlockOptions, "ragContext"> = {},
+): Promise<CoreMessage[]> {
+  const { prompt } = buildGeoSightSystemPrompt(payload, profile);
+  const conversationHistory = removeDuplicatedTrailingUserMessage(
+    sanitizeConversationHistory(payload.messages),
+    payload.question,
+  );
+
+  let ragContext = "";
+  try {
+    ragContext = await buildRagContext(payload.question);
+  } catch (error) {
+    console.warn("[RAG] Groq context assembly failed; continuing without RAG context.", error);
+  }
+
+  return [
+    {
+      role: "system",
+      content: prompt.trim(),
+    },
+    {
+      role: "system",
+      content: buildGroqAnalysisContextBlock(payload, profile, {
+        ...options,
+        ragContext,
+      }),
+    },
+    ...conversationHistory,
+    {
+      role: "user",
+      content: payload.question.trim(),
+    },
+  ];
 }
 
 function pickTopLandCover(geodata?: GeodataResult) {
@@ -459,8 +615,10 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
         : `Broadband context (FCC BroadbandMap, derived live): ${payload.geodata.broadband.providerCount} providers with up to ${payload.geodata.broadband.maxDownloadSpeed || "unknown"} Mbps down and ${payload.geodata.broadband.maxUploadSpeed || "unknown"} Mbps up.`
       : "Broadband context is currently unavailable.",
     payload.geodata?.floodZone
-      ? `FEMA flood zone (FEMA NFHL, derived live — US only): ${payload.geodata.floodZone.label}.`
-      : "FEMA flood-zone context is currently unavailable.",
+      ? payload.geodata.floodZone.source === "glofas"
+        ? `River discharge context (GloFAS via Open-Meteo, derived live — global): ${payload.geodata.floodZone.dischargeRiskLabel ?? "Unknown"} discharge — peak ${payload.geodata.floodZone.peakDischargeCms?.toFixed(0) ?? "unknown"} m³/s (7-day forecast). Scale: Low <50 / Moderate 50–500 / Significant 500–2,000 / Major >2,000 m³/s.`
+        : `FEMA flood zone (FEMA NFHL, derived live — US only): ${payload.geodata.floodZone.label}.`
+      : "Flood-zone or river-discharge context is currently unavailable.",
     nearestGauge
       ? `Nearest USGS stream gauge (USGS NWIS, direct live): ${nearestGauge.siteName} (${formatDistanceKm(nearestGauge.distanceKm, "unknown distance")}) reporting ${nearestGauge.dischargeCfs ?? "unknown"} cfs.`
       : "USGS stream-gauge context is currently unavailable.",
@@ -471,8 +629,10 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
         ? `OpenAQ station unavailable; Open-Meteo AQI is ${payload.geodata.climate.airQualityIndex}. (Open-Meteo, derived live)`
         : "Air-quality context is currently unavailable.",
     payload.geodata?.epaHazards
-      ? `EPA contamination screening (EPA ECHO/TRI, derived live — US only): ${payload.geodata.epaHazards.superfundCount} Superfund sites and ${payload.geodata.epaHazards.triCount} TRI facilities within roughly 50 km; nearest Superfund site ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
-      : "EPA contamination screening is currently unavailable.",
+      ? payload.geodata.epaHazards.source === "eea"
+        ? `EEA E-PRTR contamination screening (EEA industrial registry, derived live — EU/EEA): ${payload.geodata.epaHazards.superfundCount} registered industrial facilities within roughly 50 km; nearest facility ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
+        : `EPA contamination screening (EPA Envirofacts CERCLIS/TRI, derived live — US only): ${payload.geodata.epaHazards.superfundCount} Superfund sites and ${payload.geodata.epaHazards.triCount} TRI facilities within roughly 50 km; nearest Superfund site ${payload.geodata.epaHazards.nearestSuperfundName ?? "unknown"} at ${payload.geodata.epaHazards.nearestSuperfundDistanceKm ?? "unknown"} km.`
+      : "Contamination screening is currently unavailable.",
     payload.geodata?.hazards?.earthquakeCount30d !== null &&
     payload.geodata?.hazards?.earthquakeCount30d !== undefined
       ? `Recent seismic context (USGS FDSN, direct live): ${payload.geodata.hazards.earthquakeCount30d} earthquakes within 250 km over the last 30 days; strongest magnitude ${payload.geodata.hazards.strongestEarthquakeMagnitude30d ?? "unknown"}, nearest event ${payload.geodata.hazards.nearestEarthquakeKm ?? "unknown"} km away.`
@@ -496,7 +656,33 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
     topLandCover
       ? `Dominant land cover signal (ML classification, derived live): ${topLandCover.label} (${topLandCover.value}%).`
       : "Land cover is currently unavailable.",
-  ];
+    payload.geodata?.soilProfile &&
+    Object.values(payload.geodata.soilProfile).some((v) => v !== null)
+      ? `Soil profile (${payload.geodata.sources.soilProfile.provider}, derived live): drainage class ${payload.geodata.soilProfile.drainageClass ?? "unknown"}, hydrologic group ${payload.geodata.soilProfile.hydrologicGroup ?? "unknown"}, dominant texture ${payload.geodata.soilProfile.dominantTexture ?? "unknown"}${payload.geodata.soilProfile.mapUnitName ? ` (${payload.geodata.soilProfile.mapUnitName})` : ""}.`
+      : "Soil profile data is currently unavailable.",
+    payload.geodata?.seismicDesign &&
+    [payload.geodata.seismicDesign.ss, payload.geodata.seismicDesign.s1, payload.geodata.seismicDesign.pga].some((v) => v !== null)
+      ? `Seismic design parameters (USGS ASCE 7-22, direct live — US only): PGA ${payload.geodata.seismicDesign.pga?.toFixed(2) ?? "unknown"} g, Ss ${payload.geodata.seismicDesign.ss?.toFixed(2) ?? "unknown"} g, S1 ${payload.geodata.seismicDesign.s1?.toFixed(2) ?? "unknown"} g, site class ${payload.geodata.seismicDesign.siteClass ?? "unknown"}.`
+      : "USGS seismic design parameters are US-only; use the earthquake catalog seismicity context for non-US locations.",
+    payload.geodata?.climateHistory && payload.geodata.climateHistory.summaries.length > 0
+      ? (() => {
+          const ch = payload.geodata!.climateHistory!;
+          const delta =
+            ch.recentAvgTempC !== null && ch.baselineAvgTempC !== null
+              ? ch.recentAvgTempC - ch.baselineAvgTempC
+              : null;
+          return `Historical climate trend (Open-Meteo ERA5, derived live — 2015–2024): temperature trend is ${ch.trendDirection ?? "unknown"}${delta !== null ? ` (recent avg ${ch.recentAvgTempC?.toFixed(1)}°C vs baseline ${ch.baselineAvgTempC?.toFixed(1)}°C, Δ${delta > 0 ? "+" : ""}${delta.toFixed(1)}°C)` : ""}; ${ch.summaries.length} year summaries available.`;
+        })()
+      : "Historical climate trend data is currently unavailable.",
+    payload.geodata?.solarResource && payload.geodata.solarResource.annualGhiKwhM2Day !== null
+      ? `Solar resource (NASA POWER, direct live — global 22-year average): annual GHI ${payload.geodata.solarResource.annualGhiKwhM2Day.toFixed(2)} kWh/m²/day, peak sun hours ${payload.geodata.solarResource.peakSunHours?.toFixed(1) ?? "unknown"}, clearness index ${payload.geodata.solarResource.clearnessIndex?.toFixed(2) ?? "unknown"}.`
+      : "Solar resource data is currently unavailable.",
+    payload.geodata?.climate?.coolingDegreeDays !== null &&
+    payload.geodata?.climate?.coolingDegreeDays !== undefined &&
+    payload.geodata?.climate?.averageTempC !== null
+      ? `Thermal load context (Open-Meteo, derived live): average temperature ${payload.geodata.climate.averageTempC?.toFixed(1) ?? "unknown"}°C, cooling degree days ${payload.geodata.climate.coolingDegreeDays}, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h.`
+      : null,
+  ].filter((fact): fact is string => fact !== null);
 }
 
 function formatSourceConfidenceLine(source: DataSourceMeta | null | undefined) {

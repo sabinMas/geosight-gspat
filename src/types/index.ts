@@ -22,13 +22,21 @@ export type UseCaseType =
 export type ResultsMode = "analysis" | "nearby_places";
 export type DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle";
 
+/**
+ * Source of geometry for lens analyzers: a point location or a drawn geometry.
+ * Used by Phase 1 lens analyzers (src/lib/analysis/*) and their prompts.
+ */
+export type AnalysisInputMode = "location" | "geometry";
+
 export interface DrawnShape {
   id: string;
   type: Exclude<DrawingTool, "none">;
   coordinates: Array<{ lat: number; lng: number }>;
   label?: string;
   measurementLabel?: string;
+  measurement?: DrawnMeasurement;
   color: string;
+  radiusMeters?: number;
   metrics?: {
     areaSqKm?: number;
     areaAcres?: number;
@@ -166,7 +174,10 @@ export type AnalysisCapabilityId =
   | "hazard-stack"
   | "climate-trends"
   | "source-confidence"
-  | "tomography-context";
+  | "tomography-context"
+  | "infrastructure-cooling"
+  | "commercial-logistics"
+  | "site-readiness";
 export type AnalysisCapabilityTriggerMode = "auto_detected" | "user_triggered";
 export type AnalysisCapabilityOutputFormat =
   | "summary"
@@ -577,6 +588,8 @@ export interface FloodZoneResult {
   peakDischargeCms?: number | null;
   /** GloFAS only: qualitative tier — "Low" | "Moderate" | "Significant" | "Major" */
   dischargeRiskLabel?: string | null;
+  /** FEMA SFHA only: Base Flood Elevation in feet above NAVD88 (from NFHL layer 17) */
+  baseFloodElevationFt?: number | null;
 }
 
 export interface StreamGaugeResult {
@@ -606,6 +619,8 @@ export interface EPAHazardResult {
   triCount: number;
   nearestSuperfundName: string | null;
   nearestSuperfundDistanceKm: number | null;
+  /** "epa" for US EPA Envirofacts; "eea" for EEA E-PRTR industrial facilities */
+  source?: "epa" | "eea";
 }
 
 export interface HousingMarketSeriesPoint {
@@ -813,6 +828,10 @@ export interface SiteFactorScore {
   evidenceKind?: ScoreEvidenceKind;
   evidenceLabel?: string;
   evidenceExplanation?: string;
+  /** Source IDs that contributed to this factor. Optional — may be absent on older score objects. */
+  sourceIds?: string[];
+  sourceLastUpdated?: string;
+  proxyReason?: string;
 }
 
 export interface BroadbandScoreSummary {
@@ -908,4 +927,131 @@ export interface FireHistorySummary {
   hotYears: number[];
   totalDetections: number;
   yearsSearched: number;
+}
+
+// ---------------------------------------------------------------------------
+// Drawn geometry GeoJSON types (used by analysis-geometry.ts + lens analyzers)
+// ---------------------------------------------------------------------------
+import type { Feature, FeatureCollection, LineString, Point, Polygon } from "geojson";
+
+export type DrawnShapeType = Exclude<DrawingTool, "none">;
+
+export interface DrawnMeasurement {
+  kind: "distance" | "area";
+  value: number;
+  unit: "miles" | "acres";
+  display: string;
+  distanceKm?: number;
+  distanceMi?: number;
+  areaHa?: number;
+  areaKm2?: number;
+  areaAcres?: number;
+  areaMi2?: number;
+  perimeterKm?: number;
+  perimeterMi?: number;
+  bearingDeg?: number;
+  bearingDisplay?: string;
+}
+
+export interface DrawnGeometryProperties {
+  id: string;
+  label: string | null;
+  color: string;
+  shapeType: DrawnShapeType;
+  measurementLabel: string | null;
+  measurementKind: DrawnMeasurement["kind"] | null;
+  measurementUnit: DrawnMeasurement["unit"] | null;
+  measurementValue: number | null;
+  radiusMeters: number | null;
+}
+
+export type DrawnGeometry = Point | LineString | Polygon;
+export type DrawnGeometryFeature = Feature<DrawnGeometry, DrawnGeometryProperties>;
+export type DrawnGeometryFeatureCollection = FeatureCollection<DrawnGeometry, DrawnGeometryProperties>;
+
+// ---------------------------------------------------------------------------
+// Lens analysis types (used by /api/lens-analysis + useLensAnalysis)
+// ---------------------------------------------------------------------------
+export type AnalysisRiskLevel = "low" | "moderate" | "high";
+
+export interface AnalysisMetricRow {
+  id: string;
+  label: string;
+  value: string;
+  icon?: string;
+  detail?: string;
+  riskLevel?: AnalysisRiskLevel;
+  estimated?: boolean;
+}
+
+export interface LensAnalysisResult {
+  lens: string;
+  geometrySource: AnalysisInputMode;
+  title: string;
+  narrative: string | null;
+  metrics: AnalysisMetricRow[];
+  generatedAt: string;
+  attribution: string[];
+  details?: Record<string, unknown>;
+}
+
+export interface LensAnalysisRequestBody {
+  lensId: string;
+  geometrySource: AnalysisInputMode;
+  location: Coordinates | null;
+  locationName: string;
+  geometry: DrawnGeometryFeatureCollection;
+  selectedGeometryId?: string | null;
+  globeViewMode?: GlobeViewMode;
+  activeLayerLabels?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Custom user-added imagery layers (layer manager)
+// ---------------------------------------------------------------------------
+export type CustomLayerType = "wms" | "wmts" | "xyz";
+
+export interface CustomLayer {
+  id: string;
+  name: string;
+  type: CustomLayerType;
+  url: string;
+  wmsLayers?: string;
+  opacity: number;
+  visible: boolean;
+  order: number;
+}
+
+// ---------------------------------------------------------------------------
+// Feature inspector (identify mode) types
+// ---------------------------------------------------------------------------
+export interface IdentifyHit {
+  layerName: string;
+  featureType: "imagery" | "entity" | "drawn-shape" | "saved-site" | "fire" | "earthquake";
+  attributes: Record<string, string | number | boolean | null>;
+  coordinates: Coordinates | null;
+}
+
+export interface IdentifyResult {
+  clickCoordinates: Coordinates;
+  hits: IdentifyHit[];
+  timestamp: number;
+}
+
+// ---------------------------------------------------------------------------
+// Location tracking types
+// ---------------------------------------------------------------------------
+export interface UserLocationFix {
+  coordinates: Coordinates;
+  accuracyMeters: number | null;
+  headingDegrees: number | null;
+  speedMps: number | null;
+  timestamp: string;
+}
+
+export interface RouteRecordingSnapshot {
+  isRecording: boolean;
+  pointCount: number;
+  totalDistanceMiles: number;
+  elapsedSeconds: number;
 }

@@ -38,7 +38,11 @@ function getGloFASTone(label: string | null | undefined) {
 }
 
 export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
-  if (!geodata) return null;
+  if (!geodata) {
+    return (
+      <WorkspaceCardShell eyebrow="Floodplain due diligence" title="Flood risk" loading={true} />
+    );
+  }
 
   const trustSummary = summarizeSourceTrust([geodata.sources.floodZone], "Flood screening");
   const flood = geodata.floodZone;
@@ -101,6 +105,20 @@ export function FloodRiskCard({ geodata }: FloodRiskCardProps) {
             <div className="rounded-[1.5rem] border border-[color:var(--danger-border)] bg-[var(--danger-soft)] p-4 text-sm leading-6 text-[var(--danger-foreground)]">
               This point intersects a mapped Special Flood Hazard Area. Treat it as a material siting
               constraint and confirm local floodplain requirements before moving forward.
+            </div>
+          ) : null}
+
+          {flood?.isSpecialFloodHazard && flood.baseFloodElevationFt != null ? (
+            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">Base Flood Elevation</div>
+              <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
+                {flood.baseFloodElevationFt.toFixed(1)} ft
+                <span className="ml-2 text-sm font-normal text-[var(--muted-foreground)]">above NAVD88</span>
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                Regulatory flood elevation from FEMA NFHL (layer 17). Finished floors in this
+                Special Flood Hazard Area are typically required at or above this elevation.
+              </div>
             </div>
           ) : null}
 

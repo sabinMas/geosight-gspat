@@ -12,6 +12,7 @@ import { SiteScore } from "@/types";
 interface FactorBreakdownProps {
   score: SiteScore | null;
   title?: string;
+  initialExpandedKey?: string;
 }
 
 const EVIDENCE_TONE: Record<string, string> = {
@@ -32,16 +33,28 @@ function getImprovementPath(gap: number): string {
   return `This is the biggest improvement opportunity — closing it adds up to ${gap.toFixed(1)} pts.`;
 }
 
-export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBreakdownProps) {
+export function FactorBreakdown({ score, title = "Factor breakdown", initialExpandedKey }: FactorBreakdownProps) {
   const [mounted, setMounted] = useState(false);
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(initialExpandedKey ?? null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!score) {
-    return null;
+  if (!score || !score.factors || score.factors.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="space-y-3">
+          <div className="eyebrow">Evidence breakdown</div>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-6 text-[var(--foreground-soft)]">
+            Score details are not available for this lens. Switch to a scored lens such as Home Buying, Site Development, or Data Center Cooling to see weighted factor breakdowns.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   const evidenceCounts = score.factors.reduce<Record<string, number>>((acc, factor) => {
@@ -200,6 +213,35 @@ export function FactorBreakdown({ score, title = "Factor breakdown" }: FactorBre
                           How this is scored
                         </div>
                         <p className="text-xs leading-5 text-[var(--foreground-soft)]">{methodNote}</p>
+                      </div>
+                    ) : null}
+                    {(factor.sourceIds && factor.sourceIds.length > 0) || factor.sourceLastUpdated ? (
+                      <div>
+                        <div className="mb-1.5 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                          Sources
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {factor.sourceIds && factor.sourceIds.length > 0
+                            ? factor.sourceIds.map((id) => (
+                                <span
+                                  key={id}
+                                  className="cursor-default pointer-events-none select-none rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]"
+                                >
+                                  {id}
+                                </span>
+                              ))
+                            : null}
+                          {factor.sourceLastUpdated ? (
+                            <span className="text-xs text-[var(--muted-foreground)]">
+                              Updated: {factor.sourceLastUpdated}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                    {factor.proxyReason ? (
+                      <div className="rounded-lg border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning-foreground)]">
+                        <span className="font-medium">Proxy method:</span> {factor.proxyReason}
                       </div>
                     ) : null}
                     <div>

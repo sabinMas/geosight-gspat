@@ -6,6 +6,12 @@ const FEMA_FLOOD_ENDPOINTS = [
   "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query",
 ] as const;
 
+// Layer 17 = Base Flood Elevation (BFE) lines — only meaningful for SFHA zones
+const FEMA_BFE_ENDPOINTS = [
+  "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/17/query",
+  "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/17/query",
+] as const;
+
 type FemaAttributes = {
   FLD_ZONE?: string | null;
   FLD_ZONE_SUBTY?: string | null;
@@ -62,6 +68,68 @@ async function queryFloodEndpoint(url: string) {
   }
 }
 
+type BfeAttributes = {
+  ELEV?: number | string | null;
+  LEN_UNIT?: string | null;
+};
+
+type BfeFeature = {
+  attributes?: BfeAttributes;
+};
+
+type BfeResponse = {
+  features?: BfeFeature[];
+};
+
+/** Query the FEMA NFHL BFE layer (layer 17) within a small buffer around the point. */
+async function getFemaBaseFloodElevation(lat: number, lng: number): Promise<number | null> {
+  // Search within a ~500 m buffer to find the nearest BFE contour
+  const BUFFER_DEG = 0.005;
+  const envelope = {
+    xmin: lng - BUFFER_DEG,
+    ymin: lat - BUFFER_DEG,
+    xmax: lng + BUFFER_DEG,
+    ymax: lat + BUFFER_DEG,
+  };
+
+  for (const base of FEMA_BFE_ENDPOINTS) {
+    try {
+      const url = new URL(base);
+      url.searchParams.set("geometry", JSON.stringify(envelope));
+      url.searchParams.set("geometryType", "esriGeometryEnvelope");
+      url.searchParams.set("spatialRel", "esriSpatialRelIntersects");
+      url.searchParams.set("inSR", "4326");
+      url.searchParams.set("outFields", "ELEV,LEN_UNIT");
+      url.searchParams.set("returnGeometry", "false");
+      url.searchParams.set("f", "json");
+      url.searchParams.set("resultRecordCount", "5");
+
+      const response = await fetchWithTimeout(
+        url.toString(),
+        {
+          headers: { Accept: "application/json" },
+          next: { revalidate: 60 * 60 * 24 },
+        },
+        EXTERNAL_TIMEOUTS.standard,
+      );
+      if (!response.ok) continue;
+
+      const data = (await response.json()) as BfeResponse;
+      const feature = data.features?.[0];
+      if (!feature?.attributes?.ELEV) continue;
+
+      const elevRaw = feature.attributes.ELEV;
+      const elev = typeof elevRaw === "number" ? elevRaw : Number(elevRaw);
+      if (!Number.isFinite(elev) || elev <= 0) continue;
+
+      return elev;
+    } catch {
+      // try next endpoint
+    }
+  }
+  return null;
+}
+
 async function getFemaFloodZone(lat: number, lng: number): Promise<FloodZoneResult | null> {
   try {
     const queries = FEMA_FLOOD_ENDPOINTS.map((endpoint) => {
@@ -89,11 +157,18 @@ async function getFemaFloodZone(lat: number, lng: number): Promise<FloodZoneResu
       const subtype =
         attributes.FLD_ZONE_SUBTY?.trim() ?? attributes.ZONE_SUBTY?.trim() ?? null;
       const isSpecialFloodHazard = attributes.SFHA_TF?.trim().toUpperCase() === "T";
+
+      // For SFHA zones, attempt to fetch the Base Flood Elevation from NFHL layer 17
+      const baseFloodElevationFt = isSpecialFloodHazard
+        ? await getFemaBaseFloodElevation(lat, lng).catch(() => null)
+        : null;
+
       return {
         floodZone,
         isSpecialFloodHazard,
         label: describeFloodZone(floodZone, subtype, isSpecialFloodHazard),
         source: "fema",
+        baseFloodElevationFt,
       };
     }
     return null;
