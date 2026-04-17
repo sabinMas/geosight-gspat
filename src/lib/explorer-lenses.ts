@@ -9,6 +9,7 @@ export interface ExplorerLens {
   defaultCards: WorkspaceCardId[];
   summaryQuestion: string;
   whyItMatters: string;
+  factors?: string[];
 }
 
 export const EXPLORER_LENSES: ExplorerLens[] = [
@@ -115,6 +116,90 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
       "What's interesting or notable about this place? Give me a plain-English overview.",
     whyItMatters:
       "Checks terrain character, hazard context, flood risk, air quality, and elevation to surface what stands out.",
+  },
+  {
+    id: "energy-solar",
+    label: "Energy & Solar",
+    icon: "Zap",
+    tagline: "Solar resource, wind potential, and grid proximity.",
+    profileId: "energy-solar",
+    factors: ["Solar", "Wind", "Transmission", "Land use", "Permits"],
+    defaultCards: [
+      "active-location",
+      "chat",
+      "results",
+      "terrain-viewer",
+      "climate-history",
+      "hazard-context",
+      "air-quality",
+    ],
+    summaryQuestion:
+      "How suitable is this location for a solar or wind energy project? Summarize solar resource, grid access, and land constraints.",
+    whyItMatters:
+      "Evaluates solar irradiance proxies, grid and transmission proximity, terrain flatness, land cover suitability, and construction access.",
+  },
+  {
+    id: "agriculture",
+    label: "Agriculture & Land",
+    icon: "Leaf",
+    tagline: "Soil quality, water access, and growing conditions.",
+    profileId: "agriculture",
+    factors: ["Soil", "Water", "Climate", "Topography", "Markets"],
+    defaultCards: [
+      "active-location",
+      "chat",
+      "results",
+      "hazard-context",
+      "flood-risk",
+      "climate-history",
+      "elevation-profile",
+    ],
+    summaryQuestion:
+      "Is this land suitable for farming or agriculture? Summarize soil quality, water access, and growing conditions.",
+    whyItMatters:
+      "Evaluates soil drainage and buildability, water proximity, climate growing-season signals, terrain slope, and road access to markets.",
+  },
+  {
+    id: "emergency-response",
+    label: "Emergency Response",
+    icon: "ShieldAlert",
+    tagline: "Access routes, population exposure, and facility gaps.",
+    profileId: "emergency-response",
+    factors: ["Access", "Population", "Hazards", "Facilities", "Comms"],
+    defaultCards: [
+      "active-location",
+      "chat",
+      "results",
+      "hazard-context",
+      "flood-risk",
+      "wildfire-risk",
+      "disaster-alerts",
+    ],
+    summaryQuestion:
+      "How well-prepared is this area for emergency response? Summarize access, hazard exposure, and infrastructure gaps.",
+    whyItMatters:
+      "Evaluates road network density, population concentration proxies, hazard exposure, communications readiness, and critical infrastructure proximity.",
+  },
+  {
+    id: "field-research",
+    label: "Field Research",
+    icon: "FlaskConical",
+    tagline: "Habitat quality, ecological diversity, and site access.",
+    profileId: "field-research",
+    factors: ["Habitat", "Species", "Protection", "Access", "Monitoring"],
+    defaultCards: [
+      "active-location",
+      "chat",
+      "results",
+      "terrain-viewer",
+      "elevation-profile",
+      "air-quality",
+      "climate-history",
+    ],
+    summaryQuestion:
+      "Is this a good field research site? Summarize habitat quality, ecological diversity signals, and access conditions.",
+    whyItMatters:
+      "Evaluates natural land cover, aquatic feature proximity, topographic diversity, climate stability, and field access via road proximity.",
   },
 ];
 

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Building2, House, Mountain, Server, Snowflake, Trees, Warehouse } from "lucide-react";
+import { ComponentType, CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { BarChart3, Building2, FlaskConical, House, Leaf, Mountain, Server, ShieldAlert, Snowflake, Trees, Warehouse, Zap } from "lucide-react";
 import { MissionProfile } from "@/types";
 
 interface ProfileSelectorProps {
@@ -12,23 +12,31 @@ interface ProfileSelectorProps {
 const ICONS = {
   BarChart3,
   Building2,
+  FlaskConical,
   House,
+  Leaf,
   Mountain,
   Server,
+  ShieldAlert,
   Snowflake,
   Trees,
   Warehouse,
+  Zap,
 } as const;
 
 const SIDEBAR_CARD_WIDTH = 98;
 
-const PROFILE_ICON_BY_ID = {
+const PROFILE_ICON_BY_ID: Record<string, ComponentType<{ size?: number; className?: string; style?: CSSProperties }>> = {
   "home-buying": House,
   "site-development": Building2,
   commercial: BarChart3,
   "data-center": Snowflake,
   hiking: Mountain,
-} as const;
+  "energy-solar": Zap,
+  agriculture: Leaf,
+  "emergency-response": ShieldAlert,
+  "field-research": FlaskConical,
+};
 
 export function ProfileSelector({
   activeProfileId,

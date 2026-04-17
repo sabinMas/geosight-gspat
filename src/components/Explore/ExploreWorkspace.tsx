@@ -114,6 +114,19 @@ const CesiumGlobe = dynamic(
   },
 );
 
+const MapLibreMap = dynamic(
+  () =>
+    import("@/components/Globe/MapLibreMap").then((mod) => mod.MapLibreMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center bg-[var(--surface-panel)] text-[var(--muted-foreground)]">
+        Loading 2D map...
+      </div>
+    ),
+  },
+);
+
 const BOARD_MODE_NOTICE_STORAGE_KEY = "geosight-board-mode-notice-shown";
 const WALKTHROUGH_STORAGE_KEY = "geosight-explore-walkthrough-seen";
 const AUTOSAVE_STORAGE_KEY = "geosight.autosave.v1";
@@ -1928,39 +1941,52 @@ export function ExploreWorkspace() {
           >
             <div className="absolute inset-0">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-28 bg-gradient-to-b from-[var(--surface-overlay)] to-transparent" />
-              <CesiumGlobe
-                selectedPoint={state.selectedPoint}
-                selectedRegion={state.selectedRegion}
-                globeViewMode={state.globeViewMode}
-                globeRotateMode={state.globeRotateMode}
-                subsurfaceRenderMode={state.subsurfaceRenderMode}
-                onPointSelect={(coords) => {
-                  setCalloutDismissed(false);
-                  state.selectPoint(coords);
-                  data.handleLocationSelection();
-                }}
-                savedSites={data.sites}
-                layers={state.layers}
-                subsurfaceDatasets={data.subsurfaceDatasets}
-                terrainExaggeration={state.terrainExaggeration}
-                earthquakeMarkers={state.earthquakeMarkers}
-                driveMode={state.driveMode}
-                onExitDriveMode={() => state.setDriveMode(false)}
-                drawingTool={state.drawingTool}
-                drawnShapes={state.drawnShapes}
-                importedLayers={state.importedLayers}
-                activeImportedLayerId={state.activeImportedLayerId}
-                selectedImportedFeatureId={state.selectedImportedFeatureId}
-                wmsLayers={state.wmsLayers}
-                onShapeComplete={handleShapeComplete}
-                onVertexDrag={state.updateDrawnShapeVertex}
-                snapToGrid={state.snapToGrid}
-                captureMode={captureOverlayVisible}
-                onGlobeApiChange={handleGlobeApiChange}
-                featureInspectMode={state.featureInspectMode}
-                onIdentifyResult={state.setIdentifyResult}
-                customLayers={state.customLayers}
-              />
+              {state.mapEngine === "maplibre" ? (
+                <MapLibreMap
+                  selectedPoint={state.selectedPoint}
+                  selectedRegion={state.selectedRegion}
+                  globeViewMode={state.globeViewMode}
+                  onPointSelect={(coords) => {
+                    setCalloutDismissed(false);
+                    state.selectPoint(coords);
+                    data.handleLocationSelection();
+                  }}
+                />
+              ) : (
+                <CesiumGlobe
+                  selectedPoint={state.selectedPoint}
+                  selectedRegion={state.selectedRegion}
+                  globeViewMode={state.globeViewMode}
+                  globeRotateMode={state.globeRotateMode}
+                  subsurfaceRenderMode={state.subsurfaceRenderMode}
+                  onPointSelect={(coords) => {
+                    setCalloutDismissed(false);
+                    state.selectPoint(coords);
+                    data.handleLocationSelection();
+                  }}
+                  savedSites={data.sites}
+                  layers={state.layers}
+                  subsurfaceDatasets={data.subsurfaceDatasets}
+                  terrainExaggeration={state.terrainExaggeration}
+                  earthquakeMarkers={state.earthquakeMarkers}
+                  driveMode={state.driveMode}
+                  onExitDriveMode={() => state.setDriveMode(false)}
+                  drawingTool={state.drawingTool}
+                  drawnShapes={state.drawnShapes}
+                  importedLayers={state.importedLayers}
+                  activeImportedLayerId={state.activeImportedLayerId}
+                  selectedImportedFeatureId={state.selectedImportedFeatureId}
+                  wmsLayers={state.wmsLayers}
+                  onShapeComplete={handleShapeComplete}
+                  onVertexDrag={state.updateDrawnShapeVertex}
+                  snapToGrid={state.snapToGrid}
+                  captureMode={captureOverlayVisible}
+                  onGlobeApiChange={handleGlobeApiChange}
+                  featureInspectMode={state.featureInspectMode}
+                  onIdentifyResult={state.setIdentifyResult}
+                  customLayers={state.customLayers}
+                />
+              )}
             </div>
           </ClientErrorBoundary>
 
@@ -1968,13 +1994,13 @@ export function ExploreWorkspace() {
           <div className="absolute bottom-12 right-4 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] shadow-[var(--shadow-panel)] backdrop-blur-xl">
             <button
               type="button"
-              aria-pressed={state.globeRotateMode}
-              aria-label={state.globeRotateMode ? "Disable 3D rotate" : "Enable 3D rotate"}
-              title={state.globeRotateMode ? "Disable 3D rotate" : "Enable 3D rotate"}
-              onClick={() => state.setGlobeRotateMode((current) => !current)}
+              aria-pressed={state.mapEngine === "cesium"}
+              aria-label="Switch to 3D globe"
+              title="3D globe (Cesium)"
+              onClick={() => state.setMapEngine("cesium")}
               className={cn(
                 "flex h-11 w-11 items-center justify-center transition duration-150",
-                state.globeRotateMode
+                state.mapEngine === "cesium"
                   ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
                   : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
               )}
@@ -1984,19 +2010,39 @@ export function ExploreWorkspace() {
             <div className="h-px bg-[color:var(--border-soft)]" />
             <button
               type="button"
-              aria-pressed={state.driveMode}
-              aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
-              title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD)"}
-              onClick={() => state.setDriveMode((current) => !current)}
+              aria-pressed={state.mapEngine === "maplibre"}
+              aria-label="Switch to 2D map"
+              title="2D flat map (MapLibre)"
+              onClick={() => state.setMapEngine("maplibre")}
               className={cn(
                 "flex h-11 w-11 items-center justify-center transition duration-150",
-                state.driveMode
+                state.mapEngine === "maplibre"
                   ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
                   : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
               )}
             >
-              <Car className="h-4 w-4" />
+              <Map className="h-4 w-4" />
             </button>
+            {state.mapEngine === "cesium" && (
+              <>
+                <div className="h-px bg-[color:var(--border-soft)]" />
+                <button
+                  type="button"
+                  aria-pressed={state.driveMode}
+                  aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
+                  title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD)"}
+                  onClick={() => state.setDriveMode((current) => !current)}
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center transition duration-150",
+                    state.driveMode
+                      ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                      : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+                  )}
+                >
+                  <Car className="h-4 w-4" />
+                </button>
+              </>
+            )}
           </div>
 
           <GlobeViewSelector

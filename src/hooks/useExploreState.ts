@@ -104,6 +104,8 @@ export interface ExploreState {
   setActiveLensId: Dispatch<SetStateAction<string | null>>;
   driveMode: boolean;
   setDriveMode: Dispatch<SetStateAction<boolean>>;
+  mapEngine: "cesium" | "maplibre";
+  setMapEngine: Dispatch<SetStateAction<"cesium" | "maplibre">>;
   drawingTool: DrawingTool;
   setDrawingTool: Dispatch<SetStateAction<DrawingTool>>;
   drawnShapes: DrawnShape[];
@@ -298,6 +300,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [earthquakeMarkers, setEarthquakeMarkers] = useState<EarthquakeEvent[]>([]);
   const [activeLensId, setActiveLensId] = useState<string | null>(init.lensId ?? null);
   const [driveMode, setDriveMode] = useState(false);
+  const [mapEngine, setMapEngine] = useState<"cesium" | "maplibre">("cesium");
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("none");
   const [drawnShapes, setDrawnShapes] = useState<DrawnShape[]>([]);
   const [importedLayers, setImportedLayers] = useState<ImportedLayer[]>([]);
@@ -719,6 +722,8 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setActiveLensId,
     driveMode,
     setDriveMode,
+    mapEngine,
+    setMapEngine,
     drawingTool,
     setDrawingTool,
     drawnShapes,
