@@ -308,11 +308,11 @@ export function DataLayers({
   };
 
   return (
-    <div ref={rootRef} className="absolute bottom-10 right-4 z-20">
+    <div ref={rootRef} className="absolute right-4 top-4 z-20">
       <div className="relative">
         {open ? (
           <div
-            className="glass-panel absolute bottom-14 right-0 z-10 max-h-[70vh] w-[320px] overflow-y-auto rounded-3xl p-3 scrollbar-thin"
+            className="glass-panel absolute right-0 top-14 z-10 max-h-[70vh] w-[320px] overflow-y-auto rounded-3xl p-3 scrollbar-thin"
             role="region"
             aria-label="Map layer controls"
           >
