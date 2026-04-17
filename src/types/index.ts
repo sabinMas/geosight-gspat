@@ -1037,3 +1037,21 @@ export interface IdentifyResult {
   hits: IdentifyHit[];
   timestamp: number;
 }
+
+// ---------------------------------------------------------------------------
+// Location tracking types
+// ---------------------------------------------------------------------------
+export interface UserLocationFix {
+  coordinates: Coordinates;
+  accuracyMeters: number | null;
+  headingDegrees: number | null;
+  speedMps: number | null;
+  timestamp: string;
+}
+
+export interface RouteRecordingSnapshot {
+  isRecording: boolean;
+  pointCount: number;
+  totalDistanceMiles: number;
+  elapsedSeconds: number;
+}

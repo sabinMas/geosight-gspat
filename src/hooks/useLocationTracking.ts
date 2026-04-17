@@ -1,4 +1,3 @@
-// @ts-nocheck — depends on cesium-search geolocation helpers + UserLocationFix/RouteRecordingSnapshot types wired on Phase 5 GIS integration.
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -42,7 +41,7 @@ function buildRecordedRouteShape(coordinates: Coordinates[]): DrawnShape | null 
 
   return {
     id: crypto.randomUUID(),
-    type: "polyline",
+    type: "measure",
     coordinates,
     color: "#34d399",
     label: "Recorded route",

@@ -1957,6 +1957,9 @@ export function ExploreWorkspace() {
                 snapToGrid={state.snapToGrid}
                 captureMode={captureOverlayVisible}
                 onGlobeApiChange={handleGlobeApiChange}
+                featureInspectMode={state.featureInspectMode}
+                onIdentifyResult={state.setIdentifyResult}
+                customLayers={state.customLayers}
               />
             </div>
           </ClientErrorBoundary>

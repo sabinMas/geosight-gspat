@@ -1,7 +1,7 @@
 "use client";
 
 import { fetchLocationSuggestions, resolveLocationFromQuery } from "@/lib/location-search";
-import { Coordinates, LocationSearchResult } from "@/types";
+import { Coordinates, LocationSearchResult, UserLocationFix } from "@/types";
 
 export function parseCoordinates(value: string): Coordinates | null {
   const match = value.match(/(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)/);
@@ -138,6 +138,52 @@ export async function getCurrentCoordinates() {
         maximumAge: 60_000,
         timeout: 10_000,
       },
+    );
+  });
+}
+
+export function getGeolocationOptions(): PositionOptions {
+  return { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 };
+}
+
+export function toUserLocationFix(position: GeolocationPosition): UserLocationFix {
+  return {
+    coordinates: { lat: position.coords.latitude, lng: position.coords.longitude },
+    accuracyMeters: position.coords.accuracy ?? null,
+    headingDegrees: position.coords.heading ?? null,
+    speedMps: position.coords.speed ?? null,
+    timestamp: new Date(position.timestamp).toISOString(),
+  };
+}
+
+export function getGeolocationErrorMessage(error: unknown): string {
+  if (
+    typeof GeolocationPositionError !== "undefined" &&
+    error instanceof GeolocationPositionError
+  ) {
+    if (error.code === GeolocationPositionError.PERMISSION_DENIED) {
+      return "Location permission denied. Enable location access in your browser settings.";
+    }
+    if (error.code === GeolocationPositionError.POSITION_UNAVAILABLE) {
+      return "Location unavailable. Try again or check your device settings.";
+    }
+    if (error.code === GeolocationPositionError.TIMEOUT) {
+      return "Location request timed out. Move to an area with better signal and retry.";
+    }
+  }
+  return "Unable to determine your location.";
+}
+
+export function getCurrentLocationFix(): Promise<UserLocationFix> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by this browser."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(toUserLocationFix(position)),
+      reject,
+      getGeolocationOptions(),
     );
   });
 }

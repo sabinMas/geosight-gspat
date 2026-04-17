@@ -1,4 +1,3 @@
-// @ts-nocheck — depends on AnalysisRiskLevel type wired on Phase 5 GIS integration.
 import { toBoundingBox } from "@/lib/geospatial";
 import { getFloodZone } from "@/lib/fema-flood";
 import { fetchFireHazardSummary } from "@/lib/nasa-firms";

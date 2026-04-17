@@ -1,4 +1,3 @@
-// @ts-nocheck — depends on AnalysisMetricRow/AnalysisRiskLevel/DrawnGeometryFeature types wired on Phase 5 GIS integration.
 import {
   along as turfAlong,
   area as turfArea,

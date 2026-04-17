@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import LZString from "lz-string";
 import { LayerState } from "@/components/Globe/DataLayers";
@@ -16,6 +16,7 @@ import {
   AnalysisInputMode,
   AppMode,
   CustomLayer,
+  DrawnGeometryFeatureCollection,
   DrawnShape,
   DrawingTool,
   EarthquakeEvent,
@@ -29,6 +30,7 @@ import {
   ResultsMode,
   SubsurfaceRenderMode,
 } from "@/types";
+import { drawnShapesToFeatureCollection } from "@/lib/analysis-geometry";
 
 export type ExploreInitParams = ExploreInitState;
 type LayerMoveDirection = "up" | "down";
@@ -106,6 +108,7 @@ export interface ExploreState {
   setDrawingTool: Dispatch<SetStateAction<DrawingTool>>;
   drawnShapes: DrawnShape[];
   setDrawnShapes: Dispatch<SetStateAction<DrawnShape[]>>;
+  drawnGeometry: DrawnGeometryFeatureCollection;
   importedLayers: ImportedLayer[];
   activeImportedLayerId: string | null;
   setActiveImportedLayerId: Dispatch<SetStateAction<string | null>>;
@@ -667,6 +670,11 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     };
   }, [init.locationQuery, hasDirectCoords, selectPoint]);
 
+  const drawnGeometry = useMemo(
+    () => drawnShapesToFeatureCollection(drawnShapes),
+    [drawnShapes],
+  );
+
   return {
     init,
     appMode,
@@ -715,6 +723,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setDrawingTool,
     drawnShapes,
     setDrawnShapes,
+    drawnGeometry,
     importedLayers,
     activeImportedLayerId,
     setActiveImportedLayerId,

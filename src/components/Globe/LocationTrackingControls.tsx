@@ -1,4 +1,3 @@
-// @ts-nocheck — depends on UserLocationFix/RouteRecordingSnapshot types wired on Phase 5 GIS integration.
 "use client";
 
 import { Crosshair, Loader2, Navigation, Radar, Square, Waypoints, X } from "lucide-react";

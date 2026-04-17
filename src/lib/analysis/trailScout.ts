@@ -1,4 +1,3 @@
-// @ts-nocheck — depends on AOI/drawing types wired on Phase 5 GIS integration.
 import { buildElevationTransect } from "@/lib/geospatial";
 import { fetchFireHazardSummary } from "@/lib/nasa-firms";
 import { fetchClimateSnapshot } from "@/lib/open-meteo";
