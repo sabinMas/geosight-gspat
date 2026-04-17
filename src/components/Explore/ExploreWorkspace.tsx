@@ -1964,31 +1964,39 @@ export function ExploreWorkspace() {
             </div>
           </ClientErrorBoundary>
 
-          {/* Globe controls */}
-          <div className="absolute right-4 top-4 z-20 flex flex-col gap-2">
-            <Button
+          {/* Globe controls — pill cluster bottom-right */}
+          <div className="absolute bottom-12 right-4 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] shadow-[var(--shadow-panel)] backdrop-blur-xl">
+            <button
               type="button"
-              variant={state.globeRotateMode ? "default" : "secondary"}
-              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
               aria-pressed={state.globeRotateMode}
-              aria-label={state.globeRotateMode ? "Disable 3D explore rotate mode" : "Enable 3D explore rotate mode"}
+              aria-label={state.globeRotateMode ? "Disable 3D rotate" : "Enable 3D rotate"}
+              title={state.globeRotateMode ? "Disable 3D rotate" : "Enable 3D rotate"}
               onClick={() => state.setGlobeRotateMode((current) => !current)}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition duration-150",
+                state.globeRotateMode
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+              )}
             >
-              <Globe className="mr-2 h-4 w-4" />
-              {state.globeRotateMode ? "3D explore" : "Rotate"}
-            </Button>
-            <Button
+              <Globe className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-[color:var(--border-soft)]" />
+            <button
               type="button"
-              variant={state.driveMode ? "default" : "secondary"}
-              className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
               aria-pressed={state.driveMode}
               aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
-              title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD keys)"}
+              title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD)"}
               onClick={() => state.setDriveMode((current) => !current)}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition duration-150",
+                state.driveMode
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
+              )}
             >
-              <Car className="mr-2 h-4 w-4" />
-              {state.driveMode ? "Driving" : "Drive"}
-            </Button>
+              <Car className="h-4 w-4" />
+            </button>
           </div>
 
           <GlobeViewSelector
