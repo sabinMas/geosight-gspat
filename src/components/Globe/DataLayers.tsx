@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Eye, EyeOff, Layers3, Link2, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, Globe, Layers3, Link2, Plus, Trash2, X } from "lucide-react";
 import { LayerStyleEditor } from "@/components/Globe/LayerStyleEditor";
 import { LayerToggle } from "@/components/Shell/LayerToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ImportedLayer } from "@/lib/file-import";
-import type { DrawnShape } from "@/types";
+import { cn } from "@/lib/utils";
+import type { CustomLayer, CustomLayerType, DrawnShape } from "@/types";
 import {
   normalizeWmsEndpoint,
   validateWmsEndpoint,
@@ -20,6 +21,125 @@ export interface LayerState {
   power: boolean;
   roads: boolean;
   heatmap: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Shared opacity slider
+// ---------------------------------------------------------------------------
+function OpacitySlider({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <input type="range" min={10} max={100} step={1} value={Math.round(value * 100)} disabled={disabled}
+        onChange={(e) => onChange(Number(e.currentTarget.value) / 100)}
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[var(--surface-soft)] accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label="Layer opacity" />
+      <span className="w-8 text-right text-xs tabular-nums text-[var(--muted-foreground)]">{Math.round(value * 100)}%</span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Custom layer row (user-added WMS/WMTS/XYZ)
+// ---------------------------------------------------------------------------
+interface CustomLayerRowProps {
+  layer: CustomLayer;
+  onToggle: () => void;
+  onOpacityChange: (v: number) => void;
+  onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+}
+
+function CustomLayerRow({ layer, onToggle, onOpacityChange, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: CustomLayerRowProps) {
+  return (
+    <div className={cn("group rounded-xl border p-2.5 transition",
+      layer.visible ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]")}>
+      <div className="flex items-center gap-2">
+        <div className="flex shrink-0 flex-col">
+          <button type="button" onClick={onMoveUp} disabled={isFirst} className="text-[var(--muted-foreground)] disabled:opacity-20" aria-label="Move layer up"><ChevronUp className="h-3 w-3" /></button>
+          <button type="button" onClick={onMoveDown} disabled={isLast} className="text-[var(--muted-foreground)] disabled:opacity-20" aria-label="Move layer down"><ChevronDown className="h-3 w-3" /></button>
+        </div>
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--accent)]">
+          <Globe className="h-3.5 w-3.5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm text-[var(--foreground)]">{layer.name}</span>
+          <span className="block truncate text-xs text-[var(--muted-foreground)]">{layer.type.toUpperCase()}{layer.wmsLayers ? ` · ${layer.wmsLayers}` : ""}</span>
+        </div>
+        <button type="button" onClick={onToggle}
+          className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition", layer.visible ? "text-[var(--accent)]" : "text-[var(--muted-foreground)] opacity-50")}
+          aria-label={layer.visible ? `Hide ${layer.name}` : `Show ${layer.name}`}>
+          {layer.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+        </button>
+        <button type="button" onClick={onRemove}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[var(--muted-foreground)] opacity-0 transition hover:text-[var(--danger-foreground)] group-hover:opacity-100"
+          aria-label={`Remove ${layer.name}`}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {layer.visible && (
+        <div className="mt-1.5 pl-14">
+          <OpacitySlider value={layer.opacity} disabled={!layer.visible} onChange={onOpacityChange} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add custom layer form
+// ---------------------------------------------------------------------------
+const LAYER_TYPE_OPTIONS: Array<{ value: CustomLayerType; label: string; placeholder: string }> = [
+  { value: "wms", label: "WMS", placeholder: "https://example.com/wms?service=WMS" },
+  { value: "wmts", label: "WMTS", placeholder: "https://example.com/wmts" },
+  { value: "xyz", label: "XYZ tiles", placeholder: "https://tiles.example.com/{z}/{x}/{y}.png" },
+];
+
+function AddCustomLayerForm({ onAdd, onCancel }: { onAdd: (layer: Omit<CustomLayer, "id" | "order">) => void; onCancel: () => void }) {
+  const [layerType, setLayerType] = useState<CustomLayerType>("wms");
+  const [url, setUrl] = useState("");
+  const [name, setName] = useState("");
+  const [wmsLayers, setWmsLayers] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const urlRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { urlRef.current?.focus(); }, []);
+
+  const typeOption = LAYER_TYPE_OPTIONS.find((o) => o.value === layerType)!;
+
+  const handleSubmit = () => {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) { setError("URL is required"); return; }
+    try { new URL(trimmedUrl); } catch { setError("Enter a valid URL"); return; }
+    const layerName = name.trim() || trimmedUrl.split("/").pop()?.split("?")[0] || "Untitled layer";
+    onAdd({ name: layerName, type: layerType, url: trimmedUrl, wmsLayers: layerType === "wms" ? wmsLayers.trim() || undefined : undefined, opacity: 1, visible: true });
+  };
+
+  return (
+    <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 space-y-2">
+      <div className="flex gap-1">
+        {LAYER_TYPE_OPTIONS.map((opt) => (
+          <button key={opt.value} type="button" onClick={() => setLayerType(opt.value)}
+            className={cn("rounded-full px-2.5 py-0.5 text-xs transition cursor-pointer",
+              layerType === opt.value ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "bg-[var(--surface-panel)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]")}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <Input ref={urlRef} value={url} onChange={(e) => { setUrl(e.target.value); setError(null); }} placeholder={typeOption.placeholder} className="h-8 text-xs" aria-label="Layer URL" />
+      {layerType === "wms" && (
+        <Input value={wmsLayers} onChange={(e) => setWmsLayers(e.target.value)} placeholder="Layer names (comma-separated, optional)" className="h-8 text-xs" aria-label="WMS layer names" />
+      )}
+      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Display name (optional)" className="h-8 text-xs" aria-label="Display name" />
+      {error && <p className="text-xs text-[var(--danger-foreground)]">{error}</p>}
+      <div className="flex justify-end gap-2 pt-1">
+        <Button type="button" variant="ghost" size="sm" className="rounded-full h-7 text-xs" onClick={onCancel}>Cancel</Button>
+        <Button type="button" size="sm" className="rounded-full h-7 text-xs" onClick={handleSubmit}>Add layer</Button>
+      </div>
+    </div>
+  );
 }
 
 interface DataLayersProps {
@@ -42,6 +162,12 @@ interface DataLayersProps {
   onToggleWmsLayerVisibility?: (id: string) => void;
   onSetWmsLayerOpacity?: (id: string, opacity: number) => void;
   onMoveWmsLayer?: (id: string, direction: "up" | "down") => void;
+  customLayers?: CustomLayer[];
+  onAddCustomLayer?: (layer: Omit<CustomLayer, "id" | "order">) => void;
+  onRemoveCustomLayer?: (id: string) => void;
+  onToggleCustomLayer?: (id: string) => void;
+  onSetCustomLayerOpacity?: (id: string, opacity: number) => void;
+  onMoveCustomLayer?: (id: string, direction: "up" | "down") => void;
 }
 
 export function DataLayers({
@@ -64,7 +190,14 @@ export function DataLayers({
   onToggleWmsLayerVisibility,
   onSetWmsLayerOpacity,
   onMoveWmsLayer,
+  customLayers = [],
+  onAddCustomLayer,
+  onRemoveCustomLayer,
+  onToggleCustomLayer,
+  onSetCustomLayerOpacity,
+  onMoveCustomLayer,
 }: DataLayersProps) {
+  const [showAddCustomLayer, setShowAddCustomLayer] = useState(false);
   const [internalOpen, setInternalOpen] = useState(false);
   const [customWmsOpen, setCustomWmsOpen] = useState(false);
   const [customWmsUrl, setCustomWmsUrl] = useState("");
@@ -602,6 +735,45 @@ export function DataLayers({
                   Circle tools show proximity zones — use the GeoSight analysis panel to query what falls within this area.
                 </div>
               ) : null}
+
+              {/* Custom layers section */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Custom Layers</span>
+                  {!showAddCustomLayer && (
+                    <button type="button" onClick={() => setShowAddCustomLayer(true)}
+                      className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition cursor-pointer"
+                      aria-label="Add custom layer">
+                      <Plus className="h-3 w-3" /> Add
+                    </button>
+                  )}
+                </div>
+                {showAddCustomLayer && (
+                  <AddCustomLayerForm
+                    onAdd={(layer) => { onAddCustomLayer?.(layer); setShowAddCustomLayer(false); }}
+                    onCancel={() => setShowAddCustomLayer(false)}
+                  />
+                )}
+                {customLayers.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {customLayers.map((layer, i) => (
+                      <CustomLayerRow key={layer.id} layer={layer}
+                        onToggle={() => onToggleCustomLayer?.(layer.id)}
+                        onOpacityChange={(v) => onSetCustomLayerOpacity?.(layer.id, v)}
+                        onRemove={() => onRemoveCustomLayer?.(layer.id)}
+                        onMoveUp={() => onMoveCustomLayer?.(layer.id, "up")}
+                        onMoveDown={() => onMoveCustomLayer?.(layer.id, "down")}
+                        isFirst={i === 0}
+                        isLast={i === customLayers.length - 1}
+                      />
+                    ))}
+                  </div>
+                ) : !showAddCustomLayer ? (
+                  <div className="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-4 text-xs text-[var(--muted-foreground)]">
+                    Add WMS, WMTS, or XYZ tile layers from any public endpoint.
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         ) : null}
