@@ -13,13 +13,17 @@ import { getProfileById } from "@/lib/profiles";
 import { DEFAULT_GLOBE_VIEW } from "@/lib/starter-regions";
 import type { WmsLayerDefinition } from "@/lib/wms-layers";
 import {
+  AnalysisInputMode,
   AppMode,
+  CustomLayer,
   DrawnShape,
   DrawingTool,
   EarthquakeEvent,
   GlobeViewMode,
   ExploreInitState,
+  IdentifyResult,
   LandCoverBucket,
+  LensAnalysisResult,
   MissionProfile,
   RegionSelection,
   ResultsMode,
@@ -132,6 +136,30 @@ export interface ExploreState {
   snapToGrid: boolean;
   setSnapToGrid: Dispatch<SetStateAction<boolean>>;
   applyProjectState: (patch: ExploreProjectStatePatch) => void;
+  // GIS analyst tools
+  featureInspectMode: boolean;
+  setFeatureInspectMode: Dispatch<SetStateAction<boolean>>;
+  identifyResult: IdentifyResult | null;
+  setIdentifyResult: Dispatch<SetStateAction<IdentifyResult | null>>;
+  goToCoordsOpen: boolean;
+  setGoToCoordsOpen: Dispatch<SetStateAction<boolean>>;
+  customLayers: CustomLayer[];
+  addCustomLayer: (layer: Omit<CustomLayer, "id" | "order">) => void;
+  removeCustomLayer: (id: string) => void;
+  toggleCustomLayer: (id: string) => void;
+  setCustomLayerOpacity: (id: string, opacity: number) => void;
+  moveCustomLayer: (id: string, direction: LayerMoveDirection) => void;
+  // Lens analysis
+  analysisInputMode: AnalysisInputMode;
+  setAnalysisInputMode: Dispatch<SetStateAction<AnalysisInputMode>>;
+  selectedShapeId: string | null;
+  setSelectedShapeId: Dispatch<SetStateAction<string | null>>;
+  analysisResult: LensAnalysisResult | null;
+  setAnalysisResult: Dispatch<SetStateAction<LensAnalysisResult | null>>;
+  analysisLoading: boolean;
+  setAnalysisLoading: Dispatch<SetStateAction<boolean>>;
+  analysisError: string | null;
+  setAnalysisError: Dispatch<SetStateAction<string | null>>;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -275,6 +303,17 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [wmsLayers, setWmsLayers] = useState<WmsLayerDefinition[]>([]);
   const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
+  // GIS analyst tools
+  const [featureInspectMode, setFeatureInspectMode] = useState(false);
+  const [identifyResult, setIdentifyResult] = useState<IdentifyResult | null>(null);
+  const [goToCoordsOpen, setGoToCoordsOpen] = useState(false);
+  const [customLayers, setCustomLayers] = useState<CustomLayer[]>([]);
+  // Lens analysis
+  const [analysisInputMode, setAnalysisInputMode] = useState<AnalysisInputMode>("location");
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<LensAnalysisResult | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     drawnShapesRef.current = drawnShapes;
@@ -406,6 +445,33 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
 
   const moveWmsLayer = useCallback((id: string, direction: LayerMoveDirection) => {
     setWmsLayers((prev) => moveItemInList(prev, id, direction));
+  }, []);
+
+  const addCustomLayer = useCallback((params: Omit<CustomLayer, "id" | "order">) => {
+    setCustomLayers((prev) => [
+      ...prev,
+      { ...params, id: crypto.randomUUID(), order: prev.length },
+    ]);
+  }, []);
+
+  const removeCustomLayer = useCallback((id: string) => {
+    setCustomLayers((prev) => prev.filter((l) => l.id !== id));
+  }, []);
+
+  const toggleCustomLayer = useCallback((id: string) => {
+    setCustomLayers((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l)),
+    );
+  }, []);
+
+  const setCustomLayerOpacity = useCallback((id: string, opacity: number) => {
+    setCustomLayers((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, opacity } : l)),
+    );
+  }, []);
+
+  const moveCustomLayer = useCallback((id: string, direction: LayerMoveDirection) => {
+    setCustomLayers((prev) => moveItemInList(prev, id, direction));
   }, []);
 
   const addDrawnShape = useCallback((shape: DrawnShape) => {
@@ -676,5 +742,29 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     snapToGrid,
     setSnapToGrid,
     applyProjectState,
+    // GIS analyst tools
+    featureInspectMode,
+    setFeatureInspectMode,
+    identifyResult,
+    setIdentifyResult,
+    goToCoordsOpen,
+    setGoToCoordsOpen,
+    customLayers,
+    addCustomLayer,
+    removeCustomLayer,
+    toggleCustomLayer,
+    setCustomLayerOpacity,
+    moveCustomLayer,
+    // Lens analysis
+    analysisInputMode,
+    setAnalysisInputMode,
+    selectedShapeId,
+    setSelectedShapeId,
+    analysisResult,
+    setAnalysisResult,
+    analysisLoading,
+    setAnalysisLoading,
+    analysisError,
+    setAnalysisError,
   };
 }
