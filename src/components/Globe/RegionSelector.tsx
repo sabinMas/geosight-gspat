@@ -18,7 +18,7 @@ export function RegionSelector({
     [...drawnShapes].reverse().find((shape) => shape.type === "polygon") ?? null;
 
   return (
-    <div className="glass-panel absolute bottom-4 right-4 z-10 max-w-[320px] rounded-3xl p-4 text-sm text-[var(--foreground-soft)]">
+    <div className="glass-panel absolute bottom-4 left-4 z-10 max-w-[320px] rounded-3xl p-4 text-sm text-[var(--foreground-soft)]">
       <div className="text-xs uppercase tracking-[0.24em] text-cyan-200">Selection area</div>
       <div
         className="mt-2 text-base font-semibold text-[var(--foreground)]"
