@@ -1,7 +1,6 @@
-// @ts-nocheck — this module targets the branch's AOI/drawing types from Phase 5; wired on Phase 5 GIS integration.
 import { area as turfArea, bbox as turfBbox, circle as turfCircle, length as turfLength } from "@turf/turf";
 import type { FeatureCollection, Position } from "geojson";
-import {
+import type {
   Coordinates,
   DrawnGeometryFeature,
   DrawnGeometry,
@@ -112,11 +111,11 @@ export function buildCircleCoordinates(center: Coordinates, radiusMeters: number
 }
 
 export function measurementFromShape(shape: DrawnShape): DrawnMeasurement | undefined {
-  if (shape.type === "point") {
+  if (shape.type === "marker") {
     return undefined;
   }
 
-  if (shape.type === "polyline" && shape.coordinates.length >= 2) {
+  if (shape.type === "measure" && shape.coordinates.length >= 2) {
     const miles = turfLength(
       {
         type: "Feature",
@@ -195,7 +194,7 @@ function baseProperties(shape: DrawnShape): DrawnGeometryProperties {
 }
 
 export function drawnShapeToFeature(shape: DrawnShape): DrawnGeometryFeature {
-  if (shape.type === "point") {
+  if (shape.type === "marker") {
     const point = shape.coordinates[0];
     return {
       type: "Feature",
@@ -207,7 +206,7 @@ export function drawnShapeToFeature(shape: DrawnShape): DrawnGeometryFeature {
     };
   }
 
-  if (shape.type === "polyline") {
+  if (shape.type === "measure") {
     return {
       type: "Feature",
       properties: baseProperties(shape),
@@ -267,9 +266,9 @@ export function featureToDrawnShape(feature: DrawnGeometryFeature): DrawnShape {
   const shape: DrawnShape = {
     id: properties.id ?? crypto.randomUUID(),
     type: properties.shapeType ?? (feature.geometry.type === "Point"
-      ? "point"
+      ? "marker"
       : feature.geometry.type === "LineString"
-        ? "polyline"
+        ? "measure"
         : "polygon"),
     coordinates: featureToShapeCoordinates(feature),
     label: properties.label ?? undefined,
@@ -315,7 +314,7 @@ export function updateShapeVertex(
   vertexIndex: number,
   coord: Coordinates,
 ): DrawnShape {
-  if (shape.type === "point") {
+  if (shape.type === "marker") {
     return withShapeMeasurement({
       ...shape,
       coordinates: [coord],
@@ -344,14 +343,6 @@ export function updateShapeVertex(
     });
   }
 
-  if (shape.type === "rectangle" && shape.coordinates.length === 4) {
-    const opposite = shape.coordinates[(vertexIndex + 2) % 4];
-    return withShapeMeasurement({
-      ...shape,
-      coordinates: buildRectangleCoordinates(opposite, coord),
-    });
-  }
-
   return withShapeMeasurement({
     ...shape,
     coordinates: shape.coordinates.map((candidate, index) =>
@@ -361,7 +352,7 @@ export function updateShapeVertex(
 }
 
 export function isAreaShape(shape: DrawnShape) {
-  return shape.type === "polygon" || shape.type === "rectangle" || shape.type === "circle";
+  return shape.type === "polygon" || shape.type === "circle";
 }
 
 export function getShapeFeatureBounds(shape: DrawnShape) {

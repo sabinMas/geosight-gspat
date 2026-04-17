@@ -34,7 +34,9 @@ export interface DrawnShape {
   coordinates: Array<{ lat: number; lng: number }>;
   label?: string;
   measurementLabel?: string;
+  measurement?: DrawnMeasurement;
   color: string;
+  radiusMeters?: number;
   metrics?: {
     areaSqKm?: number;
     areaAcres?: number;
@@ -925,4 +927,113 @@ export interface FireHistorySummary {
   hotYears: number[];
   totalDetections: number;
   yearsSearched: number;
+}
+
+// ---------------------------------------------------------------------------
+// Drawn geometry GeoJSON types (used by analysis-geometry.ts + lens analyzers)
+// ---------------------------------------------------------------------------
+import type { Feature, FeatureCollection, LineString, Point, Polygon } from "geojson";
+
+export type DrawnShapeType = Exclude<DrawingTool, "none">;
+
+export interface DrawnMeasurement {
+  kind: "distance" | "area";
+  value: number;
+  unit: "miles" | "acres";
+  display: string;
+  distanceKm?: number;
+  distanceMi?: number;
+  areaHa?: number;
+  areaKm2?: number;
+  areaAcres?: number;
+  areaMi2?: number;
+  perimeterKm?: number;
+  perimeterMi?: number;
+  bearingDeg?: number;
+  bearingDisplay?: string;
+}
+
+export interface DrawnGeometryProperties {
+  id: string;
+  label: string | null;
+  color: string;
+  shapeType: DrawnShapeType;
+  measurementLabel: string | null;
+  measurementKind: DrawnMeasurement["kind"] | null;
+  measurementUnit: DrawnMeasurement["unit"] | null;
+  measurementValue: number | null;
+  radiusMeters: number | null;
+}
+
+export type DrawnGeometry = Point | LineString | Polygon;
+export type DrawnGeometryFeature = Feature<DrawnGeometry, DrawnGeometryProperties>;
+export type DrawnGeometryFeatureCollection = FeatureCollection<DrawnGeometry, DrawnGeometryProperties>;
+
+// ---------------------------------------------------------------------------
+// Lens analysis types (used by /api/lens-analysis + useLensAnalysis)
+// ---------------------------------------------------------------------------
+export type AnalysisRiskLevel = "low" | "moderate" | "high";
+
+export interface AnalysisMetricRow {
+  id: string;
+  label: string;
+  value: string;
+  icon?: string;
+  detail?: string;
+  riskLevel?: AnalysisRiskLevel;
+  estimated?: boolean;
+}
+
+export interface LensAnalysisResult {
+  lens: string;
+  geometrySource: AnalysisInputMode;
+  title: string;
+  narrative: string | null;
+  metrics: AnalysisMetricRow[];
+  generatedAt: string;
+  attribution: string[];
+  details?: Record<string, unknown>;
+}
+
+export interface LensAnalysisRequestBody {
+  lensId: string;
+  geometrySource: AnalysisInputMode;
+  location: Coordinates | null;
+  locationName: string;
+  geometry: DrawnGeometryFeatureCollection;
+  selectedGeometryId?: string | null;
+  globeViewMode?: GlobeViewMode;
+  activeLayerLabels?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Custom user-added imagery layers (layer manager)
+// ---------------------------------------------------------------------------
+export type CustomLayerType = "wms" | "wmts" | "xyz";
+
+export interface CustomLayer {
+  id: string;
+  name: string;
+  type: CustomLayerType;
+  url: string;
+  wmsLayers?: string;
+  opacity: number;
+  visible: boolean;
+  order: number;
+}
+
+// ---------------------------------------------------------------------------
+// Feature inspector (identify mode) types
+// ---------------------------------------------------------------------------
+export interface IdentifyHit {
+  layerName: string;
+  featureType: "imagery" | "entity" | "drawn-shape" | "saved-site" | "fire" | "earthquake";
+  attributes: Record<string, string | number | boolean | null>;
+  coordinates: Coordinates | null;
+}
+
+export interface IdentifyResult {
+  clickCoordinates: Coordinates;
+  hits: IdentifyHit[];
+  timestamp: number;
 }
