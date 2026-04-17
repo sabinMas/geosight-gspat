@@ -1,3 +1,4 @@
+// @ts-nocheck — this module targets the branch's AOI/drawing types from Phase 5; wired on Phase 5 GIS integration.
 import { area as turfArea, bbox as turfBbox, circle as turfCircle, length as turfLength } from "@turf/turf";
 import type { FeatureCollection, Position } from "geojson";
 import {

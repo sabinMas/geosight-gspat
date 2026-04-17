@@ -22,6 +22,12 @@ export type UseCaseType =
 export type ResultsMode = "analysis" | "nearby_places";
 export type DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle";
 
+/**
+ * Source of geometry for lens analyzers: a point location or a drawn geometry.
+ * Used by Phase 1 lens analyzers (src/lib/analysis/*) and their prompts.
+ */
+export type AnalysisInputMode = "location" | "geometry";
+
 export interface DrawnShape {
   id: string;
   type: Exclude<DrawingTool, "none">;
@@ -166,7 +172,10 @@ export type AnalysisCapabilityId =
   | "hazard-stack"
   | "climate-trends"
   | "source-confidence"
-  | "tomography-context";
+  | "tomography-context"
+  | "infrastructure-cooling"
+  | "commercial-logistics"
+  | "site-readiness";
 export type AnalysisCapabilityTriggerMode = "auto_detected" | "user_triggered";
 export type AnalysisCapabilityOutputFormat =
   | "summary"

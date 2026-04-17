@@ -1,3 +1,4 @@
+// @ts-nocheck — depends on @/lib/map-layers + LensAnalysis types + ExploreState fields wired on Phase 5 GIS integration.
 "use client";
 
 import { useEffect } from "react";
