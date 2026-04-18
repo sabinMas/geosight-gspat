@@ -1,6 +1,6 @@
 # GeoSight
 
-GeoSight is a geospatial intelligence app for investigating real places with a 3D globe, live public data, lens-specific scoring, and source-aware reasoning.
+GeoSight gives anyone the place intelligence that used to require a GIS analyst. Search any address or coordinate, choose a mission lens, and get an instant briefing across **40+ live signals** from USGS, NOAA, NASA FIRMS, FEMA, EPA, and more — scored, explained, and exportable. **No GIS software needed.**
 
 It is built for first-pass location decisions:
 
@@ -44,8 +44,9 @@ Each lens changes what GeoSight emphasizes. The same place can read well for one
 2. **Enter a location** — address, neighborhood, landmark, or coordinates. Demo-ready examples are highlighted in the UI.
 3. **Review & launch** — confirm lens + location, then open the workspace.
 4. Read the analysis overview, then open factor breakdown, source awareness, hazards, or other supporting cards as needed.
-5. Generate a GeoScribe report from the same location to produce a structured deliverable instead of only chat replies.
-6. Save sites and use the comparison table to evaluate multiple candidates side by side.
+5. Ask the **GeoAnalyst** follow-up questions or use the **command palette** (`Cmd+K` / `Ctrl+K`) to jump to any feature.
+6. Generate a **GeoScribe report** to produce a structured analyst deliverable — exportable as GeoJSON, CSV, or a PNG map capture.
+7. Save sites and use the comparison table to evaluate multiple candidates side by side.
 
 ## What A First-Time User Sees
 
@@ -144,13 +145,18 @@ Signals shown in the product include examples such as:
 - seismic design parameters
 - mapped nearby places and amenities
 
+## Coverage Notes
+
+Global signals (work anywhere): climate, terrain, elevation, air quality, active fires, nearby places, OpenStreetMap amenities, and seismic context.
+
+US-first signals (show honest gaps outside the US): broadband availability, FEMA flood zones, EPA contamination screening, NRCS soil profiles, USGS groundwater, NCES school data, and seismic design parameters. The UI labels every gap rather than guessing.
+
 ## What GeoSight Does Not Claim
 
 - It is not an engineering sign-off tool.
 - It is not a parcel-entitlement system.
 - It is not an appraisal model.
 - It is not a replacement for official due diligence.
-- Some domains remain US-first today, especially broadband, flood, contamination, schools, soil, groundwater, and seismic design.
 - Some score factors still rely on proxy heuristics where direct live signals do not yet exist. Those factors are labeled in the UI.
 
 ## Technical Stack
