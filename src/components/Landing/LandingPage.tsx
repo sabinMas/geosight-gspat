@@ -18,6 +18,7 @@ import {
   Pin,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   Target,
   Trees,
   Zap,
@@ -62,12 +63,33 @@ const LENS_COLORS: Record<string, string> = {
 
 const TRUST_SOURCES = ["USGS", "NOAA", "NASA FIRMS", "FEMA", "Sentinel-2", "OpenStreetMap"];
 
-const LOCATION_SUGGESTIONS = [
-  "Olympic National Park, WA",
-  "Boulder, CO",
-  "Marin County, CA",
-  "Austin, TX",
+const LOCATION_SUGGESTIONS: Array<{ label: string; demo?: boolean }> = [
+  { label: "Yosemite Valley, CA", demo: true },
+  { label: "Olympic National Park, WA", demo: true },
+  { label: "Austin, TX" },
+  { label: "Boulder, CO" },
 ];
+
+const HOW_IT_WORKS = [
+  {
+    icon: Navigation,
+    step: "01",
+    title: "Search a place",
+    body: "Address, landmark, or coordinates.",
+  },
+  {
+    icon: Layers,
+    step: "02",
+    title: "Choose a lens",
+    body: "9 mission lenses focus analysis on your decision.",
+  },
+  {
+    icon: Sparkles,
+    step: "03",
+    title: "Get grounded intelligence",
+    body: "40+ live datasets scored and explained.",
+  },
+] as const;
 
 function getLensIcon(iconName: string) {
   return ICONS[iconName] ?? Globe2;
@@ -314,6 +336,14 @@ export function LandingPage() {
   const lensColor = selectedLens ? getLensColor(selectedLens.id) : "var(--accent)";
   const SelectedLensIcon = selectedLens ? getLensIcon(selectedLens.icon) : Globe2;
 
+  const demoHref = buildExploreHref({
+    profileId: "residential",
+    locationQuery: "Yosemite Valley, CA",
+    entrySource: "landing",
+    appMode: "explorer",
+    lensId: "general-explore",
+  });
+
   return (
     <div
       className="flex min-h-screen flex-col overflow-y-auto"
@@ -388,12 +418,68 @@ export function LandingPage() {
             <span style={{ color: "var(--muted-foreground)" }}>in under a minute.</span>
           </h1>
           <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-            GeoSight pulls signals from 40+ authoritative datasets and synthesizes them through the lens of your work. Start by choosing one.
+            For home buyers, site developers, field researchers, and anyone who needs to understand a place fast. Powered by 40+ live government datasets.
           </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => router.push(demoHref)}
+              size="lg"
+              className="rounded-full gap-2"
+            >
+              <Sparkles className="h-4 w-4" /> Try a live demo
+            </Button>
+            <button
+              type="button"
+              onClick={() => document.getElementById("lens-stepper")?.scrollIntoView({ behavior: "smooth" })}
+              className="text-sm transition hover:underline"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              Or configure your own →
+            </button>
+          </div>
+        </div>
+
+        {/* How it works */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {HOW_IT_WORKS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.step}
+                className="flex flex-col gap-2 rounded-xl border p-4"
+                style={{ background: "var(--surface-panel)", borderColor: "var(--border-soft)" }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-lg"
+                    style={{
+                      background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                      color: "var(--accent)",
+                    }}
+                  >
+                    <Icon size={16} />
+                  </span>
+                  <span
+                    className="text-[10px] uppercase tracking-[0.18em]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    {item.step}
+                  </span>
+                </div>
+                <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+                  {item.title}
+                </div>
+                <div className="text-xs leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+                  {item.body}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Stepper */}
         <div
+          id="lens-stepper"
           className="flex w-fit items-center gap-3 rounded-xl border px-5 py-4"
           role="group"
           aria-label="Set up your analysis"
@@ -521,20 +607,26 @@ export function LandingPage() {
 
               {/* Suggestions */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="eyebrow mr-1">Try one</span>
-                {[selectedLens.tagline.split(",")[0], ...LOCATION_SUGGESTIONS].slice(0, 4).map((s) => (
+                <span className="eyebrow mr-1">
+                  Try one ·{" "}
+                  <span style={{ color: "var(--accent)" }}>✦ great for demo</span>
+                </span>
+                {LOCATION_SUGGESTIONS.map((s) => (
                   <button
-                    key={s}
+                    key={s.label}
                     type="button"
-                    onClick={() => { setLocationQuery(s); setLocationError(null); }}
+                    onClick={() => { setLocationQuery(s.label); setLocationError(null); }}
                     className="rounded-full border px-2.5 py-1 text-xs transition"
                     style={{
                       background: "var(--surface-panel)",
-                      borderColor: "var(--border-soft)",
+                      borderColor: s.demo ? "var(--accent)" : "var(--border-soft)",
                       color: "var(--foreground)",
                     }}
                   >
-                    {s}
+                    {s.demo && (
+                      <span style={{ color: "var(--accent)", marginRight: "3px" }}>✦</span>
+                    )}
+                    {s.label}
                   </button>
                 ))}
               </div>

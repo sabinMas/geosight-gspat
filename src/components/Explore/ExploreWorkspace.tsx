@@ -9,6 +9,7 @@ import {
   Command,
   Crosshair,
   Download,
+  Loader2,
   FileText,
   Globe,
   Grid2x2,
@@ -1582,6 +1583,39 @@ export function ExploreWorkspace() {
           ))}
         </div>
       ) : null}
+
+      {/* First-run loading status */}
+      {data.loading && !data.geodata && state.locationReady && (
+        <div
+          className="flex flex-col gap-3 rounded-2xl border p-5"
+          style={{ background: "var(--surface-panel)", borderColor: "var(--border-soft)" }}
+        >
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--accent)" }} />
+            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+              Pulling live data for {state.selectedLocationName}
+            </span>
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+            Fetching terrain, hazard, climate, and infrastructure signals from 40+ sources.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {["Terrain", "Flood zones", "Air quality", "Climate", "Broadband"].map((label) => (
+              <span
+                key={label}
+                className="animate-pulse rounded-full border px-2.5 py-0.5 text-xs"
+                style={{
+                  background: "var(--surface-soft)",
+                  borderColor: "var(--border-soft)",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Primary panel */}
       {data.activePrimaryCard ? (

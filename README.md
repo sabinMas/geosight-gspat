@@ -24,23 +24,28 @@ GeoSight combines:
 - source freshness and coverage metadata
 - AI-assisted narrative and report generation grounded in the active location bundle
 
-The current product supports lenses for:
+The current product supports 9 explorer lenses:
 
-- Home Buying
-- Residential Site Development
-- Data Center Cooling
-- Commercial / Warehouse
-- Hiking / Recreation
+- Hunt Planner
+- Trail Scout
+- Road Trip
+- Land Quick-Check
+- General Explore
+- Energy & Solar
+- Agriculture & Land
+- Emergency Response
+- Field Research
 
 Each lens changes what GeoSight emphasizes. The same place can read well for one decision and poorly for another.
 
 ## Quick Start
 
-1. Open the landing page and choose a lens or pick Explorer mode for a simpler first-run experience.
-2. Search a real place — address, neighborhood, landmark, or coordinates.
-3. Read the analysis overview, then open factor breakdown, source awareness, hazards, or other supporting cards as needed.
-4. Generate a GeoScribe report from the same location to produce a structured deliverable instead of only chat replies.
-5. Save sites and use the comparison table to evaluate multiple candidates side by side.
+1. **Choose a lens** — pick one of the 9 mission lenses that matches your decision type (home buying, site development, field research, etc.).
+2. **Enter a location** — address, neighborhood, landmark, or coordinates. Demo-ready examples are highlighted in the UI.
+3. **Review & launch** — confirm lens + location, then open the workspace.
+4. Read the analysis overview, then open factor breakdown, source awareness, hazards, or other supporting cards as needed.
+5. Generate a GeoScribe report from the same location to produce a structured deliverable instead of only chat replies.
+6. Save sites and use the comparison table to evaluate multiple candidates side by side.
 
 ## What A First-Time User Sees
 
@@ -154,7 +159,8 @@ Signals shown in the product include examples such as:
 - React 19
 - TypeScript
 - Tailwind CSS v4
-- Cesium + Resium
+- Cesium + Resium (3D globe)
+- MapLibre GL (2D flat map)
 - Recharts
 - Groq and Gemini for AI-assisted reasoning and report generation
 - Vercel-ready API routes under `src/app/api/*`
@@ -269,18 +275,24 @@ flowchart LR
   APIs --> AI["Groq + Gemini"]
 ```
 
-## Demo Notes
+## Live Demo
 
-Good first-run examples:
+Try a pre-configured demo directly:
 
-- `Bellevue, WA` for Home Buying
-- `The Dalles, OR` for Data Center Cooling
-- `Phoenix, AZ` for Commercial / Warehouse
-- `Olympic National Park` for Hiking / Recreation
+[https://geosight-gspat.vercel.app/explore?profile=residential&location=Yosemite+Valley%2C+CA&mode=explorer&lens=general-explore](https://geosight-gspat.vercel.app/explore?profile=residential&location=Yosemite+Valley%2C+CA&mode=explorer&lens=general-explore)
 
 The public app is deployed at:
 
 - [geosight-gspat.vercel.app](https://geosight-gspat.vercel.app/)
+
+## Demo Notes
+
+Good first-run examples:
+
+- `Yosemite Valley, CA` for General Explore (demo-ready)
+- `Olympic National Park, WA` for Trail Scout (demo-ready)
+- `Austin, TX` for Land Quick-Check
+- `Boulder, CO` for Hunt Planner
 
 ## Planning Docs
 
