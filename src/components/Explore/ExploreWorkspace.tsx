@@ -835,6 +835,17 @@ export function ExploreWorkspace() {
         return;
       }
 
+      // Undo / redo drawn shapes — Ctrl+Z / Ctrl+Shift+Z (Cmd on Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          state.redoDrawing();
+        } else {
+          state.undoDrawing();
+        }
+        return;
+      }
+
       if (event.altKey || event.metaKey || event.ctrlKey) {
         return;
       }
@@ -894,6 +905,8 @@ export function ExploreWorkspace() {
     setActiveProfile,
     setActiveLensId,
     setDrawingTool,
+    state.undoDrawing,
+    state.redoDrawing,
     walkthroughOpen,
   ]);
 

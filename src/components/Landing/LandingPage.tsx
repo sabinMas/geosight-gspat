@@ -560,6 +560,10 @@ export function LandingPage() {
                     id="location-input"
                     ref={inputRef}
                     autoFocus
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     value={locationQuery}
                     onChange={(e) => { setLocationQuery(e.target.value); setLocationError(null); }}
                     onKeyDown={(e) => e.key === "Enter" && handleSubmitLocation()}

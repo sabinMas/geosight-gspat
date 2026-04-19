@@ -579,7 +579,7 @@ export function CesiumGlobe({
             break;
           case "water-terrain":
             providerPromise = ArcGisMapServerImageryProvider.fromBasemapType(
-              ArcGisBaseMapType.HILLSHADE,
+              ArcGisBaseMapType.OCEANS,
             );
             break;
           case "satellite":
@@ -1466,8 +1466,10 @@ export function CesiumGlobe({
       },
     });
 
-    // Disable default camera controls while driving
+    // Disable default camera controls while driving and focus canvas so
+    // keyboard events route to the window listener (not a blurred browser tab)
     viewer.scene.screenSpaceCameraController.enableInputs = false;
+    viewer.canvas.focus();
 
     // Keyboard input
     const keys = new Set<string>();

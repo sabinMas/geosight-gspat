@@ -200,7 +200,26 @@ export function useAgentPanel() {
   const context = useContext(AgentPanelContext);
 
   if (!context) {
-    throw new Error("useAgentPanel must be used within AgentPanelProvider.");
+    // Return a safe no-op fallback instead of throwing.
+    // This occurs during Next.js App Router route transitions when a consuming
+    // component briefly unmounts before the provider tree settles — throwing
+    // here causes a client-side exception on browser Back navigation.
+    return {
+      activeAgentId: "geo-analyst" as AgentId,
+      clearQueuedAutoSubmit: () => {},
+      clearQueuedDraft: () => {},
+      geoContext: null,
+      openDefaultPanel: () => {},
+      panelOpen: false,
+      primeAgent: () => {},
+      queuedAutoSubmit: {} as Partial<Record<AgentId, boolean>>,
+      queuedDrafts: {} as Partial<Record<AgentId, string>>,
+      setGeoContext: () => {},
+      setPanelOpen: () => {},
+      submitAgentPrompt: () => {},
+      setUiContext: () => {},
+      uiContext: null,
+    } satisfies AgentPanelContextValue;
   }
 
   return context;

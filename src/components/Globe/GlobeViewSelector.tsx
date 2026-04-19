@@ -12,7 +12,7 @@ const VIEW_OPTIONS: Array<{
 }> = [
   { mode: "satellite", label: "Satellite", icon: Satellite },
   { mode: "road", label: "Road", icon: Map },
-  { mode: "water-terrain", label: "Water / terrain", icon: Droplets },
+  { mode: "water-terrain", label: "Terrain", icon: Droplets },
 ];
 
 interface GlobeViewSelectorProps {
