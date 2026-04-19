@@ -59,10 +59,9 @@ export function TrustSummaryPanel({
       </div>
 
       {visibleSources.length ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 flex flex-col divide-y divide-[color:var(--border-soft)]">
           {visibleSources.map((source) => (
-            // TODO: pass factors prop when scoring data is available here
-            <SourceInlineSummary key={source.id} source={source} compact className="h-full" factors={factors} />
+            <SourceInlineSummary key={source.id} source={source} compact className="rounded-none border-0 first:rounded-t-[1rem] last:rounded-b-[1rem] py-3" factors={factors} />
           ))}
         </div>
       ) : null}
