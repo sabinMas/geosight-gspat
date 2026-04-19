@@ -1,6 +1,6 @@
 "use client";
 
-import { Pin, Plus, Star } from "lucide-react";
+import { Grid2x2, Pin, Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceCardDefinition, WorkspaceCardId } from "@/types";
 import { WorkspaceCardIcon } from "./WorkspaceCardIcon";
@@ -30,8 +30,9 @@ export function AddViewTray({
             Suggested supporting panels stay tucked away until you need more depth.
           </p>
         </div>
-        <Button type="button" variant="secondary" className="rounded-full" onClick={onOpenBoard}>
-          Open analyst workbench
+        <Button type="button" variant="secondary" className="shrink-0 rounded-full" onClick={onOpenBoard}>
+          <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
+          Workbench
         </Button>
       </div>
 
