@@ -21,8 +21,10 @@ This backlog was reconciled against:
 - `src/lib/scoring-methodology.ts`
 - `src/lib/workspace-cards.ts`
 - `src/lib/source-registry.ts`
-- `src/lib/demos/registry.ts`
+- `src/lib/explorer-lenses.ts`
 - `src/lib/agents/agent-config.ts`
+
+Last updated: 2026-04-18 - Competition-submission polish shipped: 9-lens landing flow with step-based chooser (Hunt Planner, Trail Scout, Road Trip, Land Quick-Check, General Explore, Energy & Solar, Agriculture & Land, Emergency Response, Field Research); MapLibre 2D flat-map toggle; rail sidebar; 6 pre-submission usability bugs fixed (factor chips on all 9 lenses, Ctrl+Z undo keyboard shortcut, hillshade basemap crash, layout overlaps); source details column layout fixed; legend button overlap fixed. See git log for `586c24e`, `797604a`.
 
 Last updated: 2026-04-10 - Batch 19 shipped: **Production build hardening for the GIS workbench batch** - Vercel production deploy failure after commit `76f9d4b` was fixed and pushed in `2200dcb`; `src/components/Explore/WorkspaceCommandPalette.tsx` fixed the `react/no-unescaped-entities` empty-state lint error; `src/components/agent-panel/AgentChat.tsx` stabilized queued auto-submit/send flow with callback-safe ordering so lint and production build pass; warning cleanup landed in `src/components/Explore/ExploreWorkspace.tsx`, `src/components/Explore/WorkspaceCardShell.tsx`, `src/components/Globe/MapCallout.tsx`, `src/components/Shell/ProfileSelector.tsx`, `src/hooks/useExploreState.ts`, and `src/lib/overpass.ts`; release rule now confirmed: always run `npm run build` locally before pushing because Vercel runs lint during `next build`.
 
@@ -60,7 +62,7 @@ Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each dr
 ### Mission architecture
 
 - **User question**: Can the same place be evaluated through different mission lenses instead of a single demo-only workflow?
-- **Current implementation**: Four wired mission profiles: data center, hiking, residential, and commercial. The landing page also exposes a General Exploration entry that is honestly labeled as using the residential lens today.
+- **Current implementation**: Nine explorer lenses shipped: Hunt Planner, Trail Scout, Road Trip, Land Quick-Check, General Explore, Energy & Solar, Agriculture & Land, Emergency Response, and Field Research. Each lens maps to a mission profile with its own factor weights and default card set. The landing page shows all 9 lenses in a step-based chooser.
 
 ### Live geodata and trust stack
 

@@ -93,10 +93,9 @@ src/
     source-registry.ts              # Source metadata + regional fallback guidance
     source-metadata.ts              # Per-source freshness / coverage metadata
     analysis-summary.ts             # buildAnalysisOverview — strengths/watchouts/dataGaps
-    explorer-lenses.ts              # 5 Explorer mode lenses (simpler first-run)
+    explorer-lenses.ts              # 9 Explorer mode lenses (simpler first-run)
     lenses.ts                       # Lens ID ↔ profile ID mapping + public labels
-    landing.ts                      # Use cases, surprise locations, buildExploreHref
-    demos/registry.ts               # Demo registry (guided stories)
+    landing.ts                      # Use cases, buildExploreHref
     cesium-search.ts                # Geocoding + coordinate resolution
     geospatial.ts                   # Spatial helpers
     stream-gauges.ts                # formatDistanceKm and USGS gauge helpers
@@ -167,7 +166,7 @@ If you find `border-neutral-*` or `dark:border-neutral-*` in existing code, repl
 ## Architecture Decisions
 
 ### Explorer vs Pro mode
-- **Explorer** (`appMode === "explorer"`): simpler, consumer-facing. 5 lenses. Guided first-run. Fewer cards visible.
+- **Explorer** (`appMode === "explorer"`): simpler, consumer-facing. 9 lenses (Hunt Planner, Trail Scout, Road Trip, Land Quick-Check, General Explore, Energy & Solar, Agriculture & Land, Emergency Response, Field Research). Guided first-run. Fewer cards visible.
 - **Pro** (`appMode === "pro"`): full analyst workspace. Board mode, library, all cards, comparison table, report generation.
 - `isExplorerMode(appMode)` in `src/lib/app-mode.ts` is the single truth.
 - The landing page routes Explorer entries with `appMode: "explorer"` and a `lensId` param.

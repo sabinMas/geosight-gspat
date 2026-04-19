@@ -12,40 +12,40 @@ It is also already becoming a dashboard canvas built from reusable workspace car
 
 This agent model is grounded in the repository state, not an abstract wishlist.
 
-- Current product narrative: [README.md](C:\Users\mason\Documents\GitHub\GSPAT\README.md)
-- Current backlog and milestone inventory: [docs/BACKLOG.md](C:\Users\mason\Documents\GitHub\GSPAT\docs\BACKLOG.md)
-- Primary application workspace: [src/components/Explore/ExploreWorkspace.tsx](C:\Users\mason\Documents\GitHub\GSPAT\src\components\Explore\ExploreWorkspace.tsx)
-- Mission profile system: [src/lib/profiles.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\profiles.ts)
-- Scoring engine: [src/lib/scoring.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\scoring.ts)
-- Scoring methodology reference: [src/lib/scoring-methodology.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\scoring-methodology.ts)
-- Workspace card registry: [src/lib/workspace-cards.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\workspace-cards.ts)
-- Live geodata route: [src/app/api/geodata/route.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\app\api\geodata\route.ts)
-- Source registry: [src/lib/source-registry.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\source-registry.ts)
-- Landing and routing model: [src/lib/landing.ts](C:\Users\mason\Documents\GitHub\GSPAT\src\lib\landing.ts)
+- Current product narrative: [README.md](C:\Users\mason\Documents\GitHub\geosight-gspat\README.md)
+- Current backlog and milestone inventory: [docs/BACKLOG.md](C:\Users\mason\Documents\GitHub\geosight-gspat\docs\BACKLOG.md)
+- Primary application workspace: [src/components/Explore/ExploreWorkspace.tsx](C:\Users\mason\Documents\GitHub\geosight-gspat\src\components\Explore\ExploreWorkspace.tsx)
+- Mission profile system: [src/lib/profiles.ts](C:\Users\mason\Documents\GitHub\geosight-gspat\src\lib\profiles.ts)
+- Scoring engine: [src/lib/scoring.ts](C:\Users\mason\Documents\GitHub\geosight-gspat\src\lib\scoring.ts)
+- Scoring methodology reference: [src/lib/scoring-methodology.ts](C:\Users\mason\Documents\GitHub\geosight-gspat\src\lib\scoring-methodology.ts)
+- Workspace card registry: [src/lib/workspace-cards.ts](C:\Users\mason\Documents\GitHub\geosight-gspat\src\lib\workspace-cards.ts)
+- Live geodata route: [src/app/api/geodata/route.ts](C:\Users\mason\Documents\GitHub\geosight-gspat\src\app\api\geodata\route.ts)
+- Source registry: [src/lib/source-registry.ts](C:\Users\mason\Documents\GitHub\geosight-gspat\src\lib\source-registry.ts)
+- Landing and routing model: [src/lib/landing.ts](C:\Users\mason\Documents\GitHub\geosight-gspat\src\lib\landing.ts)
 
 ## Current Reality Snapshot
 
 ### GeoSight already has meaningful foundations
 
-- Next.js App Router application with a Cesium/Resium 3D globe
+- Next.js App Router application with a Cesium 3D globe (imperative API) and MapLibre 2D flat-map toggle
 - Refactored explore workspace with dedicated state and data hooks instead of a single monolith
-- Mission-profile architecture for multiple use cases
+- 9 explorer lenses: Hunt Planner, Trail Scout, Road Trip, Land Quick-Check, General Explore, Energy & Solar, Agriculture & Land, Emergency Response, Field Research
 - Deterministic scoring with factor evidence labels and methodology explanations
-- Registry-driven workspace cards with profile defaults, board/library behavior, and persisted visibility
-- GeoAnalyst and GeoScribe agent flows, including a structured report panel with copy-to-clipboard
-- Demo registry with guided stories and fallback screenshot support
-- Live integrations with USGS, NRCS, FEMA, EPA, FCC, Open-Meteo, Overpass/OSM, NCES, Washington OSPI, and Cesium Ion
-- New subsurface and climate-history integrations: groundwater, soil profile, seismic design, and 10-year historical climate trends
+- 23+ registry-driven workspace cards with profile defaults, multi-card board mode, drag-reorder, named layouts, and cloud sync via Upstash Redis
+- GeoAnalyst and GeoScribe agent flows with streaming output, persistent AI bar, and Cmd+K command palette
+- QGIS-style drawing tools: polygon, marker, measure, radius circle — with snap-to-vertex, snap-to-grid, vertex drag-editing, undo/redo, GeoJSON export, and named pin labels
+- 3D drive mode (WASD/arrow keys), topographic capture overlay, and analyst export bundle (GeoJSON + CSV + PNG)
+- Live integrations with USGS, NRCS, FEMA, EPA, FCC, Open-Meteo, NASA POWER, NASA FIRMS, GDACS, Overpass/OSM, NCES, Washington OSPI, Eurostat NUTS2, and Cesium Ion
+- Subsurface and climate-history integrations: groundwater, soil profile, seismic design, 10-year historical climate trends, drought risk, wildfire risk, thermal load, disaster alerts
 - Source-awareness UI with freshness, coverage, confidence, and registry-aware fallback-provider context
+- Auth.js OAuth (Google + GitHub) with optional Upstash Redis cloud site sync
 
 ### GeoSight still has major platform gaps
 
-- No drag-and-drop or user-authored saved dashboard layouts yet
 - No true cross-region provider switching in most live routes yet, even though the source registry scaffolding exists
-- Inline provenance is still stronger in dedicated trust surfaces than in every headline result card
-- Hazard coverage is improving, but the live risk stack is still early compared with the long-term ambition
 - Some scoring logic still relies on proxy heuristics where direct live signals do not yet exist
-- Important domains such as travel routing, LiDAR, aviation, Doppler-style weather, and global school or demographic coverage remain incomplete
+- Important domains such as LiDAR overlays, aviation context, Doppler-style weather, and global school or demographic coverage remain incomplete
+- Non-US broadband, flood, soil, seismic, and school data still rely on US-first sources; global replacements are cataloged in the source registry but not yet wired
 
 ## North Star
 
@@ -121,12 +121,11 @@ The current workspace card registry already captures much of this shape. New car
 
 Based on the current codebase, the next major evolution should focus on:
 
-- richer live hazard and resilience layers
-- stronger inline provenance and confidence on headline cards and AI outputs
-- formal contract-backed cards and saved dashboard layouts
-- more live non-US provider integrations driven by the existing source registry
-- deeper travel, development, and research workflows built from the same card substrate
-- better share or export artifacts that extend the current GeoScribe report workflow
+- live non-US provider integrations for flood, soil, seismic, and school data (GloFAS, ISRIC, GEM OpenQuake)
+- GeoAnalyst context completeness — newer geodata fields (solarResource, streamGauges, thermalLoad) not yet in the AI system prompt
+- structured JSON output for GeoScribe (currently markdown prose — JSON would enable PDF export and section-level regeneration)
+- LiDAR / National Map tile overlays in the globe viewer
+- shareable self-contained HTML or PDF analysis snapshots
 
 ## Final Standard
 

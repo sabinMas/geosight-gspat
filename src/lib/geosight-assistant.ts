@@ -885,6 +885,8 @@ export function buildFallbackAssessment(
   if (questionType === "hazard_risk") {
     const hazardFacts = supportedFacts.filter((fact) =>
       fact.includes("FEMA flood zone") ||
+      fact.includes("River discharge") ||
+      fact.includes("USGS stream gauge") ||
       fact.includes("Recent seismic") ||
       fact.includes("Global disaster") ||
       fact.includes("Air-quality") ||
@@ -899,7 +901,9 @@ export function buildFallbackAssessment(
       fact.includes("Elevation") ||
       fact.includes("Dominant land cover") ||
       fact.includes("Nearest mapped water") ||
+      fact.includes("USGS stream gauge") ||
       fact.includes("Current weather") ||
+      fact.includes("Historical climate trend") ||
       fact.includes("Air-quality"),
     ).join(" ");
 
@@ -926,13 +930,17 @@ export function buildFallbackAssessment(
       fact.includes("Broadband") ||
       fact.includes("Road access") ||
       fact.includes("FEMA flood zone") ||
-      fact.includes("Current weather"),
+      fact.includes("River discharge") ||
+      fact.includes("Solar resource") ||
+      fact.includes("Thermal load") ||
+      fact.includes("Current weather") ||
+      fact.includes("Historical climate trend"),
     ).join(" ");
 
     return `${buildInfrastructureSummary(payload)}\n\n${infraFacts}\n\nGeoSight can screen utility and access posture, but it does not replace utility queue, transmission, or permitting diligence.`;
   }
 
-  const keyFacts = supportedFacts.filter((f) => !f.includes("unavailable")).slice(0, 6).join(" ");
+  const keyFacts = supportedFacts.filter((f) => !f.includes("unavailable")).slice(0, 9).join(" ");
   const trendNote = trendLines.length ? " " + trendLines.join(" ") : "";
 
   return `${buildProfileAssessmentLine(profile.id, payload.geodata)}\n\n${keyFacts}${trendNote}\n\nThis analysis is based on currently loaded live, derived, and mapped context — anything beyond those signals should be treated as screening-level inference. ${nextQuestions[0] ?? ""}`;

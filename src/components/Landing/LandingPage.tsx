@@ -72,16 +72,16 @@ const LOCATION_SUGGESTIONS: Array<{ label: string; demo?: boolean }> = [
 
 const HOW_IT_WORKS = [
   {
-    icon: Navigation,
-    step: "01",
-    title: "Search a place",
-    body: "Address, landmark, or coordinates.",
-  },
-  {
     icon: Layers,
-    step: "02",
+    step: "01",
     title: "Choose a lens",
     body: "9 mission lenses focus analysis on your decision.",
+  },
+  {
+    icon: Navigation,
+    step: "02",
+    title: "Search a place",
+    body: "Address, landmark, or coordinates.",
   },
   {
     icon: Sparkles,

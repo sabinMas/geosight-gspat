@@ -68,16 +68,16 @@ function LocationSignalCard({
     <div
       className={`min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${className ?? ""}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 truncate text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           {label}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           {source ? <SourceStatusBadge source={source} /> : null}
           {source ? <SourceInfoButton source={source} title={`${label} source`} /> : null}
         </div>
       </div>
-      <div className="mt-4 min-w-0 break-words text-[clamp(2rem,3vw,2.75rem)] font-semibold leading-none tracking-tight text-[var(--foreground)]">
+      <div className="mt-3 min-w-0 truncate text-2xl font-semibold leading-none tracking-tight text-[var(--foreground)]">
         {value}
       </div>
       <div

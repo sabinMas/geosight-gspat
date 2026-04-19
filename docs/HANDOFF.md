@@ -1,6 +1,6 @@
 # GeoSight — Agent Handoff Document
 
-Last updated: 2026-04-10 (post GIS workbench + capture/export batch, production build fixed)
+Last updated: 2026-04-18 (competition submission polish — 9-lens landing, layout fixes, bug fixes)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
 
@@ -8,16 +8,19 @@ This document is written for agents (CODEX, Claude Code, or human devs) picking 
 
 ## State of the Codebase
 
-The app is fully deployed and functional at `https://geosight-gspat.vercel.app`. Main branch auto-deploys to Vercel on every push. TypeScript strict mode, zero type errors as of last commit.
+The app is fully deployed and functional at `https://geosight-gspat.vercel.app`. Main branch auto-deploys to Vercel on every push. TypeScript strict mode, zero src/ type errors as of last commit.
 
 ### Most Recent Production Handoff
 
 This is the current place to pick up work. The latest production-facing commits are:
 
-- `76f9d4b` - `Ship GIS workbench capture and export workflow`
-- `2200dcb` - `Fix production build lint blockers`
+- `797604a` - `fix: source details column layout + legend button overlap`
+- `586c24e` - `fix: 6 usability bugs from pre-submission test report`
+- `aa17a84` - `docs: strengthen README for competition submission`
+- `74c7271` - `feat: competition release polish — demo CTA, how-it-works strip, loading panel`
+- `773fc16` - `feat(design): 3-step landing flow, 4 new lenses, MapLibre 2D toggle, rail sidebar`
 
-Those two commits together are the current production batch. If you are continuing immediately after this handoff, start from `origin/main` at or after `2200dcb`.
+Start from `origin/main` at `797604a` or later.
 
 ### What shipped in the latest batch
 
@@ -203,7 +206,39 @@ Plus specialized: `demographics-context`, `housing-market`, `outdoor-fit`, `trip
 
 ---
 
-## What Was Shipped This Session
+## What Shipped After the GIS Workbench Batch (2026-04-18)
+
+### 9-lens landing flow + 4 new lenses
+
+Commit `773fc16`. `src/lib/explorer-lenses.ts` now exports 9 lenses: the original 5 (Hunt Planner, Trail Scout, Road Trip, Land Quick-Check, General Explore) plus Energy & Solar, Agriculture & Land, Emergency Response, and Field Research. Each has its own `profileId`, `defaultCards`, `summaryQuestion`, `whyItMatters`, and `factors[]`. The landing page shows a 3-step chooser (lens → location → confirm). `factors[]` arrays were backfilled for all original 5 lenses in `586c24e` so all 9 cards display factor chips consistently.
+
+### MapLibre 2D flat-map toggle
+
+Commit `773fc16`. `src/components/Globe/MapLibreMap.tsx` (new) uses `maplibre-gl` with OSM raster tiles as a 2D flat-map alternative to the Cesium globe. `ExploreWorkspace` dynamically imports it and switches on `state.mapEngine === "maplibre"`. A pill button at the bottom-right of the globe area toggles between Cesium and MapLibre.
+
+### Rail sidebar
+
+Commit `773fc16`. Left sidebar is now a narrower rail layout — the lens carousel adapts to the content area without hardcoded widths.
+
+### Competition polish
+
+Commit `74c7271`. Added a how-it-works strip and demo CTA to the landing page. Loading panel improvements.
+
+### Pre-submission usability fixes
+
+Commit `586c24e` (6 bugs):
+1. Factor chips on all 9 lenses — `factors[]` backfilled
+2. Ctrl+Z / Ctrl+Shift+Z undo/redo keyboard shortcut wired in `ExploreWorkspace`
+3. Water/terrain basemap crash fixed — `HILLSHADE` replaced with `OCEANS` enum value
+4. Additional layout overlap fixes
+
+Commit `797604a` (layout):
+- `TrustSummaryPanel` source grid collapsed to single stacked list — eliminates cramped columns in the provenance view
+- `LegendPanel` trigger moved to `bottom-12 right-16` to clear the globe/map/drive pill cluster
+
+---
+
+## What Was Shipped This Session (GIS Workbench Batch)
 
 ### GIS-style full-viewport layout
 
@@ -326,8 +361,8 @@ The US-first data gap is the most visible product weakness for non-US users. The
 
 ### P2 — Workspace UX
 
-- **Command palette:** `Cmd+K` / `Ctrl+K` opens a search over card names, quick regions, and actions. The card registry (`src/lib/workspace-cards.ts`) already has all the metadata needed to power this.
-- **Persistent AI input bar:** A fixed input field in the bottom bar (or right panel) that always routes to GeoAnalyst, instead of requiring the user to open the Chat card first. This dramatically reduces friction for conversational analysis.
+- ~~**Command palette:**~~ — **shipped**: `Cmd+K` / `Ctrl+K` opens `WorkspaceCommandPalette.tsx` with card name, quick region, and action search.
+- ~~**Persistent AI input bar:**~~ — **shipped**: `PersistentAiBar.tsx` in the bottom bar always routes to GeoAnalyst.
 - **Keyboard navigation:** Tab order through the workspace is currently undefined. Setting explicit `tabIndex` and adding focus-visible ring styles would make the app keyboard-navigable.
 
 ---
@@ -425,7 +460,7 @@ src/
       GlobeViewSelector.tsx         # Basemap switcher
       RegionSelector.tsx            # Active region display + reset
     Landing/
-      LandingPage.tsx               # Landing — Explorer (5 lenses) + Pro (analyst) flows
+      LandingPage.tsx               # Landing — Explorer (9 lenses, 3-step chooser) + Pro (analyst) flows
     Shell/
       Sidebar.tsx                   # Left sidebar — profiles + quick regions
       SearchBar.tsx                 # Location search
@@ -537,6 +572,7 @@ NASA POWER, Open-Meteo, USGS, OSM Overpass, GDACS, OpenAQ, FEMA NFHL, Eurostat, 
 | Groq API keys missing from Vercel | HIGH | AI falls back to deterministic mode on prod — user needs to add keys via Vercel dashboard |
 | FEMA soft timeout 12s | LOW | Raised from 6.5s; still may time out on slow FEMA servers |
 | Overpass rate limits | MEDIUM | Public `overpass-api.de` can throttle; `overpass.kumi.systems` fallback wired |
-| Fix 13 (nextSteps) not implemented | LOW | `buildAnalysisOverview` returns `nextSteps[]` but no component renders them — deferred |
-| Fix 8 (tab active state) not changed | LOW | `ResultsModeToggle` uses `variant="default"` vs `variant="secondary"` which is already visually distinct; not changed |
-| Zoom button overlap risk | LOW | Zoom at `bottom-24 right-4` in CesiumGlobe; DataLayers at `bottom-10 right-4` in ExploreWorkspace — 20px gap; may need adjustment if DataLayers panel height changes |
+| `nextSteps[]` not rendered | LOW | `buildAnalysisOverview` returns `nextSteps[]` but no component renders them — deferred |
+| GeoAnalyst context gap | MEDIUM | System prompt in `analyze/route.ts` omits newer fields: `solarResource`, `streamGauges`, `thermalLoad` — AI answers about these fields are less grounded |
+| Lint warnings (7 items) | LOW | All are warnings, not errors — unused imports (`HorizontalOrigin`, `cn`, `Input`, `formatRadiusLabel`, `buildFactorEvidenceLines`) and missing `useEffect` deps in `ExploreWorkspace` and `CesiumGlobe`; do not suppress without fixing |
+| maplibre-gl / lz-string missing from node_modules | LOW | Packages are in `package.json` but `npm install` must be run; tsc will fail in CI if deps are not installed |

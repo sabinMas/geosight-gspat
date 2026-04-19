@@ -43,16 +43,16 @@ function TrendSignalCard({
     <div
       className={`rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${muted ? "opacity-80" : ""}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 truncate text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           {trend.label}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           <SourceStatusBadge source={trend.source} />
           <SourceInfoButton source={trend.source} title={`${trend.label} source`} />
         </div>
       </div>
-      <div className="mt-4 text-4xl font-semibold tracking-tight text-[var(--foreground)]">
+      <div className="mt-3 min-w-0 truncate text-2xl font-semibold leading-none tracking-tight text-[var(--foreground)]">
         {trend.value}
       </div>
       <div
