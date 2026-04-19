@@ -442,13 +442,13 @@ export function ActiveLocationCard({
                 Open full source details
               </Button>
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="flex flex-col divide-y divide-[color:var(--border-soft)]">
               {sourceHighlights.map((source) => (
                 <SourceInlineSummary
                   key={`inline-${source.id}`}
                   source={source}
                   compact
-                  className="h-full"
+                  className="rounded-none border-0 py-3 first:pt-0 last:pb-0"
                 />
               ))}
             </div>

@@ -339,7 +339,7 @@ export function WorkspaceToolRail({
             <Button
               type="button"
               size="sm"
-              variant="default"
+              variant="secondary"
               className={cn("justify-start rounded-2xl", exportBusy && "opacity-80")}
               aria-label="Export analyst ZIP bundle"
               onClick={onExportBundle}
