@@ -20,6 +20,10 @@ function hasSeismicData(geodata: GeodataResult) {
   );
 }
 
+function hasGlobalExposure(geodata: GeodataResult) {
+  return Boolean(geodata.seismicDesign?.exposureTier);
+}
+
 function hasCatalogData(geodata: GeodataResult) {
   const h = geodata.hazards;
   return (
@@ -40,6 +44,16 @@ function riskBadge(pga: number | null) {
   if (pga <= 0.4) return { label: "Moderate", tone: "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--foreground)]" };
   if (pga <= 0.8) return { label: "High", tone: "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--foreground)]" };
   return { label: "Very High", tone: "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--foreground)]" };
+}
+
+function exposureTierBadge(tier: string | null | undefined) {
+  switch (tier) {
+    case "Very High": return { label: "Very High", tone: "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-foreground)]" };
+    case "High":      return { label: "High", tone: "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]" };
+    case "Moderate":  return { label: "Moderate", tone: "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--foreground)]" };
+    case "Low":       return { label: "Low", tone: "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]" };
+    default:          return { label: "Very Low", tone: "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]" };
+  }
 }
 
 function catalogSeismicBadge(hazards: GeodataResult["hazards"]) {
@@ -72,6 +86,7 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
   const badge = riskBadge(seismic?.pga ?? null);
   const hasDesign = hasSeismicData(geodata);
   const hasCatalog = hasCatalogData(geodata);
+  const hasExposure = hasGlobalExposure(geodata);
 
   return (
     <WorkspaceCardShell eyebrow="Structural hazard" title="Seismic risk profile">
@@ -181,6 +196,55 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
             sources={[geodata.sources.seismicDesign, geodata.sources.hazards]}
             note="Peak ground acceleration, Ss, and S1 come from USGS design maps. They are screening inputs for engineering diligence, not a substitute for structural design."
           />
+        </>
+      ) : hasExposure && seismic ? (
+        <>
+          {(() => {
+            const expBadge = exposureTierBadge(seismic.exposureTier);
+            const h = geodata.hazards;
+            return (
+              <>
+                <div className={`inline-flex rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.18em] ${expBadge.tone}`}>
+                  Seismic exposure: {expBadge.label}
+                </div>
+
+                <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+                  <div className="eyebrow">5-year catalog analysis · 400 km radius</div>
+                  <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">M3+ events (5yr)</div>
+                      <div className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+                        {seismic.catalogEventCount5yr ?? "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Max magnitude</div>
+                      <div className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+                        {seismic.catalogMaxMagnitude5yr != null
+                          ? `M ${seismic.catalogMaxMagnitude5yr.toFixed(1)}`
+                          : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Recent (30d)</div>
+                      <div className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+                        {h.earthquakeCount30d ?? "—"}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
+                    ASCE 7-22 design parameters are US-only. GeoSight uses USGS catalog history (M3+, 5 yr, 400 km) to derive a qualitative seismic exposure tier for this location.
+                  </p>
+                </div>
+
+                <TrustSummaryPanel
+                  summary={trustSummary}
+                  sources={[geodata.sources.seismicDesign, geodata.sources.hazards]}
+                  note="Seismic exposure tier is derived from 5-year USGS earthquake catalog history, not probabilistic hazard curves. Use as a first-pass screening signal only."
+                />
+              </>
+            );
+          })()}
         </>
       ) : hasCatalog ? (
         <>

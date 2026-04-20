@@ -54,7 +54,8 @@
       "Bash(node -e \"const d=require\\('./package.json'\\); console.log\\(JSON.stringify\\(d.scripts, null,2\\)\\)\")",
       "Bash(node -e ':*)",
       "Bash(rm src/lib/demo-data.ts src/lib/demo-fallbacks.ts src/lib/demos/registry.ts)",
-      "Bash(rmdir src/lib/demos)"
+      "Bash(rmdir src/lib/demos)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(p.dependencies['claude'], p.dependencies['next-auth']\\)\")"
     ]
   }
 }

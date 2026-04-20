@@ -164,6 +164,7 @@ export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
   | "outside_us"
+  | "osm_fallback"
   | "no_school_matches";
 
 export type NearbyPlaceCategory = "trail" | "hike" | "restaurant" | "landmark";

@@ -27,7 +27,7 @@ import {
   rateLimitHeaders,
 } from "@/lib/request-guards";
 import { fetchSchoolContext, summarizeSchoolContext } from "@/lib/schools";
-import { getSeismicDesignParams } from "@/lib/seismic-design";
+import { getGlobalSeismicHazard, getSeismicDesignParams } from "@/lib/seismic-design";
 import { getSoilProfile } from "@/lib/soil-profile";
 import { resolveSourceRegistryContext } from "@/lib/source-registry";
 import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
@@ -260,13 +260,13 @@ export async function GET(request: NextRequest) {
     PROVIDER_TIMEOUTS.soil,
     "soil profile",
   );
-  const seismicDesignPromise = isUsPoint
-    ? withSoftTimeout(
-        getSeismicDesignParams({ lat, lng }),
-        PROVIDER_TIMEOUTS.seismic,
-        "seismic design",
-      )
-    : Promise.resolve(null);
+  const seismicDesignPromise = withSoftTimeout(
+    isUsPoint
+      ? getSeismicDesignParams({ lat, lng })
+      : getGlobalSeismicHazard({ lat, lng }),
+    PROVIDER_TIMEOUTS.seismic,
+    "seismic design",
+  );
   const isEuropeanPoint = !isUsPoint && isLikelyEuropeanCoordinate(lat, lng);
   const epaHazardPromise = isUsPoint
     ? withSoftTimeout(

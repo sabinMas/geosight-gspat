@@ -202,7 +202,7 @@ Last updated: 2026-04-06 — Batch 6 shipped: (1) per-shape deletion — each dr
 - ~~Eurostat NUTS2 demographics~~ — **shipped**: GISCO reverse geocode resolves NUTS2 region code for European coordinates; `fetchEurostatDemographics` tries `demo_pjan` at NUTS2 level before falling back to country level; `geographicGranularity: "nuts2_region"` shown in DemographicsCard as "Regional (NUTS2)".
 - ~~Domain coverage matrix~~ — **shipped**: `SourceAwarenessCard` now includes a grid showing integrated providers per domain with live/limited/unavailable status derived from `SOURCE_PROVIDER_REGISTRY`.
 - ~~WorkspaceCardShell~~ — **shipped**: standard `WorkspaceCardShell` component wraps Card/CardHeader/CardContent with built-in loading/error/empty states; BroadbandCard, GroundwaterCard, ClimateHistoryCard, FloodRiskCard, AirQualityCard, ContaminationRiskCard all migrated.
-- Live non-US provider integrations (flood, soil, seismic, school beyond Eurostat)
+- ~~Live non-US provider integrations (flood, soil, seismic, school)~~ — **shipped**: ISRIC SoilGrids global soil fallback (clay/silt/sand texture + WRB class); GloFAS via Open-Meteo flood fallback (7-day river discharge tier); USGS Catalog 5-yr seismic exposure tier for non-US (Very Low → Very High from M3+ event history); OSM `amenity=school` fallback for non-US school density + nearest distance
 - Regional provider selection in reasoning and UI
 
 ### P1: High-Value Domain Expansion

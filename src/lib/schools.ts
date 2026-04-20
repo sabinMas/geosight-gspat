@@ -243,14 +243,16 @@ function buildSchoolSources(input: {
   const baselineStatus: DataSourceMeta["status"] =
     input.coverageStatus === "outside_us"
       ? "unavailable"
-      : input.hasSchools
-        ? "live"
-        : "limited";
+      : input.coverageStatus === "osm_fallback"
+        ? "limited"
+        : input.hasSchools
+          ? "live"
+          : "limited";
 
   const officialStatus: DataSourceMeta["status"] =
     input.coverageStatus === "state_accountability_supported"
       ? "live"
-      : input.coverageStatus === "outside_us"
+      : input.coverageStatus === "outside_us" || input.coverageStatus === "osm_fallback"
         ? "unavailable"
         : "limited";
 
@@ -258,17 +260,28 @@ function buildSchoolSources(input: {
     baseline: buildSourceMeta({
       id: "school-baseline",
       label: "School baseline",
-      provider: "NCES EDGE public school geocodes",
+      provider:
+        input.coverageStatus === "osm_fallback"
+          ? "OpenStreetMap via Overpass"
+          : "NCES EDGE public school geocodes",
       status: baselineStatus,
       lastUpdated: input.ncesLastUpdated ?? input.now,
-      freshness: "2024-25 school-year location inventory",
-      coverage: "US public K-12 schools only",
+      freshness:
+        input.coverageStatus === "osm_fallback"
+          ? "Near-real-time OSM edits"
+          : "2024-25 school-year location inventory",
+      coverage:
+        input.coverageStatus === "osm_fallback"
+          ? "Global (OSM coverage varies by region)"
+          : "US public K-12 schools only",
       confidence:
         input.coverageStatus === "outside_us"
           ? "GeoSight school coverage is not yet available outside the US."
-          : input.hasSchools
-            ? "Direct nearby public-school locations from NCES."
-            : "No nearby NCES school matches were found within the current search radius.",
+          : input.coverageStatus === "osm_fallback"
+            ? "School locations from OpenStreetMap. No quality or enrollment data available."
+            : input.hasSchools
+              ? "Direct nearby public-school locations from NCES."
+              : "No nearby NCES school matches were found within the current search radius.",
     }),
     stateAccountability: buildSourceMeta({
       id: "school-state-accountability",
@@ -651,33 +664,105 @@ function toSchoolSummary(school: NcesSchool, match: SchoolMatchRecord | undefine
   };
 }
 
+// ---------------------------------------------------------------------------
+// OSM school fallback for non-US coordinates
+// ---------------------------------------------------------------------------
+
+type OverpassSchoolElement = {
+  type: "node" | "way" | "relation";
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: { name?: string };
+};
+
+type OverpassSchoolResponse = {
+  elements?: OverpassSchoolElement[];
+};
+
+const OVERPASS_MIRRORS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+
+async function fetchOsmSchoolsAround(
+  coords: Coordinates,
+  radiusMeters = 16_000,
+): Promise<{ count: number; nearestKm: number | null }> {
+  const query = `[out:json][timeout:15];
+(node[amenity~"school|kindergarten"](around:${radiusMeters},${coords.lat},${coords.lng});
+way[amenity~"school|kindergarten"](around:${radiusMeters},${coords.lat},${coords.lng});
+);out center;`;
+
+  for (const endpoint of OVERPASS_MIRRORS) {
+    try {
+      const res = await fetchWithTimeout(
+        endpoint,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `data=${encodeURIComponent(query)}`,
+          next: { revalidate: 60 * 60 * 6 },
+        },
+        EXTERNAL_TIMEOUTS.standard,
+      );
+      if (!res.ok) continue;
+      const json = (await res.json()) as OverpassSchoolResponse;
+      const elements = json.elements ?? [];
+
+      let nearestKm: number | null = null;
+      for (const el of elements) {
+        const elLat = el.lat ?? el.center?.lat;
+        const elLon = el.lon ?? el.center?.lon;
+        if (elLat == null || elLon == null) continue;
+        const d = Math.hypot(elLat - coords.lat, (elLon - coords.lng) * Math.cos((coords.lat * Math.PI) / 180)) * 111.32;
+        if (nearestKm === null || d < nearestKm) nearestKm = d;
+      }
+
+      return {
+        count: elements.length,
+        nearestKm: nearestKm !== null ? Number(nearestKm.toFixed(1)) : null,
+      };
+    } catch {
+      // try next mirror
+    }
+  }
+  return { count: 0, nearestKm: null };
+}
+
 export async function fetchSchoolContext(coords: Coordinates): Promise<SchoolContextResult> {
   const now = new Date().toISOString();
 
   if (!isLikelyUsSchoolCoverage(coords)) {
+    const osmData = await fetchOsmSchoolsAround(coords).catch(() => ({ count: 0, nearestKm: null }));
+    const coverageStatus = osmData.count > 0 ? "osm_fallback" as const : "outside_us" as const;
+
     const sources = buildSchoolSources({
-      coverageStatus: "outside_us",
+      coverageStatus,
       now,
       ncesLastUpdated: null,
       ospiLastUpdated: null,
       matchedOfficialSchoolCount: 0,
-      hasSchools: false,
+      hasSchools: osmData.count > 0,
       score: null,
     });
 
     return {
-      coverageStatus: "outside_us",
+      coverageStatus,
       score: null,
-      band: "Unknown",
-      explanation: "GeoSight school-quality coverage is US-first in v1 and is not yet available for this country.",
-      nearbySchoolCount: 0,
-      nearestSchoolDistanceKm: null,
+      band: osmData.count > 0 ? "School density available" : "Unknown",
+      explanation:
+        osmData.count > 0
+          ? `${osmData.count} school${osmData.count === 1 ? "" : "s"} found within 16 km via OpenStreetMap. Quality and enrollment data not available for this region.`
+          : "School location data is not available for this area. OpenStreetMap coverage may be sparse.",
+      nearbySchoolCount: osmData.count,
+      nearestSchoolDistanceKm: osmData.nearestKm,
       matchedOfficialSchoolCount: 0,
       schools: [],
       sources,
       notes: [
-        "School intelligence v1 currently supports US public K-12 schools only.",
-        "Washington is the first state with official accountability fields in GeoSight.",
+        "School locations sourced from OpenStreetMap. Coverage varies by region.",
+        "Quality metrics and enrollment data are only available for US public schools.",
       ],
     };
   }

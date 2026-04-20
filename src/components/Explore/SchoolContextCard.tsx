@@ -105,30 +105,50 @@ export function SchoolContextCard({
         ) : null}
 
         {schoolContext?.coverageStatus === "outside_us" ? (
+          <StatePanel
+            tone="partial"
+            eyebrow="Education coverage"
+            title="School-quality intelligence is still US-first"
+            description="GeoSight can show mapped nearby schools outside the United States, but official quality and accountability coverage is not yet available for this country."
+            compact
+          />
+        ) : null}
+
+        {schoolContext?.coverageStatus === "osm_fallback" ? (
           <>
-            <StatePanel
-              tone="partial"
-              eyebrow="Education coverage"
-              title="School-quality intelligence is still US-first"
-              description="GeoSight can show mapped nearby schools outside the United States, but official quality and accountability coverage is not yet available for this country."
-              compact
-            />
-            {schoolContext.nearbySchoolCount > 0 ? (
-              <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-                <div className="eyebrow">OSM school density</div>
-                <div className="mt-3 text-2xl font-semibold text-[var(--foreground)]">
-                  {schoolContext.nearbySchoolCount}
+            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+              <div className="eyebrow">OpenStreetMap school locations</div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Schools within 16 km</div>
+                  <div className="mt-1 text-2xl font-semibold text-[var(--foreground)]">
+                    {schoolContext.nearbySchoolCount}
+                  </div>
                 </div>
-                <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                  OpenStreetMap-mapped schools in the active analysis area. This is a presence count,
-                  not a quality score.
-                </div>
+                {schoolContext.nearestSchoolDistanceKm !== null ? (
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Nearest school</div>
+                    <div className="mt-1 text-2xl font-semibold text-[var(--foreground)]">
+                      {formatDistanceKm(schoolContext.nearestSchoolDistanceKm)}
+                    </div>
+                  </div>
+                ) : null}
               </div>
+              <p className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
+                {schoolContext.explanation}
+              </p>
+            </div>
+            {sourceSummary ? (
+              <TrustSummaryPanel
+                summary={sourceSummary}
+                sources={Object.values(schoolContext.sources)}
+                note="School locations are sourced from OpenStreetMap for this region. Quality metrics and enrollment data are only available for US public schools."
+              />
             ) : null}
           </>
         ) : null}
 
-        {schoolContext ? (
+        {schoolContext && schoolContext.coverageStatus !== "osm_fallback" ? (
           <>
             <div className="grid gap-3 lg:grid-cols-[180px_1fr]">
               <div className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 text-center">
