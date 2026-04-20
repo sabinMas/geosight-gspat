@@ -43,7 +43,7 @@ const TOOLS: Array<{
   {
     id: "measure",
     label: "Measure",
-    hint: "Click start then end to measure distance",
+    hint: "Click to add points · Right-click to finish",
     Icon: Ruler,
   },
   {

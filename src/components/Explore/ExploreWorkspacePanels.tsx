@@ -37,6 +37,7 @@ import { SoilProfileCard } from "@/components/Explore/SoilProfileCard";
 import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
 import { TripSummaryCard } from "@/components/Explore/TripSummaryCard";
 import { NpsTrailsCard } from "@/components/Explore/NpsTrailsCard";
+import { TerrainExportCard } from "@/components/Explore/TerrainExportCard";
 import { WeatherForecastCard } from "@/components/Explore/WeatherForecastCard";
 import { AnalysisTrendsPanel } from "@/components/Results/AnalysisTrendsPanel";
 import { NearbyPlacesList } from "@/components/Results/NearbyPlacesList";
@@ -447,6 +448,14 @@ export function ExploreWorkspacePanel({
           housingMarket={data.housingMarket}
           loading={data.housingMarketLoading}
           error={data.housingMarketError}
+        />
+      );
+    case "terrain-export":
+      return (
+        <TerrainExportCard
+          lat={state.selectedPoint?.lat ?? null}
+          lng={state.selectedPoint?.lng ?? null}
+          locationName={state.selectedLocationName ?? "location"}
         />
       );
     default:

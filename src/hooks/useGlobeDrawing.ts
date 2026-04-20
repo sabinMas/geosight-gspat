@@ -108,6 +108,12 @@ function formatDistance(metres: number): string {
   return `${mi.toFixed(2)} mi / ${km.toFixed(2)} km`;
 }
 
+function formatDistanceShort(metres: number): string {
+  const km = metres / 1000;
+  if (km >= 1) return `${km.toFixed(2)} km`;
+  return `${Math.round(metres)} m`;
+}
+
 function formatArea(sqm: number): string {
   const acres = sqm * 0.000247105;
   const ha = sqm / 10_000;
@@ -231,42 +237,68 @@ export function useGlobeDrawnShapes({
       }
 
       if (shape.type === "measure" && shape.coordinates.length >= 2) {
-        const [a, b] = shape.coordinates;
+        const coords = shape.coordinates;
+        const segments = shape.measurement?.segments;
+
+        // Polyline through all vertices
         ds.entities.add({
           polyline: {
-            positions: [
-              Cartesian3.fromDegrees(a.lng, a.lat, 8),
-              Cartesian3.fromDegrees(b.lng, b.lat, 8),
-            ],
+            positions: coords.map((c) => Cartesian3.fromDegrees(c.lng, c.lat, 8)),
             width: captureMode ? 4 : 3,
             material: color,
           },
         });
-        ds.entities.add({
-          position: Cartesian3.fromDegrees(a.lng, a.lat, 12),
-          point: { color, pixelSize: 10, outlineColor: Color.WHITE, outlineWidth: 2 },
-        });
-        ds.entities.add({
-          position: Cartesian3.fromDegrees(b.lng, b.lat, 12),
-          point: { color, pixelSize: 10, outlineColor: Color.WHITE, outlineWidth: 2 },
-        });
-        if (shape.measurementLabel) {
-          const midLat = (a.lat + b.lat) / 2;
-          const midLng = (a.lng + b.lng) / 2;
+
+        // Vertex dots
+        for (const c of coords) {
           ds.entities.add({
-            position: Cartesian3.fromDegrees(midLng, midLat, 30),
-            label: {
-              text: shape.measurementLabel,
-              font: captureMode ? "bold 14px sans-serif" : "bold 13px sans-serif",
-              fillColor: Color.WHITE,
-              outlineColor: Color.fromCssColorString("#1e1e2e"),
-              outlineWidth: 3,
-              style: 2,
-              verticalOrigin: VerticalOrigin.BOTTOM,
-              horizontalOrigin: HorizontalOrigin.CENTER,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              disableDepthTestDistance: Number.POSITIVE_INFINITY as any,
-            },
+            position: Cartesian3.fromDegrees(c.lng, c.lat, 12),
+            point: { color, pixelSize: 8, outlineColor: Color.WHITE, outlineWidth: 1.5 },
+          });
+        }
+
+        const labelFont = captureMode ? "bold 13px sans-serif" : "bold 12px sans-serif";
+        const labelStyle = {
+          fillColor: Color.WHITE,
+          outlineColor: Color.fromCssColorString("#1e1e2e"),
+          outlineWidth: 3,
+          style: 2 as number,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          horizontalOrigin: HorizontalOrigin.CENTER,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          disableDepthTestDistance: Number.POSITIVE_INFINITY as any,
+        };
+
+        if (segments && segments.length > 0) {
+          // Per-segment labels at midpoints
+          for (let i = 0; i < segments.length; i++) {
+            const a = coords[i];
+            const b = coords[i + 1];
+            if (!a || !b) continue;
+            ds.entities.add({
+              position: Cartesian3.fromDegrees((a.lng + b.lng) / 2, (a.lat + b.lat) / 2, 28),
+              label: {
+                text: segments[i].label,
+                font: captureMode ? "12px sans-serif" : "11px sans-serif",
+                ...labelStyle,
+              },
+            });
+          }
+          // Total label at the last vertex
+          const last = coords[coords.length - 1];
+          if (shape.measurementLabel) {
+            ds.entities.add({
+              position: Cartesian3.fromDegrees(last.lng, last.lat, 38),
+              label: { text: shape.measurementLabel, font: labelFont, ...labelStyle },
+            });
+          }
+        } else if (shape.measurementLabel) {
+          // Legacy single-segment or no segments — label at midpoint
+          const a = coords[0];
+          const b = coords[coords.length - 1];
+          ds.entities.add({
+            position: Cartesian3.fromDegrees((a.lng + b.lng) / 2, (a.lat + b.lat) / 2, 30),
+            label: { text: shape.measurementLabel, font: labelFont, ...labelStyle },
           });
         }
       }
@@ -435,6 +467,7 @@ export function useGlobeDrawing({
   const previewPosRef = useRef<Cartesian3 | null>(null);
   const firstPointRef = useRef<{ lat: number; lng: number } | null>(null);
   const snapActiveRef = useRef(false);
+  const liveMeasureTextRef = useRef<string>("");
   const drawnShapesRef = useRef<DrawnShape[]>(drawnShapes);
   const snapToGridRef = useRef(snapToGrid);
 
@@ -608,20 +641,43 @@ export function useGlobeDrawing({
       );
     }
 
-    // ── Measure ──────────────────────────────────────────────────────────────
+    // ── Measure (multi-vertex polyline) ──────────────────────────────────────
     if (drawingTool === "measure") {
+      // Preview polyline through all placed vertices + live cursor
       previewDs.entities.add({
         polyline: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           positions: new CallbackProperty(() => {
-            const start = firstPointRef.current;
-            const preview = previewPosRef.current;
-            if (!start || !preview) return [];
-            return [Cartesian3.fromDegrees(start.lng, start.lat, 8), preview];
+            const verts = verticesRef.current.map((v) =>
+              Cartesian3.fromDegrees(v.lng, v.lat, 8),
+            );
+            if (previewPosRef.current) verts.push(previewPosRef.current);
+            if (verts.length < 2) return [];
+            return verts;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           }, false) as any,
           width: 2,
           material: color,
+        },
+      });
+
+      // Live distance label near the cursor
+      previewDs.entities.add({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        position: new CallbackProperty(() => previewPosRef.current ?? Cartesian3.fromDegrees(0, 0, 0), false) as any,
+        label: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          text: new CallbackProperty(() => liveMeasureTextRef.current, false) as any,
+          font: "bold 12px sans-serif",
+          fillColor: Color.WHITE,
+          outlineColor: Color.fromCssColorString("#1e1e2e"),
+          outlineWidth: 3,
+          style: 2,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          horizontalOrigin: HorizontalOrigin.LEFT,
+          pixelOffset: new Cartesian2(8, -8),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          disableDepthTestDistance: Number.POSITIVE_INFINITY as any,
         },
       });
 
@@ -630,44 +686,91 @@ export function useGlobeDrawing({
           const [pos, isVertexSnap] = resolvePosition(e.endPosition);
           snapActiveRef.current = isVertexSnap;
           previewPosRef.current = pos ?? previewPosRef.current;
+
+          // Update live text
+          const verts = verticesRef.current;
+          if (pos && verts.length > 0) {
+            const cursor = toLatLng(pos);
+            const last = verts[verts.length - 1];
+            const segMetres = haversineMetres(last, cursor);
+            const runningMetres = verts.reduce((sum, v, i) => {
+              if (i === 0) return sum;
+              return sum + haversineMetres(verts[i - 1], v);
+            }, 0);
+            const totalMetres = runningMetres + segMetres;
+            liveMeasureTextRef.current =
+              verts.length === 1
+                ? formatDistanceShort(segMetres)
+                : `+${formatDistanceShort(segMetres)} · ${formatDistanceShort(totalMetres)} total`;
+          } else if (verts.length === 0) {
+            liveMeasureTextRef.current = "";
+          }
         },
         ScreenSpaceEventType.MOUSE_MOVE,
       );
 
+      // LEFT_CLICK — add a vertex
       handler.setInputAction(
         (e: { position: Cartesian2 }) => {
           const [pos] = resolvePosition(e.position);
           if (!pos) return;
           const latlng = toLatLng(pos);
-
-          if (!firstPointRef.current) {
-            firstPointRef.current = latlng;
-            previewDs.entities.add({
-              position: Cartesian3.fromDegrees(latlng.lng, latlng.lat, 12),
-              point: { color, pixelSize: 10, outlineColor: Color.WHITE, outlineWidth: 2 },
-            });
-          } else {
-            const start = firstPointRef.current;
-            const metres = haversineMetres(start, latlng);
-            const km = metres / 1000;
-            const mi = km * 0.621371;
-            const deg = bearingDegrees(start, latlng);
-            const distLabel = formatDistance(metres);
-            const bDisplay = bearingDisplay(deg);
-            onShapeComplete({
-              id: crypto.randomUUID(),
-              type: "measure",
-              coordinates: [start, latlng],
-              measurementLabel: `${distLabel} · ${bDisplay}`,
-              measurement: {
-                kind: "distance", value: mi, unit: "miles", display: distLabel,
-                distanceKm: km, distanceMi: mi, bearingDeg: deg, bearingDisplay: bDisplay,
-              },
-              color: toolColor,
-            });
-          }
+          verticesRef.current = [...verticesRef.current, latlng];
+          previewDs.entities.add({
+            position: Cartesian3.fromDegrees(latlng.lng, latlng.lat, 12),
+            point: { color, pixelSize: 10, outlineColor: Color.WHITE, outlineWidth: 2 },
+          });
         },
         ScreenSpaceEventType.LEFT_CLICK,
+      );
+
+      // RIGHT_CLICK — complete the measurement
+      handler.setInputAction(
+        () => {
+          const verts = verticesRef.current;
+          if (verts.length < 2) return;
+
+          const segments: Array<{ distanceKm: number; distanceMi: number; label: string }> = [];
+          let totalMetres = 0;
+          for (let i = 1; i < verts.length; i++) {
+            const m = haversineMetres(verts[i - 1], verts[i]);
+            const km = m / 1000;
+            segments.push({ distanceKm: km, distanceMi: km * 0.621371, label: formatDistanceShort(m) });
+            totalMetres += m;
+          }
+
+          const totalKm = totalMetres / 1000;
+          const totalMi = totalKm * 0.621371;
+          const totalLabel = formatDistance(totalMetres);
+          const isSimple = verts.length === 2;
+          const bearDeg = isSimple ? bearingDegrees(verts[0], verts[1]) : undefined;
+          const bearDisp = bearDeg !== undefined ? bearingDisplay(bearDeg) : undefined;
+          const measurementLabel = isSimple
+            ? `${totalLabel} · ${bearDisp}`
+            : `${totalLabel} · ${verts.length - 1} segments`;
+
+          onShapeComplete({
+            id: crypto.randomUUID(),
+            type: "measure",
+            coordinates: verts,
+            measurementLabel,
+            measurement: {
+              kind: "distance",
+              value: totalMi,
+              unit: "miles",
+              display: totalLabel,
+              distanceKm: totalKm,
+              distanceMi: totalMi,
+              bearingDeg: bearDeg,
+              bearingDisplay: bearDisp,
+              segments,
+              totalDistanceKm: totalKm,
+              totalDistanceMi: totalMi,
+            },
+            color: toolColor,
+          });
+        },
+        ScreenSpaceEventType.RIGHT_CLICK,
       );
     }
 

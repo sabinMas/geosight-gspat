@@ -758,6 +758,30 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     supportedProfiles: ["hiking"],
     emptyState: "Select a US location to discover nearby National Park Service units with hiking.",
   },
+  {
+    id: "terrain-export",
+    title: "Heightmap export",
+    summary: "Download a 16-bit grayscale PNG heightmap from AWS terrain tiles for use in Unreal Engine, Unity, or GIS tools.",
+    questionAnswered: "How do I get elevation data for this location as a file I can use in a game engine or GIS?",
+    regionCoverage: "Global — AWS Terrain Tiles (Mapzen/Nextzen terrarium format, public)",
+    failureMode: "Shows error if the area is too large (> 400 tiles) or if terrain tile fetch fails",
+    freshnessWindow: "Tiles cached 7 days",
+    nextActions: [
+      "Import the PNG into Unreal Engine as a Landscape heightmap layer",
+      "Import into Unity Terrain using the Terrain Toolkit or raw import",
+      "Open in QGIS as a single-band raster and set elevation range metadata",
+    ],
+    icon: "Mountain",
+    category: "terrain",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "standard",
+    defaultVisibility: false,
+    defaultOrder: 135,
+    requiredData: ["geodata"],
+    supportedProfiles: ["site-development", "data-center", "commercial", "residential", "hiking"],
+    emptyState: "Select a location to export a terrain heightmap.",
+  },
 ] as const;
 
 function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
@@ -776,6 +800,7 @@ function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
       return ["ask_comparison"];
     case "terrain-viewer":
     case "elevation-profile":
+    case "terrain-export":
       return ["ask_terrain"];
     case "image-upload":
     case "land-classifier":

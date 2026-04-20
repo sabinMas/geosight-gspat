@@ -159,7 +159,8 @@ export type WorkspaceCardId =
   | "stream-gauges"
   | "solar-resource"
   | "attribute-table"
-  | "nps-trails";
+  | "nps-trails"
+  | "terrain-export";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -953,6 +954,10 @@ export interface DrawnMeasurement {
   perimeterMi?: number;
   bearingDeg?: number;
   bearingDisplay?: string;
+  /** Multi-vertex measure: per-segment breakdown */
+  segments?: { distanceKm: number; distanceMi: number; label: string }[];
+  totalDistanceKm?: number;
+  totalDistanceMi?: number;
 }
 
 export interface DrawnGeometryProperties {
