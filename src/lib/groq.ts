@@ -2,9 +2,9 @@ import Groq from "groq-sdk";
 import {
   AnalysisProviderError,
   AnalysisResult,
-  buildAnalysisProviderMessages,
   normalizeProviderError,
 } from "@/lib/analysis-provider";
+import { buildGroqAnalysisMessages } from "@/lib/geosight-assistant";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
@@ -48,11 +48,9 @@ export async function runGroqAnalysis(
 ) : Promise<AnalysisResult> {
   const apiKey = pickGroqKey();
   const model = resolveModel(profile.id);
-  const messages = await buildAnalysisProviderMessages(payload, profile);
+  const messages = await buildGroqAnalysisMessages(payload, profile);
   const groq = new Groq({ apiKey });
-
   const signal = AbortSignal.timeout(25_000);
-
   let completion;
   try {
     completion = await groq.chat.completions.create(
@@ -69,12 +67,10 @@ export async function runGroqAnalysis(
   } catch (error) {
     throw normalizeProviderError(error, "groq");
   }
-
   const response = completion.choices[0]?.message?.content?.trim();
   if (!response) {
     throw new AnalysisProviderError("groq", "empty_response");
   }
-
   return {
     response,
     model: completion.model ?? model,
@@ -87,10 +83,9 @@ export async function runGroqAnalysisStream(
 ): Promise<ReadableStream<Uint8Array>> {
   const apiKey = pickGroqKey();
   const model = resolveModel(profile.id);
-  const messages = await buildAnalysisProviderMessages(payload, profile);
+  const messages = await buildGroqAnalysisMessages(payload, profile);
   const groq = new Groq({ apiKey });
   const signal = AbortSignal.timeout(25_000);
-
   const completion = await groq.chat.completions.create(
     {
       model,
@@ -100,7 +95,6 @@ export async function runGroqAnalysisStream(
     },
     { signal },
   );
-
   const encoder = new TextEncoder();
   return new ReadableStream<Uint8Array>({
     async start(controller) {
