@@ -86,7 +86,7 @@ export function TopographicCaptureOverlay({
       <div className="absolute bottom-4 right-4 h-10 w-10 rounded-br-[1.5rem] border-b-2 border-r-2 border-white/40" />
 
       <div className="absolute left-6 top-6 max-w-[30rem] rounded-[1.75rem] border border-white/12 bg-black/64 px-5 py-4 text-white backdrop-blur-md">
-        <div className="text-[11px] uppercase tracking-[0.22em] text-white/62">
+        <div className="text-xs uppercase tracking-[0.22em] text-white/62">
           GeoSight topographic figure
         </div>
         <div className="mt-2 text-2xl font-semibold leading-tight">{title}</div>
@@ -118,12 +118,12 @@ export function TopographicCaptureOverlay({
               >
                 <Compass className="h-8 w-8 text-white" />
               </div>
-              <span className="absolute -top-2 text-[10px] font-semibold tracking-[0.24em] text-white/82">
+              <span className="absolute -top-2 text-xs font-semibold tracking-[0.24em] text-white/82">
                 N
               </span>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-white/58">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/58">
                 North reference
               </div>
               <div className="mt-1 text-xs text-white/78">
@@ -140,7 +140,7 @@ export function TopographicCaptureOverlay({
       <div className="absolute bottom-6 left-6 flex flex-col gap-3">
         {scaleBar ? (
           <div className="rounded-[1.5rem] border border-white/12 bg-black/64 px-4 py-3 text-white backdrop-blur-md">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-white/58">
+            <div className="text-xs uppercase tracking-[0.18em] text-white/58">
               Scale reference
             </div>
             <div className="mt-3">
@@ -159,7 +159,7 @@ export function TopographicCaptureOverlay({
         ) : null}
 
         <div className="max-w-[24rem] rounded-[1.5rem] border border-white/12 bg-black/64 px-4 py-3 text-white backdrop-blur-md">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/58">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/58">
             <Mountain className="h-3.5 w-3.5" />
             Figure notes
           </div>
@@ -173,7 +173,7 @@ export function TopographicCaptureOverlay({
 
       {figure.showLegend ? (
         <div className="absolute bottom-6 right-6 max-w-[22rem] rounded-[1.5rem] border border-white/12 bg-black/64 px-4 py-3 text-white backdrop-blur-md">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/58">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/58">
             <ScanSearch className="h-3.5 w-3.5" />
             Active legend
           </div>

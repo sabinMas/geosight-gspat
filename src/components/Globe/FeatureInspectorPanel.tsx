@@ -116,7 +116,7 @@ function HitRow({ hit, defaultOpen }: { hit: IdentifyHit; defaultOpen: boolean }
         </span>
         <span
           className={cn(
-            "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+            "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-wide",
             badge.className,
           )}
         >
@@ -126,7 +126,7 @@ function HitRow({ hit, defaultOpen }: { hit: IdentifyHit; defaultOpen: boolean }
       {expanded && (
         <div className="border-t border-[color:var(--border-soft)] px-3 py-2.5">
           {hit.coordinates && (
-            <p className="mb-2 text-[10px] tabular-nums text-[var(--muted-foreground)]">
+            <p className="mb-2 text-xs tabular-nums text-[var(--muted-foreground)]">
               {hit.coordinates.lat.toFixed(6)}, {hit.coordinates.lng.toFixed(6)}
             </p>
           )}
@@ -178,7 +178,7 @@ export function FeatureInspectorPanel({
 
       {/* Clicked coordinates */}
       <div className="border-b border-[color:var(--border-soft)] px-4 py-2">
-        <p className="text-[10px] tabular-nums text-[var(--muted-foreground)]">
+        <p className="text-xs tabular-nums text-[var(--muted-foreground)]">
           Click: {result.clickCoordinates.lat.toFixed(6)},{" "}
           {result.clickCoordinates.lng.toFixed(6)}
         </p>

@@ -109,7 +109,7 @@ export function CoordinateDisplay({
   const zoomLevel = getApproxZoomLevel(cameraAltitude);
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-2 text-[11px] leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-soft)] backdrop-blur-sm [font-family:var(--font-jetbrains-mono)]">
+    <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-soft)] backdrop-blur-sm [font-family:var(--font-jetbrains-mono)]">
       <div>
         WGS84{" "}
         {cursorCoordinates

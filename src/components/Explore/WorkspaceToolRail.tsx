@@ -56,7 +56,7 @@ interface WorkspaceToolRailProps {
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+    <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
       {children}
     </div>
   );
@@ -281,7 +281,7 @@ export function WorkspaceToolRail({
                 aria-label="Capture figure subtitle"
                 className="h-10 rounded-xl bg-[var(--surface-panel)] px-3"
               />
-              <p className="text-[11px] leading-5 text-[var(--muted-foreground)]">
+              <p className="text-xs leading-5 text-[var(--muted-foreground)]">
                 Leave these blank to use the active location and mission profile automatically.
               </p>
             </div>

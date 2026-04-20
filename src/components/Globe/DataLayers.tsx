@@ -433,20 +433,20 @@ export function DataLayers({
                       {customWmsBusy ? "Checking..." : "Add WMS"}
                     </Button>
                   </div>
-                  <p className="text-[11px] leading-5 text-[var(--muted-foreground)]">
+                  <p className="text-xs leading-5 text-[var(--muted-foreground)]">
                     GeoSight validates GetCapabilities and adds the first advertised layer.
                   </p>
                   {customWmsError ? (
-                    <p className="text-[11px] text-[var(--danger-foreground)]">{customWmsError}</p>
+                    <p className="text-xs text-[var(--danger-foreground)]">{customWmsError}</p>
                   ) : null}
                   {customWmsHint ? (
-                    <p className="text-[11px] text-[var(--muted-foreground)]">{customWmsHint}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">{customWmsHint}</p>
                   ) : null}
                 </div>
               ) : null}
 
               {customWmsHint && !customWmsOpen ? (
-                <p className="text-[11px] text-[var(--muted-foreground)]">{customWmsHint}</p>
+                <p className="text-xs text-[var(--muted-foreground)]">{customWmsHint}</p>
               ) : null}
 
               <div className="space-y-2">
@@ -470,7 +470,7 @@ export function DataLayers({
                           {definition.attribution} · {definition.category}
                         </div>
                       </div>
-                      <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-[11px] text-[var(--muted-foreground)]">
+                      <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
                         {active ? "On" : "Off"}
                       </span>
                     </button>
@@ -554,7 +554,7 @@ export function DataLayers({
                         <div className="min-w-0 flex-1">
                           <label
                             htmlFor={`wms-opacity-${layer.id}`}
-                            className="mb-1 block text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
+                            className="mb-1 block text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
                           >
                             Opacity {(layer.opacity ?? 0.82).toFixed(2)}
                           </label>
@@ -589,7 +589,7 @@ export function DataLayers({
                     User-uploaded data overlays rendered on the globe.
                   </div>
                 </div>
-                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] text-[var(--muted-foreground)]">
+                <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
                   {importedLayers.length}
                 </span>
               </div>
@@ -657,7 +657,7 @@ export function DataLayers({
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-[11px] text-[var(--muted-foreground)]">
+                          <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
                             {layer.visible ? "Visible" : "Hidden"}
                           </span>
                           <Button

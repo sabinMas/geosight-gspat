@@ -23,7 +23,6 @@ import {
   HeadingPitchRange,
   HeadingPitchRoll,
   HeightReference,
-  HorizontalOrigin,
   ImageryLayer,
   Ion,
   IonWorldImageryStyle,
@@ -1172,6 +1171,7 @@ export function CesiumGlobe({
         clickHandlerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawingTool, importedLayers, onPointSelect, viewerKey, viewerReady]);
 
   useEffect(() => {
@@ -1264,8 +1264,10 @@ export function CesiumGlobe({
       return;
     }
 
-    viewer.entities.removeAll();
     dragPositionRef.current = null;
+
+    const ds = new CustomDataSource("selected-pin");
+    void viewer.dataSources.add(ds);
 
     const basePosition = Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220);
     const selectedColor = Color.fromCssColorString("#00e5ff");
@@ -1274,7 +1276,7 @@ export function CesiumGlobe({
       ...regionHierarchy,
       regionHierarchy[0] ?? Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 120),
     ];
-    const pinEntity = viewer.entities.add({
+    const pinEntity = ds.entities.add({
       name: "Selected Site",
       // CallbackProperty so drag moves the dot live without rebuilding the entity
       position: new CallbackProperty(
@@ -1290,7 +1292,7 @@ export function CesiumGlobe({
     });
     pinEntityRef.current = pinEntity;
 
-    viewer.entities.add({
+    ds.entities.add({
       name: "Selected region",
       polygon: {
         hierarchy: new PolygonHierarchy(regionHierarchy),
@@ -1302,7 +1304,7 @@ export function CesiumGlobe({
     });
 
     if (regionHierarchy.length >= 2) {
-      viewer.entities.add({
+      ds.entities.add({
         name: "Selected region halo",
         polyline: {
           positions: regionOutlinePositions,
@@ -1311,7 +1313,7 @@ export function CesiumGlobe({
           clampToGround: false,
         },
       });
-      viewer.entities.add({
+      ds.entities.add({
         name: "Selected region outline",
         polyline: {
           positions: regionOutlinePositions,
@@ -1323,7 +1325,7 @@ export function CesiumGlobe({
     }
 
     if (subsurfaceDatasets.length) {
-      viewer.entities.add({
+      ds.entities.add({
         name: "Subsurface footprint",
         polygon: {
           hierarchy: new PolygonHierarchy(
@@ -1340,7 +1342,7 @@ export function CesiumGlobe({
         },
       });
 
-      viewer.entities.add({
+      ds.entities.add({
         name: "Subsurface focus",
         position: Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 260),
         point: {
@@ -1353,7 +1355,7 @@ export function CesiumGlobe({
     }
 
     savedSites.forEach((site) => {
-      viewer.entities.add({
+      ds.entities.add({
         name: site.name,
         position: Cartesian3.fromDegrees(site.coordinates.lng, site.coordinates.lat, 180),
         point: {
@@ -1369,7 +1371,7 @@ export function CesiumGlobe({
     });
 
     if (layers.heatmap) {
-      viewer.entities.add({
+      ds.entities.add({
         name: "Heatmap focus",
         polygon: {
           hierarchy: new PolygonHierarchy(regionHierarchy),
@@ -1387,7 +1389,7 @@ export function CesiumGlobe({
       // hue: 0.33 (green) for small, 0 (red) for large (M6.5+)
       const hue = Math.max(0, 0.33 - ((mag - 2.5) / 4.5) * 0.33);
       const markerColor = Color.fromHsl(hue, 0.9, 0.55);
-      viewer.entities.add({
+      ds.entities.add({
         name: `M${mag.toFixed(1)} — ${eq.place}`,
         position: Cartesian3.fromDegrees(eq.lng, eq.lat, 100),
         point: {
@@ -1400,6 +1402,12 @@ export function CesiumGlobe({
     }
 
     viewer.scene.requestRender();
+    return () => {
+      pinEntityRef.current = null;
+      if (isViewerUsable(viewer)) {
+        void viewer.dataSources.remove(ds, true);
+      }
+    };
   }, [
     captureMode,
     earthquakeMarkers,

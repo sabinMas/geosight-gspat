@@ -5,6 +5,7 @@ import { Bar, BarChart, Cell, Tooltip, XAxis } from "recharts";
 import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
+import { isExplorerMode } from "@/lib/app-mode";
 import { AppMode, FireHistorySummary, GeodataResult } from "@/types";
 
 interface FireHistoryCardProps {
@@ -62,7 +63,7 @@ export function FireHistoryCard({ geodata, lat, lng, appMode = "pro" }: FireHist
   }
 
   const maxDetections = history ? Math.max(...history.byYear.map((y) => y.detectionCount), 1) : 1;
-  const isExplorer = appMode === "explorer";
+  const isExplorer = isExplorerMode(appMode);
 
   return (
     <WorkspaceCardShell

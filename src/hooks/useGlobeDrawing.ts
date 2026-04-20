@@ -131,12 +131,6 @@ function bearingDisplay(deg: number): string {
 
 // ── Render persisted shapes ───────────────────────────────────────────────────
 
-function formatRadiusLabel(radiusKm: number): string {
-  return radiusKm >= 1
-    ? `${radiusKm.toFixed(1)} km radius`
-    : `${(radiusKm * 1000).toFixed(0)} m radius`;
-}
-
 export function useGlobeDrawnShapes({
   viewerRef,
   viewerReady,

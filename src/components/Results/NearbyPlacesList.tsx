@@ -97,9 +97,9 @@ export function NearbyPlacesList({
               className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)]"
             >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-[var(--foreground)]" title={place.name}>{place.name}</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-[var(--foreground)]" title={place.name}>{place.name}</div>
+                  <div className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
                     {place.category}
                   </div>
                 </div>

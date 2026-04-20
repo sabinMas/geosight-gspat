@@ -125,7 +125,7 @@ export function LegendPanel({
             <div className="space-y-4 pt-4">
               {visibleWmsLayers.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                     Map Services
                   </div>
                   {visibleWmsLayers.map((layer) => (
@@ -149,7 +149,7 @@ export function LegendPanel({
 
               {visibleImportedLayers.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                     Imported Layers
                   </div>
                   {visibleImportedLayers.map((layer) => (
@@ -170,7 +170,7 @@ export function LegendPanel({
                           {layer.format.toUpperCase()}
                         </div>
                       </div>
-                      <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-[11px] text-[var(--muted-foreground)]">
+                      <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
                         {layer.features.features.length}
                       </span>
                     </div>
@@ -179,7 +179,7 @@ export function LegendPanel({
               ) : null}
 
               <div className="space-y-2">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                   GeoSight Overlays
                 </div>
                 {overlayItems.map(({ id, label, active, Icon }) => (

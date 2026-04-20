@@ -889,6 +889,7 @@ export function ExploreWorkspace() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     attributeTableOpen,
     commandPaletteOpen,
@@ -1571,7 +1572,7 @@ export function ExploreWorkspace() {
   const rightPanelContent = (
     <div ref={rightPanelContentRef} className="space-y-4 p-4">
       <div className="rounded-[1.4rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-3 shadow-[var(--shadow-soft)]">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+        <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
           Evidence tray
         </div>
         <div className="mt-1 text-sm font-semibold text-[var(--foreground)]">

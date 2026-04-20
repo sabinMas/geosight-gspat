@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MapPin, Navigation, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Coordinate parsing                                                 */
@@ -209,7 +208,7 @@ export function GoToCoordinateDialog({
             <span className="text-sm font-semibold text-[var(--foreground)]">
               Go to coordinates
             </span>
-            <kbd className="rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+            <kbd className="rounded border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs text-[var(--muted-foreground)]">
               Ctrl+G
             </kbd>
           </div>
@@ -252,7 +251,7 @@ export function GoToCoordinateDialog({
 
           {/* DMS preview of parsed coordinates */}
           {preview && (
-            <div className="mt-1 px-3 text-[10px] tabular-nums text-[var(--muted-foreground)]">
+            <div className="mt-1 px-3 text-xs tabular-nums text-[var(--muted-foreground)]">
               {formatDMS(preview.lat, true)}{" "}
               {formatDMS(preview.lng, false)}
             </div>
@@ -266,7 +265,7 @@ export function GoToCoordinateDialog({
         {/* Current position */}
         {currentCoords && (
           <div className="border-t border-[color:var(--border-soft)] px-4 py-2">
-            <p className="text-[10px] text-[var(--muted-foreground)]">
+            <p className="text-xs text-[var(--muted-foreground)]">
               Current: {currentCoords.lat.toFixed(6)}, {currentCoords.lng.toFixed(6)}
             </p>
           </div>
@@ -274,7 +273,7 @@ export function GoToCoordinateDialog({
 
         {/* Quick jumps */}
         <div className="border-t border-[color:var(--border-soft)] px-4 py-3">
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
             Quick jump
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -286,7 +285,7 @@ export function GoToCoordinateDialog({
                   onGoTo(loc, loc.label);
                   onClose();
                 }}
-                className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1 text-[10px] text-[var(--foreground-soft)] transition hover:border-[color:var(--accent)] hover:text-[var(--accent)]"
+                className="rounded-full border border-[color:var(--border-soft)] px-2.5 py-1 text-xs text-[var(--foreground-soft)] transition hover:border-[color:var(--accent)] hover:text-[var(--accent)]"
               >
                 {loc.label}
               </button>
@@ -296,7 +295,7 @@ export function GoToCoordinateDialog({
 
         {/* Actions */}
         <div className="flex items-center justify-between border-t border-[color:var(--border-soft)] px-4 py-3">
-          <p className="text-[10px] text-[var(--muted-foreground)]">
+          <p className="text-xs text-[var(--muted-foreground)]">
             Accepts decimal, DMS, or DDM
           </p>
           <Button

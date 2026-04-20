@@ -33,7 +33,7 @@ export function Sidebar({
         {/* Lens section */}
         <div className="border-b" style={{ borderColor: "var(--border-soft)" }}>
           <h2
-            className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em]"
+            className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-[0.14em]"
             style={{ color: "var(--muted-foreground)" }}
           >
             Lens
@@ -51,7 +51,7 @@ export function Sidebar({
         {/* Quick regions section */}
         <div>
           <h2
-            className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em]"
+            className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-[0.14em]"
             style={{ color: "var(--muted-foreground)" }}
           >
             Quick regions
@@ -115,7 +115,7 @@ export function Sidebar({
         style={{ borderColor: "var(--border-soft)" }}
       >
         <span
-          className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+          className="text-xs font-semibold uppercase tracking-[0.14em]"
           style={{ color: "var(--muted-foreground)" }}
         >
           Theme

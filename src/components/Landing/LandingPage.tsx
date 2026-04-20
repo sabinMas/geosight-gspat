@@ -31,7 +31,6 @@ import { LANDING_WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
 import { ExplorerLens, EXPLORER_LENSES } from "@/lib/explorer-lenses";
 import { buildExploreHref } from "@/lib/landing";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Footer } from "./Footer";
 
 const LANDING_WALKTHROUGH_STORAGE_KEY = "geosight-landing-walkthrough-seen";
@@ -196,7 +195,7 @@ function LensGrid({
                 {lens.factors.slice(0, 5).map((f) => (
                   <span
                     key={f}
-                    className="whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px]"
+                    className="whitespace-nowrap rounded-full border px-2 py-0.5 text-xs"
                     style={{
                       background: "var(--surface-soft)",
                       color: "var(--muted-foreground)",
@@ -460,7 +459,7 @@ export function LandingPage() {
                     <Icon size={16} />
                   </span>
                   <span
-                    className="text-[10px] uppercase tracking-[0.18em]"
+                    className="text-xs uppercase tracking-[0.18em]"
                     style={{ color: "var(--muted-foreground)" }}
                   >
                     {item.step}

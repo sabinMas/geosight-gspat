@@ -82,7 +82,7 @@ export function PersistentAiBar({
           disabled={disabled}
           className="h-11 rounded-full bg-[var(--surface-soft)] pl-9 pr-24 shadow-none focus-visible:ring-[var(--accent)]/40"
         />
-        <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-[var(--muted-foreground)] xl:inline-flex">
+        <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2 py-0.5 text-xs uppercase tracking-[0.14em] text-[var(--muted-foreground)] xl:inline-flex">
           /
         </span>
       </div>

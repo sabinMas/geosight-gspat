@@ -827,13 +827,6 @@ function formatTrendLine(trend: DataTrend) {
   return `${trend.label} is ${trend.value} — ${trend.detail}`;
 }
 
-function buildFactorEvidenceLines(profile: MissionProfile) {
-  return profile.factors.map((factor) => {
-    const evidence = classifyFactorEvidence(factor);
-    return `- ${factor.label}: ${evidence.label}.`;
-  });
-}
-
 export function buildFallbackAssessment(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,

@@ -163,7 +163,7 @@ export function WorkspaceCommandPalette({
             <div className="space-y-4">
               {groupedItems.map((group) => (
                 <section key={group.section} className="space-y-2">
-                  <div className="px-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                  <div className="px-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                     {group.section}
                   </div>
                   <div className="space-y-1">

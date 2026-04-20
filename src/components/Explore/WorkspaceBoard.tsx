@@ -190,9 +190,9 @@ export function WorkspaceBoard({
           </div>
 
           {savedConfirm ? (
-            <div className="flex items-center gap-1.5 rounded-full border border-[color:var(--success-border)] bg-[var(--success-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
+            <div className="flex max-w-[16rem] items-center gap-1.5 rounded-full border border-[color:var(--success-border)] bg-[var(--success-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
               <Check aria-hidden className="h-3.5 w-3.5 shrink-0" />
-              Saved &ldquo;{savedConfirm}&rdquo;
+              <span className="truncate">Saved &ldquo;{savedConfirm}&rdquo;</span>
             </div>
           ) : savingName !== null ? (
             <div className="flex items-center gap-2">
@@ -287,12 +287,12 @@ export function WorkspaceBoard({
                         onClick={() => onRestoreBoard(board.id)}
                         aria-label={`Restore layout "${board.name}"`}
                         aria-pressed={isActive}
-                        className="flex items-center gap-1.5 text-left"
+                        className="flex min-w-0 items-center gap-1.5 text-left"
                       >
-                        <span className={cn("text-sm font-semibold", isActive ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]")}>
+                        <span className={cn("max-w-[12rem] truncate text-sm font-semibold", isActive ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]")}>
                           {board.name}
                         </span>
-                        <span className="text-xs text-[var(--muted-foreground)]">
+                        <span className="shrink-0 text-xs text-[var(--muted-foreground)]">
                           · {board.visibleCardIds.length} cards
                         </span>
                       </button>

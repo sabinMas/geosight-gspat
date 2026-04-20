@@ -64,7 +64,7 @@ export function LocationTrackingControls({
       <div className="pointer-events-auto rounded-[1.8rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-panel)] backdrop-blur-xl">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
               Live location
             </div>
             <div className="mt-1 text-sm font-semibold text-[var(--foreground)]">
@@ -148,7 +148,7 @@ export function LocationTrackingControls({
             </div>
             <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
               <div>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-cyan-50/65">
+                <div className="text-xs uppercase tracking-[0.12em] text-cyan-50/65">
                   Distance
                 </div>
                 <div className="mt-1 font-semibold text-cyan-50">
@@ -156,7 +156,7 @@ export function LocationTrackingControls({
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-cyan-50/65">
+                <div className="text-xs uppercase tracking-[0.12em] text-cyan-50/65">
                   Time
                 </div>
                 <div className="mt-1 font-semibold text-cyan-50">
@@ -164,7 +164,7 @@ export function LocationTrackingControls({
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-cyan-50/65">
+                <div className="text-xs uppercase tracking-[0.12em] text-cyan-50/65">
                   Points
                 </div>
                 <div className="mt-1 font-semibold text-cyan-50">

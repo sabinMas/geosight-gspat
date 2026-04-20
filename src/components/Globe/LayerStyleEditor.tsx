@@ -38,7 +38,7 @@ export function LayerStyleEditor({ style, onChange }: LayerStyleEditorProps) {
   return (
     <div className="mt-3 space-y-3 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3">
       <div>
-        <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
           Color
         </div>
         <div className="grid grid-cols-6 gap-2">
@@ -63,7 +63,7 @@ export function LayerStyleEditor({ style, onChange }: LayerStyleEditorProps) {
       <div>
         <label
           htmlFor="layer-opacity"
-          className="mb-1 block text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
+          className="mb-1 block text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
         >
           Opacity {Math.round(style.opacity * 100)}%
         </label>
@@ -83,7 +83,7 @@ export function LayerStyleEditor({ style, onChange }: LayerStyleEditorProps) {
       <div>
         <label
           htmlFor="layer-stroke-width"
-          className="mb-1 block text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
+          className="mb-1 block text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
         >
           Stroke width {style.weight}px
         </label>
@@ -124,7 +124,7 @@ export function LayerStyleEditor({ style, onChange }: LayerStyleEditorProps) {
         <div>
           <label
             htmlFor="layer-fill-opacity"
-            className="mb-1 block text-[11px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
+            className="mb-1 block text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]"
           >
             Fill opacity {Math.round(style.fillOpacity * 100)}%
           </label>

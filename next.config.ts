@@ -17,8 +17,8 @@ export default withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
   // Hides Sentry SDK from bundle size analysis
   sourcemaps: { disable: false },
-  // Disables Sentry's automatic tree shaking
-  disableLogger: true,
-  // Automatically instrument Next.js API routes
-  autoInstrumentServerFunctions: true,
+  webpack: {
+    treeshake: { removeDebugLogging: true },
+    autoInstrumentServerFunctions: true,
+  },
 });
