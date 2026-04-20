@@ -9,7 +9,7 @@ import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { CoreMessage } from "@/lib/rag/types";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-2.0-flash";
 
 type GeminiGenerateContentResponse = {
   candidates?: Array<{
