@@ -7,7 +7,7 @@ import {
   getAgentConfig,
   isAgentId,
 } from "@/lib/agents/agent-config";
-import { buildFallbackAssessment, formatLocationLabel } from "@/lib/geosight-assistant";
+import { buildFallbackAssessment, formatLocationLabel, buildGroqAnalysisContextBlock } from "@/lib/geosight-assistant";
 import { getProfileById } from "@/lib/profiles";
 import { injectRagIntoMessages } from "@/lib/rag/inject";
 import { CoreMessage } from "@/lib/rag/types";
