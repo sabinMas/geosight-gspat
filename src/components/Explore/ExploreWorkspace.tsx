@@ -2017,6 +2017,7 @@ export function ExploreWorkspace() {
                   subsurfaceDatasets={data.subsurfaceDatasets}
                   terrainExaggeration={state.terrainExaggeration}
                   earthquakeMarkers={state.earthquakeMarkers}
+                  trailMarkers={data.npsParks}
                   driveMode={state.driveMode}
                   onExitDriveMode={() => state.setDriveMode(false)}
                   drawingTool={state.drawingTool}

@@ -158,7 +158,8 @@ export type WorkspaceCardId =
   | "thermal-load"
   | "stream-gauges"
   | "solar-resource"
-  | "attribute-table";
+  | "attribute-table"
+  | "nps-trails";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
@@ -1054,4 +1055,27 @@ export interface RouteRecordingSnapshot {
   pointCount: number;
   totalDistanceMiles: number;
   elapsedSeconds: number;
+}
+
+// ---------------------------------------------------------------------------
+// NPS trails types
+// ---------------------------------------------------------------------------
+export interface NpsPark {
+  id: string;
+  parkCode: string;
+  name: string;
+  shortName: string;
+  designation: string;
+  description: string;
+  lat: number;
+  lng: number;
+  distanceKm: number;
+  states: string;
+  url: string;
+  directionsInfo: string;
+  weatherInfo: string;
+  activities: string[];
+  entranceFee: string | null;
+  imageUrl: string | null;
+  imageAlt: string | null;
 }

@@ -734,6 +734,30 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     supportedProfiles: ["data-center", "site-development", "commercial", "residential"],
     emptyState: "Select a location to see solar irradiance and peak sun hours.",
   },
+  {
+    id: "nps-trails",
+    title: "NPS trails & parks",
+    summary: "Nearby National Park Service units with hiking — distances, activities, entrance fees, and NPS page links.",
+    questionAnswered: "Which national parks and recreation areas with hiking are within reach of this location?",
+    regionCoverage: "United States — National Park Service API, requires NPS_API_KEY",
+    failureMode: "Shows configuration prompt when NPS_API_KEY is absent; shows empty state when no NPS parks are within 200 km",
+    freshnessWindow: "Cached 1 hour per coordinate",
+    nextActions: [
+      "Check outdoor fit card for climate and air quality suitability",
+      "Review terrain viewer for elevation and slope context",
+      "Use trip summary card for full outdoor readiness overview",
+    ],
+    icon: "Trees",
+    category: "planning",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "wide",
+    defaultVisibility: true,
+    defaultOrder: 134,
+    requiredData: ["geodata"],
+    supportedProfiles: ["hiking"],
+    emptyState: "Select a US location to discover nearby National Park Service units with hiking.",
+  },
 ] as const;
 
 function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
@@ -1154,14 +1178,14 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 const VISIBLE_CARDS_BY_PROFILE: Record<AppMode, Record<string, WorkspaceCardId[]>> = {
   explorer: {
     "data-center": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
-    hiking: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+    hiking: ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "nps-trails"],
     "home-buying": ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "local-access"],
     "site-development": ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "local-access"],
     commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
   },
   pro: {
     "data-center": ["active-location", "chat", "results", "site-readiness", "infrastructure-access", "weather-forecast", "hazard-details"],
-    hiking: ["active-location", "chat", "results", "weather-forecast"],
+    hiking: ["active-location", "chat", "results", "nps-trails", "weather-forecast", "outdoor-fit", "trip-summary"],
     "home-buying": [
       "active-location",
       "chat",

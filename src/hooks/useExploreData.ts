@@ -22,6 +22,7 @@ import {
 } from "@/lib/workspace-intent";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useHousingMarket } from "@/hooks/useHousingMarket";
+import { useNpsTrails } from "@/hooks/useNpsTrails";
 import { useSavedSites } from "@/hooks/useSavedSites";
 import { useSchoolContext } from "@/hooks/useSchoolContext";
 import { GEODATA_RATE_LIMIT_MESSAGE, useSiteAnalysis } from "@/hooks/useSiteAnalysis";
@@ -121,6 +122,15 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     state.locationReady,
   );
   const { sites, addSite } = useSavedSites(activeProfile.id);
+  const {
+    parks: npsParks,
+    loading: npsLoading,
+    error: npsError,
+    source: npsSource,
+  } = useNpsTrails({
+    selectedPoint: state.locationReady ? state.selectedPoint : null,
+    profileId: activeProfile.id,
+  });
   const {
     housingMarket,
     loading: housingMarketLoading,
@@ -733,6 +743,10 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
     loading,
     error,
     schoolContext,
+    npsParks,
+    npsLoading,
+    npsError,
+    npsSource,
     housingMarket,
     housingMarketLoading,
     housingMarketError,

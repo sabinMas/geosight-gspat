@@ -36,6 +36,7 @@ import { SeismicDesignCard } from "@/components/Explore/SeismicDesignCard";
 import { SoilProfileCard } from "@/components/Explore/SoilProfileCard";
 import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
 import { TripSummaryCard } from "@/components/Explore/TripSummaryCard";
+import { NpsTrailsCard } from "@/components/Explore/NpsTrailsCard";
 import { WeatherForecastCard } from "@/components/Explore/WeatherForecastCard";
 import { AnalysisTrendsPanel } from "@/components/Results/AnalysisTrendsPanel";
 import { NearbyPlacesList } from "@/components/Results/NearbyPlacesList";
@@ -155,6 +156,7 @@ function getDataDependencyPlaceholder(
     "thermal-load",
     "stream-gauges",
     "solar-resource",
+    "nps-trails",
   ]);
 
   if (scoreCards.has(cardId) && !data.siteScore) {
@@ -429,6 +431,15 @@ export function ExploreWorkspacePanel({
       return <StreamGaugeCard geodata={data.geodata} />;
     case "solar-resource":
       return <SolarResourceCard geodata={data.geodata} />;
+    case "nps-trails":
+      return (
+        <NpsTrailsCard
+          parks={data.npsParks}
+          loading={data.npsLoading}
+          error={data.npsError}
+          source={data.npsSource}
+        />
+      );
     case "housing-market":
       return (
         <HousingMarketCard

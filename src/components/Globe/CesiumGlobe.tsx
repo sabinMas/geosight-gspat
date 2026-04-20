@@ -16,6 +16,7 @@ import {
   createWorldImageryAsync,
   createWorldTerrainAsync,
   CustomDataSource,
+  DistanceDisplayCondition,
   Entity,
   EllipsoidGeodesic,
   EllipsoidTerrainProvider,
@@ -27,6 +28,7 @@ import {
   Ion,
   IonWorldImageryStyle,
   JulianDate,
+  LabelStyle,
   Math as CesiumMath,
   Matrix4,
   PolygonHierarchy,
@@ -58,6 +60,7 @@ import {
   GlobeViewSnapshot,
   IdentifyHit,
   IdentifyResult,
+  NpsPark,
   RegionSelection,
   SavedSite,
   SubsurfaceDataset,
@@ -242,6 +245,7 @@ interface CesiumGlobeProps {
   subsurfaceDatasets: SubsurfaceDataset[];
   terrainExaggeration: number;
   earthquakeMarkers?: EarthquakeEvent[];
+  trailMarkers?: NpsPark[];
   driveMode?: boolean;
   onExitDriveMode?: () => void;
   drawingTool?: DrawingTool;
@@ -277,6 +281,7 @@ export function CesiumGlobe({
   subsurfaceDatasets,
   terrainExaggeration,
   earthquakeMarkers = [],
+  trailMarkers = [],
   driveMode = false,
   onExitDriveMode,
   drawingTool = "none",
@@ -1401,6 +1406,31 @@ export function CesiumGlobe({
       });
     }
 
+    for (const park of trailMarkers) {
+      if (!Number.isFinite(park.lat) || !Number.isFinite(park.lng)) continue;
+      ds.entities.add({
+        name: park.name,
+        position: Cartesian3.fromDegrees(park.lng, park.lat, 120),
+        point: {
+          color: Color.fromCssColorString("#5be49b"),
+          pixelSize: 10,
+          outlineColor: Color.BLACK.withAlpha(0.55),
+          outlineWidth: 1.5,
+        },
+        label: {
+          text: park.shortName,
+          font: "11px sans-serif",
+          fillColor: Color.WHITE,
+          outlineColor: Color.BLACK,
+          outlineWidth: 2,
+          style: LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cartesian2(0, -18),
+          distanceDisplayCondition: new DistanceDisplayCondition(0, 800_000),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      });
+    }
+
     viewer.scene.requestRender();
     return () => {
       pinEntityRef.current = null;
@@ -1416,6 +1446,7 @@ export function CesiumGlobe({
     savedSites,
     selectedPoint.lat,
     selectedPoint.lng,
+    trailMarkers,
     subsurfaceCueColor,
     subsurfaceDatasets,
     subsurfaceFootprint,
