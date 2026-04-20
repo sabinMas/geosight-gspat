@@ -309,11 +309,12 @@ function buildSystemMessage(config: AgentConfig, context?: GeoSightContext) {
     return basePrompt;
   }
 
-  return `${basePrompt}\n\nCurrent analysis context: ${JSON.stringify(
-    context,
-    null,
-    2,
-  )}`;
+  const analyzePayload = buildAnalyzePayload("", context);
+  const profile = getProfileById(analyzePayload.profileId);
+  const contextBlock = buildGroqAnalysisContextBlock(analyzePayload, profile, {
+    activeLensLabel: context?.uiContext?.activeProfile,
+  });
+  return `${basePrompt}\n\nCurrent analysis context:\n${contextBlock}`
 }
 
 async function buildCompletionMessages(
