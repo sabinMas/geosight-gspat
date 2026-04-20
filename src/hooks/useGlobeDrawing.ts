@@ -269,17 +269,20 @@ export function useGlobeDrawnShapes({
           disableDepthTestDistance: Number.POSITIVE_INFINITY as any,
         };
 
-        if (segments && segments.length > 0) {
-          // Per-segment labels at midpoints
+        if (segments && segments.length > 1) {
+          // Multi-segment: per-segment labels at midpoints + total at endpoint
           for (let i = 0; i < segments.length; i++) {
             const a = coords[i];
             const b = coords[i + 1];
             if (!a || !b) continue;
             ds.entities.add({
-              position: Cartesian3.fromDegrees((a.lng + b.lng) / 2, (a.lat + b.lat) / 2, 28),
+              position: Cartesian3.fromDegrees((a.lng + b.lng) / 2, (a.lat + b.lat) / 2, 50),
               label: {
                 text: segments[i].label,
-                font: captureMode ? "12px sans-serif" : "11px sans-serif",
+                font: captureMode ? "bold 12px sans-serif" : "bold 11px sans-serif",
+                showBackground: true,
+                backgroundColor: Color.fromCssColorString("#1e1e2e").withAlpha(0.75),
+                backgroundPadding: new Cartesian2(4, 3),
                 ...labelStyle,
               },
             });
@@ -288,16 +291,16 @@ export function useGlobeDrawnShapes({
           const last = coords[coords.length - 1];
           if (shape.measurementLabel) {
             ds.entities.add({
-              position: Cartesian3.fromDegrees(last.lng, last.lat, 38),
+              position: Cartesian3.fromDegrees(last.lng, last.lat, 60),
               label: { text: shape.measurementLabel, font: labelFont, ...labelStyle },
             });
           }
         } else if (shape.measurementLabel) {
-          // Legacy single-segment or no segments — label at midpoint
+          // Simple 2-point or legacy — single label at midpoint
           const a = coords[0];
           const b = coords[coords.length - 1];
           ds.entities.add({
-            position: Cartesian3.fromDegrees((a.lng + b.lng) / 2, (a.lat + b.lat) / 2, 30),
+            position: Cartesian3.fromDegrees((a.lng + b.lng) / 2, (a.lat + b.lat) / 2, 50),
             label: { text: shape.measurementLabel, font: labelFont, ...labelStyle },
           });
         }
