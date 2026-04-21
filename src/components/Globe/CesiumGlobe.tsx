@@ -1539,9 +1539,9 @@ export function CesiumGlobe({
       orientation: new CallbackProperty(() => oriRef.val, false) as any,
       model: {
         uri: new Resource({ url: "/drive-vehicle.glb" }),
-        scale: 1.0,
-        minimumPixelSize: 32,
-        maximumScale: 200,
+        scale: 3.5,
+        minimumPixelSize: 64,
+        maximumScale: 500,
         silhouetteColor: Color.fromCssColorString("#00e5ff"),
         silhouetteSize: 1.5,
       },
@@ -1638,8 +1638,7 @@ export function CesiumGlobe({
       posRef.val = vehiclePos;
       oriRef.val = Transforms.headingPitchRollQuaternion(
         vehiclePos,
-        // Offset by -π/2 so the box's long axis (local X) faces the movement direction
-        new HeadingPitchRoll(heading - Math.PI / 2, 0, 0),
+        new HeadingPitchRoll(heading, 0, 0),
       );
 
       // ── Camera follow ──────────────────────────────────────────────────────
@@ -1647,8 +1646,8 @@ export function CesiumGlobe({
         vehiclePos,
         new HeadingPitchRange(
           heading, // behind the vehicle (Cesium HPR heading=0 → camera south of target)
-          CesiumMath.toRadians(-22),
-          38,
+          CesiumMath.toRadians(-8),
+          22,
         ),
       );
 
