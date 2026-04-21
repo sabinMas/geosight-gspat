@@ -2076,6 +2076,7 @@ export function ExploreWorkspace() {
                   onVertexDrag={state.updateDrawnShapeVertex}
                   snapToGrid={state.snapToGrid}
                   captureMode={captureOverlayVisible}
+                  routeCoordinates={state.routeCoordinates}
                   onGlobeApiChange={handleGlobeApiChange}
                   featureInspectMode={state.featureInspectMode}
                   onIdentifyResult={state.setIdentifyResult}

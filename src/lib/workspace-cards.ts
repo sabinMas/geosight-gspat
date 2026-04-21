@@ -782,6 +782,29 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     supportedProfiles: ["site-development", "data-center", "commercial", "residential", "hiking"],
     emptyState: "Select a location to export a terrain heightmap.",
   },
+  {
+    id: "route-planner",
+    title: "Route planner",
+    summary: "Get a point-to-point route between two locations — hiking path for Trail Scout, driving route for Road Trip. Displays on the 3D globe with distance and estimated travel time.",
+    questionAnswered: "What is the best path between two locations for hiking or driving?",
+    regionCoverage: "Global — OSRM open routing (OpenStreetMap road/trail network)",
+    failureMode: "Shows error when no road/trail connection exists between locations; OSRM public API may be slow for remote areas",
+    freshnessWindow: "Routes cached 1 hour per coordinate pair",
+    nextActions: [
+      "Zoom to the route on the globe to inspect terrain along the path",
+      "Ask GeoAnalyst about hazards, elevation change, or conditions along the route",
+    ],
+    icon: "Route",
+    category: "planning",
+    zone: "workspace",
+    emphasis: "primary",
+    defaultSize: "standard",
+    defaultVisibility: true,
+    defaultOrder: 136,
+    requiredData: [],
+    supportedProfiles: ["hiking", "commercial"],
+    emptyState: "Enter a start and end location to plot a route on the globe.",
+  },
 ] as const;
 
 function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
@@ -1204,14 +1227,14 @@ export const WORKSPACE_CARD_MAP = Object.fromEntries(
 const VISIBLE_CARDS_BY_PROFILE: Record<AppMode, Record<string, WorkspaceCardId[]>> = {
   explorer: {
     "data-center": ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
-    hiking: ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "nps-trails"],
+    hiking: ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "nps-trails", "route-planner"],
     "home-buying": ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "local-access"],
     "site-development": ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "local-access"],
-    commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary"],
+    commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "route-planner"],
   },
   pro: {
     "data-center": ["active-location", "chat", "results", "site-readiness", "infrastructure-access", "weather-forecast", "hazard-details"],
-    hiking: ["active-location", "chat", "results", "nps-trails", "weather-forecast", "outdoor-fit", "trip-summary"],
+    hiking: ["active-location", "chat", "results", "nps-trails", "weather-forecast", "outdoor-fit", "trip-summary", "route-planner"],
     "home-buying": [
       "active-location",
       "chat",

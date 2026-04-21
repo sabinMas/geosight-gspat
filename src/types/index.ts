@@ -160,7 +160,8 @@ export type WorkspaceCardId =
   | "solar-resource"
   | "attribute-table"
   | "nps-trails"
-  | "terrain-export";
+  | "terrain-export"
+  | "route-planner";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"

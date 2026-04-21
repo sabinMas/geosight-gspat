@@ -69,6 +69,7 @@ import {
   SubsurfaceRenderMode,
 } from "@/types";
 import { useGlobeDrawing, useGlobeDrawnShapes } from "@/hooks/useGlobeDrawing";
+import { useRouteDisplay } from "@/hooks/useRouteDisplay";
 import { CoordinateDisplay } from "./CoordinateDisplay";
 import { DEFAULT_OVERLAY_LEGEND_ITEMS, LegendPanel } from "./LegendPanel";
 import { LayerState } from "./DataLayers";
@@ -263,6 +264,7 @@ interface CesiumGlobeProps {
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
   snapToGrid?: boolean;
   captureMode?: boolean;
+  routeCoordinates?: { lat: number; lng: number }[] | null;
   onGlobeApiChange?: (api: {
     getViewSnapshot: () => GlobeViewSnapshot | null;
     requestRender: () => void;
@@ -299,6 +301,7 @@ export function CesiumGlobe({
   onVertexDrag,
   snapToGrid = false,
   captureMode = false,
+  routeCoordinates = null,
   onGlobeApiChange,
 }: CesiumGlobeProps) {
   const hasCesiumToken = Boolean(CESIUM_ION_TOKEN);
@@ -1771,6 +1774,8 @@ export function CesiumGlobe({
     onVertexDrag,
     captureMode,
   });
+
+  useRouteDisplay({ viewerRef, viewerReady, routeCoordinates });
 
   if (!hasCesiumToken) {
     return (

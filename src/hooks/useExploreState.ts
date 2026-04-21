@@ -165,6 +165,9 @@ export interface ExploreState {
   setAnalysisLoading: Dispatch<SetStateAction<boolean>>;
   analysisError: string | null;
   setAnalysisError: Dispatch<SetStateAction<string | null>>;
+  // Route planner
+  routeCoordinates: { lat: number; lng: number }[] | null;
+  setRouteCoordinates: Dispatch<SetStateAction<{ lat: number; lng: number }[] | null>>;
 }
 
 function getInitialProfile(profileId?: string) {
@@ -320,6 +323,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [analysisResult, setAnalysisResult] = useState<LensAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<{ lat: number; lng: number }[] | null>(null);
 
   useEffect(() => {
     drawnShapesRef.current = drawnShapes;
@@ -780,5 +784,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     setAnalysisLoading,
     analysisError,
     setAnalysisError,
+    routeCoordinates,
+    setRouteCoordinates,
   };
 }

@@ -38,6 +38,7 @@ import { SourceAwarenessCard } from "@/components/Explore/SourceAwarenessCard";
 import { TripSummaryCard } from "@/components/Explore/TripSummaryCard";
 import { NpsTrailsCard } from "@/components/Explore/NpsTrailsCard";
 import { TerrainExportCard } from "@/components/Explore/TerrainExportCard";
+import { RoutePlannerCard } from "@/components/Explore/RoutePlannerCard";
 import { WeatherForecastCard } from "@/components/Explore/WeatherForecastCard";
 import { AnalysisTrendsPanel } from "@/components/Results/AnalysisTrendsPanel";
 import { NearbyPlacesList } from "@/components/Results/NearbyPlacesList";
@@ -458,6 +459,17 @@ export function ExploreWorkspacePanel({
           locationName={state.selectedLocationName ?? "location"}
         />
       );
+    case "route-planner": {
+      // Foot routing for trail-scout lens, car routing for road-trip
+      const profile = state.activeLensId === "trail-scout" ? "foot" : "car";
+      return (
+        <RoutePlannerCard
+          routingProfile={profile}
+          onRouteChange={state.setRouteCoordinates}
+          onFlyToBounds={undefined}
+        />
+      );
+    }
     default:
       return null;
   }
