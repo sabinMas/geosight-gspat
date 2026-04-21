@@ -39,6 +39,7 @@ import {
   sampleTerrainMostDetailed,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  Resource,
   Transforms,
   Viewer as CesiumViewer,
   WebMapServiceImageryProvider,
@@ -1536,12 +1537,13 @@ export function CesiumGlobe({
       position: new CallbackProperty(() => posRef.val, false) as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       orientation: new CallbackProperty(() => oriRef.val, false) as any,
-      box: {
-        dimensions: new Cartesian3(4.6, 2.2, 1.6),
-        material: Color.fromCssColorString("#ff4422"),
-        outline: true,
-        outlineColor: Color.fromCssColorString("#ff8866"),
-        outlineWidth: 1,
+      model: {
+        uri: new Resource({ url: "/drive-vehicle.glb" }),
+        scale: 1.0,
+        minimumPixelSize: 32,
+        maximumScale: 200,
+        silhouetteColor: Color.fromCssColorString("#00e5ff"),
+        silhouetteSize: 1.5,
       },
     });
 
