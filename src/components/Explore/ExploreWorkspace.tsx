@@ -9,6 +9,7 @@ import {
   Car,
   Command,
   Crosshair,
+  Settings,
   Download,
   Loader2,
   FileText,
@@ -61,6 +62,7 @@ import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { KeyboardShortcuts } from "@/components/Shell/KeyboardShortcuts";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
+import { SettingsPanel } from "@/components/Shell/SettingsPanel";
 import { ToolReferenceSheet } from "@/components/Shell/ToolReferenceSheet";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
@@ -224,6 +226,7 @@ export function ExploreWorkspace() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
   const [toolReferenceOpen, setToolReferenceOpen] = useState(false);
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [layersPanelOpen, setLayersPanelOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState(false);
   const [printLayoutOpen, setPrintLayoutOpen] = useState(false);
@@ -799,6 +802,11 @@ export function ExploreWorkspace() {
 
         if (toolReferenceOpen) {
           setToolReferenceOpen(false);
+          return;
+        }
+
+        if (settingsPanelOpen) {
+          setSettingsPanelOpen(false);
           return;
         }
 
@@ -1819,6 +1827,16 @@ export function ExploreWorkspace() {
           </button>
           <button
             type="button"
+            onClick={() => setSettingsPanelOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
+            aria-label="Open settings"
+            title="Settings"
+          >
+            <Settings className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Settings</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setWalkthroughOpen(true)}
             className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
             aria-label="Start guided tour"
@@ -2350,6 +2368,11 @@ export function ExploreWorkspace() {
       <ToolReferenceSheet
         open={toolReferenceOpen}
         onClose={() => setToolReferenceOpen(false)}
+      />
+
+      <SettingsPanel
+        open={settingsPanelOpen}
+        onClose={() => setSettingsPanelOpen(false)}
       />
 
       <WalkthroughOverlay

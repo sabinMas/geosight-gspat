@@ -2,6 +2,8 @@
 
 :root {
   color-scheme: dark;
+  /* Typography scale — 1 = default (16px base), 0.9 = small, 1.15 = large */
+  --font-scale: 1;
   --radius-container: 1rem;
   --radius-control: 0.75rem;
   --radius-card: 1.5rem;
@@ -104,6 +106,8 @@ html[data-theme="light"] {
 }
 
 html {
+  /* All rem-based Tailwind type sizes (text-xs, text-sm, etc.) scale with --font-scale */
+  font-size: calc(16px * var(--font-scale));
   min-height: 100%;
   background:
     radial-gradient(circle at top left, rgba(83, 221, 255, 0.14), transparent 28%),
