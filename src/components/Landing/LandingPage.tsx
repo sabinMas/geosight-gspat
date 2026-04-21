@@ -26,8 +26,13 @@ import {
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
 import { useAgentPanel } from "@/context/AgentPanelContext";
-import { getCurrentCoordinates } from "@/lib/cesium-search";
+import { getCurrentCoordinates, parseCoordinates } from "@/lib/cesium-search";
 import { LANDING_WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
+import {
+  fetchLocationSuggestions,
+  MIN_LOCATION_SUGGESTION_LENGTH,
+} from "@/lib/location-search";
+import { LocationSearchResult } from "@/types";
 import { ExplorerLens, EXPLORER_LENSES } from "@/lib/explorer-lenses";
 import { buildExploreHref } from "@/lib/landing";
 import { Button } from "../ui/button";
@@ -252,6 +257,10 @@ export function LandingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<LocationSearchResult[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const dismissWalkthrough = useCallback(() => {
@@ -287,6 +296,44 @@ export function LandingPage() {
       reportOpen: false,
     });
   }, [selectedLens?.profileId, setUiContext]);
+
+  useEffect(() => {
+    const query = locationQuery.trim();
+    setActiveIndex(-1);
+
+    if (parseCoordinates(query) || query.length < MIN_LOCATION_SUGGESTION_LENGTH) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const results = await fetchLocationSuggestions(query, controller.signal);
+        if (!controller.signal.aborted) setSuggestions(results);
+      } catch {
+        if (!controller.signal.aborted) setSuggestions([]);
+      } finally {
+        if (!controller.signal.aborted) setSuggestionsLoading(false);
+      }
+    }, 280);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [locationQuery]);
+
+  const handleSelectSuggestion = (suggestion: LocationSearchResult) => {
+    setLocationQuery(suggestion.shortName ?? suggestion.name);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setActiveIndex(-1);
+    setLocationError(null);
+    setStep(3);
+  };
 
   const handleSelectLens = (lensId: string) => {
     setSelectedLensId(lensId);
@@ -545,7 +592,7 @@ export function LandingPage() {
                 </span>
               </div>
 
-              <div className="flex gap-2.5">
+              <div className="relative flex gap-2.5">
                 <div
                   className="flex min-h-12 flex-1 items-center gap-2.5 rounded-xl border px-4 transition focus-within:ring-2"
                   style={{
@@ -565,10 +612,35 @@ export function LandingPage() {
                     spellCheck={false}
                     value={locationQuery}
                     onChange={(e) => { setLocationQuery(e.target.value); setLocationError(null); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubmitLocation()}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => { window.setTimeout(() => setShowSuggestions(false), 120); }}
+                    onKeyDown={(e) => {
+                      const dropdownOpen = showSuggestions && (suggestionsLoading || suggestions.length > 0);
+                      if (e.key === "ArrowDown" && dropdownOpen) {
+                        e.preventDefault();
+                        setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+                      } else if (e.key === "ArrowUp" && dropdownOpen) {
+                        e.preventDefault();
+                        setActiveIndex((i) => Math.max(i - 1, -1));
+                      } else if (e.key === "Escape" && dropdownOpen) {
+                        e.preventDefault();
+                        setShowSuggestions(false);
+                        setActiveIndex(-1);
+                      } else if (e.key === "Enter") {
+                        if (activeIndex >= 0 && suggestions[activeIndex]) {
+                          e.preventDefault();
+                          handleSelectSuggestion(suggestions[activeIndex]);
+                        } else {
+                          handleSubmitLocation();
+                        }
+                      }
+                    }}
                     placeholder={`e.g. ${selectedLens.tagline.split(".")[0]}`}
                     aria-describedby={locationError ? "location-error" : undefined}
                     aria-invalid={!!locationError}
+                    aria-autocomplete="list"
+                    aria-expanded={showSuggestions && (suggestionsLoading || suggestions.length > 0)}
+                    aria-activedescendant={activeIndex >= 0 ? `landing-sug-${activeIndex}` : undefined}
                     className="flex-1 bg-transparent py-3 text-[15px] outline-none"
                     style={{ color: "var(--foreground)" }}
                   />
@@ -591,6 +663,51 @@ export function LandingPage() {
                 >
                   Continue <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
+
+                {/* Autocomplete dropdown */}
+                {showSuggestions && (suggestionsLoading || suggestions.length > 0) && (
+                  <div
+                    className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl border border-[color:var(--border-soft)] p-3 shadow-[var(--shadow-panel)]"
+                    style={{ background: "var(--surface-panel)" }}
+                    role="listbox"
+                    aria-label="Location suggestions"
+                  >
+                    <div className="mb-2 text-xs uppercase tracking-[0.18em]" style={{ color: "var(--muted-foreground)" }}>
+                      Suggested matches
+                    </div>
+                    {suggestionsLoading ? (
+                      <div className="flex items-center gap-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Finding place matches...
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {suggestions.map((suggestion, index) => (
+                          <button
+                            key={`${suggestion.name}-${suggestion.coordinates.lat}-${suggestion.coordinates.lng}`}
+                            id={`landing-sug-${index}`}
+                            type="button"
+                            role="option"
+                            aria-selected={index === activeIndex}
+                            onMouseEnter={() => setActiveIndex(index)}
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                            className="w-full rounded-xl border px-4 py-3 text-left transition"
+                            style={{
+                              background: index === activeIndex ? "var(--accent-soft)" : "var(--surface-raised)",
+                              borderColor: index === activeIndex ? "var(--accent-strong)" : "var(--border-soft)",
+                              color: index === activeIndex ? "var(--accent-foreground)" : "var(--foreground)",
+                            }}
+                          >
+                            <div className="text-sm font-medium">{suggestion.name}</div>
+                            <div className="mt-0.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                              {suggestion.coordinates.lat.toFixed(4)}, {suggestion.coordinates.lng.toFixed(4)}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {locationError && (

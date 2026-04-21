@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { toPng } from "html-to-image";
 import {
+  BookOpen,
   Car,
   Command,
   Crosshair,
@@ -60,6 +61,7 @@ import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { KeyboardShortcuts } from "@/components/Shell/KeyboardShortcuts";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
+import { ToolReferenceSheet } from "@/components/Shell/ToolReferenceSheet";
 import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
 import { isExplorerMode } from "@/lib/app-mode";
@@ -221,6 +223,7 @@ export function ExploreWorkspace() {
   const [calloutDismissed, setCalloutDismissed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
+  const [toolReferenceOpen, setToolReferenceOpen] = useState(false);
   const [layersPanelOpen, setLayersPanelOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState(false);
   const [printLayoutOpen, setPrintLayoutOpen] = useState(false);
@@ -791,6 +794,11 @@ export function ExploreWorkspace() {
 
         if (keyboardShortcutsOpen) {
           setKeyboardShortcutsOpen(false);
+          return;
+        }
+
+        if (toolReferenceOpen) {
+          setToolReferenceOpen(false);
           return;
         }
 
@@ -1818,6 +1826,15 @@ export function ExploreWorkspace() {
             <HelpCircle className="h-3.5 w-3.5" />
             Tour
           </button>
+          <button
+            type="button"
+            onClick={() => setToolReferenceOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
+            aria-label="Open tool reference"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Reference
+          </button>
           <Button
             type="button"
             size="sm"
@@ -2328,6 +2345,11 @@ export function ExploreWorkspace() {
       <KeyboardShortcuts
         open={keyboardShortcutsOpen}
         onClose={() => setKeyboardShortcutsOpen(false)}
+      />
+
+      <ToolReferenceSheet
+        open={toolReferenceOpen}
+        onClose={() => setToolReferenceOpen(false)}
       />
 
       <WalkthroughOverlay

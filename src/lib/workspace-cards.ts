@@ -895,6 +895,7 @@ function getModeVisibility(cardId: WorkspaceCardId): { explorer: boolean; pro: b
     "compare",
     "terrain-viewer",
     "elevation-profile",
+    "terrain-export",
     "hazard-context",
     "climate-history",
     "flood-risk",
