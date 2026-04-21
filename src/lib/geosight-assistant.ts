@@ -63,23 +63,25 @@ type FallbackQuestionType =
 function buildResponseGuidance(mode: ReturnType<typeof inferResponseMode>) {
   if (mode === "nearby_places") {
     return `
-Response style:
-- Answer in natural, conversational prose. Lead with the single most relevant result, then mention a few more.
-- Do NOT use markdown headers, numbered lists, or bullet-heavy outlines.
-- Name specific places with their approximate distance and direction when the data is available.
-- If live nearby-place data is unavailable, say so directly instead of inventing places.
-- Keep it concise — 2-4 short paragraphs max. End with one follow-up suggestion if relevant.
+How to respond:
+- Talk like a local who knows the area well — lead with the best option, then mention a couple more.
+- Use plain sentences. No headers, no bullet lists.
+- Name real places with rough distances when you have them. Never invent places.
+- If the data isn't loaded, just say so in one sentence and move on.
+- Match length to the question — a quick "what's nearby?" gets 2-3 sentences, not five paragraphs.
 `;
   }
 
   return `
-Response style:
-- Answer in natural, conversational prose — like a knowledgeable colleague briefing someone at a map table.
-- Lead with the direct answer to what was asked. Do NOT open with a location restatement or mission profile header.
-- Do NOT use markdown headers (##), numbered lists, or bullet-heavy report outlines.
-- Weave data points into sentences naturally. Say "Elevation sits around 340 m with mostly forested land cover" not "- Elevation: 340 m\\n- Land cover: Forested".
-- When discussing data quality, mention it inline (e.g., "flood data comes from FEMA and looks solid here, though school coverage is limited").
-- Keep it concise — 2-4 short paragraphs. End with one or two follow-up questions the user might want to explore next.
+How to respond:
+- Talk like a smart friend who knows this place — direct, casual, confident.
+- Match your response length to the question. "Is this area safe?" gets 2-3 sentences. "Give me a full breakdown" gets a few paragraphs. Never pad.
+- Start with the actual answer. Don't restate the location or the question. Don't open with "Great question!" or "Certainly!".
+- Use contractions. Write "it's" not "it is", "there's" not "there is".
+- Only mention data sources if the user asks about them or if the source meaningfully changes the answer (e.g., "FEMA hasn't mapped this area yet, so the flood read is a global model estimate").
+- Don't list every signal you have access to — only use what's relevant to what was asked.
+- No markdown headers. No numbered lists. No bullet-heavy outlines.
+- Skip the follow-up question unless you genuinely think it would help the user's next step.
 `;
 }
 
@@ -132,30 +134,20 @@ export function buildGeoSightSystemPrompt(
     .join("\n");
 
   const prompt = `
-You are GeoSight, an AI-powered geospatial intelligence assistant.
+You are GeoSight — a geospatial assistant that knows a lot about real places and talks like a person, not a report.
 
-Mission profile:
-- ${profile.name}
-- ${profile.tagline}
+You're helping someone using the ${profile.name} lens (${profile.tagline}). The live location data loaded into your context is your primary source of truth. Use it to give grounded, specific answers.
 
-Profile guidance:
-${profile.systemPrompt}
-
-Current response mode:
-- ${responseMode === "nearby_places" ? "Nearby places / lists" : "Area analysis / trends"}
-
-Score factors used by this profile:
+What this lens cares about:
 ${factorChecklist}
 
-Behavior rules:
-- Answer the specific question asked — do not give a generic area overview unless that is what was requested.
-- Write in natural conversational prose. Never use markdown headers, numbered lists, or bullet-heavy outlines.
-- Lead with the direct answer, then support it with 2-3 key data points woven into sentences.
-- When a user asks about specific things (schools, restaurants, trails, risks), name the actual items from the data with distances and directions.
-- Mention data confidence inline and briefly (e.g., "this comes from live FEMA data" or "school coverage is limited here").
-- If important data is unavailable, say so in one sentence — do not dedicate a full section to it.
-- Be concise and practical. 2-4 paragraphs is usually enough.
-- Never present proxy heuristics as if they were direct measurements.
+${profile.systemPrompt}
+
+Hard rules:
+- Never fabricate numbers, place names, or data you weren't given.
+- If something is unavailable, say so in one sentence — don't dwell on it.
+- Don't present a proxy estimate as if it's a direct measurement.
+- No markdown headers. No bullet lists. No report structure.
 
 ${buildResponseGuidance(responseMode)}
 `;
@@ -911,9 +903,9 @@ export function buildFallbackAssessment(
   if (responseMode === "nearby_places") {
     const placeSentences = nearbyPlaceLines.length
       ? nearbyPlaceLines.join(", ")
-      : "Live nearby-place results are unavailable for this category or location right now";
+      : "nearby place data isn't loaded for this spot yet";
 
-    return `Looking at ${locationLabel} through the ${profile.name} lens, the nearest mapped places include ${placeSentences}.\n\n${buildProfileAssessmentLine(profile.id, payload.geodata)} Treat these as mapped nearby candidates — zoom in or cross-check local details before making a final decision.\n\nNearby-place ranking depends on OpenStreetMap completeness for this area, and fine-grained hours, reviews, or closures are not available yet.`;
+    return `Around ${locationLabel}, the closest mapped options are ${placeSentences}. These come from OpenStreetMap, so hours and closures aren't tracked — worth a quick check before heading out.`;
   }
 
   if (questionType === "source_confidence") {
@@ -925,7 +917,7 @@ export function buildFallbackAssessment(
       formatSourceConfidenceLine(payload.geodata?.sources.groundwater),
     ].filter(Boolean);
 
-    return `${buildSourceConfidenceSummary(payload.geodata)}\n\nThe main inputs here are ${sourceLines.join("; ")}.\n\nTreat live or derived sources as usable screening evidence, and treat limited or unavailable sources as areas where GeoSight can suggest next checks but not make a final claim.`;
+    return `${buildSourceConfidenceSummary(payload.geodata)} The main inputs are ${sourceLines.join("; ")}. Live and derived sources are solid for screening — anything marked limited or unavailable is where you'd want to dig deeper before making a call.`;
   }
 
   if (questionType === "school_quality") {
@@ -936,7 +928,7 @@ export function buildFallbackAssessment(
       fact.includes("FEMA flood zone"),
     ).join(" ");
 
-    return `${buildSchoolSummary(payload)}\n\n${schoolFacts}\n\nGeoSight can only treat school quality as strong evidence when official accountability data is loaded. Family fit also depends on neighborhood-scale checks like parks, traffic calming, and housing stock that are not fully modeled yet.`;
+    return `${buildSchoolSummary(payload)} ${schoolFacts}`;
   }
 
   if (questionType === "hazard_risk") {
@@ -947,10 +939,11 @@ export function buildFallbackAssessment(
       fact.includes("Recent seismic") ||
       fact.includes("Global disaster") ||
       fact.includes("Air-quality") ||
-      fact.includes("EPA"),
+      fact.includes("EPA") ||
+      fact.includes("Wildfire"),
     ).join(" ");
 
-    return `${buildHazardSummary(payload)}\n\n${hazardFacts}\n\nThis is a screening-layer risk read, not a substitute for parcel, engineering, insurance, or regulatory diligence.`;
+    return `${buildHazardSummary(payload)} ${hazardFacts}`;
   }
 
   if (questionType === "terrain_recreation") {
@@ -964,7 +957,7 @@ export function buildFallbackAssessment(
       fact.includes("Air-quality"),
     ).join(" ");
 
-    return `${buildTerrainSummary(payload)}\n\n${terrainFacts}\n\nGeoSight can screen terrain character and access, but it does not yet have full trail-condition, scenic-rating, or seasonal closure coverage.`;
+    return `${buildTerrainSummary(payload)} ${terrainFacts}`;
   }
 
   if (questionType === "development_fit") {
@@ -977,7 +970,7 @@ export function buildFallbackAssessment(
       fact.includes("Dominant land cover"),
     ).join(" ");
 
-    return `${buildDevelopmentSummary(payload)}\n\n${devFacts}\n\nThis does not replace parcel-level entitlement, utilities, or local zoning review.`;
+    return `${buildDevelopmentSummary(payload)} ${devFacts}`;
   }
 
   if (questionType === "infrastructure_fit") {
@@ -994,11 +987,11 @@ export function buildFallbackAssessment(
       fact.includes("Historical climate trend"),
     ).join(" ");
 
-    return `${buildInfrastructureSummary(payload)}\n\n${infraFacts}\n\nGeoSight can screen utility and access posture, but it does not replace utility queue, transmission, or permitting diligence.`;
+    return `${buildInfrastructureSummary(payload)} ${infraFacts}`;
   }
 
-  const keyFacts = supportedFacts.filter((f) => !f.includes("unavailable")).slice(0, 9).join(" ");
+  const keyFacts = supportedFacts.filter((f) => !f.includes("unavailable")).slice(0, 6).join(" ");
   const trendNote = trendLines.length ? " " + trendLines.join(" ") : "";
 
-  return `${buildProfileAssessmentLine(profile.id, payload.geodata)}\n\n${keyFacts}${trendNote}\n\nThis analysis is based on currently loaded live, derived, and mapped context — anything beyond those signals should be treated as screening-level inference. ${nextQuestions[0] ?? ""}`;
+  return `${buildProfileAssessmentLine(profile.id, payload.geodata)} ${keyFacts}${trendNote}`;
 }
