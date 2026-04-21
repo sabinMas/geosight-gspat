@@ -1,5 +1,28 @@
 # GeoSight
 
+**Live app:** https://geosight-gspat.vercel.app/ | **GitHub:** https://github.com/sabinMas/geosight-gspat
+
+## For Judges — 90-Second Overview
+
+**What it does:** GeoSight is a geospatial intelligence platform that turns any address or coordinate into a multi-signal briefing in under a minute — without GIS software. Pick a mission lens (home buying, trail scouting, data center site selection, etc.), enter a location, and instantly get scored, sourced, and explainable intelligence from 40+ live government datasets (USGS, NOAA, NASA FIRMS, FEMA, EPA, Sentinel-2, OpenStreetMap).
+
+**Why it's different:**
+
+- Not a map viewer or chatbot — GeoSight scores and ranks signals by relevance to your specific decision type
+- - Strict trust model: every signal labeled by source freshness (live / derived / demo) — no fabricated data
+- - AI analyst (GeoAnalyst) grounds all responses in the live data bundle for the current location
+  - - GeoScribe generates exportable analyst reports (GeoJSON, CSV, PNG map captures)
+   
+    - **How to try it in 60 seconds:**
+   
+    - 1. Click **Watch a demo** on the landing page and pick a scenario (Home Buyer, Data Center, or Trail Scout)
+      2. 2. The 5–6 step guided tour walks through the key features for that scenario
+         3. 3. After the tour, type a question in the **Ask GeoSight** bar to test the live AI analyst
+           
+            4. **Tech stack:** Next.js 14 · TypeScript · Cesium/Resium 3D globe · Groq LLMs (llama-3.3-70b) · Google Gemini · Upstash Redis · Vercel · 40+ government data APIs
+           
+            5. ---
+
 GeoSight gives anyone the place intelligence that used to require a GIS analyst. Search any address or coordinate, choose a mission lens, and get an instant briefing across **40+ live signals** from USGS, NOAA, NASA FIRMS, FEMA, EPA, and more — scored, explained, and exportable. **No GIS software needed.**
 
 It is built for first-pass location decisions:
