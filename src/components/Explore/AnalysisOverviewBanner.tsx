@@ -47,8 +47,8 @@ export function AnalysisOverviewBanner({
         aria-label="Analysis overview"
         aria-live="polite"
       >
-        <StateBadge tone={overview.tone} />
-        <span className="truncate text-sm font-semibold text-[var(--foreground)]">
+        <StateBadge tone={overview.tone} className="shrink-0 whitespace-nowrap" />
+        <span className="min-w-0 truncate text-sm font-semibold text-[var(--foreground)]">
           {loading ? "Analyzing…" : locationName || "Select a location"}
         </span>
         <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-0.5 text-xs text-[var(--foreground-soft)] pointer-events-none xl:inline">

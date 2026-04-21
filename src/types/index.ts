@@ -654,6 +654,7 @@ export interface HousingMarketResult {
 }
 
 export interface GeodataResult {
+  coordinates: { lat: number; lng: number };
   elevationMeters: number | null;
   nearestWaterBody: {
     name: string;

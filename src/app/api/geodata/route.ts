@@ -415,6 +415,7 @@ export async function GET(request: NextRequest) {
     const hasClimateHistory = climateHistory !== null && climateHistory.summaries.length > 0;
 
     const assembledData = {
+      coordinates: { lat, lng },
       elevationMeters: elevationResult.status === "fulfilled" ? elevationResult.value : null,
       nearestWaterBody: buildNearestFeature({ lat, lng }, waterways, "Nearby mapped waterway"),
       nearestRoad: buildNearestFeature({ lat, lng }, roads, "Road network"),
