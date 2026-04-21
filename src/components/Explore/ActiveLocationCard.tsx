@@ -248,8 +248,8 @@ export function ActiveLocationCard({
             </p>
           </div>
 
-          <div className="grid gap-3">
-            <div className={`rounded-[1.25rem] border p-3 ${overview.strengths.length > 0 ? "border-[color:var(--success-border)] bg-[var(--success-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`overflow-hidden rounded-[1.25rem] border p-3 ${overview.strengths.length > 0 ? "border-[color:var(--success-border)] bg-[var(--success-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Strongest signals
               </div>
@@ -260,9 +260,9 @@ export function ActiveLocationCard({
                     const main = dotIdx >= 0 ? item.slice(0, dotIdx) : item;
                     const tag = dotIdx >= 0 ? item.slice(dotIdx + 3) : null;
                     return (
-                      <div key={item}>
-                        {main}
-                        {tag ? <span className="ml-1 text-[var(--muted-foreground)]">· {tag}</span> : null}
+                      <div key={item} className="min-w-0">
+                        <span className="line-clamp-2">{main}</span>
+                        {tag ? <span className="block truncate text-xs text-[var(--muted-foreground)]">· {tag}</span> : null}
                       </div>
                     );
                   })
@@ -271,7 +271,7 @@ export function ActiveLocationCard({
                 )}
               </div>
             </div>
-            <div className={`rounded-[1.25rem] border p-3 ${overview.watchouts.length > 0 ? "border-[color:var(--warning-border)] bg-[var(--warning-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
+            <div className={`overflow-hidden rounded-[1.25rem] border p-3 ${overview.watchouts.length > 0 ? "border-[color:var(--warning-border)] bg-[var(--warning-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Watch closely
               </div>
@@ -282,9 +282,9 @@ export function ActiveLocationCard({
                     const main = dotIdx >= 0 ? item.slice(0, dotIdx) : item;
                     const tag = dotIdx >= 0 ? item.slice(dotIdx + 3) : null;
                     return (
-                      <div key={item}>
-                        {main}
-                        {tag ? <span className="ml-1 text-[var(--muted-foreground)]">· {tag}</span> : null}
+                      <div key={item} className="min-w-0">
+                        <span className="line-clamp-2">{main}</span>
+                        {tag ? <span className="block truncate text-xs text-[var(--muted-foreground)]">· {tag}</span> : null}
                       </div>
                     );
                   })
@@ -293,13 +293,13 @@ export function ActiveLocationCard({
                 )}
               </div>
             </div>
-            <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
+            <div className="col-span-2 overflow-hidden rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Trust notes
               </div>
               <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground-soft)]">
                 {overview.trustNotes.slice(0, 2).map((item) => (
-                  <div key={item}>{item}</div>
+                  <div key={item} className="line-clamp-2">{item}</div>
                 ))}
               </div>
             </div>
