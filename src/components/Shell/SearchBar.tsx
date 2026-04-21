@@ -20,6 +20,8 @@ const BARE_NUMBER_RE = /^-?\d+(\.\d+)?$/;
 
 interface SearchBarProps {
   className?: string;
+  /** Compact mode: h-9 pill layout, icon-only location button, fits in the workspace topbar */
+  compact?: boolean;
   leadingControl?: React.ReactNode;
   locationButtonLabel?: string;
   onLocate: (result: LocationSearchResult) => void;
@@ -31,6 +33,7 @@ interface SearchBarProps {
 
 export function SearchBar({
   className,
+  compact = false,
   leadingControl,
   locationButtonLabel = "Use my location",
   onLocate,
@@ -94,12 +97,6 @@ export function SearchBar({
     onLocate(suggestion);
   }, [onLocate]);
 
-  /**
-   * Validates coordinate-shaped input before dispatch.
-   * Returns false and sets an error if the input is a bare number or has
-   * out-of-bounds lat/lng values. Returns true for valid coordinates or
-   * non-coordinate input (place names proceed to geocode unchanged).
-   */
   const validateCoordinateInput = useCallback((query: string): boolean => {
     if (BARE_NUMBER_RE.test(query)) {
       setError("Enter coordinates as lat, lng — e.g. 47.61, -122.33");
@@ -168,7 +165,6 @@ export function SearchBar({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // If a suggestion is keyboard-highlighted, select it instead of submitting
     if (activeIndex >= 0 && suggestions[activeIndex]) {
       handleSelectSuggestion(suggestions[activeIndex]);
       return;
@@ -224,6 +220,115 @@ export function SearchBar({
 
   const dropdownOpen = showSuggestions && (suggestionsLoading || suggestions.length > 0);
 
+  const suggestionsList = (
+    <>
+      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+        Suggested matches
+      </div>
+      {suggestionsLoading ? (
+        <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Finding place matches...
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={`${suggestion.name}-${suggestion.coordinates.lat}-${suggestion.coordinates.lng}`}
+              id={`lsug-${index}`}
+              type="button"
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => handleSelectSuggestion(suggestion)}
+              aria-label={`Select ${suggestion.name}`}
+              className={cn(
+                "w-full rounded-xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40",
+                index === activeIndex
+                  ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)]"
+                  : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)]",
+              )}
+            >
+              <div className={cn(
+                "text-sm font-medium",
+                index === activeIndex ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]",
+              )}>
+                {suggestion.name}
+              </div>
+              <div className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                {suggestion.coordinates.lat.toFixed(4)}, {suggestion.coordinates.lng.toFixed(4)}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  if (compact) {
+    return (
+      <div className={cn("relative", className)}>
+        <form onSubmit={handleSubmit} role="search" aria-label="Location search">
+          <div className="flex items-center gap-1.5">
+            {leadingControl ? <div>{leadingControl}</div> : null}
+            <div className="relative min-w-0 flex-1">
+              <Input
+                value={value}
+                onChange={(event) => { setValue(event.target.value); setError(null); }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => { window.setTimeout(() => setShowSuggestions(false), 120); }}
+                onKeyDown={handleInputKeyDown}
+                placeholder={placeholder}
+                aria-label="Search for a place, address, or coordinates"
+                aria-autocomplete="list"
+                aria-expanded={dropdownOpen}
+                aria-controls="location-search-suggestions"
+                aria-activedescendant={activeIndex >= 0 ? `lsug-${activeIndex}` : undefined}
+                className="h-9 rounded-full border-[color:var(--border-soft)] bg-[var(--background-elevated)] text-sm"
+              />
+              {dropdownOpen && (
+                <div
+                  id="location-search-suggestions"
+                  className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--background-elevated)] p-3 shadow-[var(--shadow-panel)]"
+                  role="listbox"
+                  aria-label="Location suggestions"
+                >
+                  {suggestionsList}
+                </div>
+              )}
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="h-9 shrink-0 rounded-full px-4"
+              disabled={loading}
+              aria-label="Search selected location"
+              onClick={() => { void executeSearch(); }}
+            >
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              <span className="ml-1.5">{submitLabel}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-9 w-9 shrink-0 rounded-full p-0"
+              onClick={handleUseCurrentLocation}
+              disabled={locating}
+              title={locationButtonLabel}
+              aria-label={locationButtonLabel}
+            >
+              {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+          {error && (
+            <p className="mt-1 px-1 text-xs text-[var(--danger-foreground)]">{error}</p>
+          )}
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       <form
@@ -262,46 +367,7 @@ export function SearchBar({
               role="listbox"
               aria-label="Location suggestions"
             >
-              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                Suggested matches
-              </div>
-              {suggestionsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Finding place matches...
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={`${suggestion.name}-${suggestion.coordinates.lat}-${suggestion.coordinates.lng}`}
-                      id={`lsug-${index}`}
-                      type="button"
-                      role="option"
-                      aria-selected={index === activeIndex}
-                      onMouseEnter={() => setActiveIndex(index)}
-                      onClick={() => handleSelectSuggestion(suggestion)}
-                      aria-label={`Select ${suggestion.name}`}
-                      className={cn(
-                        "w-full rounded-xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40",
-                        index === activeIndex
-                          ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)]"
-                          : "border-[color:var(--border-soft)] bg-[var(--surface-raised)] hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-soft)]",
-                      )}
-                    >
-                      <div className={cn(
-                        "text-sm font-medium",
-                        index === activeIndex ? "text-[var(--accent-foreground)]" : "text-[var(--foreground)]",
-                      )}>
-                        {suggestion.name}
-                      </div>
-                      <div className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-                        {suggestion.coordinates.lat.toFixed(4)}, {suggestion.coordinates.lng.toFixed(4)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+              {suggestionsList}
             </div>
           )}
         </div>

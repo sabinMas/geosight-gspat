@@ -1793,6 +1793,7 @@ export function ExploreWorkspace() {
         {/* Search bar — centered, flex-1 */}
         <div className="min-w-0 flex-1" data-walkthrough="search-bar">
           <SearchBar
+            compact
             submitLabel={state.locationReady ? "Update" : "Analyze"}
             syncValue={
               state.locationReady
