@@ -397,6 +397,22 @@ function buildProfileAssessmentLine(profileId: string, geodata?: GeodataResult) 
       return roadKm !== null && powerKm !== null
         ? `For commercial or warehouse siting, road access around ${roadKm.toFixed(1)} km and utility access around ${powerKm.toFixed(1)} km make this a workable first-pass candidate.`
         : "For commercial or warehouse use, transport access and utility readiness remain the biggest open questions.";
+    case "energy-solar":
+      return topLandCover
+        ? `For energy and solar siting, the clearest signals are solar irradiance, terrain flatness, land cover type (current dominant: ${topLandCover.label.toLowerCase()}), and proximity to transmission infrastructure.`
+        : "For solar and energy siting, irradiance, slope, land cover type, and grid access distance are the key screening factors.";
+    case "agriculture":
+      return topLandCover && elevation !== null
+        ? `For agricultural screening, soil drainage, terrain slope, precipitation trend, and land cover type (current dominant: ${topLandCover.label.toLowerCase()}) at ${elevation} m elevation are the first signals to evaluate.`
+        : "For agricultural use, soil quality, drainage class, precipitation history, and terrain slope are the primary screening factors.";
+    case "emergency-response":
+      return roadKm !== null
+        ? `For emergency response planning, road access at ~${roadKm.toFixed(1)} km, water proximity, terrain passability, and active hazard alerts are the most critical context signals loaded.`
+        : "For emergency response planning, access routes, water sources, terrain constraints, and active disaster alerts are the primary factors to evaluate.";
+    case "field-research":
+      return elevation !== null && waterKm !== null
+        ? `For field research planning, this site at ${elevation} m elevation with water ~${waterKm.toFixed(1)} km away offers a baseline context — terrain complexity, access, and environmental hazards determine operational feasibility.`
+        : "For field research, terrain access, water proximity, weather patterns, and any active hazards are the core operational planning signals.";
     default:
       return "This is a broad exploratory read using terrain, land cover, water, and access signals from the current map context.";
   }
@@ -446,6 +462,26 @@ function buildNextQuestions(profileId: string) {
       return [
         "Compare this site to another candidate closer to highway or freight access.",
         "Zoom in to inspect frontage, access points, and surrounding commercial pattern.",
+      ];
+    case "energy-solar":
+      return [
+        "Check the Solar Resource card for the full irradiance breakdown and monthly profile.",
+        "Compare this site to a location with known solar farm density to calibrate the clearness index.",
+      ];
+    case "agriculture":
+      return [
+        "Open the Soil Profile card to review drainage class and hydrologic group before committing to a crop type.",
+        "Check the Drought Risk card for the precipitation deficit trend — a multi-year drying signal changes the water-input calculus significantly.",
+      ];
+    case "emergency-response":
+      return [
+        "Open the Disaster Alerts card for the full GDACS event list and active severity levels.",
+        "Check road and power proximity — both are critical for staging and communications infrastructure.",
+      ];
+    case "field-research":
+      return [
+        "Switch to nearby places mode to find the closest ranger stations, trailheads, or water sources.",
+        "Check weather forecast and wildfire proximity before finalizing an access window.",
       ];
     default:
       return [
@@ -681,6 +717,34 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
     payload.geodata?.climate?.coolingDegreeDays !== undefined &&
     payload.geodata?.climate?.averageTempC !== null
       ? `Thermal load context (Open-Meteo, derived live): average temperature ${payload.geodata.climate.averageTempC?.toFixed(1) ?? "unknown"}°C, cooling degree days ${payload.geodata.climate.coolingDegreeDays}, wind ${payload.geodata.climate.windSpeedKph ?? "unknown"} km/h.`
+      : null,
+    payload.geodata?.hazards?.activeFireCount7d !== null &&
+    payload.geodata?.hazards?.activeFireCount7d !== undefined
+      ? `Wildfire proximity (NASA FIRMS, direct live): ${payload.geodata.hazards.activeFireCount7d} active fire detections within range over the last 7 days; nearest fire ${payload.geodata.hazards.nearestFireKm !== null ? `${payload.geodata.hazards.nearestFireKm.toFixed(0)} km away` : "distance unknown"}.`
+      : "NASA FIRMS wildfire proximity data is currently unavailable (fire proximity score defaults to 0).",
+    payload.geodata?.groundwater?.wellCount !== null &&
+    payload.geodata?.groundwater?.wellCount !== undefined
+      ? payload.geodata.groundwater.wellCount > 0
+        ? `Groundwater wells (USGS WaterWatch, direct live — US only): ${payload.geodata.groundwater.wellCount} monitoring wells nearby; nearest well ${payload.geodata.groundwater.nearestWell ? `at ${payload.geodata.groundwater.nearestWell.distanceKm?.toFixed(1) ?? "unknown"} km (${payload.geodata.groundwater.nearestWell.siteName ?? "unnamed site"})` : "unknown"}.`
+        : "Groundwater (USGS WaterWatch, US only): no monitoring wells found in the search area — this may indicate low-density coverage rather than an absence of groundwater."
+      : "Groundwater monitoring data is currently unavailable.",
+    payload.geodata?.climateHistory && payload.geodata.climateHistory.summaries.length > 0
+      ? (() => {
+          const ch = payload.geodata!.climateHistory!;
+          const summaries = ch.summaries;
+          const recentYears = summaries.slice(-5);
+          const baselineYears = summaries.slice(0, 5);
+          const avgPrecip = (years: typeof summaries) => {
+            const vals = years.map((s) => s.totalPrecipitationMm).filter((v) => v !== null) as number[];
+            return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+          };
+          const recentPrecip = avgPrecip(recentYears);
+          const baselinePrecip = avgPrecip(baselineYears);
+          const precipDelta = recentPrecip !== null && baselinePrecip !== null ? recentPrecip - baselinePrecip : null;
+          return precipDelta !== null
+            ? `Drought / precipitation context (Open-Meteo ERA5, derived live): recent 5-year average precipitation ${recentPrecip!.toFixed(0)} mm/yr vs baseline ${baselinePrecip!.toFixed(0)} mm/yr (${precipDelta > 0 ? "+" : ""}${precipDelta.toFixed(0)} mm shift); temperature trend is ${ch.trendDirection ?? "unknown"}.`
+            : null;
+        })()
       : null,
   ].filter((fact): fact is string => fact !== null);
 }
