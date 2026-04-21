@@ -238,6 +238,7 @@ export function deserializeProject(project: GeoSightProject): DeserializedProjec
       power: project.activeOverlays.power ?? false,
       roads: project.activeOverlays.roads,
       heatmap: project.activeOverlays.heatmap ?? project.activeOverlays.contours,
+      buildings: false,
     },
     globeViewMode: mapBasemapToGlobeViewMode(project.basemap),
   };

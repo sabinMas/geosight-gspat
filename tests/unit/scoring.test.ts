@@ -704,7 +704,7 @@ describe("composite scoring", () => {
         },
       ],
       systemPrompt: "Test prompt",
-      defaultLayers: { water: true, power: true, roads: true, heatmap: false },
+      defaultLayers: { water: true, power: true, roads: true, heatmap: false, buildings: false },
       exampleQuestions: [],
       recommendationBands: [
         { min: 85, text: "Excellent" },

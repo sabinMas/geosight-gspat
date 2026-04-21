@@ -10,9 +10,11 @@ import {
   Cartesian2,
   Cartesian3,
   Cartographic,
+  Cesium3DTileset,
   Color,
   ColorMaterialProperty,
   ConstantProperty,
+  createOsmBuildingsAsync,
   createWorldImageryAsync,
   createWorldTerrainAsync,
   CustomDataSource,
@@ -305,6 +307,7 @@ export function CesiumGlobe({
   const clickHandlerRef = useRef<ScreenSpaceEventHandler | null>(null);
   const dragHandlerRef = useRef<ScreenSpaceEventHandler | null>(null);
   const baseImageryLayerRef = useRef<ImageryLayer | null>(null);
+  const osmBuildingsRef = useRef<Cesium3DTileset | null>(null);
   const importedDataSourcesRef = useRef(new Map<string, GeoJsonDataSource>());
   const importedHighlightDataSourceRef = useRef<GeoJsonDataSource | null>(null);
   const wmsImageryLayersRef = useRef(new Map<string, ImageryLayer>());
@@ -452,6 +455,7 @@ export function CesiumGlobe({
 
       viewerRef.current = null;
       baseImageryLayerRef.current = null;
+      osmBuildingsRef.current = null;
       importedDataSources.clear();
       wmsImageryLayers.clear();
       setViewerReady(false);
@@ -1453,6 +1457,39 @@ export function CesiumGlobe({
     subsurfaceRenderMode,
     viewerReady,
   ]);
+
+  // ── OSM 3D buildings ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!isViewerUsable(viewer) || !viewerReady) return;
+
+    if (!layers.buildings) {
+      if (osmBuildingsRef.current) {
+        viewer.scene.primitives.remove(osmBuildingsRef.current);
+        osmBuildingsRef.current = null;
+        viewer.scene.requestRender();
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    void createOsmBuildingsAsync().then((tileset) => {
+      if (cancelled || !isViewerUsable(viewer)) {
+        tileset.destroy();
+        return;
+      }
+      viewer.scene.primitives.add(tileset);
+      osmBuildingsRef.current = tileset;
+      viewer.scene.requestRender();
+    }).catch((err) => {
+      console.warn("[cesium-globe] OSM buildings unavailable", err);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [layers.buildings, viewerReady]);
 
   // ── Drive mode ──────────────────────────────────────────────────────────────
   useEffect(() => {

@@ -21,6 +21,7 @@ export interface LayerState {
   power: boolean;
   roads: boolean;
   heatmap: boolean;
+  buildings: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -365,6 +366,13 @@ export function DataLayers({
                 onToggle={() => onChange({ ...layers, heatmap: !layers.heatmap })}
                 accentClassName="text-rose-300"
                 ariaLabel={`${layers.heatmap ? "Hide" : "Show"} elevation heat layer`}
+              />
+              <LayerToggle
+                label="3D Buildings"
+                enabled={layers.buildings}
+                onToggle={() => onChange({ ...layers, buildings: !layers.buildings })}
+                accentClassName="text-violet-300"
+                ariaLabel={`${layers.buildings ? "Hide" : "Show"} 3D buildings layer`}
               />
             </div>
 

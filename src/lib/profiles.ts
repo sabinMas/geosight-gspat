@@ -118,7 +118,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on data center cooling and digital infrastructure siting. Prioritize water access, power grid adjacency, terrain buildability, climate suitability, and environmental constraints. Be explicit about what is supported by geodata versus what still needs permitting, engineering, or utility diligence.",
-    defaultLayers: { water: true, power: true, roads: true, heatmap: false },
+    defaultLayers: { water: true, power: true, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "Can this site support evaporative cooling?",
       "How far is the nearest substation or transmission corridor?",
@@ -200,7 +200,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on hiking, trail planning, and outdoor recreation suitability. Emphasize terrain character, water features, vegetation, access, remoteness, and weather comfort. When uncertainty exists, make it clear whether you are using direct geodata, live mapped nearby places, or inference about scenic and recreation value.",
-    defaultLayers: { water: true, power: false, roads: true, heatmap: true },
+    defaultLayers: { water: true, power: false, roads: true, heatmap: true, buildings: false },
     exampleQuestions: [
       "What's the terrain difficulty here?",
       "Are there water features for a day hike?",
@@ -298,7 +298,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence assistant focused on home buying and neighborhood screening. Prioritize school access, daily amenities, commute practicality, internet quality, flood exposure, air quality, and plain-language livability signals. Speak clearly for ordinary buyers, keep technical jargon behind short explanations, and state openly when a signal is unsupported or only approximate.",
-    defaultLayers: { water: true, power: false, roads: true, heatmap: false },
+    defaultLayers: { water: true, power: false, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "Does this feel like a strong place to buy a home?",
       "How good is the school and amenity access here?",
@@ -428,7 +428,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on residential site development and neighborhood planning. Emphasize buildability, access, hazards, school context, amenity context, and community readiness. Distinguish official government school accountability data from GeoSight's derived school-context score, and state clearly when school coverage is unsupported outside the current US-first pipeline.",
-    defaultLayers: { water: true, power: true, roads: true, heatmap: false },
+    defaultLayers: { water: true, power: true, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "Is this land suitable for a new neighborhood?",
       "What risks or constraints would slow housing here?",
@@ -494,7 +494,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on renewable energy siting — solar farms, wind projects, and distributed energy. Evaluate solar irradiance, wind exposure, grid proximity, land use suitability, and construction access. Be explicit when irradiance or wind resource data is derived from climate proxies rather than measured resource datasets.",
-    defaultLayers: { water: false, power: true, roads: true, heatmap: false },
+    defaultLayers: { water: false, power: true, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "How strong is the solar resource here?",
       "Is this site viable for a utility-scale solar farm?",
@@ -560,7 +560,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on agricultural land evaluation and rural land investment. Evaluate soil quality, water access, climate suitability, topography, and market proximity. Be explicit when soil data is derived from SSURGO hydrology groups rather than direct agronomic testing. Note when water-access signals come from stream-proximity proxies rather than confirmed water rights.",
-    defaultLayers: { water: true, power: false, roads: true, heatmap: false },
+    defaultLayers: { water: true, power: false, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "Is this land suitable for row crops or row farming?",
       "What does the soil and water access look like here?",
@@ -626,7 +626,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on emergency preparedness and disaster response analysis. Evaluate road access, population exposure, hazard concentration, communications readiness, and critical infrastructure proximity. Be explicit when population data comes from land-cover and road-density proxies rather than census counts. Note when hazard signals are FEMA zone designations versus live event data.",
-    defaultLayers: { water: true, power: true, roads: true, heatmap: false },
+    defaultLayers: { water: true, power: true, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "How accessible is this area for emergency vehicles?",
       "Where are the biggest hazard exposure gaps?",
@@ -692,7 +692,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on ecological field research and environmental monitoring site selection. Evaluate habitat quality, ecological diversity indicators, topographic complexity, climate stability, and field access. Be explicit when habitat data is inferred from land-cover classification rather than species occurrence records. Note protected land designations when available.",
-    defaultLayers: { water: true, power: false, roads: true, heatmap: false },
+    defaultLayers: { water: true, power: false, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "What ecological features make this site interesting for research?",
       "How accessible is this site for field crews?",
@@ -766,7 +766,7 @@ export const PROFILES: MissionProfile[] = [
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on retail, commercial real estate, and warehouse siting. Prioritize freight and road access, inferred demand, utility readiness, and land practicality. Be explicit when demand, traffic, or land-cost commentary is based on proxy signals rather than live demographic or parcel data. When analyzing locations outside the US, note that demographic data comes from World Bank national indicators rather than county-level census data, and school context is not yet available.",
-    defaultLayers: { water: false, power: true, roads: true, heatmap: false },
+    defaultLayers: { water: false, power: true, roads: true, heatmap: false, buildings: false },
     exampleQuestions: [
       "How strong is the highway access here?",
       "Would this work for a distribution warehouse?",

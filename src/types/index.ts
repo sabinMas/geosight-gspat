@@ -309,6 +309,7 @@ export interface MissionProfile {
     power: boolean;
     roads: boolean;
     heatmap: boolean;
+    buildings: boolean;
   };
   exampleQuestions: string[];
   recommendationBands: Array<{
