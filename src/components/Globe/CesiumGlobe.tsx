@@ -1552,6 +1552,18 @@ export function CesiumGlobe({
     viewer.scene.screenSpaceCameraController.enableInputs = false;
     viewer.canvas.focus();
 
+    // Smooth fly-in to drive position so the camera doesn't snap from orbit
+    const startPos = Cartesian3.fromRadians(lng, lat, height);
+    viewer.camera.flyTo({
+      destination: startPos,
+      orientation: {
+        heading: heading,
+        pitch: CesiumMath.toRadians(-8),
+        roll: 0,
+      },
+      duration: 1.2,
+    });
+
     // Keyboard input
     const keys = new Set<string>();
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1638,7 +1650,8 @@ export function CesiumGlobe({
       posRef.val = vehiclePos;
       oriRef.val = Transforms.headingPitchRollQuaternion(
         vehiclePos,
-        new HeadingPitchRoll(heading, 0, 0),
+        // +π flips the GLB to face forward (+Z export convention from Meshy)
+        new HeadingPitchRoll(heading + Math.PI, 0, 0),
       );
 
       // ── Camera follow ──────────────────────────────────────────────────────
