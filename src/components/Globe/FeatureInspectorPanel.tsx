@@ -77,7 +77,7 @@ function AttributeTable({
                   : "bg-[var(--surface-panel)]",
               )}
             >
-              <td className="px-2.5 py-1.5 font-medium text-[var(--foreground-soft)] whitespace-nowrap align-top">
+              <td className="w-[40%] max-w-[120px] px-2.5 py-1.5 font-medium text-[var(--foreground-soft)] truncate align-top" title={key}>
                 {key}
               </td>
               <td className="px-2.5 py-1.5 text-[var(--foreground)] break-all">

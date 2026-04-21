@@ -1,4 +1,13 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)\\.glb",
+      "headers": [
+        { "key": "Content-Type", "value": "model/gltf-binary" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
   "functions": {
     "src/app/api/analyze/route.ts": { "maxDuration": 30 },
     "src/app/api/geodata/route.ts": { "maxDuration": 30 },

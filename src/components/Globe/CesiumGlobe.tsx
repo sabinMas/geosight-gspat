@@ -1658,7 +1658,7 @@ export function CesiumGlobe({
       viewer.camera.lookAt(
         vehiclePos,
         new HeadingPitchRange(
-          heading, // behind the vehicle (Cesium HPR heading=0 → camera south of target)
+          heading + Math.PI, // +π puts camera behind the vehicle's forward direction
           CesiumMath.toRadians(-8),
           22,
         ),
@@ -1687,7 +1687,7 @@ export function CesiumGlobe({
       void viewer.dataSources.remove(ds, true);
       // Release camera lookAt lock
       viewer.camera.lookAtTransform(Matrix4.IDENTITY);
-      viewer.scene.screenSpaceCameraController.enableInputs = pointerInside;
+      viewer.scene.screenSpaceCameraController.enableInputs = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driveMode, viewerReady]);
@@ -1912,7 +1912,7 @@ export function CesiumGlobe({
               onClick={onExitDriveMode}
               className="ml-4 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/20"
             >
-              Exit drive
+              <span className="mr-1.5 rounded bg-white/10 px-1 py-0.5 text-[10px] text-white/50">ESC</span>Exit drive
             </button>
           </div>
         </div>
@@ -1950,7 +1950,7 @@ export function CesiumGlobe({
                       <th className="w-24 px-3 py-2 align-top font-medium text-[var(--foreground-soft)]">
                         {property.key}
                       </th>
-                      <td className="px-3 py-2 text-[var(--foreground)] break-words">
+                      <td className="px-3 py-2 text-[var(--foreground)] break-all overflow-hidden max-w-[160px]">
                         {property.value}
                       </td>
                     </tr>

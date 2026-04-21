@@ -138,7 +138,7 @@ export function LegendPanel({
                         <div className="truncate text-sm font-medium text-[var(--foreground)]">
                           {layer.name}
                         </div>
-                        <div className="truncate text-xs text-[var(--muted-foreground)]">
+                        <div className="truncate text-xs text-[var(--muted-foreground)] max-w-full">
                           {layer.attribution}
                         </div>
                       </div>
