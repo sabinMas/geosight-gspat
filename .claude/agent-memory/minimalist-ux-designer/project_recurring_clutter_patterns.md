@@ -40,5 +40,17 @@ The workspace header shows both `ModeSwitcher` (Explorer/Pro toggle) and the Gui
 
 The "Strongest signals" success-green box shows placeholder text while loading: "GeoSight will list the strongest verified signals here once the live bundle is ready." This puts a green (success-colored) box on screen before any success data exists. Empty state boxes should use neutral surface tokens until data is confirmed.
 
-## Why: Identified during full audit of 11 UI files on 2026-04-03.
+## Pattern 9: Missing min-w-0 / overflow-hidden on flex children with large text
+
+Across multiple card components, large-value display divs (`text-3xl`, `text-4xl`) inside flex children lack `min-w-0` and `overflow-hidden`/`break-words`. The specific pattern: a flex container with a score/value on the left and a badge/button on the right — if the value string is long (currency, AQI, compound words) it will push the right element out of the card. Affected files as of 2026-04-13 (all fixed): AnalysisTrendsPanel (TrendSignalCard), HousingMarketPulse (MarketStat), MultiHazardResilienceCard, LocalAccessCard, ScoreCard factor rows.
+
+**Rule:** Any `text-2xl` or larger inside a flex child must have `min-w-0 break-words` on its immediate container. If the value can be arbitrarily long (user location names, financial data), also add `overflow-hidden` to the card.
+
+## Pattern 10: Flex rows with long place/location names missing min-w-0 + truncate on the left child
+
+`NearbyPlacesList` place rows use `flex items-start justify-between` — the left column holding the place name had no `min-w-0`, and the right column (distance) had no `shrink-0`. Long OSM place names would push the distance readout off-screen or cause overflow. The fix is `min-w-0 + truncate` on the left, `shrink-0` on the right.
+
+**Rule:** Every `flex justify-between` row holding user-facing strings must have `min-w-0` + appropriate truncation on the text child and `shrink-0` on the badge/action child.
+
+## Why: Pattern 9 and 10 identified during text overflow audit on 2026-04-13.
 ## How to apply: Before proposing changes, check whether the issue is a one-off or one of these patterns. Systemic patterns need architectural decisions, not line-by-line patches.

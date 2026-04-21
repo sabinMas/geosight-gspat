@@ -30,7 +30,7 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     icon: "🏡",
     lat: 40.015,
     lng: -105.2705,
-    profileId: "residential",
+    profileId: "home-buying",
     appMode: "pro",
     locationName: "Boulder, CO",
     steps: [
@@ -88,7 +88,7 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     icon: "🖥️",
     lat: 33.4484,
     lng: -112.074,
-    profileId: "data-center-cooling",
+    profileId: "data-center",
     appMode: "pro",
     locationName: "Phoenix, AZ",
     steps: [

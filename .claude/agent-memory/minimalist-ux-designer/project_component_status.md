@@ -1,96 +1,120 @@
 ---
 name: GeoSight Component Design Status
-description: Per-component design issues found during 2026-04-03 audit, with priority rankings
+description: Per-component design decisions, audit findings, and current state after 2026-04-13 minimalist redesign pass
 type: project
 ---
 
-## ExploreWorkspace.tsx
+## LandingPage.tsx — REDESIGNED 2026-04-13
 
-- DONE: Description paragraph removed from header
-- DONE: Feature-bullet chips grid removed from header
-- DONE: "Choose your next view" section/card collapsed to bare button row
-- DONE: All workspace notice strings trimmed to minimal form
-- P1: Two separate mode hierarchies (AppMode + ShellMode) shown at same visual level in toolbar
-- P2: "Current story context" demo banner is 4 layers of copy for a dismissible banner
-- P2: Globe overlay buttons use Unicode ⊕ symbol and emoji car — replace with Lucide icons
+- DONE: h1 removed entirely — globe bg communicates product
+- DONE: STEP 1 / STEP 2 wizard replaced with single centered glass card
+- DONE: Lens selection moved into pill chips inside the card
+- DONE: First lens auto-selected by default
+- DONE: "Use my location" moved inside input as right-side icon button
+- DONE: Pro section (ProductPreviewSection, CapabilityShowcase) removed from landing view
+- DONE: Lens renames — "Land Quick-Check" → "Site Analysis", "General Explore" → "Explore"
+- DONE: Single CTA "Analyze this place" replaces the 2-button row
+- Remaining: ProductPreviewSection and CapabilityShowcase still exist as components — could be surfaced on a /pro route
 
-## ActiveLocationCard.tsx
+## WorkspaceToolRail.tsx — REDESIGNED 2026-04-13
 
-- DONE: Duplicate "Save site" button removed (kept in CardHeader only)
-- DONE: Inner overview wrapper flattened from rounded/bordered surface to plain div
-- DONE: CardTitle changed to locationName; eyebrow "Location summary" removed
-- DONE: Description paragraph ("Ask what matters here...") removed from CardHeader
-- DONE: overview.statusDetail paragraph removed — summary is sufficient
-- DONE: border-neutral-200 dark:border-neutral-700 token bypass fixed to border-[color:var(--border-soft)]
-- DONE: Evidence count pills (direct / derived / proxy) added below tone badges — uses raw Tailwind colors (emerald-300/30, cyan-300/30, amber-300/30) bypassing the token system
-- P1: Evidence count pills use raw Tailwind color classes, not design tokens — violates CLAUDE.md "Never use raw Tailwind color classes" rule
-- P1: The "In-context provenance" section renders coverageLabel chip AND SourceStatusBadge list a second time — both already appear in the header badges row above the summary
-- P2: Success-green "Strongest signals" box renders with placeholder copy during loading state — should use neutral surface until data confirmed
-- P2: Nearest water body rendered as bold sentence ("Nearest feature: ... at ...") sitting between the evidence pills and the summary paragraph — interrupts the reading flow; consider surfacing as a signal card instead
+- DONE: Expanded card with section headers ("WORKBENCH", "SHELL", "SPATIAL TOOLS", "CAPTURE & EXPORT") replaced with icon-only rail
+- DONE: Icons are 40×40px rounded-full buttons — meet 44px touch target with generous hit area
+- DONE: Hover tooltips via absolute-positioned pill (left-full, whitespace-nowrap)
+- DONE: Section dividers are thin 6px h-px lines (not labeled headers)
+- DONE: Capture mode figure inputs still render inline below the rail when captureMode is active
+- DONE: Button import removed — now uses only raw button elements
 
-## AnalysisOverviewBanner.tsx
+## ExploreWorkspace.tsx — MULTIPLE CHANGES 2026-04-13
 
-- DONE: CardTitle changed from sentence to {locationName}
-- DONE: overview.statusDetail paragraph removed
-- DONE: overview.nextSteps removed from expanded trust section — trustNotes only
-- DONE: Inline amber proxy warning added (proxyWeight >= 0.3 triggers warning paragraph)
-- P1: Structurally duplicates ActiveLocationCard's three-column grid — should not both be visible at once (compact prop is a partial fix; full fix is always-compact banner + grid lives only in ActiveLocationCard)
-- P1: Proxy warning uses raw ⚠ Unicode + inline `<p>` — should use Lucide AlertTriangle icon + proper warning surface (warning-soft bg + warning-border border, not just colored text)
-- P2: Success-green box renders with placeholder copy during loading state — neutral surface until data confirmed
-- P2: Two action buttons ("Why this score" + "Check trust signals") compete with identical weight — one should be primary, one ghost
+**Left panel:**
+- DONE: Was w-80 (320px). Now w-14 (56px) icon-only rail
+- DONE: Sidebar (profiles + quick regions) removed from desktop — accessible only via mobile overlay
+- DONE: AddViewTray removed from desktop layout (import removed)
+- DONE: Init error shown as a compact strip at rail top
+- Remaining: Desktop users cannot access profile/region switching without command palette (Ctrl+K)
 
-## LandingPage.tsx
+**Topbar:**
+- DONE: "Tools" label removed — Command icon only with title tooltip
+- DONE: Brand link text is more muted (muted-foreground) at xl
+- DONE: Topbar h-[52px] retained; padding reduced to px-3/px-4
 
-- DONE: h1 trimmed to "See any place clearly." — "in plain English" qualifier removed
-- DONE: Hero subtitle paragraph removed
-- DONE: Pro section description shortened
-- DONE: Demos section h2 changed to "Guided demos"
-- DONE: Demos section description paragraph removed
-- P1: Three parallel onboarding flows on one screen (Explorer, Pro, Guided Demos)
-- P2: Active state on use-case cards uses 4 simultaneous signals (border + bg + shadow + check) — reduce to 2
-- P2: opacity-50 disable treatment on Step 2 causes low-contrast readability issue for placeholder
-- P2: Duplicate eyebrow style variants — inline `text-xs uppercase tracking-widest` vs `.eyebrow` class
+**Globe controls:**
+- DONE: Three labeled Buttons (Rotate/Drive/Location) replaced with unified pill cluster
+- DONE: Position: bottom-12 right-4 (above coord readout)
+- DONE: 44×44px touch targets (h-11 w-11) with dividers
+- DONE: Active state uses --accent-soft / --accent-foreground tokens
+- DONE: Uses cn() for conditional class merging — no raw strings
 
-## Sidebar.tsx
+**Right panel (Evidence Tray):**
+- DONE: Was static aside consuming 380px width always
+- DONE: Now position: fixed, slides in/out with translateX transition
+- DONE: Pull-handle tab appears on right edge when panel is closed
+- DONE: Mobile: inline below globe (unchanged)
+- DONE: Panel sits below topbar via xl:inset-y-[52px]
 
-- P2: Subtitle "Lens · Regions · Theme" (line 31) repeats the Card titles immediately below it — remove
-- P2: Coordinate display in quick-region buttons (line 89) is noise for most users — remove or tooltip-only
-- P3: Card-in-aside nesting (Card inside aside with glass-panel) adds a surface level
+**Bottom bar:**
+- DONE: Height reduced from xl:h-[64px] to xl:h-[56px]
+- DONE: "Generate report" → "Report"
+- DONE: AI bar wrapper changed from flex-1 to shrink-0 centered
+- DONE: Padding reduced px-3 py-2
 
-## ProfileSelector.tsx
+## PersistentAiBar.tsx — REDESIGNED 2026-04-13
 
-- P1: text-[9px] tagline in sidebar carousel (line 139) is below legibility minimum — remove
-- P2: Scroll progress bar uses bg-[var(--accent)] — looks interactive, should use --accent-strong or --border-strong
+- DONE: Was always-visible full-width input + Send button
+- DONE: Now collapsed pill: "Ask GeoSight about this place" + Sparkles icon + "/" badge
+- DONE: Expands on click to show input + Ask button
+- DONE: Collapses on outside click (pointerdown listener) or Escape
+- DONE: "/" shortcut still works — expands + focuses
+- DONE: Sparkles icon replaces MessageSquareText
 
-## ResultsModeToggle.tsx
+## Sidebar.tsx — UNCHANGED (still used in mobile overlay only)
 
-- P2: Uses full Button components for a binary toggle — inconsistent with pill-group pattern used elsewhere
-- P3: MODES array `detail` strings are defined but never rendered — dead copy, should be removed
+- P2: Subtitle line repeats card titles — remove
+- P2: Coordinate display in quick-region buttons is noise — remove or tooltip-only
+- P3: Card-in-aside nesting adds a surface level
 
-## NearbyPlacesList.tsx
+## Previously audited components (2026-04-03)
 
-- DONE: Permanent source-disclosure box removed
-- DONE: CardTitle and description paragraph removed
-- DONE: Status chip text colour changed from foreground to muted-foreground; cursor-default select-none added
-- P2: Two separate status chips still communicate one combined status — could consolidate further to single chip
+See original audit findings below. P1 items below are still open:
 
-## AnalysisTrendsPanel.tsx
+### ActiveLocationCard.tsx
+- P1: Evidence count pills use raw Tailwind color classes (emerald-300/30, cyan-300/30, amber-300/30)
+- P1: "In-context provenance" section duplicates header badges row
 
-- DONE: border-neutral-200 dark:border-neutral-700 token bypass fixed to border-[color:var(--border-soft)]
-- DONE: Panel description (summaryText) and CardTitle removed
-- DONE: StatePanel in unavailable section replaced with minimal inline `<p>` text
-- DONE: StatePanel import removed (no longer used in file)
-- DONE: Colored evidence label added next to provider name (direct / derived / proxy) — uses raw Tailwind color classes (emerald-600, cyan-600, amber-600) not design tokens
-- P1: EVIDENCE_CLS uses raw Tailwind color classes — violates token system; should use semantic token variables or be moved to globals.css
-- P2: Evidence label opacity is set to 70% via parent wrapper then overridden with opacity-100 on the label span — fragile; restructure the footer row to not apply blanket opacity
+### AnalysisOverviewBanner.tsx
+- P1: Proxy warning uses raw Unicode ⚠ symbol — should use Lucide AlertTriangle + warning-soft surface
+- P2: Two action buttons at identical weight — one should be primary, one ghost
 
-## ChatPanel.tsx
+### AnalysisTrendsPanel.tsx
+- P1: EVIDENCE_CLS uses raw Tailwind color classes — violates token system
 
-- DONE: Grounding block collapsed by default behind "View grounding sources" text toggle
-- DONE: Orphaned "What's nearby?" hardcoded button removed
-- DONE: CardTitle changed to "Ask"
-- DONE: profile.name + resultsMode status line removed from CardHeader
-- DONE: Textarea placeholder shortened to "Ask anything about this place…"
+### ProfileSelector.tsx
+- P1: text-[9px] tagline in sidebar carousel is below legibility minimum — remove or raise to text-xs
 
-## Why: Full audit conducted 2026-04-03 across 11 primary UI files.
-## How to apply: Use this as a checklist when working on any of these components. P1 items are bugs or usability blockers. P2 are high-impact improvements. P3 are polish.
+## UX Audit Fixes — 2026-04-13 (second pass)
+
+### CesiumGlobe.tsx
+- DONE FIX 1: Initial fly-to minimum altitude raised to 50,000m on first load (was 2,500m) so terrain context is immediately visible when arriving from landing. Subsequent user-driven clicks retain 2,500m floor.
+
+### ExploreWorkspace.tsx
+- DONE FIX 2: Desktop right panel now has user-controlled collapse via `rightPanelCollapsed` state. A ChevronDown arrow button is anchored to the panel's left edge. Pull-handle tab also appears when user collapses. Panel auto-re-expands when new content arrives.
+- DONE FIX 3: Auto-confirm "Use place" when entrySource === "landing" and locationReady becomes true. Single-fires via `autoConfirmedRef`. Removes the manual confirmation step for landing→explore flows.
+- DONE FIX 8 partial: Removed `overflow-hidden` from left icon rail aside — it was clipping the tooltip `absolute` positioned elements that extend rightward beyond the 56px rail width.
+
+### AnalysisOverviewBanner.tsx
+- DONE FIX 4: Partial coverage badge now has `cursor-help` and a `title` tooltip explaining coverage gaps.
+- DONE FIX 5: "Why score" button now renders in `--accent` color with `hover:bg-[var(--accent-soft)]` for visual prominence — was indistinguishable from ghost text.
+
+### StatePanel.tsx
+- DONE FIX 4: `StateBadge` now accepts optional `title` prop and adds `cursor-help` when provided.
+
+### AnalysisPanel.tsx (Results/)
+- DONE FIX 6: Narrative section is now collapsible (default collapsed). Shows 120-char preview with ChevronDown toggle. Data metric cards remain always visible below. `useState(false)` for narrativeExpanded.
+- DONE FIX 7: "AOI store" label renamed to "Your area". Description changed from developer jargon to "Draw on the map to analyze a custom zone."
+
+### LandingPage.tsx
+- DONE FIX 9: Lens chip buttons now have `title={lens.whyItMatters}` for native browser tooltip on hover. Uses the existing `whyItMatters` field from ExplorerLens type — no data model changes needed.
+
+## How to apply
+P1 items are usability/token violations to fix next session. P2 are high-impact improvements. When working on any of these components, check this list first.
