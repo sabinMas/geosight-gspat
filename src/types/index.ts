@@ -325,6 +325,7 @@ export interface ExploreInitState {
   entrySource?: ExploreEntrySource;
   appMode?: AppMode;
   lensId?: string;
+  demoScenarioId?: string;
 }
 
 export interface LandingUseCase {

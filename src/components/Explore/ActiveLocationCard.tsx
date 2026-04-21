@@ -215,7 +215,7 @@ export function ActiveLocationCard({
             type="button"
             size="sm"
             variant="secondary"
-            className="rounded-full"
+            className="shrink-0 whitespace-nowrap rounded-full"
             onClick={onSaveSite}
           >
             Save site

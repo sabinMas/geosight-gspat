@@ -15,8 +15,8 @@ function SchoolRow({ school }: { school: SchoolContextResult["schools"][number] 
   return (
     <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-[var(--foreground)]">{school.name}</div>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-[var(--foreground)]">{school.name}</div>
           <div className="mt-1 text-xs text-[var(--muted-foreground)]">
             {[
               school.districtName,

@@ -510,7 +510,7 @@ export function ChatPanel({
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Ask anything about this place…"
           />
-          <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
+          <Button type="submit" className="w-full rounded-full" disabled={loading}>
             <Send className="mr-2 h-4 w-4" />
             {loading ? "Analyzing" : "Ask GeoSight"}
           </Button>

@@ -7,6 +7,7 @@ import { toPng } from "html-to-image";
 import {
   BookOpen,
   Car,
+  Columns2,
   Command,
   Crosshair,
   Settings,
@@ -32,6 +33,8 @@ import {
   X,
 } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
+import { DemoRunner } from "@/components/Demo/DemoRunner";
+import { DEMO_SCENARIOS } from "@/lib/demo-scenarios";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { AttributeTable } from "@/components/Explore/AttributeTable";
 import { PersistentAiBar } from "@/components/Explore/PersistentAiBar";
@@ -231,6 +234,11 @@ export function ExploreWorkspace() {
   const [captureMode, setCaptureMode] = useState(false);
   const [printLayoutOpen, setPrintLayoutOpen] = useState(false);
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const [activeDemoScenario, setActiveDemoScenario] = useState(() =>
+    state.init.demoScenarioId
+      ? DEMO_SCENARIOS.find((s) => s.id === state.init.demoScenarioId) ?? null
+      : null,
+  );
   const [captureOverlayArmed, setCaptureOverlayArmed] = useState(false);
   const [captureViewSnapshot, setCaptureViewSnapshot] = useState<GlobeViewSnapshot | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
@@ -407,7 +415,9 @@ export function ExploreWorkspace() {
   ]);
 
   const resultsHeader = (
-    <ResultsModeToggle mode={state.resultsMode} onChange={state.setResultsMode} />
+    <div data-demo-id="demo-nearby">
+      <ResultsModeToggle mode={state.resultsMode} onChange={state.setResultsMode} />
+    </div>
   );
   const reportPrompt = useMemo(
     () =>
@@ -1939,7 +1949,7 @@ export function ExploreWorkspace() {
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3" data-demo-id="demo-drawing">
             <WorkspaceToolRail
               shellMode={data.shellMode}
               viewMode={data.viewMode}
@@ -2007,6 +2017,7 @@ export function ExploreWorkspace() {
           role="region"
           aria-label="3D globe and map tools"
           data-walkthrough="globe"
+          data-demo-id="demo-globe"
         >
           <FileDropZone
             ref={fileDropZoneRef}
@@ -2242,6 +2253,7 @@ export function ExploreWorkspace() {
             )}
             role="region"
             aria-label="Analysis cards and workspace panels"
+            data-demo-id="demo-panel"
           >
             <CardDisplayProvider value={{ defaultCollapsed: true }}>
               {rightPanelContent}
@@ -2256,7 +2268,7 @@ export function ExploreWorkspace() {
         className="flex shrink-0 flex-col gap-3 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[64px] xl:flex-row xl:items-center xl:py-0"
         aria-label="Workspace actions and persistent AI input"
       >
-        <div className="min-w-0 flex-1 xl:max-w-[28rem]" data-walkthrough="score-card">
+        <div className="min-w-0 flex-1 xl:max-w-[28rem]" data-walkthrough="score-card" data-demo-id="demo-score">
           {(state.locationReady || data.loading || data.error) ? (
             <AnalysisOverviewBanner
               compact
@@ -2287,15 +2299,21 @@ export function ExploreWorkspace() {
             variant="secondary"
             size="sm"
             className="hidden shrink-0 rounded-full xl:inline-flex"
+            disabled={data.sites.length < 2}
             onClick={() => openCard("compare")}
             title={
               data.sites.length >= 2
-                ? "Compare saved locations side by side."
-                : "Save at least two locations to unlock comparison."
+                ? `Compare ${data.sites.length} saved locations side by side.`
+                : "Save at least 2 locations to unlock comparison."
             }
           >
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
-          Compare
+            <Columns2 className="mr-1.5 h-3.5 w-3.5" />
+            Compare
+            {data.sites.length > 0 && (
+              <span className="ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent-soft)] px-1 text-[10px] font-semibold tabular-nums text-[var(--accent)]">
+                {data.sites.length}
+              </span>
+            )}
           </Button>
 
           <Button
@@ -2443,6 +2461,15 @@ export function ExploreWorkspace() {
           </div>
         </div>
       ) : null}
+
+      {activeDemoScenario && (
+        <DemoRunner
+          scenario={activeDemoScenario}
+          dataReady={!data.loading && !!data.geodata}
+          onOpenCard={openCard}
+          onStop={() => setActiveDemoScenario(null)}
+        />
+      )}
 
       <GeoScribeReportPanel
         open={data.reportOpen}

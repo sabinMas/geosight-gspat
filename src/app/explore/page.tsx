@@ -20,6 +20,7 @@ export default async function ExplorePage({
   const rawLng = firstValue(params.lng);
 
   const initialState: ExploreInitState = {
+    demoScenarioId: firstValue(params.demo),
     profileId: firstValue(params.profile),
     locationQuery: firstValue(params.location),
     lat: rawLat !== undefined ? Number(rawLat) : undefined,

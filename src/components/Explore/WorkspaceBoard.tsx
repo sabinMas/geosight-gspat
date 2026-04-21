@@ -222,7 +222,7 @@ export function WorkspaceBoard({
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="rounded-full"
+                  className="shrink-0 whitespace-nowrap rounded-full"
                   aria-label="Update active saved layout"
                   onClick={onUpdateActiveBoard}
                 >
@@ -234,7 +234,7 @@ export function WorkspaceBoard({
                 type="button"
                 size="sm"
                 variant="secondary"
-                className="rounded-full"
+                className="shrink-0 whitespace-nowrap rounded-full"
                 aria-label="Save current layout as new"
                 onClick={handleBeginSave}
                 disabled={atLimit}

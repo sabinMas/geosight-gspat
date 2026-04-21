@@ -35,6 +35,7 @@ import {
 import { LocationSearchResult } from "@/types";
 import { ExplorerLens, EXPLORER_LENSES } from "@/lib/explorer-lenses";
 import { buildExploreHref } from "@/lib/landing";
+import { DEMO_SCENARIOS } from "@/lib/demo-scenarios";
 import { Button } from "../ui/button";
 import { Footer } from "./Footer";
 
@@ -382,13 +383,7 @@ export function LandingPage() {
   const lensColor = selectedLens ? getLensColor(selectedLens.id) : "var(--accent)";
   const SelectedLensIcon = selectedLens ? getLensIcon(selectedLens.icon) : Globe2;
 
-  const demoHref = buildExploreHref({
-    profileId: "residential",
-    locationQuery: "Yosemite Valley, CA",
-    entrySource: "landing",
-    appMode: "explorer",
-    lensId: "general-explore",
-  });
+  const [demoPickerOpen, setDemoPickerOpen] = useState(false);
 
   return (
     <div
@@ -468,11 +463,11 @@ export function LandingPage() {
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button
-              onClick={() => router.push(demoHref)}
+              onClick={() => setDemoPickerOpen(true)}
               size="lg"
               className="rounded-full gap-2"
             >
-              <Sparkles className="h-4 w-4" /> Try a live demo
+              <Sparkles className="h-4 w-4" /> Watch a demo
             </Button>
             <button
               type="button"
@@ -884,6 +879,78 @@ export function LandingPage() {
         steps={LANDING_WALKTHROUGH_STEPS}
         onClose={dismissWalkthrough}
       />
+
+      {/* Demo picker modal */}
+      {demoPickerOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(4,10,18,0.72)] p-4 backdrop-blur-sm">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label="Close demo picker"
+            onClick={() => setDemoPickerOpen(false)}
+          />
+          <section
+            className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Choose a demo"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[color:var(--border-soft)] px-5 py-4">
+              <div>
+                <div className="eyebrow">Interactive</div>
+                <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+                  <Sparkles className="mr-2 inline h-4 w-4 text-[var(--accent)]" />
+                  Choose a demo
+                </h2>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="Close"
+                onClick={() => setDemoPickerOpen(false)}
+              >
+                <span className="text-base">✕</span>
+              </Button>
+            </div>
+            <div className="space-y-2 p-4">
+              {DEMO_SCENARIOS.map((scenario) => {
+                const href = buildExploreHref({
+                  profileId: scenario.profileId,
+                  lensId: scenario.lensId,
+                  lat: scenario.lat,
+                  lng: scenario.lng,
+                  appMode: scenario.appMode,
+                  entrySource: "landing",
+                  demoScenarioId: scenario.id,
+                });
+                return (
+                  <button
+                    key={scenario.id}
+                    type="button"
+                    onClick={() => router.push(href)}
+                    className="group flex w-full items-start gap-4 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-4 py-4 text-left transition hover:border-[color:var(--accent-strong)] hover:bg-[var(--accent-soft)]"
+                  >
+                    <span className="mt-0.5 text-2xl">{scenario.icon}</span>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)]">
+                        {scenario.label}
+                      </div>
+                      <div className="mt-0.5 text-sm leading-5 text-[var(--muted-foreground)]">
+                        {scenario.tagline}
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--accent)]">
+                        {scenario.steps.length} guided steps →
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

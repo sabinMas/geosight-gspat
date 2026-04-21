@@ -1,6 +1,6 @@
 # GeoSight — Agent Handoff Document
 
-Last updated: 2026-04-18 (competition submission polish — 9-lens landing, layout fixes, bug fixes)
+Last updated: 2026-04-20 (competition polish — automated demo system, compare button UX, design audit fixes)
 
 This document is written for agents (CODEX, Claude Code, or human devs) picking up the project cold. It covers the exact state of the codebase after the most recent session, what was shipped, what's next, and critical conventions to avoid breaking existing work.
 
@@ -14,13 +14,14 @@ The app is fully deployed and functional at `https://geosight-gspat.vercel.app`.
 
 This is the current place to pick up work. The latest production-facing commits are:
 
+- (pending push) `feat(demo): automated demo system + competition polish` — DemoRunner, 3 scenarios, compare button UX, design audit fixes, button wrapping, token colors
 - `797604a` - `fix: source details column layout + legend button overlap`
 - `586c24e` - `fix: 6 usability bugs from pre-submission test report`
 - `aa17a84` - `docs: strengthen README for competition submission`
 - `74c7271` - `feat: competition release polish — demo CTA, how-it-works strip, loading panel`
 - `773fc16` - `feat(design): 3-step landing flow, 4 new lenses, MapLibre 2D toggle, rail sidebar`
 
-Start from `origin/main` at `797604a` or later.
+Start from `origin/main` after the pending commit is pushed.
 
 ### What shipped in the latest batch
 
@@ -203,6 +204,59 @@ This is the highest-leverage continuation path from the current state:
 | `solar-resource` | `SolarResourceCard` | data-center, site-dev, commercial, residential | NASA POWER (global) |
 
 Plus specialized: `demographics-context`, `housing-market`, `outdoor-fit`, `trip-summary`, `local-access`, `site-readiness`, `infrastructure-access`, `multi-hazard-resilience`, `resilience-score`, `hazard-details`, `earthquake-history`, `fire-history`, `school-context`, `source-awareness`, `terrain-viewer`, `elevation-profile`, `image-upload`, `land-classifier`.
+
+---
+
+## What Shipped in the Competition Polish Batch (2026-04-20)
+
+**Context:** OpenAI × Handshake Codex Creator Challenge, deadline April 30, 2026. Judged on Execution 25%, Usefulness 25%, Creativity 20%, Polish 15%, Clarity 15%.
+
+### Automated demo system
+
+New files: `src/components/Demo/DemoRunner.tsx`, `src/lib/demo-scenarios.ts`
+
+Three guided interactive tours auto-play in the live app — no video recording:
+
+| Scenario ID | Location | Mode | Key cards |
+|---|---|---|---|
+| `home-buyer` | Boulder, CO | pro | `school-context`, `housing-market`, `chat` |
+| `data-center` | Phoenix, AZ | pro | `thermal-load`, `wildfire-risk`, `disaster-alerts` |
+| `trail-scout` | Yosemite, CA | explorer | `nps-trails`, `drought-risk` |
+
+**How it works:**
+- Landing page "Watch a demo" button opens a picker modal (`demoPickerOpen` state)
+- Each scenario card navigates to `/explore?demo=<id>&lat=&lng=&profile=&lens=&mode=&entrySource=landing`
+- `explore/page.tsx` reads `params.demo` → `ExploreInitState.demoScenarioId`
+- `ExploreWorkspace` initializes `activeDemoScenario` from `state.init.demoScenarioId`
+- `DemoRunner` renders at z-89, fixed bottom-center; manages `stepIndex` + `waitingForData`
+- Spotlight ring: `getBoundingClientRect()` on `data-demo-id` DOM attributes; `box-shadow` pulsing ring
+- Progress bar: `requestAnimationFrame` loop draining 100→0% over `step.duration` ms
+- Data gate: waits for `dataReady = !data.loading && !!data.geodata` before advancing past intro
+
+**Modified files for demo wiring:**
+- `src/types/index.ts` — added `demoScenarioId?: string` to `ExploreInitState`
+- `src/app/explore/page.tsx` — reads `params.demo` into `demoScenarioId`
+- `src/lib/landing.ts` — `buildExploreHref` extended with `lat`, `lng`, `demoScenarioId`
+- `src/components/Explore/ExploreWorkspace.tsx` — `activeDemoScenario` state, `data-demo-id` attrs on globe/score/panel/drawing/nearby elements, `<DemoRunner>` render
+- `src/components/Landing/LandingPage.tsx` — demo picker modal, "Watch a demo" button
+
+### Compare button UX
+
+`src/components/Explore/ExploreWorkspace.tsx`:
+- `disabled={data.sites.length < 2}` — prevents navigating to an empty compare table
+- Count badge shows "X saved" in accent styling when sites exist
+- Icon changed from generic to `Columns2` (Lucide)
+- Dynamic tooltip: "Save 2+ sites to compare" when disabled, "Compare X saved sites" otherwise
+
+### Design audit fixes
+
+| File | Fix |
+|---|---|
+| `src/components/Explore/SchoolContextCard.tsx` | `SchoolRow` inner div gets `min-w-0`; school name div gets `truncate` — prevents name overflow |
+| `src/components/Analysis/ImageUpload.tsx` | Land-cover bucket colors changed from hardcoded hex to CSS tokens (`var(--color-success)`, `var(--accent)`, `var(--muted-foreground)`, `var(--color-warning)`) |
+| `src/components/Analysis/ChatPanel.tsx` | Submit button changed `rounded-2xl` → `rounded-full` for convention consistency |
+| `src/components/Explore/WorkspaceBoard.tsx` | "Save as new" + "Update active" buttons: `shrink-0 whitespace-nowrap` |
+| `src/components/Explore/ActiveLocationCard.tsx` | "Save site" button: `shrink-0 whitespace-nowrap` |
 
 ---
 
@@ -459,6 +513,8 @@ src/
       DrawingToolbar.tsx            # Drawing tools toolbar
       GlobeViewSelector.tsx         # Basemap switcher
       RegionSelector.tsx            # Active region display + reset
+    Demo/
+      DemoRunner.tsx                # Guided demo player — spotlight ring, progress bar, step narration
     Landing/
       LandingPage.tsx               # Landing — Explorer (9 lenses, 3-step chooser) + Pro (analyst) flows
     Shell/
@@ -493,6 +549,7 @@ src/
     explorer-lenses.ts              # 5 Explorer mode lenses
     lenses.ts                       # Lens ID ↔ profile ID mapping
     landing.ts                      # Use cases, buildExploreHref
+    demo-scenarios.ts               # DEMO_SCENARIOS array — 3 guided tours with typed DemoStep[]
     solar-resource.ts               # NASA POWER GHI fetch (global, no key needed)
     stream-gauges.ts                # USGS NWIS gauge helpers
     overpass.ts                     # OSM Overpass with fallback mirror (overpass.kumi.systems)

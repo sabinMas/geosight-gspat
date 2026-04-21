@@ -98,10 +98,10 @@ async function classifyImage(file: File): Promise<{ summary: string; buckets: La
 
   const total = counts.vegetation + counts.water + counts.urban + counts.barren;
   const buckets: LandCoverBucket[] = [
-    { label: "Vegetation", value: total ? Math.round((counts.vegetation / total) * 100) : 0, confidence: 0.52, color: "#5be49b" },
-    { label: "Water", value: total ? Math.round((counts.water / total) * 100) : 0, confidence: 0.48, color: "#00e5ff" },
-    { label: "Urban", value: total ? Math.round((counts.urban / total) * 100) : 0, confidence: 0.44, color: "#a8b8c8" },
-    { label: "Barren/Industrial", value: total ? Math.round((counts.barren / total) * 100) : 0, confidence: 0.4, color: "#ffab00" },
+    { label: "Vegetation", value: total ? Math.round((counts.vegetation / total) * 100) : 0, confidence: 0.52, color: "var(--color-success)" },
+    { label: "Water", value: total ? Math.round((counts.water / total) * 100) : 0, confidence: 0.48, color: "var(--accent)" },
+    { label: "Urban", value: total ? Math.round((counts.urban / total) * 100) : 0, confidence: 0.44, color: "var(--muted-foreground)" },
+    { label: "Barren/Industrial", value: total ? Math.round((counts.barren / total) * 100) : 0, confidence: 0.4, color: "var(--color-warning)" },
   ]
     .filter((bucket) => bucket.value > 0)
     .sort((a, b) => b.value - a.value);

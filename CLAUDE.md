@@ -335,6 +335,9 @@ See `docs/BACKLOG.md` for full detail. Short version:
 - ~~Formal universal card contract~~ — shipped: all 17+ cards migrated to `WorkspaceCardShell`
 - ~~Multi-card board mode~~ — shipped: `openCardIds: WorkspaceCardId[]` replaces `activeCardId`; chips toggle; multiple cards stack in `space-y-4`
 - ~~Intent routing for new cards~~ — shipped: `workspace-intent.ts` has `"wildfire"` / `"alerts"` / `"climate"` intents; question → card suggestion wired for all synthesis cards
+- ~~Compare button UX~~ — shipped: disabled when < 2 sites, count badge, `Columns2` icon, dynamic tooltip
+- ~~Settings panel~~ — shipped: `SettingsPanel.tsx` with units, theme, auto-analysis, score rounding prefs; `UserPreferencesContext.tsx`
+- ~~Tool Reference Sheet~~ — shipped: `ToolReferenceSheet.tsx` keyboard shortcut reference panel
 
 **P1 — global coverage**
 - Live non-US provider integrations (flood, soil, seismic, school beyond Eurostat) — **next P1 target**
@@ -347,6 +350,10 @@ See `docs/BACKLOG.md` for full detail. Short version:
 - ~~Wildfire risk index card~~ — shipped: `WildfireRiskCard` — fire proximity + aridity + vegetation + heat → 4-tier structural risk
 - ~~Thermal load card~~ — shipped: `ThermalLoadCard` — ambient temp + wind + climate trajectory + CDD → Excellent/Favorable/Moderate/Challenging; first use of `coolingDegreeDays`
 - Richer multi-hazard resilience stack (seismic probabilistic, flood depth)
+
+**P1 — competition polish (2026-04-20)**
+- ~~Automated demo system~~ — shipped: `DemoRunner.tsx` + `demo-scenarios.ts`; 3 guided tours (Home Buyer / Data Center / Trail Scout) triggered from landing page picker modal; spotlight ring, progress bar, step-by-step narration; `demoScenarioId` URL param wires into `ExploreInitState`
+- ~~Design audit fixes~~ — shipped: `SchoolContextCard` name truncation, `ImageUpload` land-cover token colors, `ChatPanel` rounded-full submit button, button wrapping (`whitespace-nowrap shrink-0`) on Save site / Save as new / Update active
 
 **P2 — spatial tools**
 - ~~Polygon drawing~~ — shipped: Draw area, Drop pin, Measure, Radius circle, snap-to-vertex, snap-to-grid, vertex drag-editing, undo/redo, GeoJSON export, named pin labels
