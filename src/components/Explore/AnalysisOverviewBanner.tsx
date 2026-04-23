@@ -40,6 +40,11 @@ export function AnalysisOverviewBanner({
   });
 
   if (compact) {
+    const scoreValue = score && !loading ? Math.round(score.total) : null;
+    const coverageTooltip =
+      overview.tone === "ready"
+        ? "All primary signals confirmed"
+        : "Some signals partial — open Sources for details";
     return (
       <div
         className="flex min-w-0 items-center gap-2"
@@ -47,13 +52,31 @@ export function AnalysisOverviewBanner({
         aria-label="Analysis overview"
         aria-live="polite"
       >
-        <StateBadge tone={overview.tone} className="shrink-0 whitespace-nowrap" />
+        {scoreValue !== null ? (
+          <span className="shrink-0 whitespace-nowrap rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--foreground)] cursor-default pointer-events-none select-none">
+            {scoreValue}/100 · {profile.name}
+          </span>
+        ) : (
+          <StateBadge tone={overview.tone} className="shrink-0 whitespace-nowrap" />
+        )}
         <span className="min-w-0 truncate text-sm font-semibold text-[var(--foreground)]">
           {loading ? "Analyzing…" : locationName || "Select a location"}
         </span>
-        <span className="hidden shrink-0 cursor-default select-none rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2 py-0.5 text-xs text-[var(--foreground-soft)] pointer-events-none xl:inline">
-          {profile.name}
-        </span>
+        {scoreValue !== null ? (
+          <button
+            type="button"
+            onClick={onOpenSources}
+            title={coverageTooltip}
+            aria-label={coverageTooltip}
+            className="shrink-0 rounded-full p-1 text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]"
+          >
+            {overview.tone === "ready" ? (
+              <ShieldCheck className="h-3.5 w-3.5" />
+            ) : (
+              <AlertTriangle className="h-3.5 w-3.5" />
+            )}
+          </button>
+        ) : null}
         {!loading && overview.summary ? (
           <span className="hidden min-w-0 truncate text-xs text-[var(--muted-foreground)] xl:block">
             {overview.summary}

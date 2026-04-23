@@ -935,7 +935,6 @@ function getModeVisibility(cardId: WorkspaceCardId): { explorer: boolean; pro: b
 function getAudience(cardId: WorkspaceCardId): CardAudience {
   const proOnly = new Set<WorkspaceCardId>([
     "score",
-    "factor-breakdown",
     "image-upload",
     "land-classifier",
     "source-awareness",

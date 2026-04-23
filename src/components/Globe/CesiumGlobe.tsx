@@ -449,6 +449,23 @@ export function CesiumGlobe({
     });
 
     viewerRef.current = viewer;
+
+    // Set initial camera synchronously before first paint to avoid a default
+    // globe-home flash over the wrong continent on cold loads.
+    if (Number.isFinite(selectedPoint.lat) && Number.isFinite(selectedPoint.lng)) {
+      try {
+        viewer.camera.setView({
+          destination: Cartesian3.fromDegrees(
+            selectedPoint.lng,
+            selectedPoint.lat,
+            15000,
+          ),
+        });
+      } catch {
+        // noop — flyTo effect will correct on next tick
+      }
+    }
+
     setViewerReady(true);
 
     return () => {

@@ -54,6 +54,7 @@ interface ChatUiMessage {
   role: "system" | "user" | "assistant";
   content: string;
   mode?: ChatReplyMode;
+  provider?: "groq" | "gemini" | "deterministic";
 }
 
 function isAbortError(error: unknown) {
@@ -300,13 +301,20 @@ export function ChatPanel({
           answer?: string;
           error?: string;
           fallbackMode?: boolean;
+          provider?: "groq" | "gemini" | "deterministic";
         };
         if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) return;
         if (!data.answer) throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
         const assistantMode: ChatReplyMode = data.fallbackMode ? "fallback" : "live";
         setMessages([
           ...nextMessages,
-          { id: crypto.randomUUID(), role: "assistant", content: data.answer, mode: assistantMode },
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: data.answer,
+            mode: assistantMode,
+            provider: data.provider,
+          },
         ]);
       }
     } catch (error) {
@@ -478,6 +486,20 @@ export function ChatPanel({
               >
                 {message.role === "assistant" ? (
                   <div className="space-y-3">
+                    {message.mode === "fallback" || message.provider === "gemini" ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {message.mode === "fallback" ? (
+                          <span className="inline-flex items-center rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--warning-foreground)]">
+                            Deterministic backup
+                          </span>
+                        ) : null}
+                        {message.provider === "gemini" ? (
+                          <span className="inline-flex items-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-2 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+                            via Gemini
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <MarkdownContent content={message.content} />
                     {message.id === "streaming" && (
                       <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-[var(--accent)] align-middle" />

@@ -114,7 +114,7 @@ export function MapCallout({
           size="sm"
           variant="ghost"
           className="w-full justify-between rounded-xl text-xs"
-          onClick={onOpenAnalysis}
+          onClick={() => { onOpenAnalysis(); onDismiss(); }}
         >
           Open full analysis
           <ArrowRight className="h-3.5 w-3.5" />

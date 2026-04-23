@@ -147,6 +147,80 @@ export const SURPRISE_ME_LOCATIONS: readonly SurpriseLocation[] = [
   { name: "Juneau, AK", lat: 58.3019, lng: -134.4197 },
 ] as const;
 
+export interface LensStarter {
+  label: string;
+  demo?: boolean;
+}
+
+const DEFAULT_LENS_STARTERS: LensStarter[] = [
+  { label: "Yosemite Valley, CA", demo: true },
+  { label: "Olympic National Park, WA", demo: true },
+  { label: "Austin, TX" },
+  { label: "Boulder, CO" },
+];
+
+const LENS_STARTERS: Record<string, LensStarter[]> = {
+  "energy-solar": [
+    { label: "Phoenix, AZ", demo: true },
+    { label: "Tucson, AZ", demo: true },
+    { label: "Las Vegas, NV" },
+    { label: "Sacramento, CA" },
+  ],
+  "hunt-planner": [
+    { label: "Bozeman, MT", demo: true },
+    { label: "Pinedale, WY" },
+    { label: "Salmon, ID" },
+    { label: "Lewistown, MT" },
+  ],
+  "trail-scout": [
+    { label: "Yosemite Valley, CA", demo: true },
+    { label: "Olympic National Park, WA", demo: true },
+    { label: "Zion National Park, UT" },
+    { label: "Glacier National Park, MT" },
+  ],
+  "road-trip": [
+    { label: "Bend, OR", demo: true },
+    { label: "Sedona, AZ" },
+    { label: "Asheville, NC" },
+    { label: "Taos, NM" },
+  ],
+  "land-quick-check": [
+    { label: "Bellevue, WA", demo: true },
+    { label: "Austin, TX" },
+    { label: "Raleigh, NC" },
+    { label: "Boulder, CO" },
+  ],
+  "general-explore": [
+    { label: "Yosemite Valley, CA", demo: true },
+    { label: "Olympic National Park, WA" },
+    { label: "Austin, TX" },
+    { label: "Boulder, CO" },
+  ],
+  agriculture: [
+    { label: "Fresno, CA", demo: true },
+    { label: "Lincoln, NE" },
+    { label: "Davenport, IA" },
+    { label: "Lubbock, TX" },
+  ],
+  "emergency-response": [
+    { label: "Paradise, CA", demo: true },
+    { label: "Asheville, NC" },
+    { label: "Fort Myers, FL" },
+    { label: "Boulder, CO" },
+  ],
+  "field-research": [
+    { label: "Mammoth Lakes, CA", demo: true },
+    { label: "Moab, UT" },
+    { label: "Big Bend, TX" },
+    { label: "Homer, AK" },
+  ],
+};
+
+export function getStartersForLens(lensId: string | null | undefined): LensStarter[] {
+  if (!lensId) return DEFAULT_LENS_STARTERS;
+  return LENS_STARTERS[lensId] ?? DEFAULT_LENS_STARTERS;
+}
+
 export function pickRandomSurpriseLocation() {
   return SURPRISE_ME_LOCATIONS[Math.floor(Math.random() * SURPRISE_ME_LOCATIONS.length)];
 }

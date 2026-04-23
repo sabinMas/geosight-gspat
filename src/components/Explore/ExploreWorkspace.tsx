@@ -74,6 +74,7 @@ import { WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
 import { getExplorerLensById } from "@/lib/explorer-lenses";
 import { toLensParam } from "@/lib/lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
+import { GlobeErrorBoundary } from "@/components/Globe/GlobeErrorBoundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
@@ -1659,14 +1660,16 @@ export function ExploreWorkspace() {
 
       {/* Primary panel */}
       {data.activePrimaryCard ? (
-        <ExplorePrimaryPanel
-          cardId={data.activePrimaryCard.id}
-          state={state}
-          data={data}
-          headerContent={resultsHeader}
-          onSaveCurrentSite={handleSaveCurrentSite}
-          onOpenCard={openCard}
-        />
+        <div id="primary-card-active-location">
+          <ExplorePrimaryPanel
+            cardId={data.activePrimaryCard.id}
+            state={state}
+            data={data}
+            headerContent={resultsHeader}
+            onSaveCurrentSite={handleSaveCurrentSite}
+            onOpenCard={openCard}
+          />
+        </div>
       ) : null}
 
       {/* Open workspace cards (guided mode) */}
@@ -2048,6 +2051,20 @@ export function ExploreWorkspace() {
                   }}
                 />
               ) : (
+                <GlobeErrorBoundary
+                  fallback={
+                    <MapLibreMap
+                      selectedPoint={state.selectedPoint}
+                      selectedRegion={state.selectedRegion}
+                      globeViewMode={state.globeViewMode}
+                      onPointSelect={(coords) => {
+                        setCalloutDismissed(false);
+                        state.selectPoint(coords);
+                        data.handleLocationSelection();
+                      }}
+                    />
+                  }
+                >
                 <CesiumGlobe
                   selectedPoint={state.selectedPoint}
                   selectedRegion={state.selectedRegion}
@@ -2083,6 +2100,7 @@ export function ExploreWorkspace() {
                   onIdentifyResult={state.setIdentifyResult}
                   customLayers={state.customLayers}
                 />
+                </GlobeErrorBoundary>
               )}
             </div>
           </ClientErrorBoundary>
@@ -2235,6 +2253,14 @@ export function ExploreWorkspace() {
               onOpenAnalysis={() => {
                 const firstCard = data.primaryCards[0];
                 if (firstCard) data.setActivePrimaryCardId(firstCard.id);
+                if (data.shellMode === "minimal") setShellMode("guided");
+                if (typeof window !== "undefined") {
+                  window.requestAnimationFrame(() => {
+                    document
+                      .getElementById("primary-card-active-location")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  });
+                }
               }}
               onDismiss={() => setCalloutDismissed(true)}
             />

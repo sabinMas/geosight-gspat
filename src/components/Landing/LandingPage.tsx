@@ -34,7 +34,7 @@ import {
 } from "@/lib/location-search";
 import { LocationSearchResult } from "@/types";
 import { ExplorerLens, EXPLORER_LENSES } from "@/lib/explorer-lenses";
-import { buildExploreHref } from "@/lib/landing";
+import { buildExploreHref, getStartersForLens } from "@/lib/landing";
 import { DEMO_SCENARIOS } from "@/lib/demo-scenarios";
 import { Button } from "../ui/button";
 import { Footer } from "./Footer";
@@ -68,12 +68,6 @@ const LENS_COLORS: Record<string, string> = {
 
 const TRUST_SOURCES = ["USGS", "NOAA", "NASA FIRMS", "FEMA", "Sentinel-2", "OpenStreetMap"];
 
-const LOCATION_SUGGESTIONS: Array<{ label: string; demo?: boolean }> = [
-  { label: "Yosemite Valley, CA", demo: true },
-  { label: "Olympic National Park, WA", demo: true },
-  { label: "Austin, TX" },
-  { label: "Boulder, CO" },
-];
 
 const HOW_IT_WORKS = [
   {
@@ -726,7 +720,7 @@ export function LandingPage() {
                   Try one ·{" "}
                   <span style={{ color: "var(--accent)" }}>✦ great for demo</span>
                 </span>
-                {LOCATION_SUGGESTIONS.map((s) => (
+                {getStartersForLens(selectedLens?.id).map((s) => (
                   <button
                     key={s.label}
                     type="button"

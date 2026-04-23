@@ -88,11 +88,19 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  const provider: "groq" | "gemini" | "deterministic" =
+    result.model === "fallback"
+      ? "deterministic"
+      : result.model.toLowerCase().includes("gemini")
+        ? "gemini"
+        : "groq";
+
   return NextResponse.json(
     {
       answer: result.response,
       model: result.model,
       fallbackMode: result.model === "fallback",
+      provider,
     },
     {
       headers,

@@ -63,6 +63,27 @@ export function WorkspaceLibrary({
         </div>
       </div>
 
+      {groupedCards.length === 0 ? (
+        <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-6 text-center">
+          <p className="text-sm text-[var(--foreground-soft)]">
+            {query.trim()
+              ? `No panels match "${query}" for this lens.`
+              : "No panels available for this lens yet."}
+          </p>
+          {query.trim() ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="mt-3 rounded-full"
+              onClick={() => setQuery("")}
+            >
+              Clear search
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="space-y-4">
         {groupedCards.map((group) => (
           <section key={group.key} className="space-y-3">
