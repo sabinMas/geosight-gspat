@@ -1,286 +1,114 @@
 # GeoSight
 
-**Live app:** https://geosight-gspat.vercel.app/ | **GitHub:** https://github.com/sabinMas/geosight-gspat
+> **Place intelligence for real-world decisions — no GIS software required.**
 
-## For Judges — 90-Second Overview
+**Live App:** [geosight-gspat.vercel.app](https://geosight-gspat.vercel.app/) &nbsp;|&nbsp; **GitHub:** [sabinMas/geosight-gspat](https://github.com/sabinMas/geosight-gspat) &nbsp;|&nbsp; **Built with Codex**
 
-**What it does:** GeoSight is a geospatial intelligence platform that turns any address or coordinate into a multi-signal briefing in under a minute — without GIS software. Pick a mission lens (home buying, trail scouting, data center site selection, etc.), enter a location, and instantly get scored, sourced, and explainable intelligence from 40+ live government datasets (USGS, NOAA, NASA FIRMS, FEMA, EPA, Sentinel-2, OpenStreetMap).
+---
 
-**Why it's different:**
+## Try It in 60 Seconds
 
-- Not a map viewer or chatbot — GeoSight scores and ranks signals by relevance to your specific decision type
-- - Strict trust model: every signal labeled by source freshness (live / derived / demo) — no fabricated data
-- - AI analyst (GeoAnalyst) grounds all responses in the live data bundle for the current location
-  - - GeoScribe generates exportable analyst reports (GeoJSON, CSV, PNG map captures)
-   
-    - **How to try it in 60 seconds:**
-   
-    - 1. Click **Watch a demo** on the landing page and pick a scenario (Home Buyer, Data Center, or Trail Scout)
-      2. 2. The 5–6 step guided tour walks through the key features for that scenario
-         3. 3. After the tour, type a question in the **Ask GeoSight** bar to test the live AI analyst
-           
-            4. **Tech stack:** Next.js 14 · TypeScript · Cesium/Resium 3D globe · Groq LLMs (llama-3.3-70b) · Google Gemini · Upstash Redis · Vercel · 40+ government data APIs
-           
-            5. ---
+1. Go to [geosight-gspat.vercel.app](https://geosight-gspat.vercel.app/) and click **Watch a Demo**
+2. Pick a scenario — **Home Buyer**, **Data Center**, or **Trail Scout**
+3. Follow the 5–6 step guided tour
+4. After the tour, type a question in the **Ask GeoSight** bar to test the live AI analyst
 
-GeoSight gives anyone the place intelligence that used to require a GIS analyst. Search any address or coordinate, choose a mission lens, and get an instant briefing across **40+ live signals** from USGS, NOAA, NASA FIRMS, FEMA, EPA, and more — scored, explained, and exportable. **No GIS software needed.**
+**Or jump straight into a live demo:**
+[→ Yosemite Valley, CA — General Explore](https://geosight-gspat.vercel.app/explore?profile=residential&location=Yosemite+Valley%2C+CA&mode=explorer&lens=general-explore)
 
-It is built for first-pass location decisions:
+Good first-run locations: `Olympic National Park, WA` (Trail Scout) · `Austin, TX` (Land Quick-Check) · `Boulder, CO` (Hunt Planner)
 
-- buyers comparing neighborhoods
-- planners and developers screening sites
-- infrastructure teams checking access, water, climate, and risk
-- researchers or analysts investigating a place quickly
-- travelers and outdoor users exploring terrain, nearby places, and conditions
+---
 
-GeoSight is not "map plus chatbot." The product goal is to help a user search a place, understand what stands out, see why the score moved, and inspect the trustworthiness of the underlying evidence without needing GIS software.
+## What Is GeoSight?
 
-## What GeoSight Does
+GeoSight is a **geospatial intelligence platform** that turns any address or coordinate into a multi-signal briefing in under a minute — without needing GIS software or a data analyst.
 
-GeoSight combines:
+You pick a **mission lens** (home buying, trail scouting, infrastructure site selection, emergency response, etc.), enter a location, and instantly receive scored, sourced, and explainable intelligence pulled from **40+ live government datasets** — USGS, NOAA, NASA FIRMS, FEMA, EPA, Sentinel-2, and OpenStreetMap.
 
-- a Cesium/Resium 3D globe
-- mission or lens-based analysis profiles
-- deterministic place scoring
-- live and derived geospatial signals
-- reusable workspace cards
-- source freshness and coverage metadata
-- AI-assisted narrative and report generation grounded in the active location bundle
+**GeoSight is not a map viewer or a chatbot.** It scores and ranks geospatial signals by relevance to your specific decision type, labels every source by freshness and coverage, and grounds every AI response in the live data bundle for your current location.
 
-The current product supports 9 explorer lenses:
+---
 
-- Hunt Planner
-- Trail Scout
-- Road Trip
-- Land Quick-Check
-- General Explore
-- Energy & Solar
-- Agriculture & Land
-- Emergency Response
-- Field Research
+## The Problem It Solves
 
-Each lens changes what GeoSight emphasizes. The same place can read well for one decision and poorly for another.
+Accessing and interpreting geospatial data currently requires:
+- GIS software expertise (ArcGIS, QGIS)
+- Knowledge of dozens of government data APIs
+- Manual cross-referencing of signals across sources
+- Analyst time to produce a structured deliverable
 
-## Quick Start
+GeoSight compresses that workflow into a single search. A first-time user with no GIS background can go from "I'm considering this location" to a sourced, scored, explainable briefing in under 60 seconds.
 
-1. **Choose a lens** — pick one of the 9 mission lenses that matches your decision type (home buying, site development, field research, etc.).
-2. **Enter a location** — address, neighborhood, landmark, or coordinates. Demo-ready examples are highlighted in the UI.
-3. **Review & launch** — confirm lens + location, then open the workspace.
-4. Read the analysis overview, then open factor breakdown, source awareness, hazards, or other supporting cards as needed.
-5. Ask the **GeoAnalyst** follow-up questions or use the **command palette** (`Cmd+K` / `Ctrl+K`) to jump to any feature.
-6. Generate a **GeoScribe report** to produce a structured analyst deliverable — exportable as GeoJSON, CSV, or a PNG map capture.
-7. Save sites and use the comparison table to evaluate multiple candidates side by side.
+---
 
-## What A First-Time User Sees
+## Who It's For
 
-On first load, GeoSight should answer three questions quickly:
+| User | Use Case |
+|---|---|
+| Home buyers | Compare neighborhoods across risk, schools, broadband, amenities |
+| Land developers | First-pass site screening for zoning, hazards, terrain, utilities |
+| Infrastructure teams | Data center, solar, or agricultural land evaluation |
+| Emergency planners | Fire, flood, seismic, and water risk in one view |
+| Researchers & analysts | Rapid place investigation with exportable evidence |
+| Outdoor users | Trail conditions, terrain, weather, and wildfire proximity |
 
-- What is this?
-  GeoSight is a place-investigation tool for real-world decisions.
-- What can I do here?
-  Search a location and analyze it through a specific lens.
-- What should I do next?
-  Start with one place, read the analysis overview, then inspect score, tradeoffs, and source trust.
+---
 
-## Trust Model
+## Key Features
 
-GeoSight follows a strict hierarchy:
+**9 Mission Lenses** — Hunt Planner, Trail Scout, Road Trip, Land Quick-Check, General Explore, Energy & Solar, Agriculture & Land, Emergency Response, Field Research. Each lens re-weights what matters for that decision type. The same place can score well for one lens and poorly for another.
 
-- direct live source data
-- derived live analysis from those sources
-- clearly labeled demo overlays only where explicitly intended
-- no fabricated live results in normal flows
+**Deterministic Scoring** — every factor score is calculated from real source data, not generated. Judges can inspect each score component, see what drove it, and trace it to the originating dataset.
 
-The UI distinguishes between:
+**Strict Trust Model** — signals are labeled `live`, `derived`, `limited`, `unavailable`, or `cached`. When a source is unsupported or missing, GeoSight shows the gap instead of guessing. No fabricated data in normal flows.
 
-- live
-- derived
-- limited
-- unavailable
-- cached or partial analysis states where applicable
+**GeoAnalyst** — an AI reasoning layer grounded in the live data bundle for the active location. It won't answer questions it doesn't have data for.
 
-When a source is unsupported or missing, GeoSight should show the gap instead of guessing.
+**GeoScribe Reports** — structured analyst deliverables exportable as GeoJSON, CSV, or PNG map captures.
 
-## What The Product Shows Today
+**Saved Sites + Comparison Table** — save multiple locations and compare them side by side across all signals.
 
-- Routed landing page and `/explore` workspace
-- Search, geocode, and click-to-analyze flows
-- Guided first-run flow with clearer analysis framing
-- Cesium globe with layer toggles, region controls, and terrain tools
-- Lens-aware scoring and factor breakdowns
-- Location overview with tradeoffs, trust notes, and source-aware summaries
-- Nearby places discovery using live OpenStreetMap mapping
-- Source awareness panel with provider freshness, coverage, and regional strategy
-- GeoAnalyst reasoning flow and GeoScribe report generation
-- Saved-site comparison table
-- Registry-driven workspace cards and board mode
-- Housing, hazard, climate, school, broadband, flood, contamination, groundwater, soil, seismic, and air-quality cards
-- Image upload and client-side land-cover estimation
+**Command Palette** (`Cmd+K` / `Ctrl+K`) — navigate any feature instantly.
 
-## Major Data Sources And Signals
+---
 
-Core source families currently include:
+## Data Sources (40+ Live Signals)
 
-- Terrain and elevation
-  - USGS EPQS
-  - OpenTopoData fallback
-- Globe and visualization
-  - Cesium Ion
-  - Cesium World Terrain
-- Nearby places and mapped context
-  - OpenStreetMap
-  - Overpass
-- Weather and climate
-  - Open-Meteo forecast
-  - Open-Meteo historical archive
-- Hazards
-  - USGS earthquakes
-  - NASA FIRMS active fire detections
-  - FEMA NFHL flood zones
-- Hydrology and water
-  - mapped water proximity
-  - USGS stream gauges
-  - USGS groundwater wells
-- Environmental context
-  - OpenAQ / Open-Meteo air quality
-  - EPA Envirofacts contamination screening
-- Connectivity and amenities
-  - FCC Broadband Map
-  - OpenStreetMap amenity density
-- Schools
-  - NCES baseline school data
-  - Washington OSPI accountability where available
-- Subsurface and engineering context
-  - USDA NRCS soil profile
-  - USGS seismic design maps
+| Category | Sources |
+|---|---|
+| Terrain & Elevation | USGS EPQS, OpenTopoData |
+| Weather & Climate | Open-Meteo forecast + 10-year historical archive |
+| Active Hazards | USGS earthquakes, NASA FIRMS fire detections, FEMA NFHL flood zones |
+| Hydrology | USGS stream gauges, USGS groundwater wells |
+| Air & Environment | OpenAQ, Open-Meteo AQ index, EPA Envirofacts contamination screening |
+| Soil & Subsurface | USDA NRCS soil profiles, USGS seismic design maps |
+| Connectivity | FCC Broadband Map |
+| Schools | NCES national data, Washington OSPI accountability data |
+| Nearby Places | OpenStreetMap, Overpass API |
+| Globe & Visualization | Cesium Ion, Cesium World Terrain |
 
-Signals shown in the product include examples such as:
+**Global signals** (work anywhere): climate, terrain, elevation, air quality, active fires, nearby places, seismic context.
 
-- elevation and terrain practicality
-- nearest road, water, and power context
-- current weather and 10-year climate trends
-- earthquake, fire, and flood context
-- broadband availability
-- school access
-- contamination screening
-- groundwater depth
-- soil drainage and depth to bedrock
-- seismic design parameters
-- mapped nearby places and amenities
+**US-first signals** (gaps labeled honestly outside US): broadband, FEMA flood zones, EPA contamination, NRCS soil, USGS groundwater, NCES schools.
 
-## Coverage Notes
+---
 
-Global signals (work anywhere): climate, terrain, elevation, air quality, active fires, nearby places, OpenStreetMap amenities, and seismic context.
+## How It Was Built
 
-US-first signals (show honest gaps outside the US): broadband availability, FEMA flood zones, EPA contamination screening, NRCS soil profiles, USGS groundwater, NCES school data, and seismic design parameters. The UI labels every gap rather than guessing.
+GeoSight was built with **OpenAI Codex** as the main engineer, **Perplexity Pro**,**Claude Code**, and **Kimi K2.6** all working as a multi-agentic team, while I (Mason Sabin) orchestrated the entire project from start to finish, for accelerated development across the full stack — from API route scaffolding and scoring logic to component architecture and the trust metadata system.
 
-## What GeoSight Does Not Claim
+**Tech Stack:**
 
-- It is not an engineering sign-off tool.
-- It is not a parcel-entitlement system.
-- It is not an appraisal model.
-- It is not a replacement for official due diligence.
-- Some score factors still rely on proxy heuristics where direct live signals do not yet exist. Those factors are labeled in the UI.
+- **Frontend:** Next.js 14 App Router · React 19 · TypeScript · Tailwind CSS v4
+- **3D Globe:** Cesium + Resium
+- **2D Map:** MapLibre GL
+- **AI Reasoning:** Cerebras (llama-3.3-70b) · Google Gemini
+- **Caching / Rate Limiting:** Upstash Redis
+- **Charts:** Recharts
+- **Deployment:** Vercel
 
-## Technical Stack
-
-- Next.js App Router
-- React 19
-- TypeScript
-- Tailwind CSS v4
-- Cesium + Resium (3D globe)
-- MapLibre GL (2D flat map)
-- Recharts
-- Groq and Gemini for AI-assisted reasoning and report generation
-- Vercel-ready API routes under `src/app/api/*`
-
-## Repository Structure
-
-Important entry points and product surfaces:
-
-- App entry
-  - `src/app/page.tsx`
-  - `src/components/Landing/LandingPage.tsx`
-- Explore workspace
-  - `src/app/explore/page.tsx`
-  - `src/components/Explore/ExploreWorkspace.tsx`
-  - `src/components/Explore/ExploreWorkspacePanels.tsx`
-- State and analysis pipeline
-  - `src/hooks/useExploreState.ts`
-  - `src/hooks/useExploreData.ts`
-  - `src/hooks/useSiteAnalysis.ts`
-- Scoring
-  - `src/lib/scoring.ts`
-  - `src/lib/scoring-methodology.ts`
-- Card registry
-  - `src/lib/workspace-cards.ts`
-- Source registry and trust metadata
-  - `src/lib/source-registry.ts`
-  - `src/lib/source-metadata.ts`
-- Main geodata route
-  - `src/app/api/geodata/route.ts`
-
-## Running Locally
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Create a local environment file:
-
-```bash
-cp .env.example .env.local
-```
-
-3. Add the environment variables you want to enable:
-
-- `NEXT_PUBLIC_CESIUM_ION_TOKEN`
-- `GROQ_API_KEY`
-- `GROQ_API_KEY_2`
-- `GROQ_API_KEY_3`
-- `GEMINI_API_KEY`
-- `NASA_FIRMS_MAP_KEY`
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-
-Notes:
-
-- `NEXT_PUBLIC_CESIUM_ION_TOKEN` is the main required token for the globe.
-- `GROQ_API_KEY` and `GEMINI_API_KEY` enable AI reasoning and report generation.
-- `NASA_FIRMS_MAP_KEY` improves fire coverage.
-- Upstash Redis variables are optional but recommended for shared rate limiting.
-
-4. Start the dev server:
-
-```bash
-npm run dev
-```
-
-5. Open:
-
-```text
-http://localhost:3000
-```
-
-Useful checks:
-
-```bash
-npm run typecheck
-npm run lint
-```
-
-## Deployment
-
-GeoSight is structured for Vercel deployment.
-
-1. Push the repository to GitHub.
-2. Import the repo into Vercel.
-3. Add the same environment variables used locally.
-4. Deploy.
-
-## Architecture Overview
+**Architecture:**
 
 ```mermaid
 flowchart LR
@@ -288,9 +116,9 @@ flowchart LR
   UI --> Landing["Landing + Guided First Run"]
   UI --> Explore["Explore Workspace"]
   Explore --> Globe["Cesium + Resium Globe"]
-  Explore --> Cards["Primary Panels + Workspace Cards"]
-  Cards --> Score["Deterministic Scoring"]
-  Cards --> Trust["Source Metadata + Registry Guidance"]
+  Explore --> Cards["Workspace Cards + Panels"]
+  Cards --> Score["Deterministic Scoring Engine"]
+  Cards --> Trust["Source Registry + Trust Metadata"]
   Explore --> APIs["Next.js API Routes"]
   APIs --> Terrain["USGS / OpenTopoData"]
   APIs --> OSM["OpenStreetMap / Overpass"]
@@ -301,29 +129,76 @@ flowchart LR
   APIs --> Broadband["FCC Broadband Map"]
   APIs --> School["NCES + WA OSPI"]
   APIs --> EPA["EPA Envirofacts"]
-  APIs --> AI["Groq + Gemini"]
+  APIs --> AI["Cerebras + Gemini"]
 ```
 
-## Live Demo
+---
 
-Try a pre-configured demo directly:
+## What GeoSight Does Not Claim
 
-[https://geosight-gspat.vercel.app/explore?profile=residential&location=Yosemite+Valley%2C+CA&mode=explorer&lens=general-explore](https://geosight-gspat.vercel.app/explore?profile=residential&location=Yosemite+Valley%2C+CA&mode=explorer&lens=general-explore)
+- Not an engineering sign-off or parcel-entitlement system
+- Not an appraisal model or replacement for official due diligence
+- Proxy heuristics are used where direct live signals don't yet exist — those factors are clearly labeled in the UI
 
-The public app is deployed at:
+---
 
-- [geosight-gspat.vercel.app](https://geosight-gspat.vercel.app/)
+## Running Locally
 
-## Demo Notes
+```bash
+# 1. Install dependencies
+npm install
 
-Good first-run examples:
+# 2. Set up environment
+cp .env.example .env.local
+```
 
-- `Yosemite Valley, CA` for General Explore (demo-ready)
-- `Olympic National Park, WA` for Trail Scout (demo-ready)
-- `Austin, TX` for Land Quick-Check
-- `Boulder, CO` for Hunt Planner
+Add your keys to `.env.local`:
 
-## Planning Docs
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_CESIUM_ION_TOKEN` | ✅ Required | 3D globe rendering |
+| `CEREBRAS_API_KEY` | ✅ Required | AI reasoning (GeoAnalyst) |
+| `GEMINI_API_KEY` | ✅ Required | Report generation (GeoScribe) |
+| `NASA_FIRMS_MAP_KEY` | Recommended | Improved fire coverage |
+| `UPSTASH_REDIS_REST_URL` | Optional | Shared rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional | Shared rate limiting |
 
-- Backlog and roadmap: [`docs/BACKLOG.md`](docs/BACKLOG.md)
-- Platform and product standards: [`agents.md`](agents.md)
+```bash
+# 3. Start dev server
+npm run dev
+# → http://localhost:3000
+
+# Type checks + lint
+npm run typecheck
+npm run lint
+```
+
+## Deployment
+
+GeoSight is Vercel-ready:
+1. Push to GitHub
+2. Import repo into Vercel
+3. Add environment variables
+4. Deploy
+
+---
+
+## Repository Structure
+
+| Path | Purpose |
+|---|---|
+| `src/app/page.tsx` | App entry + landing |
+| `src/app/explore/page.tsx` | Explore workspace |
+| `src/components/Explore/ExploreWorkspace.tsx` | Main workspace shell |
+| `src/hooks/useExploreState.ts` | Core state management |
+| `src/hooks/useSiteAnalysis.ts` | Analysis pipeline |
+| `src/lib/scoring.ts` | Deterministic scoring engine |
+| `src/lib/source-registry.ts` | Source registry + trust metadata |
+| `src/app/api/geodata/route.ts` | Main geodata API route |
+
+---
+
+## Backlog & Roadmap
+
+- [`docs/BACKLOG.md`](docs/BACKLOG.md) — planned features and known gaps
+- [`agents.md`](agents.md) — platform and product standards
