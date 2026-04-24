@@ -2297,7 +2297,7 @@ export function ExploreWorkspace() {
           onSubmit={handlePersistentQuestionSubmit}
         />
 
-        <div className="flex shrink-0 items-center gap-3 self-end xl:self-auto">
+        <div className="flex flex-nowrap shrink-0 items-center gap-3 self-end xl:self-auto">
           <Button
             type="button"
             variant="secondary"
@@ -2324,7 +2324,7 @@ export function ExploreWorkspace() {
             type="button"
             variant="default"
             size="sm"
-            className="shrink-0 rounded-full"
+            className="shrink-0 whitespace-nowrap rounded-full"
             disabled={data.reportLoading}
             onClick={handleGenerateReport}
           >

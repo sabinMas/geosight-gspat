@@ -249,11 +249,11 @@ export function ActiveLocationCard({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className={`overflow-hidden rounded-[1.25rem] border p-3 ${overview.strengths.length > 0 ? "border-[color:var(--success-border)] bg-[var(--success-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
+            <div className={`overflow-hidden rounded-[1.25rem] border p-4 ${overview.strengths.length > 0 ? "border-[color:var(--success-border)] bg-[var(--success-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Strongest signals
               </div>
-              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+              <div className="mt-2 space-y-3 text-sm leading-6 text-[var(--foreground)]">
                 {overview.strengths.length > 0 ? (
                   overview.strengths.slice(0, 2).map((item) => {
                     const dotIdx = item.indexOf(" · ");
@@ -271,11 +271,11 @@ export function ActiveLocationCard({
                 )}
               </div>
             </div>
-            <div className={`overflow-hidden rounded-[1.25rem] border p-3 ${overview.watchouts.length > 0 ? "border-[color:var(--warning-border)] bg-[var(--warning-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
+            <div className={`overflow-hidden rounded-[1.25rem] border p-4 ${overview.watchouts.length > 0 ? "border-[color:var(--warning-border)] bg-[var(--warning-soft)]" : "border-[color:var(--border-soft)] bg-[var(--surface-soft)]"}`}>
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Watch closely
               </div>
-              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
+              <div className="mt-2 space-y-3 text-sm leading-6 text-[var(--foreground)]">
                 {overview.watchouts.length > 0 ? (
                   overview.watchouts.slice(0, 2).map((item) => {
                     const dotIdx = item.indexOf(" · ");
@@ -293,11 +293,11 @@ export function ActiveLocationCard({
                 )}
               </div>
             </div>
-            <div className="col-span-2 overflow-hidden rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-3">
+            <div className="col-span-2 overflow-hidden rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                 Trust notes
               </div>
-              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground-soft)]">
+              <div className="mt-2 space-y-3 text-sm leading-6 text-[var(--foreground-soft)]">
                 {overview.trustNotes.slice(0, 2).map((item) => (
                   <div key={item} className="line-clamp-2">{item}</div>
                 ))}

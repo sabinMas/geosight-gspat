@@ -14,7 +14,7 @@
   --background-elevated: #0c1b2b;
   --foreground: #f4f8ff;
   --foreground-soft: rgba(244, 248, 255, 0.88);
-  --muted-foreground: rgba(190, 204, 224, 0.78);
+  --muted-foreground: rgba(190, 204, 224, 0.82);
   --color-primary: #53ddff;
   --color-warning: #ffab00;
   --color-success: #5be49b;
@@ -31,7 +31,7 @@
   --danger-border: rgba(244, 104, 104, 0.28);
   --danger-soft: rgba(244, 104, 104, 0.12);
   --danger-foreground: #ffd7d7;
-  --success-border: rgba(91, 228, 155, 0.3);
+  --success-border: rgba(91, 228, 155, 0.36);
   --success-soft: rgba(91, 228, 155, 0.12);
   --evidence-direct-bg: rgba(91, 228, 155, 0.10);
   --evidence-direct-border: rgba(91, 228, 155, 0.28);
@@ -43,13 +43,13 @@
   --evidence-proxy-border: rgba(255, 171, 0, 0.28);
   --evidence-proxy-fg: #ffe0a3;
   --ring: rgba(83, 221, 255, 0.46);
-  --border-soft: rgba(133, 170, 205, 0.16);
+  --border-soft: rgba(133, 170, 205, 0.20);
   --border-strong: rgba(83, 221, 255, 0.34);
   --surface-panel: linear-gradient(180deg, rgba(9, 21, 37, 0.92), rgba(8, 18, 31, 0.76));
   --surface-soft: rgba(14, 26, 41, 0.72);
   --surface-raised: rgba(10, 22, 36, 0.9);
   --surface-overlay: rgba(6, 14, 24, 0.64);
-  --shadow-panel: 0 28px 70px rgba(3, 8, 16, 0.42);
+  --shadow-panel: 0 24px 64px rgba(3, 8, 16, 0.48);
   --shadow-soft: 0 12px 28px rgba(3, 8, 16, 0.24);
   --hero-grid: rgba(83, 221, 255, 0.08);
 }
@@ -61,7 +61,7 @@ html[data-theme="light"] {
   --background-elevated: #ffffff;
   --foreground: #0e2436;
   --foreground-soft: rgba(14, 36, 54, 0.9);
-  --muted-foreground: rgba(64, 90, 111, 0.78);
+  --muted-foreground: rgba(64, 90, 111, 0.80);
   --color-primary: #0f9fcd;
   --color-warning: #da9200;
   --color-success: #2f9d69;
@@ -78,7 +78,7 @@ html[data-theme="light"] {
   --danger-border: rgba(209, 86, 86, 0.22);
   --danger-soft: rgba(209, 86, 86, 0.1);
   --danger-foreground: #8e2e2e;
-  --success-border: rgba(51, 159, 106, 0.24);
+  --success-border: rgba(51, 159, 106, 0.28);
   --success-soft: rgba(51, 159, 106, 0.1);
   --evidence-direct-bg: rgba(51, 159, 106, 0.10);
   --evidence-direct-border: rgba(51, 159, 106, 0.24);
@@ -90,13 +90,13 @@ html[data-theme="light"] {
   --evidence-proxy-border: rgba(218, 146, 0, 0.24);
   --evidence-proxy-fg: #7a4b00;
   --ring: rgba(15, 159, 205, 0.28);
-  --border-soft: rgba(21, 74, 116, 0.12);
+  --border-soft: rgba(21, 74, 116, 0.16);
   --border-strong: rgba(15, 159, 205, 0.24);
   --surface-panel: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 250, 255, 0.8));
   --surface-soft: rgba(255, 255, 255, 0.78);
   --surface-raised: rgba(247, 251, 255, 0.96);
   --surface-overlay: rgba(242, 248, 255, 0.86);
-  --shadow-panel: 0 24px 60px rgba(34, 74, 104, 0.12);
+  --shadow-panel: 0 22px 56px rgba(34, 74, 104, 0.16);
   --shadow-soft: 0 10px 24px rgba(34, 74, 104, 0.08);
   --hero-grid: rgba(15, 159, 205, 0.08);
 }
@@ -201,7 +201,7 @@ textarea {
 .eyebrow {
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted-foreground);
 }

@@ -464,7 +464,7 @@ export function ChatPanel({
 
         <div
           ref={messagesViewportRef}
-          className="scrollbar-thin flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1"
+          className="scrollbar-thin flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1"
         >
           {messages.map((message) => {
             const messageTrust = message.mode

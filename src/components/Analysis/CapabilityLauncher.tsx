@@ -83,13 +83,13 @@ export function CapabilityLauncher({
               <span
                 key={capability.analysisId}
                 title={isDisabled ? capability.reason : undefined}
-                className={isDisabled ? "cursor-not-allowed" : undefined}
+                className={isDisabled ? "cursor-not-allowed opacity-60" : undefined}
               >
                 <Button
                   type="button"
                   size="sm"
                   variant={capability.recommended ? "default" : "secondary"}
-                  className="rounded-full"
+                  className={capability.recommended ? "rounded-full border-[1.5px] border-[var(--accent-strong)]" : "rounded-full"}
                   disabled={isDisabled}
                   onClick={() => onRun(capability.analysisId)}
                 >
