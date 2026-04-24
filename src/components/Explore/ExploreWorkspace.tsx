@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { DemoRunner } from "@/components/Demo/DemoRunner";
+import { MobileChrome } from "@/components/Mobile/MobileChrome";
 import { DEMO_SCENARIOS } from "@/lib/demo-scenarios";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { AttributeTable } from "@/components/Explore/AttributeTable";
@@ -2474,6 +2475,22 @@ export function ExploreWorkspace() {
           </div>
         </div>
       ) : null}
+
+      <MobileChrome
+        locationName={state.selectedLocationName}
+        locationReady={state.locationReady}
+        profile={state.activeProfile}
+        score={data.siteScore}
+        geodata={data.geodata}
+        loading={data.loading}
+        error={data.error}
+        onQuickCategory={(category) => {
+          data.setCategory(category);
+          state.setResultsMode("nearby_places");
+        }}
+        onOpenWorkspace={() => openCard("results")}
+        rightPanelContent={rightPanelContent}
+      />
 
       {activeDemoScenario && (
         <DemoRunner
