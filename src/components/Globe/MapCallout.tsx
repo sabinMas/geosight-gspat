@@ -46,7 +46,7 @@ export function MapCallout({
   const topWatchout = overview.watchouts[0] ?? null;
 
   return (
-    <div className="absolute bottom-14 left-4 z-20 w-72 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)] backdrop-blur-md">
+    <div className="absolute bottom-14 left-4 z-20 w-72 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)] backdrop-blur-md xl:bottom-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-2 border-b border-[color:var(--border-soft)] px-4 pt-3 pb-2">
         <div className="min-w-0">

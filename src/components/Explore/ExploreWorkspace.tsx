@@ -2166,19 +2166,21 @@ export function ExploreWorkspace() {
             onSetCustomLayerOpacity={setCustomLayerOpacity}
             onMoveCustomLayer={moveCustomLayer}
           />
-          <RegionSelector
-            region={state.selectedRegion}
-            locationTooltip={state.selectedLocationName}
-            drawnShapes={state.drawnShapes}
-            onReset={() => {
-              state.selectPoint(
-                state.selectedPoint,
-                state.selectedLocationName,
-                state.selectedLocationDisplayName,
-              );
-              data.handleLocationSelection();
-            }}
-          />
+          {state.selectedRegion.polygon.length > 0 ? (
+            <RegionSelector
+              region={state.selectedRegion}
+              locationTooltip={state.selectedLocationName}
+              drawnShapes={state.drawnShapes}
+              onReset={() => {
+                state.selectPoint(
+                  state.selectedPoint,
+                  state.selectedLocationName,
+                  state.selectedLocationDisplayName,
+                );
+                data.handleLocationSelection();
+              }}
+            />
+          ) : null}
           {captureOverlayVisible ? (
             <TopographicCaptureOverlay
               locationName={state.selectedLocationName}
