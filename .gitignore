@@ -9,7 +9,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-lock.yaml
-
+.claude
+docs
+CLAUDE.md
 .vercel
 tsconfig.tsbuildinfo
 src/lib/rag/embeddings-cache.json
+
