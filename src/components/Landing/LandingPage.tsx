@@ -448,12 +448,17 @@ export function LandingPage() {
       >
         {/* Hero */}
         <div className="max-w-2xl">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-foreground)]">
+              Early Access · New releases weekly
+            </span>
+          </div>
           <h1 className="mb-5 text-5xl font-medium leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
-            Ground truth for any place,{" "}
-            <span style={{ color: "var(--muted-foreground)" }}>in under a minute.</span>
+            The new GIS tool for{" "}
+            <span style={{ color: "var(--muted-foreground)" }}>real-world decisions.</span>
           </h1>
           <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-            For home buyers, site developers, field researchers, and anyone who needs to understand a place fast. Built with OpenAI Codex. Powered by 40+ live government datasets — NASA, USGS, NOAA, and more.
+            Search any place — get terrain, climate, hazard, and solar intelligence from 40+ live government sources in seconds. Built with OpenAI Codex. Actively developed, with new lenses, cards, and data sources shipping weekly.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button
