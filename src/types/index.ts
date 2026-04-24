@@ -9,16 +9,6 @@ import type { AppMode, CardAudience, CardComplexity } from "./app-mode";
 export type SiteFactorKey = string;
 export type ExploreEntrySource = "landing" | "direct";
 
-export type UseCaseType =
-  | "data_center_cooling"
-  | "outdoor_recreation"
-  | "places_discovery"
-  | "home_buying"
-  | "site_development"
-  | "retail_commercial"
-  | "warehouse_logistics"
-  | "general_exploration";
-
 export type ResultsMode = "analysis" | "nearby_places";
 export type DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle";
 
@@ -233,11 +223,6 @@ export interface WorkspaceCardDefinition {
   explorerLabel?: string;
   explorerSummary?: string;
   modeVisibility: { explorer: boolean; pro: boolean };
-}
-
-/** Minimum prop contract shared by all workspace cards that render geodata. */
-export interface WorkspaceCardBaseProps {
-  geodata: GeodataResult | null;
 }
 
 export interface AnalysisCapability {

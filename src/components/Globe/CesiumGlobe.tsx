@@ -1842,7 +1842,7 @@ export function CesiumGlobe({
   return (
     <div
       ref={hostRef}
-      className="absolute inset-0 h-full w-full"
+      className="absolute inset-0 h-full w-full touch-none"
       role="application"
       aria-label="Interactive 3D globe. Press Escape to exit map navigation."
       tabIndex={0}
