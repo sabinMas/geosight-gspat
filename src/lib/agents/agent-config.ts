@@ -48,7 +48,7 @@ export const GEO_ANALYST_SYSTEM_PROMPT =
 export const GEO_USABILITY_SYSTEM_PROMPT =
   "You are GeoUsability, the internal UX audit agent for GeoSight. You review front-end state for clutter, overflow, discoverability, and hierarchy problems. Always anchor your response in the structured UI findings and UI context already provided. Do not invent visual issues that are not supported by the audit. Format responses as concise audit notes with severity, affected surface, issue type, and a specific recommendation.";
 
-const DEFAULT_AGENT_MODEL = "qwen-3-235b-a22b-instruct-2507";
+const DEFAULT_AGENT_MODEL = "llama3.1-8b";
 const LIGHTWEIGHT_AGENT_MODEL = "llama3.1-8b";
 
 export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {

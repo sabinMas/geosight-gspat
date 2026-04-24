@@ -9,14 +9,14 @@ import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 const CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/chat/completions";
 
-const DEFAULT_MODEL = "qwen-3-235b-a22b-instruct-2507";
+const DEFAULT_MODEL = "llama3.1-8b";
 
 const PROFILE_MODEL_MAP: Record<string, string> = {
   "data-center": DEFAULT_MODEL,
-  hiking: "llama3.1-8b",
+  hiking: DEFAULT_MODEL,
   "home-buying": DEFAULT_MODEL,
   "site-development": DEFAULT_MODEL,
-  commercial: "llama3.1-8b",
+  commercial: DEFAULT_MODEL,
 };
 
 function getCerebrasKey() {
