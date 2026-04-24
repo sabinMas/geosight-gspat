@@ -57,8 +57,8 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-[color:var(--border-soft)] px-5 py-4">
           <div>
-            <div className="eyebrow">Workspace</div>
-            <h2 className="mt-1 flex items-center gap-2 text-xl font-semibold text-[var(--foreground)]">
+            <div className="eyebrow mb-2">Workspace</div>
+            <h2 className="flex items-center gap-2 text-xl font-semibold text-[var(--foreground)]">
               <Settings className="h-5 w-5 text-[var(--accent)]" />
               Settings
             </h2>
