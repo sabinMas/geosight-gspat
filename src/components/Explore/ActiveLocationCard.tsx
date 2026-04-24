@@ -87,7 +87,10 @@ function LocationSignalCard({
         {detail}
       </div>
       {source ? (
-        <div className="mt-1 text-xs text-[var(--muted-foreground)] opacity-70">
+        <div
+          className="mt-1 truncate text-xs text-[var(--muted-foreground)] opacity-70"
+          title={source.provider}
+        >
           {source.provider}
         </div>
       ) : null}

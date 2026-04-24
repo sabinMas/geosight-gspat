@@ -103,10 +103,16 @@ export function AnalysisOverviewBanner({
             <div className="eyebrow">Analysis overview</div>
             <div className="flex flex-wrap items-center gap-2">
               <StateBadge tone={overview.tone} />
-              <span className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none">
+              <span
+                className="max-w-[14rem] truncate whitespace-nowrap rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none"
+                title={profile.name}
+              >
                 {profile.name}
               </span>
-              <span className="text-xs italic text-[var(--muted-foreground)] cursor-default pointer-events-none select-none">
+              <span
+                className="max-w-[14rem] truncate whitespace-nowrap text-xs italic text-[var(--muted-foreground)] cursor-default pointer-events-none select-none"
+                title={overview.confidenceLabel}
+              >
                 {overview.confidenceLabel}
               </span>
             </div>

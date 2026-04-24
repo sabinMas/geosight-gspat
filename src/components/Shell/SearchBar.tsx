@@ -279,6 +279,7 @@ export function SearchBar({
                 onBlur={() => { window.setTimeout(() => setShowSuggestions(false), 120); }}
                 onKeyDown={handleInputKeyDown}
                 placeholder={placeholder}
+                role="combobox"
                 aria-label="Search for a place, address, or coordinates"
                 aria-autocomplete="list"
                 aria-expanded={dropdownOpen}
@@ -348,6 +349,7 @@ export function SearchBar({
             onBlur={() => { window.setTimeout(() => setShowSuggestions(false), 120); }}
             onKeyDown={handleInputKeyDown}
             placeholder={placeholder}
+            role="combobox"
             aria-label="Search for a place, address, or coordinates"
             aria-autocomplete="list"
             aria-expanded={dropdownOpen}

@@ -9,7 +9,9 @@ import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 const CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/chat/completions";
 
-const DEFAULT_MODEL = "llama3.1-8b";
+// llama3.1-8b has Cerebras' highest RPM/TPM tier and lowest per-token cost.
+// Overridable via CEREBRAS_MODEL env var without redeploying code.
+const DEFAULT_MODEL = process.env.CEREBRAS_MODEL?.trim() || "llama3.1-8b";
 
 const PROFILE_MODEL_MAP: Record<string, string> = {
   "data-center": DEFAULT_MODEL,

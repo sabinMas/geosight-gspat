@@ -30,10 +30,23 @@ function pickPosition(
   viewer: CesiumViewer,
   screenPos: Cartesian2,
 ): Cartesian3 | undefined {
+  // Priority:
+  // 1. scene.pickPosition — uses depth buffer; accurate on entities and (if depth-testing is on) terrain.
+  // 2. globe.pick(ray) — intersects terrain surface. Critical when zoomed close: ellipsoid sits far below terrain
+  //    so ellipsoid picks land in the wrong spot visually.
+  // 3. pickEllipsoid — last-resort fallback for distant views / flat globe.
+  const scenePick = viewer.scene.pickPositionSupported
+    ? viewer.scene.pickPosition(screenPos)
+    : undefined;
+  if (scenePick) return scenePick;
+
+  const ray = viewer.camera.getPickRay(screenPos);
+  if (ray) {
+    const terrainPick = viewer.scene.globe.pick(ray, viewer.scene);
+    if (terrainPick) return terrainPick;
+  }
+
   return (
-    (viewer.scene.pickPositionSupported
-      ? viewer.scene.pickPosition(screenPos)
-      : undefined) ??
     viewer.camera.pickEllipsoid(screenPos, viewer.scene.globe.ellipsoid) ??
     undefined
   );

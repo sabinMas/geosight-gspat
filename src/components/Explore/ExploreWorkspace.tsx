@@ -6,7 +6,7 @@ import Link from "next/link";
 import { toPng } from "html-to-image";
 import {
   BookOpen,
-  Car,
+  ChevronLeft,
   Columns2,
   Command,
   Crosshair,
@@ -1381,7 +1381,6 @@ export function ExploreWorkspace() {
     data.reportLoading,
     data.siteScore,
     data.sites.length,
-    state.driveMode,
     state.drawnShapes.length,
     state.globeRotateMode,
     state.locationReady,
@@ -1759,6 +1758,16 @@ export function ExploreWorkspace() {
         >
           <Menu className="h-4 w-4" />
         </Button>
+
+        {/* Back to landing */}
+        <Link
+          href="/"
+          aria-label="Back to landing"
+          className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 text-xs text-[var(--foreground-soft)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Back</span>
+        </Link>
 
         {/* Brand */}
         <Link href="/" className="shrink-0 text-sm font-semibold text-[var(--foreground)] transition-opacity hover:opacity-70">GeoSight</Link>

@@ -1,4 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  applyRateLimit,
+  createRateLimitResponse,
+} from "@/lib/request-guards";
 import {
   AGENT_CONFIGS,
   AgentConfig,
@@ -469,12 +473,33 @@ function getGroqApiKeyCandidates(config: AgentConfig) {
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ agentId: string }> },
 ) {
   const { agentId: rawAgentId } = await context.params;
   if (!isAgentId(rawAgentId)) {
     return NextResponse.json({ error: "Agent not found." }, { status: 404 });
+  }
+
+  const ua = request.headers.get("user-agent") ?? "";
+  if (ua.length < 10) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  const rateLimit = await applyRateLimit(request, `agents:${rawAgentId}`, {
+    windowMs: 60_000,
+    maxRequests: 20,
+  });
+  if (!rateLimit.allowed) {
+    return createRateLimitResponse(rateLimit);
+  }
+
+  const daily = await applyRateLimit(request, "agents:daily", {
+    windowMs: 86_400_000,
+    maxRequests: 250,
+  });
+  if (!daily.allowed) {
+    return createRateLimitResponse(daily);
   }
 
   let rawBody: unknown;

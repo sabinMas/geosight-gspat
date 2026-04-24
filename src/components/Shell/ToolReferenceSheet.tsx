@@ -13,7 +13,6 @@ import {
   Mountain,
   MousePointer,
   PenTool,
-  Redo2,
   Ruler,
   ScanSearch,
   ScrollText,

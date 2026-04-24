@@ -630,6 +630,8 @@ export function LandingPage() {
                       }
                     }}
                     placeholder={`e.g. ${selectedLens.tagline.split(".")[0]}`}
+                    role="combobox"
+                    aria-controls="landing-location-suggestions"
                     aria-describedby={locationError ? "location-error" : undefined}
                     aria-invalid={!!locationError}
                     aria-autocomplete="list"
@@ -663,6 +665,7 @@ export function LandingPage() {
                   <div
                     className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl border border-[color:var(--border-soft)] p-3 shadow-[var(--shadow-panel)]"
                     style={{ background: "var(--surface-panel)" }}
+                    id="landing-location-suggestions"
                     role="listbox"
                     aria-label="Location suggestions"
                   >
