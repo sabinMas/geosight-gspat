@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Compass, Loader2, MapPin, Navigation2, Utensils } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ChevronLeft, Crosshair, MapPin, Sparkles } from "lucide-react";
+import { SearchBar } from "@/components/Shell/SearchBar";
 import { MobileBottomSheet } from "@/components/Mobile/MobileBottomSheet";
-import { buildAnalysisOverview } from "@/lib/analysis-summary";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { GeodataResult, MissionProfile, NearbyPlaceCategory, SiteScore } from "@/types";
+import { LocationSearchResult, MissionProfile, SiteScore } from "@/types";
 
 type SnapPoint = "peek" | "half" | "full";
 
@@ -15,62 +16,61 @@ interface MobileChromeProps {
   locationReady: boolean;
   profile: MissionProfile;
   score: SiteScore | null;
-  geodata: GeodataResult | null;
   loading: boolean;
-  error: string | null;
-  onQuickCategory: (category: NearbyPlaceCategory) => void;
-  onOpenWorkspace: () => void;
-  rightPanelContent: React.ReactNode;
+  onLocate: (result: LocationSearchResult) => void;
+  onUserPositionChange?: (coords: { lat: number; lng: number } | null) => void;
+  onOpenChat: () => void;
 }
-
-const QUICK_CATEGORIES: Array<{
-  id: NearbyPlaceCategory;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}> = [
-  { id: "restaurant", label: "Food", icon: Utensils },
-  { id: "trail", label: "Trails", icon: Compass },
-  { id: "hike", label: "Hikes", icon: Navigation2 },
-  { id: "landmark", label: "Landmarks", icon: MapPin },
-];
 
 export function MobileChrome({
   locationName,
   locationReady,
   profile,
   score,
-  geodata,
   loading,
-  error,
-  onQuickCategory,
-  onOpenWorkspace,
-  rightPanelContent,
+  onLocate,
+  onUserPositionChange,
+  onOpenChat,
 }: MobileChromeProps) {
   const [snap, setSnap] = useState<SnapPoint>("peek");
+  const [tracking, setTracking] = useState(false);
+  const watchId = useRef<number | null>(null);
 
-  const overview = buildAnalysisOverview({
-    geodata,
-    score,
-    profile,
-    locationName,
-    loading,
-    error,
-  });
+  const stopTracking = useCallback(() => {
+    if (watchId.current !== null && typeof navigator !== "undefined") {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
+    setTracking(false);
+    onUserPositionChange?.(null);
+  }, [onUserPositionChange]);
+
+  const startTracking = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setTracking(true);
+    watchId.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        onUserPositionChange?.({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      () => {
+        setTracking(false);
+        watchId.current = null;
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 },
+    );
+  }, [onUserPositionChange]);
+
+  useEffect(() => () => stopTracking(), [stopTracking]);
 
   const scoreValue = score && !loading ? Math.round(score.total) : null;
 
-  const handleQuickCategory = (category: NearbyPlaceCategory) => {
-    onQuickCategory(category);
-    onOpenWorkspace();
-    if (snap === "peek") setSnap("half");
-  };
-
   const peek = (
     <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)]">
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-[var(--muted-foreground)]" />
-        ) : scoreValue !== null ? (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)]">
+        {scoreValue !== null ? (
           <span className="text-sm font-semibold tabular-nums text-[var(--foreground)]">
             {scoreValue}
           </span>
@@ -83,100 +83,93 @@ export function MobileChrome({
           {locationReady ? locationName : "Search a place to begin"}
         </div>
         <div className="truncate text-xs text-[var(--muted-foreground)]">
-          {locationReady
-            ? `${profile.name}${scoreValue !== null ? " · " + overview.confidenceLabel : ""}`
-            : "Apple Maps–style quick analysis"}
+          {locationReady ? profile.name : "Tap the search above"}
         </div>
       </div>
-    </div>
-  );
-
-  const quickChips = (
-    <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {QUICK_CATEGORIES.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => handleQuickCategory(id)}
-          disabled={!locationReady}
-          className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition",
-            "active:bg-[var(--surface-raised)]",
-            !locationReady && "opacity-50",
-          )}
-        >
-          <Icon className="h-3.5 w-3.5" />
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-
-  const half = (
-    <div className="space-y-3">
-      {quickChips}
-
-      {locationReady && !loading ? (
-        <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3">
-          <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-            Summary
-          </div>
-          <p className="mt-1 text-sm leading-6 text-[var(--foreground)]">
-            {overview.summary}
-          </p>
-        </div>
-      ) : null}
-
-      {overview.strengths.length > 0 ? (
-        <div className="rounded-2xl border border-[color:var(--success-border)] bg-[var(--success-soft)] p-3">
-          <div className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
-            Strengths
-          </div>
-          <ul className="mt-1.5 space-y-1 text-sm leading-5 text-[var(--foreground)]">
-            {overview.strengths.slice(0, 3).map((item, idx) => (
-              <li key={idx} className="truncate">· {item}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {overview.watchouts.length > 0 ? (
-        <div className="rounded-2xl border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-3">
-          <div className="text-xs uppercase tracking-[0.18em] text-[var(--warning-foreground)]">
-            Watchouts
-          </div>
-          <ul className="mt-1.5 space-y-1 text-sm leading-5 text-[var(--warning-foreground)]">
-            {overview.watchouts.slice(0, 3).map((item, idx) => (
-              <li key={idx} className="truncate">· {item}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       {locationReady ? (
         <Button
           type="button"
-          size="sm"
-          variant="secondary"
-          className="w-full rounded-full"
-          onClick={() => setSnap("full")}
+          size="icon"
+          variant="default"
+          className="h-10 w-10 shrink-0 rounded-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenChat();
+          }}
+          aria-label="Ask GeoSight about this place"
         >
-          View full analysis
+          <Sparkles className="h-4 w-4" />
         </Button>
       ) : null}
     </div>
   );
 
-  const full = <div className="pt-1">{rightPanelContent}</div>;
+  const body = (
+    <div className="space-y-3">
+      {locationReady ? (
+        <Button
+          type="button"
+          variant="default"
+          className="w-full rounded-full"
+          onClick={onOpenChat}
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Ask GeoSight about this place
+        </Button>
+      ) : null}
+
+      <p className="text-xs leading-5 text-[var(--muted-foreground)]">
+        Mobile view is streamlined for quick lookup — search any place, see its
+        score, and ask GeoSight what stands out. Open the full workspace on a
+        laptop for drawing tools, comparisons, and reports.
+      </p>
+    </div>
+  );
 
   return (
     <div className="lg:hidden">
+      {/* Floating top bar: back + search */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start gap-2 px-3 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
+        <Link
+          href="/"
+          aria-label="Back to landing"
+          className="pointer-events-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--background-elevated)] text-[var(--foreground)] shadow-[var(--shadow-panel)]"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Link>
+        <div className="pointer-events-auto min-w-0 flex-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-1 shadow-[var(--shadow-panel)]">
+          <SearchBar
+            compact
+            placeholder="Search a place"
+            submitLabel="Go"
+            syncValue={locationReady ? locationName : ""}
+            onLocate={onLocate}
+          />
+        </div>
+      </div>
+
+      {/* Floating locate-me */}
+      <button
+        type="button"
+        onClick={() => (tracking ? stopTracking() : startTracking())}
+        aria-label={tracking ? "Stop live tracking" : "Show my location"}
+        className={cn(
+          "fixed right-3 z-30 flex h-11 w-11 items-center justify-center rounded-full border bg-[var(--background-elevated)] shadow-[var(--shadow-panel)] transition",
+          "bottom-[calc(140px+env(safe-area-inset-bottom)+1rem)]",
+          tracking
+            ? "border-[color:var(--accent-strong)] text-[var(--accent)]"
+            : "border-[color:var(--border-soft)] text-[var(--foreground)]",
+        )}
+      >
+        <Crosshair className="h-4 w-4" />
+      </button>
+
       <MobileBottomSheet
         snap={snap}
         onSnapChange={setSnap}
         peekContent={peek}
-        halfContent={half}
-        fullContent={full}
+        halfContent={body}
+        fullContent={body}
       />
     </div>
   );
