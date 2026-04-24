@@ -1262,14 +1262,7 @@ export function ExploreWorkspace() {
         Icon: Globe,
         keywords: "rotate globe 3d explore",
       },
-      {
-        id: "action-toggle-drive",
-        label: state.driveMode ? "Exit drive mode" : "Enter drive mode",
-        description: "Move through the landscape in first-person with the terrain-aware vehicle view.",
-        section: "Actions",
-        Icon: Car,
-        keywords: "drive mode wasd vehicle terrain",
-      },
+      // Drive mode hidden — not demo-ready
       {
         id: "action-draw-area",
         label: "Start draw area tool",
@@ -2138,26 +2131,7 @@ export function ExploreWorkspace() {
             >
               <Map className="h-4 w-4" />
             </button>
-            {state.mapEngine === "cesium" && (
-              <>
-                <div className="h-px bg-[color:var(--border-soft)]" />
-                <button
-                  type="button"
-                  aria-pressed={state.driveMode}
-                  aria-label={state.driveMode ? "Exit drive mode" : "Enter drive mode"}
-                  title={state.driveMode ? "Exit drive mode" : "Enter drive mode (WASD)"}
-                  onClick={() => state.setDriveMode((current) => !current)}
-                  className={cn(
-                    "flex h-11 w-11 items-center justify-center transition duration-150",
-                    state.driveMode
-                      ? "bg-[var(--accent-soft)] text-[var(--accent-foreground)]"
-                      : "text-[var(--muted-foreground)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
-                  )}
-                >
-                  <Car className="h-4 w-4" />
-                </button>
-              </>
-            )}
+            {/* Drive mode hidden — not demo-ready */}
           </div>
 
           <GlobeViewSelector

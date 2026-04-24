@@ -66,7 +66,7 @@ const LENS_COLORS: Record<string, string> = {
   "field-research": "#8b5cf6",
 };
 
-const TRUST_SOURCES = ["USGS", "NOAA", "NASA FIRMS", "FEMA", "Sentinel-2", "OpenStreetMap"];
+const TRUST_SOURCES = ["OpenAI Codex", "NASA POWER", "USGS", "NOAA", "NASA FIRMS", "FEMA", "Sentinel-2", "OpenStreetMap"];
 
 
 const HOW_IT_WORKS = [
@@ -453,7 +453,7 @@ export function LandingPage() {
             <span style={{ color: "var(--muted-foreground)" }}>in under a minute.</span>
           </h1>
           <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-            For home buyers, site developers, field researchers, and anyone who needs to understand a place fast. Powered by 40+ live government datasets.
+            For home buyers, site developers, field researchers, and anyone who needs to understand a place fast. Built with OpenAI Codex. Powered by 40+ live government datasets — NASA, USGS, NOAA, and more.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button

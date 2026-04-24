@@ -182,4 +182,56 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
       },
     ],
   },
+  {
+    id: "energy-solar",
+    label: "Solar Site Analysis",
+    tagline: "Evaluating Phoenix, AZ for a commercial solar installation",
+    icon: "☀️",
+    lat: 33.4484,
+    lng: -112.074,
+    lensId: "energy-solar",
+    appMode: "explorer",
+    locationName: "Phoenix, AZ",
+    steps: [
+      {
+        title: "Solar Site Analysis — Phoenix, AZ",
+        message:
+          "The Energy & Solar lens pulls live NASA POWER climatology data — global horizontal irradiance, clearness index, UV index, and monthly solar averages for this exact coordinate.",
+        targetId: "demo-globe",
+        duration: 5000,
+      },
+      {
+        title: "Solar Resource Card",
+        message:
+          "Annual GHI, peak sun hours, best/worst month, and clearness index from NASA POWER. The sky dome shows the sun's arc for today and the chart plots elevation across all 24 hours.",
+        cardId: "solar-resource",
+        targetId: "demo-panel",
+        duration: 6500,
+      },
+      {
+        title: "Live Sun Path & Time Slider",
+        message:
+          "Drag the time-of-day slider to see real solar elevation and azimuth at any hour. Shadow multiplier updates live — critical for panel tilt and shading analysis.",
+        cardId: "solar-resource",
+        targetId: "demo-panel",
+        duration: 6500,
+      },
+      {
+        title: "UV Index & Climate History",
+        message:
+          "Monthly UV index from NASA POWER alongside 30-year climate averages. Phoenix peaks above UV index 10 — high irradiance, minimal cloud cover, strong solar case.",
+        cardId: "solar-resource",
+        targetId: "demo-panel",
+        duration: 6000,
+      },
+      {
+        title: "GeoAnalyst — Solar Feasibility",
+        message:
+          "Ask GeoSight: 'Is this a strong site for a commercial solar installation?' The AI reasons over live irradiance, climate trajectory, and land use context — not generic advice.",
+        cardId: "chat",
+        targetId: "demo-panel",
+        duration: 6000,
+      },
+    ],
+  },
 ];
