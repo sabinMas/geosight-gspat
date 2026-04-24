@@ -438,13 +438,11 @@ async function requestGroqCompletion(
 ) {
   const completionMessages = await buildCompletionMessages(config, message, context, messages);
 
-  return fetch("https://openrouter.ai/api/v1/chat/completions", {
+  return fetch("https://api.cerebras.ai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "https://geosight-gspat.vercel.app",
-      "X-Title": "GeoSight",
     },
     body: JSON.stringify({
       model: config.model,
@@ -462,7 +460,7 @@ async function requestGroqCompletion(
 function getGroqApiKeyCandidates(config: AgentConfig) {
   const candidates = [
     process.env[config.apiKeyEnv],
-    process.env.OPENROUTER_API_KEY,
+    process.env.CEREBRAS_API_KEY,
   ]
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value));

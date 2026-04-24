@@ -48,8 +48,8 @@ export const GEO_ANALYST_SYSTEM_PROMPT =
 export const GEO_USABILITY_SYSTEM_PROMPT =
   "You are GeoUsability, the internal UX audit agent for GeoSight. You review front-end state for clutter, overflow, discoverability, and hierarchy problems. Always anchor your response in the structured UI findings and UI context already provided. Do not invent visual issues that are not supported by the audit. Format responses as concise audit notes with severity, affected surface, issue type, and a specific recommendation.";
 
-const DEFAULT_AGENT_MODEL = "meta-llama/llama-3.3-70b-instruct";
-const LIGHTWEIGHT_AGENT_MODEL = "meta-llama/llama-3.1-8b-instruct";
+const DEFAULT_AGENT_MODEL = "llama-3.3-70b";
+const LIGHTWEIGHT_AGENT_MODEL = "llama3.1-8b";
 
 export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
   "geo-analyst": {
@@ -57,7 +57,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoAnalyst",
     tagline: "Site intelligence & scoring",
     model: DEFAULT_AGENT_MODEL,
-    apiKeyEnv: "OPENROUTER_API_KEY",
+    apiKeyEnv: "CEREBRAS_API_KEY",
     temperature: 0.3,
     maxTokens: 2048,
     accentColor: "var(--color-primary)",
@@ -68,7 +68,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoGuide",
     tagline: "Interface help & onboarding",
     model: LIGHTWEIGHT_AGENT_MODEL,
-    apiKeyEnv: "OPENROUTER_API_KEY",
+    apiKeyEnv: "CEREBRAS_API_KEY",
     temperature: 0.1,
     maxTokens: 512,
     accentColor: "var(--color-warning)",
@@ -80,7 +80,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoScribe",
     tagline: "Reports & export writing",
     model: DEFAULT_AGENT_MODEL,
-    apiKeyEnv: "OPENROUTER_API_KEY",
+    apiKeyEnv: "CEREBRAS_API_KEY",
     temperature: 0.2,
     maxTokens: 4096,
     accentColor: "var(--color-text-muted)",
@@ -92,7 +92,7 @@ export const AGENT_CONFIGS: Record<AgentId, AgentConfig> = {
     name: "GeoUsability",
     tagline: "Front-end UX audit",
     model: LIGHTWEIGHT_AGENT_MODEL,
-    apiKeyEnv: "OPENROUTER_API_KEY",
+    apiKeyEnv: "CEREBRAS_API_KEY",
     temperature: 0.1,
     maxTokens: 1024,
     accentColor: "var(--color-success)",

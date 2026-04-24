@@ -6,14 +6,14 @@ function hasConfiguredEnv(envName: string) {
 }
 
 export async function GET() {
-  const openRouterConfigured = hasConfiguredEnv("OPENROUTER_API_KEY");
+  const openRouterConfigured = hasConfiguredEnv("CEREBRAS_API_KEY");
   const geminiConfigured = hasConfiguredEnv("GEMINI_API_KEY");
   const agentStatuses = Object.fromEntries(
     Object.entries(AGENT_CONFIGS).map(([agentId, config]) => [
       agentId,
       {
         configured: hasConfiguredEnv(config.apiKeyEnv),
-        provider: "openrouter",
+        provider: "cerebras",
         envKey: config.apiKeyEnv,
       },
     ]),
@@ -25,7 +25,7 @@ export async function GET() {
       status: liveAnalysisAvailable ? "ok" : "degraded",
       liveAnalysisAvailable,
       analysisProviders: {
-        openrouter: {
+        cerebras: {
           configured: openRouterConfigured,
         },
         gemini: {

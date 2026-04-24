@@ -281,7 +281,7 @@ These are decisions that have been tested and should not be undone:
 
 See `.env.example` for all keys. Minimum for local development:
 - `NEXT_PUBLIC_CESIUM_ION_TOKEN` — globe will not render without this
-- `OPENROUTER_API_KEY` — single key for all AI features (chat, analysis, all agents); falls back to deterministic mode without this
+- `CEREBRAS_API_KEY` — single key for all AI features (chat, analysis, all agents); falls back to deterministic mode without this
 
 Optional:
 - `GEMINI_API_KEY` — fallback reasoning + RAG embeddings

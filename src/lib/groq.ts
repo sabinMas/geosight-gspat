@@ -7,21 +7,20 @@ import { buildGroqAnalysisMessages } from "@/lib/geosight-assistant";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_REFERER = "https://geosight-gspat.vercel.app";
+const CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/chat/completions";
 
-const DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct";
+const DEFAULT_MODEL = "llama-3.3-70b";
 
 const PROFILE_MODEL_MAP: Record<string, string> = {
   "data-center": DEFAULT_MODEL,
-  hiking: "meta-llama/llama-3.1-8b-instruct",
+  hiking: "llama3.1-8b",
   "home-buying": DEFAULT_MODEL,
   "site-development": DEFAULT_MODEL,
-  commercial: "meta-llama/llama-3.1-8b-instruct",
+  commercial: "llama3.1-8b",
 };
 
-function getOpenRouterKey() {
-  const key = process.env.OPENROUTER_API_KEY?.trim();
+function getCerebrasKey() {
+  const key = process.env.CEREBRAS_API_KEY?.trim();
   if (!key) {
     throw new AnalysisProviderError("groq", "missing_config");
   }
@@ -32,28 +31,22 @@ function resolveModel(profileId: string) {
   return PROFILE_MODEL_MAP[profileId] ?? DEFAULT_MODEL;
 }
 
-function buildHeaders(apiKey: string) {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
-    "HTTP-Referer": OPENROUTER_REFERER,
-    "X-Title": "GeoSight",
-  };
-}
-
 export async function runGroqAnalysis(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ): Promise<AnalysisResult> {
-  const apiKey = getOpenRouterKey();
+  const apiKey = getCerebrasKey();
   const model = resolveModel(profile.id);
   const messages = await buildGroqAnalysisMessages(payload, profile);
 
   let response: Response;
   try {
-    response = await fetch(OPENROUTER_BASE_URL, {
+    response = await fetch(CEREBRAS_BASE_URL, {
       method: "POST",
-      headers: buildHeaders(apiKey),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         model,
         temperature: 0.2,
@@ -92,13 +85,16 @@ export async function runGroqAnalysisStream(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ): Promise<ReadableStream<Uint8Array>> {
-  const apiKey = getOpenRouterKey();
+  const apiKey = getCerebrasKey();
   const model = resolveModel(profile.id);
   const messages = await buildGroqAnalysisMessages(payload, profile);
 
-  const response = await fetch(OPENROUTER_BASE_URL, {
+  const response = await fetch(CEREBRAS_BASE_URL, {
     method: "POST",
-    headers: buildHeaders(apiKey),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
       model,
       temperature: 0.2,
