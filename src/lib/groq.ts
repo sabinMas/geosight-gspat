@@ -1,4 +1,3 @@
-import Groq from "groq-sdk";
 import {
   AnalysisProviderError,
   AnalysisResult,
@@ -8,72 +7,84 @@ import { buildGroqAnalysisMessages } from "@/lib/geosight-assistant";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
-const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_REFERER = "https://geosight-gspat.vercel.app";
+
+const DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct";
 
 const PROFILE_MODEL_MAP: Record<string, string> = {
-  "data-center": DEFAULT_GROQ_MODEL,
-  hiking: "llama-3.1-8b-instant",
-  "home-buying": DEFAULT_GROQ_MODEL,
-  "site-development": DEFAULT_GROQ_MODEL,
-  commercial: "llama-3.1-8b-instant",
+  "data-center": DEFAULT_MODEL,
+  hiking: "meta-llama/llama-3.1-8b-instruct",
+  "home-buying": DEFAULT_MODEL,
+  "site-development": DEFAULT_MODEL,
+  commercial: "meta-llama/llama-3.1-8b-instruct",
 };
 
-function getGroqKeys() {
-  return Array.from(
-    new Set(
-      [process.env.GROQ_API_KEY, process.env.GROQ_API_KEY_2, process.env.GROQ_API_KEY_3]
-        .map((value) => value?.trim())
-        .filter((value): value is string => Boolean(value)),
-    ),
-  );
-}
-
-function pickGroqKey() {
-  const keys = getGroqKeys();
-
-  if (!keys.length) {
+function getOpenRouterKey() {
+  const key = process.env.OPENROUTER_API_KEY?.trim();
+  if (!key) {
     throw new AnalysisProviderError("groq", "missing_config");
   }
-
-  return keys[Math.floor(Math.random() * keys.length)];
+  return key;
 }
 
 function resolveModel(profileId: string) {
-  return PROFILE_MODEL_MAP[profileId] ?? DEFAULT_GROQ_MODEL;
+  return PROFILE_MODEL_MAP[profileId] ?? DEFAULT_MODEL;
+}
+
+function buildHeaders(apiKey: string) {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    "HTTP-Referer": OPENROUTER_REFERER,
+    "X-Title": "GeoSight",
+  };
 }
 
 export async function runGroqAnalysis(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
-) : Promise<AnalysisResult> {
-  const apiKey = pickGroqKey();
+): Promise<AnalysisResult> {
+  const apiKey = getOpenRouterKey();
   const model = resolveModel(profile.id);
   const messages = await buildGroqAnalysisMessages(payload, profile);
-  const groq = new Groq({ apiKey });
-  const signal = AbortSignal.timeout(25_000);
-  let completion;
+
+  let response: Response;
   try {
-    completion = await groq.chat.completions.create(
-      {
+    response = await fetch(OPENROUTER_BASE_URL, {
+      method: "POST",
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({
         model,
         temperature: 0.2,
-        messages: messages.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
-      },
-      { signal },
-    );
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
   } catch (error) {
     throw normalizeProviderError(error, "groq");
   }
-  const response = completion.choices[0]?.message?.content?.trim();
-  if (!response) {
+
+  if (!response.ok) {
+    throw normalizeProviderError({ status: response.status }, "groq");
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (error) {
+    throw normalizeProviderError(error, "groq");
+  }
+
+  const content =
+    (json as { choices?: { message?: { content?: string } }[] }).choices?.[0]?.message?.content?.trim();
+  if (!content) {
     throw new AnalysisProviderError("groq", "empty_response");
   }
+
   return {
-    response,
-    model: completion.model ?? model,
+    response: content,
+    model: (json as { model?: string }).model ?? model,
   };
 }
 
@@ -81,27 +92,57 @@ export async function runGroqAnalysisStream(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ): Promise<ReadableStream<Uint8Array>> {
-  const apiKey = pickGroqKey();
+  const apiKey = getOpenRouterKey();
   const model = resolveModel(profile.id);
   const messages = await buildGroqAnalysisMessages(payload, profile);
-  const groq = new Groq({ apiKey });
-  const signal = AbortSignal.timeout(25_000);
-  const completion = await groq.chat.completions.create(
-    {
+
+  const response = await fetch(OPENROUTER_BASE_URL, {
+    method: "POST",
+    headers: buildHeaders(apiKey),
+    body: JSON.stringify({
       model,
       temperature: 0.2,
       stream: true,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    },
-    { signal },
-  );
+    }),
+    signal: AbortSignal.timeout(25_000),
+  });
+
+  if (!response.ok || !response.body) {
+    throw normalizeProviderError({ status: response.status }, "groq");
+  }
+
   const encoder = new TextEncoder();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
   return new ReadableStream<Uint8Array>({
     async start(controller) {
+      let buffer = "";
       try {
-        for await (const chunk of completion) {
-          const delta = chunk.choices[0]?.delta?.content ?? "";
-          if (delta) controller.enqueue(encoder.encode(delta));
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") {
+              controller.close();
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data) as {
+                choices?: { delta?: { content?: string } }[];
+              };
+              const delta = parsed.choices?.[0]?.delta?.content ?? "";
+              if (delta) controller.enqueue(encoder.encode(delta));
+            } catch {
+              // skip malformed SSE lines
+            }
+          }
         }
         controller.close();
       } catch (err) {

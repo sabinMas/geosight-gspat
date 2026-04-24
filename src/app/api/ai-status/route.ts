@@ -6,32 +6,27 @@ function hasConfiguredEnv(envName: string) {
 }
 
 export async function GET() {
-  const groqAnalysisKeys = [
-    "GROQ_API_KEY",
-    "GROQ_API_KEY_2",
-    "GROQ_API_KEY_3",
-  ].filter(hasConfiguredEnv);
+  const openRouterConfigured = hasConfiguredEnv("OPENROUTER_API_KEY");
   const geminiConfigured = hasConfiguredEnv("GEMINI_API_KEY");
   const agentStatuses = Object.fromEntries(
     Object.entries(AGENT_CONFIGS).map(([agentId, config]) => [
       agentId,
       {
         configured: hasConfiguredEnv(config.apiKeyEnv),
-        provider: "groq",
+        provider: "openrouter",
         envKey: config.apiKeyEnv,
       },
     ]),
   );
-  const liveAnalysisAvailable = groqAnalysisKeys.length > 0 || geminiConfigured;
+  const liveAnalysisAvailable = openRouterConfigured || geminiConfigured;
 
   return NextResponse.json(
     {
       status: liveAnalysisAvailable ? "ok" : "degraded",
       liveAnalysisAvailable,
       analysisProviders: {
-        groq: {
-          configured: groqAnalysisKeys.length > 0,
-          configuredKeyCount: groqAnalysisKeys.length,
+        openrouter: {
+          configured: openRouterConfigured,
         },
         gemini: {
           configured: geminiConfigured,

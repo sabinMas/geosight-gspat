@@ -24,7 +24,6 @@
     "cesium": "^1.133.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "groq-sdk": "^0.31.0",
     "html-to-image": "^1.11.13",
     "jszip": "^3.10.1",
     "lucide-react": "^0.542.0",
