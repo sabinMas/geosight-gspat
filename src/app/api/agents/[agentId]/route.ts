@@ -4,8 +4,6 @@ import {
   createRateLimitResponse,
 } from "@/lib/request-guards";
 import {
-  AGENT_CONFIGS,
-  AgentConfig,
   GeoSightContext,
   GeoSightUiContext,
   getAgentConfig,
@@ -13,8 +11,6 @@ import {
 } from "@/lib/agents/agent-config";
 import { buildFallbackAssessment, formatLocationLabel } from "@/lib/geosight-assistant";
 import { getProfileById } from "@/lib/profiles";
-import { injectRagIntoMessages } from "@/lib/rag/inject";
-import { CoreMessage } from "@/lib/rag/types";
 import { formatUiAuditResult, runDeterministicUiAudit } from "@/lib/ux-audit";
 import {
   AnalyzeRequestBody,
@@ -27,15 +23,6 @@ import {
   WorkspaceCardId,
   WorkspaceShellMode,
 } from "@/types";
-
-type GroqStreamChunk = {
-  choices?: Array<{
-    delta?: {
-      content?: string | null;
-    };
-    finish_reason?: string | null;
-  }>;
-};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -243,43 +230,143 @@ function buildGeoGuideFallback(message: string, context?: GeoSightContext) {
   return `You are currently in ${uiContext?.shellMode ?? "minimal"} mode with ${uiContext?.visiblePrimaryCardId ?? "the main location panel"} as the primary panel and supporting panels ${supportingViews}. Stay in the current shell for one-place reasoning, or open Add panel if you want to reveal a specific supporting panel without cluttering the workbench.`;
 }
 
+function fmt(val: number | null | undefined, unit: string, decimals = 1) {
+  if (val === null || val === undefined) return "—";
+  return `${val.toFixed(decimals)} ${unit}`;
+}
+
+function fmtInt(val: number | null | undefined, unit = "") {
+  if (val === null || val === undefined) return "—";
+  return unit ? `${Math.round(val).toLocaleString()} ${unit}` : Math.round(val).toLocaleString();
+}
+
 function buildGeoScribeFallback(message: string, context?: GeoSightContext) {
   const payload = buildAnalyzePayload(message, context);
   const profile = getProfileById(payload.profileId);
   const locationLabel = formatLocationLabel(payload);
-  const scoreLine =
-    typeof context?.score === "number"
-      ? `Current mission score: ${context.score}/100.`
-      : "Current mission score is unavailable in the active context.";
-  const assessment = buildFallbackAssessment(payload, profile);
+  const now = new Date().toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+  });
+  const scoreVal = typeof context?.score === "number" ? context.score : null;
+  const scoreStr = scoreVal !== null ? `${Math.round(scoreVal)}/100` : "—";
 
-  return [
-    "# Site Assessment Report",
+  // Pull live geodata from the context bundle if available.
+  const bundle = context?.dataBundle;
+  const geo = (bundle?.geodata ?? null) as GeodataResult | null;
+  const c = geo?.climate ?? null;
+  const h = geo?.hazards ?? null;
+  const d = geo?.demographics ?? null;
+  const am = geo?.amenities ?? null;
+  const aq = geo?.airQuality ?? null;
+  const fl = geo?.floodZone ?? null;
+  const sr = geo?.solarResource ?? null;
+
+  const lat = context?.lat ?? geo?.coordinates?.lat;
+  const lng = context?.lng ?? geo?.coordinates?.lng;
+  const coordStr = (lat !== undefined && lng !== undefined)
+    ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+    : "—";
+
+  const lines: string[] = [
+    `# GeoSight Site Report — ${locationLabel}`,
+    `*Generated ${now} · ${profile.name} profile · Score ${scoreStr}*`,
+    "",
+    "---",
+    "",
     "## Executive Summary",
-    `This fallback report covers ${locationLabel} through the ${profile.name} mission profile. It was assembled from the live GeoSight context bundle because the external report model is unavailable right now.`,
+    buildFallbackAssessment(payload, profile),
     "",
-    "## Data Status And Coverage",
-    "- Report mode: GeoSight grounded fallback writer",
-    "- Method: structured synthesis from the currently loaded source bundle, scores, and supporting evidence",
+    "---",
+    "",
+    "## Location Overview",
+    `| Field | Value |`,
+    `|---|---|`,
+    `| Coordinates | ${coordStr} |`,
+    `| Mission profile | ${profile.name} |`,
+    `| GeoSight score | ${scoreStr} |`,
+    `| Elevation | ${fmt(geo?.elevationMeters ?? null, "m", 0)} |`,
+    geo?.nearestRoad?.name ? `| Nearest road | ${geo.nearestRoad.name} (${fmt(geo.nearestRoad.distanceKm, "km")}) |` : "",
+    geo?.nearestWaterBody?.name ? `| Nearest water | ${geo.nearestWaterBody.name} (${fmt(geo.nearestWaterBody.distanceKm, "km")}) |` : "",
+    geo?.nearestPower?.name ? `| Nearest power | ${geo.nearestPower.name} (${fmt(geo.nearestPower.distanceKm, "km")}) |` : "",
+  ].filter(l => l !== "");
+
+  if (c) {
+    lines.push("", "---", "", "## Climate & Weather");
+    lines.push(`| Signal | Value |`, `|---|---|`);
+    if (c.currentTempC !== null) lines.push(`| Current temperature | ${fmt(c.currentTempC, "°C")} |`);
+    if (c.dailyHighTempC !== null) lines.push(`| Daily high | ${fmt(c.dailyHighTempC, "°C")} |`);
+    if (c.dailyLowTempC !== null) lines.push(`| Daily low | ${fmt(c.dailyLowTempC, "°C")} |`);
+    if (c.precipitationMm !== null) lines.push(`| Precipitation | ${fmt(c.precipitationMm, "mm")} |`);
+    if (c.windSpeedKph !== null) lines.push(`| Wind speed | ${fmt(c.windSpeedKph, "km/h")} |`);
+    if (c.coolingDegreeDays !== null) lines.push(`| Cooling degree days | ${fmtInt(c.coolingDegreeDays)} CDD |`);
+    if (c.weatherRiskSummary) lines.push("", `> ${c.weatherRiskSummary}`);
+  }
+
+  if (aq) {
+    lines.push("", "---", "", "## Air Quality");
+    lines.push(`| Signal | Value |`, `|---|---|`);
+    if (aq.pm25 !== null) lines.push(`| PM2.5 | ${fmt(aq.pm25, "µg/m³")} |`);
+    if (aq.pm10 !== null) lines.push(`| PM10 | ${fmt(aq.pm10, "µg/m³")} |`);
+    if (aq.aqiCategory) lines.push(`| AQI category | ${aq.aqiCategory} |`);
+    if (aq.stationName) lines.push(`| Nearest station | ${aq.stationName} (${fmt(aq.distanceKm, "km")}) |`);
+  }
+
+  if (h) {
+    lines.push("", "---", "", "## Natural Hazards");
+    lines.push(`| Signal | Value |`, `|---|---|`);
+    if (h.earthquakeCount30d !== null) lines.push(`| Earthquakes (30 d) | ${fmtInt(h.earthquakeCount30d)} |`);
+    if (h.strongestEarthquakeMagnitude30d !== null) lines.push(`| Strongest quake | M${fmt(h.strongestEarthquakeMagnitude30d, "")} |`);
+    if (h.nearestEarthquakeKm !== null) lines.push(`| Nearest quake | ${fmt(h.nearestEarthquakeKm, "km")} |`);
+    if (h.activeFireCount7d !== null) lines.push(`| Active fires (7 d) | ${fmtInt(h.activeFireCount7d)} |`);
+    if (h.nearestFireKm !== null) lines.push(`| Nearest fire | ${fmt(h.nearestFireKm, "km")} |`);
+    if (fl?.floodZone) lines.push(`| Flood zone | ${fl.label ?? fl.floodZone} |`);
+  }
+
+  if (sr) {
+    lines.push("", "---", "", "## Solar Resource");
+    lines.push(`| Signal | Value |`, `|---|---|`);
+    if (sr.annualGhiKwhM2Day) lines.push(`| Daily GHI | ${fmt(sr.annualGhiKwhM2Day, "kWh/m²/day")} |`);
+    if (sr.peakSunHours) lines.push(`| Peak sun hours | ${fmt(sr.peakSunHours, "hrs/day")} |`);
+    if (sr.clearnessIndex) lines.push(`| Clearness index | ${fmt(sr.clearnessIndex, "", 2)} |`);
+    if (sr.bestMonth) lines.push(`| Best month | ${sr.bestMonth} |`);
+    if (sr.worstMonth) lines.push(`| Worst month | ${sr.worstMonth} |`);
+  }
+
+  if (d) {
+    lines.push("", "---", "", "## Demographics & Context");
+    lines.push(`| Signal | Value |`, `|---|---|`);
+    if (d.countyName) lines.push(`| County | ${d.countyName}${d.stateCode ? `, ${d.stateCode}` : ""} |`);
+    if (d.population) lines.push(`| Population | ${fmtInt(d.population)} |`);
+    if (d.medianHouseholdIncome) lines.push(`| Median household income | $${fmtInt(d.medianHouseholdIncome)} |`);
+    if (d.medianHomeValue) lines.push(`| Median home value | $${fmtInt(d.medianHomeValue)} |`);
+  }
+
+  if (am) {
+    lines.push("", "---", "", "## Nearby Amenities");
+    lines.push(`| Category | Count |`, `|---|---|`);
+    if (am.schoolCount !== null) lines.push(`| Schools | ${fmtInt(am.schoolCount)} |`);
+    if (am.healthcareCount !== null) lines.push(`| Healthcare | ${fmtInt(am.healthcareCount)} |`);
+    if (am.foodAndDrinkCount !== null) lines.push(`| Food & drink | ${fmtInt(am.foodAndDrinkCount)} |`);
+    if (am.transitStopCount !== null) lines.push(`| Transit stops | ${fmtInt(am.transitStopCount)} |`);
+    if (am.parkCount !== null) lines.push(`| Parks | ${fmtInt(am.parkCount)} |`);
+    if (am.trailheadCount !== null) lines.push(`| Trailheads | ${fmtInt(am.trailheadCount)} |`);
+  }
+
+  lines.push(
+    "", "---", "",
+    "## Data Coverage",
+    "- Report mode: **deterministic** — structured from live GeoSight data bundle",
+    "- Method: direct synthesis of fetched signals and deterministic scoring",
     "- Use posture: screening and briefing depth, not final engineering or regulatory diligence",
-    "",
-    "## Location Context",
-    `- Mission profile: ${profile.name}`,
-    `- Location: ${locationLabel}`,
-    `- Route context: ${context?.uiContext?.currentRoute ?? "Unknown route"}`,
-    `- Shell mode: ${context?.uiContext?.shellMode ?? "Unknown shell mode"}`,
-    "",
-    "## Current Score Signal",
-    `- ${scoreLine}`,
-    "",
-    "## Structured Assessment",
-    assessment,
-    "",
-    "## Report Status",
-    "- Generated from GeoSight's structured fallback writer.",
-    "- The external report-writing model is currently unavailable or not configured.",
-    "- Review the Source awareness card before treating this as a final export.",
-  ].join("\n");
+    "- For source freshness and coverage detail, open the Source awareness card",
+    "", "---", "",
+    "## Limitations",
+    "- Proxy heuristics and limited-coverage signals are flagged in the score factor breakdown",
+    "- This report does not substitute for site survey, regulatory review, or professional diligence",
+    "- Verify all values against primary data sources before any capital commitment",
+  );
+
+  return lines.join("\n");
 }
 
 function buildAgentFallback(agentId: string, message: string, context?: GeoSightContext) {
@@ -302,175 +389,6 @@ function buildAgentFallback(agentId: string, message: string, context?: GeoSight
   ].join("\n\n");
 }
 
-const EXPLORER_SYSTEM_PROMPT_SUFFIX =
-  " Keep your response short, practical, and in plain English — no technical jargon. Lead with the most useful thing to know, then 2-3 supporting points. Use a friendly, discovery-focused tone.";
-
-function buildSystemMessage(config: AgentConfig, context?: GeoSightContext) {
-  const modeSuffix = context?.appMode === "explorer" ? EXPLORER_SYSTEM_PROMPT_SUFFIX : "";
-  const basePrompt = `${config.systemPrompt}${modeSuffix}`;
-
-  if (!context) {
-    return basePrompt;
-  }
-
-  return `${basePrompt}\n\nCurrent analysis context: ${JSON.stringify(
-    context,
-    null,
-    2,
-  )}`;
-}
-
-async function buildCompletionMessages(
-  config: AgentConfig,
-  message: string,
-  context?: GeoSightContext,
-  messages: AgentConversationMessage[] = [],
-): Promise<CoreMessage[]> {
-  return injectRagIntoMessages(
-    [
-      {
-        role: "system",
-        content: buildSystemMessage(config, context),
-      },
-      ...messages.map((entry) => ({
-        role: entry.role,
-        content: entry.content,
-      })),
-    ],
-    message,
-  );
-}
-
-function parseGroqChunk(value: string) {
-  try {
-    return JSON.parse(value) as GroqStreamChunk;
-  } catch {
-    return null;
-  }
-}
-
-function enqueueStreamEvent(
-  rawEvent: string,
-  controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: TextEncoder,
-) {
-  const lines = rawEvent
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  for (const line of lines) {
-    if (!line.startsWith("data:")) {
-      continue;
-    }
-
-    const payload = line.slice("data:".length).trim();
-    if (!payload) {
-      continue;
-    }
-
-    if (payload === "[DONE]") {
-      return true;
-    }
-
-    const chunk = parseGroqChunk(payload);
-    const content = chunk?.choices?.[0]?.delta?.content;
-    if (content) {
-      controller.enqueue(encoder.encode(content));
-    }
-
-    if (chunk?.choices?.[0]?.finish_reason) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function createTextStream(body: ReadableStream<Uint8Array>) {
-  const reader = body.getReader();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            if (buffer.trim()) {
-              enqueueStreamEvent(buffer, controller, encoder);
-            }
-            controller.close();
-            return;
-          }
-
-          buffer += decoder.decode(value, { stream: true });
-          const events = buffer.split("\n\n");
-          buffer = events.pop() ?? "";
-
-          for (const event of events) {
-            const shouldClose = enqueueStreamEvent(event, controller, encoder);
-            if (shouldClose) {
-              await reader.cancel();
-              controller.close();
-              return;
-            }
-          }
-        }
-      } catch (error) {
-        controller.error(
-          error instanceof Error ? error : new Error("Unable to stream agent response."),
-        );
-      } finally {
-        reader.releaseLock();
-      }
-    },
-    async cancel(reason) {
-      await reader.cancel(reason);
-    },
-  });
-}
-
-async function requestGroqCompletion(
-  config: AgentConfig,
-  apiKey: string,
-  message: string,
-  context?: GeoSightContext,
-  messages: AgentConversationMessage[] = [],
-) {
-  const completionMessages = await buildCompletionMessages(config, message, context, messages);
-
-  return fetch("https://api.cerebras.ai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: config.temperature,
-      max_tokens: config.maxTokens,
-      stream: true,
-      messages: completionMessages.map((entry) => ({
-        role: entry.role,
-        content: entry.content,
-      })),
-    }),
-  });
-}
-
-function getGroqApiKeyCandidates(config: AgentConfig) {
-  const candidates = [
-    process.env[config.apiKeyEnv],
-    process.env.CEREBRAS_API_KEY,
-  ]
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
-
-  return [...new Set(candidates)];
-}
 
 export async function POST(
   request: NextRequest,
@@ -517,11 +435,16 @@ export async function POST(
   if (!message) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
-  const messages = parseConversationMessages(rawBody.messages);
+  // Parse conversation messages — kept for potential future use (appending to reports)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _messages = parseConversationMessages(rawBody.messages);
 
   const requestContext = parseGeoSightContext(rawBody.context);
-  const agentConfig = getAgentConfig(rawAgentId);
+  // agentConfig used for metadata (name, tagline) — not for AI calls
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _agentConfig = getAgentConfig(rawAgentId);
 
+  // geo-usability: already fully deterministic UI audit
   if (rawAgentId === "geo-usability") {
     const audit = runDeterministicUiAudit(requestContext?.uiContext);
     const deterministicAudit = formatUiAuditResult(audit);
@@ -534,55 +457,15 @@ export async function POST(
     });
   }
 
-  const apiKeys = getGroqApiKeyCandidates(agentConfig);
-  if (apiKeys.length === 0) {
-    return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-store",
-        "X-GeoSight-Mode": "fallback",
-      },
-    });
-  }
-
-  try {
-    for (const apiKey of apiKeys) {
-      const response = await requestGroqCompletion(
-        agentConfig,
-        apiKey,
-        message,
-        requestContext,
-        messages,
-      );
-
-      if (!response.ok || !response.body) {
-        console.warn(
-          `[agents-route] agent=${AGENT_CONFIGS[rawAgentId].id} provider_failed status=${response.status}`,
-        );
-        continue;
-      }
-
-      return new Response(createTextStream(response.body), {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Cache-Control": "no-store",
-          "X-GeoSight-Mode": "live",
-        },
-      });
-    }
-  } catch (error) {
-    console.error(
-      `[agents-route] agent=${AGENT_CONFIGS[rawAgentId].id} request_failed`,
-      error,
-    );
-
-  }
-
+  // All other agents (geo-analyst, geo-guide, geo-scribe) are deterministic.
+  // The Cerebras quota is reserved exclusively for the ChatPanel (/api/analyze).
+  // Reports and agent panel responses are built from the live data bundle with
+  // zero AI tokens — full geodata is already present in the context.
   return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store",
-      "X-GeoSight-Mode": "fallback",
+      "X-GeoSight-Mode": "deterministic",
     },
   });
 }

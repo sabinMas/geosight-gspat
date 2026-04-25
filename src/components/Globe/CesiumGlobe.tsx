@@ -1318,7 +1318,6 @@ export function CesiumGlobe({
 
     const basePosition = Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220);
     const selectedColor = Color.fromCssColorString("#00e5ff");
-    const haloColor = Color.WHITE.withAlpha(captureMode ? 0.95 : 0.55);
     const regionOutlinePositions = [
       ...regionHierarchy,
       regionHierarchy[0] ?? Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 120),
