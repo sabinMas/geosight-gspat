@@ -428,61 +428,6 @@ function payloadBroadbandLine(geodata?: GeodataResult) {
     : `${geodata.broadband.maxDownloadSpeed.toLocaleString()} Mbps down across ${geodata.broadband.providerCount} providers`;
 }
 
-function buildNextQuestions(profileId: string) {
-  switch (profileId) {
-    case "data-center":
-      return [
-        "Compare this site to another parcel closer to transmission infrastructure.",
-        "Check floodplain or permitting layers before treating the water adjacency as an advantage.",
-      ];
-    case "hiking":
-      return [
-        "Switch to nearby places mode to compare trail-style results around this location.",
-        "Zoom in on ridgelines, creek corridors, or trailheads for a more detailed recreation read.",
-      ];
-    case "home-buying":
-      return [
-        "Switch to nearby places mode to compare schools, groceries, parks, and daily-life context around this location.",
-        "Check flood, air quality, and internet context before treating this as a strong home-buying candidate.",
-      ];
-    case "site-development":
-      return [
-        "Zoom in to parcel scale and compare flatter ground near existing roads and services.",
-        "Check flood, wildfire, and school-district layers before treating this as a build-ready neighborhood site.",
-      ];
-    case "commercial":
-      return [
-        "Compare this site to another candidate closer to highway or freight access.",
-        "Zoom in to inspect frontage, access points, and surrounding commercial pattern.",
-      ];
-    case "energy-solar":
-      return [
-        "Check the Solar Resource card for the full irradiance breakdown and monthly profile.",
-        "Compare this site to a location with known solar farm density to calibrate the clearness index.",
-      ];
-    case "agriculture":
-      return [
-        "Open the Soil Profile card to review drainage class and hydrologic group before committing to a crop type.",
-        "Check the Drought Risk card for the precipitation deficit trend — a multi-year drying signal changes the water-input calculus significantly.",
-      ];
-    case "emergency-response":
-      return [
-        "Open the Disaster Alerts card for the full GDACS event list and active severity levels.",
-        "Check road and power proximity — both are critical for staging and communications infrastructure.",
-      ];
-    case "field-research":
-      return [
-        "Switch to nearby places mode to find the closest ranger stations, trailheads, or water sources.",
-        "Check weather forecast and wildfire proximity before finalizing an access window.",
-      ];
-    default:
-      return [
-        "Zoom in on the most promising sub-area for a more detailed read.",
-        "Switch between analysis and nearby places mode depending on whether you need trends or destinations next.",
-      ];
-  }
-}
-
 function classifyFallbackQuestion(
   payload: AnalyzeRequestBody,
   profile: MissionProfile,
@@ -892,7 +837,6 @@ export function buildFallbackAssessment(
   const locationLabel = formatLocationLabel(payload);
   const supportedFacts = buildSupportedFacts(payload);
 
-  const nextQuestions = buildNextQuestions(profile.id);
   const trendLines = payload.dataTrends?.length
     ? payload.dataTrends.slice(0, 4).map(formatTrendLine)
     : [];

@@ -9,16 +9,6 @@ import type { AppMode, CardAudience, CardComplexity } from "./app-mode";
 export type SiteFactorKey = string;
 export type ExploreEntrySource = "landing" | "direct";
 
-export type UseCaseType =
-  | "data_center_cooling"
-  | "outdoor_recreation"
-  | "places_discovery"
-  | "home_buying"
-  | "site_development"
-  | "retail_commercial"
-  | "warehouse_logistics"
-  | "general_exploration";
-
 export type ResultsMode = "analysis" | "nearby_places";
 export type DrawingTool = "none" | "polygon" | "marker" | "measure" | "circle";
 
@@ -235,11 +225,6 @@ export interface WorkspaceCardDefinition {
   modeVisibility: { explorer: boolean; pro: boolean };
 }
 
-/** Minimum prop contract shared by all workspace cards that render geodata. */
-export interface WorkspaceCardBaseProps {
-  geodata: GeodataResult | null;
-}
-
 export interface AnalysisCapability {
   analysisId: AnalysisCapabilityId;
   title: string;
@@ -430,6 +415,24 @@ export interface GdacsAlertSummary {
   orangeCurrentAlerts: number;
   nearestAlert: GdacsAlertSummaryItem | null;
   featuredAlerts: GdacsAlertSummaryItem[];
+}
+
+export interface NwsAlertItem {
+  id: string;
+  event: string;
+  severity: string;
+  urgency: string;
+  areaDesc: string;
+  headline: string | null;
+  effective: string | null;
+  expires: string | null;
+  url: string | null;
+}
+
+export interface NwsAlertSummary {
+  totalAlerts: number;
+  extremeOrSevere: number;
+  alerts: NwsAlertItem[];
 }
 
 export type HazardRiskTier = "low" | "moderate" | "elevated" | "critical";
@@ -717,6 +720,7 @@ export interface GeodataResult {
   airQuality: AirQualityResult | null;
   epaHazards: EPAHazardResult | null;
   hazardAlerts: GdacsAlertSummary | null;
+  weatherAlerts: NwsAlertSummary | null;
   weatherForecast: WeatherForecastDay[];
   schoolContext: SchoolContextSummary | null;
   landClassification: LandCoverBucket[];
@@ -741,6 +745,7 @@ export interface GeodataResult {
     airQuality: DataSourceMeta;
     epaHazards: DataSourceMeta;
     hazardAlerts: DataSourceMeta;
+    weatherAlerts: DataSourceMeta;
   };
   sourceNotes: string[];
 }

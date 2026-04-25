@@ -6,7 +6,7 @@ import Link from "next/link";
 import { toPng } from "html-to-image";
 import {
   BookOpen,
-  Car,
+  ChevronLeft,
   Columns2,
   Command,
   Crosshair,
@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { DemoRunner } from "@/components/Demo/DemoRunner";
+import { MobileChrome } from "@/components/Mobile/MobileChrome";
 import { DEMO_SCENARIOS } from "@/lib/demo-scenarios";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { AttributeTable } from "@/components/Explore/AttributeTable";
@@ -171,7 +172,7 @@ function locationsRoughlyMatch(
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
-  const { setGeoContext, setUiContext, primeAgent, submitAgentPrompt } = useAgentPanel();
+  const { setGeoContext, setUiContext, primeAgent, submitAgentPrompt, setPanelOpen: setAgentPanelOpen } = useAgentPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const inExplorer = isExplorerMode(state.appMode);
@@ -801,6 +802,11 @@ export function ExploreWorkspace() {
       if (event.key === "Escape") {
         event.preventDefault();
 
+        if (activeDemoScenario) {
+          setActiveDemoScenario(null);
+          return;
+        }
+
         if (commandPaletteOpen) {
           setCommandPaletteOpen(false);
           return;
@@ -936,7 +942,19 @@ export function ExploreWorkspace() {
     state.undoDrawing,
     state.redoDrawing,
     walkthroughOpen,
+    activeDemoScenario,
   ]);
+
+  // Push a history entry when the demo starts so the browser Back button
+  // dismisses the tour instead of navigating away from /explore.
+  useEffect(() => {
+    if (activeDemoScenario) {
+      window.history.pushState({ demoActive: true }, "");
+      const onPopState = () => setActiveDemoScenario(null);
+      window.addEventListener("popstate", onPopState);
+      return () => window.removeEventListener("popstate", onPopState);
+    }
+  }, [activeDemoScenario]);
 
   const visibleUiCardIds = useMemo(
     () =>
@@ -1381,7 +1399,6 @@ export function ExploreWorkspace() {
     data.reportLoading,
     data.siteScore,
     data.sites.length,
-    state.driveMode,
     state.drawnShapes.length,
     state.globeRotateMode,
     state.locationReady,
@@ -1743,10 +1760,10 @@ export function ExploreWorkspace() {
   );
 
   return (
-    <div className="flex flex-col xl:fixed xl:inset-0 xl:overflow-hidden bg-[var(--background)]">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--background)]">
 
-      {/* ── Topbar ── */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[52px] xl:py-0" aria-label="GeoSight workspace header">
+      {/* ── Topbar (desktop only) ── */}
+      <header className="hidden shrink-0 items-center gap-3 border-b border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 lg:flex xl:h-[52px] xl:py-0" aria-label="GeoSight workspace header">
         {/* Mobile menu */}
         <Button
           type="button"
@@ -1759,6 +1776,16 @@ export function ExploreWorkspace() {
         >
           <Menu className="h-4 w-4" />
         </Button>
+
+        {/* Back to landing */}
+        <Link
+          href="/"
+          aria-label="Back to landing"
+          className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 text-xs text-[var(--foreground-soft)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--foreground)]"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Back</span>
+        </Link>
 
         {/* Brand */}
         <Link href="/" className="shrink-0 text-sm font-semibold text-[var(--foreground)] transition-opacity hover:opacity-70">GeoSight</Link>
@@ -2010,7 +2037,7 @@ export function ExploreWorkspace() {
         <main
           id="main-content"
           ref={globeAreaRef}
-          className="relative min-h-[55vw] max-h-[55vh] flex-1 xl:max-h-none xl:min-h-0"
+          className="relative flex-1 min-h-0 lg:min-h-0 xl:min-h-0"
           role="region"
           aria-label="3D globe and map tools"
           data-walkthrough="globe"
@@ -2098,8 +2125,8 @@ export function ExploreWorkspace() {
             </div>
           </ClientErrorBoundary>
 
-          {/* Globe controls — pill cluster bottom-right */}
-          <div className="absolute bottom-12 right-4 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] shadow-[var(--shadow-panel)] backdrop-blur-xl">
+          {/* Globe controls — pill cluster bottom-right (desktop only) */}
+          <div className="absolute bottom-12 right-4 z-20 hidden flex-col overflow-hidden rounded-[2rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] shadow-[var(--shadow-panel)] backdrop-blur-xl lg:flex">
             <button
               type="button"
               aria-pressed={state.mapEngine === "cesium"}
@@ -2134,6 +2161,7 @@ export function ExploreWorkspace() {
             {/* Drive mode hidden — not demo-ready */}
           </div>
 
+          <div className="hidden lg:contents">
           <GlobeViewSelector
             globeViewMode={state.globeViewMode}
             onChange={state.setGlobeViewMode}
@@ -2166,7 +2194,9 @@ export function ExploreWorkspace() {
             onSetCustomLayerOpacity={setCustomLayerOpacity}
             onMoveCustomLayer={moveCustomLayer}
           />
+          </div>
           {state.selectedRegion.polygon.length > 0 ? (
+            <div className="hidden lg:contents">
             <RegionSelector
               region={state.selectedRegion}
               locationTooltip={state.selectedLocationName}
@@ -2180,6 +2210,7 @@ export function ExploreWorkspace() {
                 data.handleLocationSelection();
               }}
             />
+            </div>
           ) : null}
           {captureOverlayVisible ? (
             <TopographicCaptureOverlay
@@ -2196,7 +2227,7 @@ export function ExploreWorkspace() {
             />
           ) : null}
 
-          <div className="absolute bottom-14 left-4 right-4 z-20 xl:hidden">
+          <div className="absolute bottom-14 left-4 right-4 z-20 hidden xl:hidden lg:block">
             <div className="rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-panel)] backdrop-blur-md">
               <DrawingToolbar
                 drawingTool={state.drawingTool}
@@ -2219,6 +2250,7 @@ export function ExploreWorkspace() {
 
           {/* Map callout — appears on point select, hides when right panel opens */}
           {(state.locationReady || data.loading) && !rightPanelOpen && !calloutDismissed ? (
+            <div className="hidden lg:contents">
             <MapCallout
               geodata={data.geodata}
               score={data.siteScore}
@@ -2240,6 +2272,7 @@ export function ExploreWorkspace() {
               }}
               onDismiss={() => setCalloutDismissed(true)}
             />
+            </div>
           ) : null}
 
           {/* Coord readout — click to copy */}
@@ -2252,7 +2285,7 @@ export function ExploreWorkspace() {
             id="evidence-panel"
             tabIndex={-1}
             className={cn(
-              "flex flex-col border-t border-[color:var(--border-soft)]",
+              "hidden flex-col border-t border-[color:var(--border-soft)] lg:flex",
               "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
             )}
             role="region"
@@ -2269,7 +2302,7 @@ export function ExploreWorkspace() {
       {/* ── Bottom bar ── */}
       <footer
         role="toolbar"
-        className="flex shrink-0 flex-col gap-3 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 xl:h-[64px] xl:flex-row xl:items-center xl:py-0"
+        className="hidden shrink-0 flex-col gap-3 border-t border-[color:var(--border-soft)] bg-[var(--background-elevated)] px-4 py-3 lg:flex xl:h-[64px] xl:flex-row xl:items-center xl:py-0"
         aria-label="Workspace actions and persistent AI input"
       >
         <div className="min-w-0 flex-1 xl:max-w-[28rem]" data-walkthrough="score-card" data-demo-id="demo-score">
@@ -2465,6 +2498,28 @@ export function ExploreWorkspace() {
           </div>
         </div>
       ) : null}
+
+      <MobileChrome
+        locationName={state.selectedLocationName}
+        locationReady={state.locationReady}
+        profile={state.activeProfile}
+        score={data.siteScore}
+        loading={data.loading}
+        onLocate={(result) => {
+          state.setInitError(null);
+          setCalloutDismissed(false);
+          state.selectPoint(
+            result.coordinates,
+            result.fullName ?? result.name,
+            result.shortName,
+          );
+          data.handleLocationSelection();
+        }}
+        onOpenChat={() => {
+          primeAgent("geo-analyst");
+          setAgentPanelOpen(true);
+        }}
+      />
 
       {activeDemoScenario && (
         <DemoRunner

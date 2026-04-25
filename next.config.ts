@@ -11,12 +11,12 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  // Suppresses source map upload logs during build
-  silent: !process.env.CI,
-  // Upload source maps to Sentry for readable stack traces
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
   widenClientFileUpload: true,
-  // Hides Sentry SDK from bundle size analysis
-  sourcemaps: { disable: false },
+  // Skip release creation / source map upload when SENTRY_ORG isn't configured.
+  sourcemaps: { disable: !process.env.SENTRY_ORG },
   webpack: {
     treeshake: { removeDebugLogging: true },
     autoInstrumentServerFunctions: true,

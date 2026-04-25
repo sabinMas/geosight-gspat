@@ -61,6 +61,9 @@ export function useNpsTrails({
       });
 
     return () => { cancelled = true; };
+    // Intentionally subscribe to the primitives so object reference churn
+    // (e.g. parent component re-render) does not trigger an extra fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPoint?.lat, selectedPoint?.lng, profileId, radiusKm]);
 
   return { parks, loading, error, source };

@@ -34,12 +34,25 @@ function normalizeConversationMessages(messages: AnalyzeRequestBody["messages"])
 }
 
 export async function POST(request: NextRequest) {
+  const ua = request.headers.get("user-agent") ?? "";
+  if (ua.length < 10) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
   const rateLimit = await applyRateLimit(request, "analyze", {
     windowMs: 60_000,
     maxRequests: 15,
   });
   if (!rateLimit.allowed) {
     return createRateLimitResponse(rateLimit);
+  }
+
+  const daily = await applyRateLimit(request, "analyze:daily", {
+    windowMs: 86_400_000,
+    maxRequests: 200,
+  });
+  if (!daily.allowed) {
+    return createRateLimitResponse(daily);
   }
 
   let rawBody: unknown;
@@ -103,7 +116,7 @@ export async function POST(request: NextRequest) {
       provider,
     },
     {
-      headers,
+      headers: { ...headers, "Cache-Control": "no-store" },
     },
   );
 }

@@ -12,7 +12,7 @@ import {
 import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { summarizeSourceTrust } from "@/lib/source-trust";
-import { GeodataResult, GdacsAlertSummaryItem } from "@/types";
+import { GeodataResult, GdacsAlertSummaryItem, NwsAlertItem } from "@/types";
 
 interface DisasterAlertsCardProps {
   geodata: GeodataResult | null;
@@ -111,6 +111,66 @@ function AlertRow({ alert }: { alert: GdacsAlertSummaryItem }) {
   );
 }
 
+function nwsSeverityClasses(severity: string) {
+  const s = severity.toLowerCase();
+  if (s === "extreme" || s === "severe")
+    return "border-[color:var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-foreground)]";
+  if (s === "moderate")
+    return "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)]";
+  return "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)]";
+}
+
+function NwsAlertRow({ alert }: { alert: NwsAlertItem }) {
+  const classes = nwsSeverityClasses(alert.severity);
+  const expires = alert.expires
+    ? new Date(alert.expires).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
+
+  return (
+    <div className={`rounded-[1.25rem] border p-3 ${classes}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-[var(--foreground)] leading-snug">
+              {alert.event}
+            </span>
+            <span
+              className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.12em] cursor-default pointer-events-none select-none ${classes}`}
+            >
+              {alert.severity}
+            </span>
+          </div>
+          <div className="mt-1 text-xs text-[var(--muted-foreground)] line-clamp-1">
+            {alert.areaDesc}
+            {expires ? ` · expires ${expires}` : ""}
+          </div>
+          {alert.headline ? (
+            <p className="mt-1 text-xs leading-5 text-[var(--foreground)] opacity-75 line-clamp-2">
+              {alert.headline}
+            </p>
+          ) : null}
+        </div>
+        {alert.url ? (
+          <a
+            href={alert.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`View NWS details for ${alert.event}`}
+            className="mt-0.5 shrink-0 flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-raised)] text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function headerBadge(totalAlerts: number, redAlerts: number, orangeAlerts: number) {
   if (redAlerts > 0) {
     return (
@@ -147,8 +207,8 @@ export function DisasterAlertsCard({ geodata }: DisasterAlertsCardProps) {
     );
   }
 
-  const { hazardAlerts } = geodata;
-  const sources = [geodata.sources.hazardAlerts];
+  const { hazardAlerts, weatherAlerts } = geodata;
+  const sources = [geodata.sources.hazardAlerts, geodata.sources.weatherAlerts];
   const trustSummary = summarizeSourceTrust(sources, "Disaster alerts");
 
   return (
@@ -229,6 +289,18 @@ export function DisasterAlertsCard({ geodata }: DisasterAlertsCardProps) {
                 <AlertRow alert={hazardAlerts.nearestAlert} />
               </div>
             )}
+
+          {/* NWS weather alerts — US only */}
+          {weatherAlerts && weatherAlerts.totalAlerts > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                US weather alerts (NWS)
+              </div>
+              {weatherAlerts.alerts.map((alert) => (
+                <NwsAlertRow key={alert.id} alert={alert} />
+              ))}
+            </div>
+          )}
 
           <TrustSummaryPanel
             summary={trustSummary}

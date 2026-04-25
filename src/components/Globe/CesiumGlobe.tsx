@@ -83,6 +83,31 @@ const CESIUM_ION_TOKEN = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN?.trim() ?? "";
 
 Ion.defaultAccessToken = CESIUM_ION_TOKEN;
 
+// Picks a world position under the cursor with accurate terrain intersection.
+// Order: depth-buffer pick → terrain ray-cast → ellipsoid fallback.
+// Zoomed-in clicks on terrain require the ray-cast step; pickEllipsoid alone
+// lands far below the surface and registers in the wrong spot visually.
+function pickAccuratePosition(
+  viewer: CesiumViewer,
+  screenPos: Cartesian2,
+): Cartesian3 | undefined {
+  const scenePick = viewer.scene.pickPositionSupported
+    ? viewer.scene.pickPosition(screenPos)
+    : undefined;
+  if (scenePick) return scenePick;
+
+  const ray = viewer.camera.getPickRay(screenPos);
+  if (ray) {
+    const terrainPick = viewer.scene.globe.pick(ray, viewer.scene);
+    if (terrainPick) return terrainPick;
+  }
+
+  return (
+    viewer.camera.pickEllipsoid(screenPos, viewer.scene.globe.ellipsoid) ??
+    undefined
+  );
+}
+
 function getFlyToHeight(
   selectedPoint: Coordinates,
   selectedRegion: RegionSelection,
@@ -486,6 +511,9 @@ export function CesiumGlobe({
         viewer.destroy();
       }
     };
+    // selectedPoint is read once for the initial camera; we deliberately do not
+    // re-init the viewer when it changes — flyTo effects handle later updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewerKey]);
 
   useEffect(() => {
@@ -1113,11 +1141,7 @@ export function CesiumGlobe({
       // Feature inspector / identify mode
       if (featureInspectMode && onIdentifyResult) {
         try {
-          const earthPosition =
-            (viewer.scene.pickPositionSupported
-              ? viewer.scene.pickPosition(event.position)
-              : undefined) ??
-            viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid);
+          const earthPosition = pickAccuratePosition(viewer, event.position);
           const cartographic = earthPosition ? Cartographic.fromCartesian(earthPosition) : null;
           const clickCoordinates: Coordinates = cartographic
             ? { lat: CesiumMath.toDegrees(cartographic.latitude), lng: CesiumMath.toDegrees(cartographic.longitude) }
@@ -1151,11 +1175,7 @@ export function CesiumGlobe({
           return;
         }
 
-        const earthPosition =
-          (viewer.scene.pickPositionSupported
-            ? viewer.scene.pickPosition(event.position)
-            : undefined) ??
-          viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid);
+        const earthPosition = pickAccuratePosition(viewer, event.position);
 
         if (!earthPosition) {
           setIdentifyPopup(null);
@@ -1224,10 +1244,7 @@ export function CesiumGlobe({
 
     const pickPosition = (pos: Cartesian2): Cartesian3 | undefined => {
       try {
-        const picked = viewer.scene.pickPositionSupported
-          ? viewer.scene.pickPosition(pos)
-          : undefined;
-        return picked ?? viewer.camera.pickEllipsoid(pos, viewer.scene.globe.ellipsoid) ?? undefined;
+        return pickAccuratePosition(viewer, pos);
       } catch {
         return undefined;
       }
@@ -1828,7 +1845,7 @@ export function CesiumGlobe({
   return (
     <div
       ref={hostRef}
-      className="absolute inset-0 h-full w-full"
+      className="absolute inset-0 h-full w-full touch-none"
       role="application"
       aria-label="Interactive 3D globe. Press Escape to exit map navigation."
       tabIndex={0}

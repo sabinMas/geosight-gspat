@@ -98,7 +98,8 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     setPrefs((prev) => {
       const next = { ...prev, accentColor: hex };
       writeStored(next);
-      hex ? applyAccentToDOM(hex) : clearAccentFromDOM();
+      if (hex) applyAccentToDOM(hex);
+      else clearAccentFromDOM();
       return next;
     });
   }, []);

@@ -197,6 +197,6 @@ export async function POST(request: NextRequest) {
   };
 
   return NextResponse.json(result, {
-    headers: rateLimitHeaders(rateLimit),
+    headers: { ...rateLimitHeaders(rateLimit), "Cache-Control": "no-store" },
   });
 }

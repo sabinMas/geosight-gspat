@@ -62,6 +62,7 @@ type GeodataOverrides = {
   airQuality?: GeodataResult["airQuality"] | null;
   epaHazards?: GeodataResult["epaHazards"] | null;
   hazardAlerts?: GeodataResult["hazardAlerts"] | null;
+  weatherAlerts?: GeodataResult["weatherAlerts"] | null;
   weatherForecast?: GeodataResult["weatherForecast"];
   schoolContext?: GeodataResult["schoolContext"] | null;
   landClassification?: GeodataResult["landClassification"];
@@ -93,6 +94,7 @@ function buildGeodata(overrides: GeodataOverrides = {}): GeodataResult {
     airQuality: buildSource({ id: "air", label: "Air quality" }),
     epaHazards: buildSource({ id: "epa", label: "EPA hazards" }),
     hazardAlerts: buildSource({ id: "alerts", label: "Hazard alerts" }),
+    weatherAlerts: buildSource({ id: "weather-alerts", label: "US weather alerts" }),
   };
 
   return {
@@ -230,6 +232,7 @@ function buildGeodata(overrides: GeodataOverrides = {}): GeodataResult {
           }
         : overrides.epaHazards,
     hazardAlerts: overrides.hazardAlerts ?? null,
+    weatherAlerts: overrides.weatherAlerts ?? null,
     weatherForecast: overrides.weatherForecast ?? [],
     schoolContext: overrides.schoolContext ?? null,
     landClassification:
@@ -284,7 +287,12 @@ function buildGeodata(overrides: GeodataOverrides = {}): GeodataResult {
         ...baseSources.hazardAlerts,
         ...(overrides.sources?.hazardAlerts ?? {}),
       },
+      weatherAlerts: {
+        ...baseSources.weatherAlerts,
+        ...(overrides.sources?.weatherAlerts ?? {}),
+      },
     },
+    coordinates: { lat: 47.6062, lng: -122.3321 },
     sourceNotes: overrides.sourceNotes ?? [],
   };
 }

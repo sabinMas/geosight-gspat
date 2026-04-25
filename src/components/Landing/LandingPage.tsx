@@ -381,14 +381,14 @@ export function LandingPage() {
 
   return (
     <div
-      className="flex min-h-screen flex-col overflow-y-auto"
+      className="flex min-h-screen flex-col overflow-x-hidden overflow-y-auto"
       style={{
         background: `radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%), var(--background)`,
       }}
     >
       {/* Sticky topbar */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between border-b px-8 py-4 backdrop-blur-md"
+        className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b px-4 py-3 backdrop-blur-md sm:px-8 sm:py-4"
         style={{
           borderColor: "var(--border-soft)",
           background: "color-mix(in srgb, var(--background) 90%, transparent)",
@@ -413,7 +413,7 @@ export function LandingPage() {
           <span className="text-base font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>
             GeoSight
           </span>
-          <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+          <span className="hidden text-sm sm:inline" style={{ color: "var(--muted-foreground)" }}>
             spatial intelligence
           </span>
         </div>
@@ -431,7 +431,7 @@ export function LandingPage() {
           <button
             type="button"
             onClick={() => router.push("/explore?mode=pro")}
-            className="inline-flex items-center gap-1 text-xs transition"
+            className="hidden items-center gap-1 text-xs transition sm:inline-flex"
             style={{ color: "var(--muted-foreground)" }}
           >
             For professionals
@@ -444,7 +444,7 @@ export function LandingPage() {
       {/* Main content */}
       <main
         id="main-content"
-        className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-8 pb-12 pt-16"
+        className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-12 pt-10 sm:px-8 sm:pt-16"
       >
         {/* Hero */}
         <div className="max-w-2xl">
@@ -630,6 +630,8 @@ export function LandingPage() {
                       }
                     }}
                     placeholder={`e.g. ${selectedLens.tagline.split(".")[0]}`}
+                    role="combobox"
+                    aria-controls="landing-location-suggestions"
                     aria-describedby={locationError ? "location-error" : undefined}
                     aria-invalid={!!locationError}
                     aria-autocomplete="list"
@@ -663,6 +665,7 @@ export function LandingPage() {
                   <div
                     className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl border border-[color:var(--border-soft)] p-3 shadow-[var(--shadow-panel)]"
                     style={{ background: "var(--surface-panel)" }}
+                    id="landing-location-suggestions"
                     role="listbox"
                     aria-label="Location suggestions"
                   >

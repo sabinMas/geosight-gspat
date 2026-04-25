@@ -61,10 +61,15 @@ function TrendSignalCard({
       >
         {trend.detail}
       </div>
-      <div className="mt-2 flex items-center gap-2 text-xs">
-        <span className="text-[var(--muted-foreground)] opacity-70">{trend.source.provider}</span>
+      <div className="mt-2 flex min-w-0 items-center gap-2 text-xs">
+        <span
+          className="min-w-0 flex-1 truncate text-[var(--muted-foreground)] opacity-70"
+          title={trend.source.provider}
+        >
+          {trend.source.provider}
+        </span>
         {trend.evidenceKind ? (
-          <span className={`font-medium ${EVIDENCE_CLS[trend.evidenceKind]}`}>
+          <span className={`shrink-0 whitespace-nowrap font-medium ${EVIDENCE_CLS[trend.evidenceKind]}`}>
             {EVIDENCE_LABEL[trend.evidenceKind]}
           </span>
         ) : null}
