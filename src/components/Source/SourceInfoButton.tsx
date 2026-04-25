@@ -72,28 +72,28 @@ export function SourceInfoButton({ source, title }: SourceInfoButtonProps) {
       ref={popoverRef}
       role="tooltip"
       style={{ position: "fixed", top: pos.top, left: pos.left, transformOrigin: pos.transformOrigin }}
-      className="z-[9999] w-72 rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3 text-left shadow-[var(--shadow-panel)]"
+      className="z-[9999] w-72 rounded-xl border border-[color:var(--border-strong)] bg-[var(--background-elevated)] p-3 text-left shadow-[var(--shadow-panel)] backdrop-blur-none"
     >
-      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--foreground-soft)]">
         {title ?? source.label}
       </div>
-      <div className="mt-2 text-sm font-medium text-[var(--foreground)]">
+      <div className="mt-2 text-sm font-semibold text-[var(--foreground)]">
         {source.provider}
       </div>
-      <div className="mt-1 text-xs leading-5 text-[var(--foreground-soft)]">
+      <div className="mt-1 text-xs leading-5 text-[var(--foreground)]">
         {summarizeSourceMeta(source)}
       </div>
-      <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
+      <div className="mt-2 text-xs leading-5 text-[var(--foreground-soft)]">
         Refresh policy: {source.freshness}
       </div>
-      <div className="text-xs leading-5 text-[var(--muted-foreground)]">
+      <div className="text-xs leading-5 text-[var(--foreground-soft)]">
         {formatSourceTimestamp(source.lastUpdated)}
       </div>
-      <div className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
+      <div className="mt-1 text-xs leading-5 text-[var(--foreground-soft)]">
         {source.confidence}
       </div>
       {source.note ? (
-        <div className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
+        <div className="mt-1 text-xs leading-5 text-[var(--foreground-soft)]">
           {source.note}
         </div>
       ) : null}

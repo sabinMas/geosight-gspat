@@ -38,7 +38,6 @@ import { MobileChrome } from "@/components/Mobile/MobileChrome";
 import { DEMO_SCENARIOS } from "@/lib/demo-scenarios";
 import { AnalysisOverviewBanner } from "@/components/Explore/AnalysisOverviewBanner";
 import { AttributeTable } from "@/components/Explore/AttributeTable";
-import { PersistentAiBar } from "@/components/Explore/PersistentAiBar";
 import { PrintLayout } from "@/components/Explore/PrintLayout";
 import { TopographicCaptureOverlay } from "@/components/Explore/TopographicCaptureOverlay";
 import { WalkthroughOverlay } from "@/components/Explore/WalkthroughOverlay";
@@ -172,7 +171,7 @@ function locationsRoughlyMatch(
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
-  const { setGeoContext, setUiContext, primeAgent, submitAgentPrompt, setPanelOpen: setAgentPanelOpen } = useAgentPanel();
+  const { setGeoContext, setUiContext, primeAgent, setPanelOpen: setAgentPanelOpen } = useAgentPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const inExplorer = isExplorerMode(state.appMode);
@@ -182,7 +181,6 @@ export function ExploreWorkspace() {
     generateReport,
     geodata,
     handleLocationSelection,
-    handleQuestionIntent,
     loading,
     openAdvancedBoard,
     openCard: openWorkspaceCard,
@@ -485,22 +483,6 @@ export function ExploreWorkspace() {
     primeAgent("geo-scribe", reportPrompt);
     void generateReport();
   }, [generateReport, geodata, loading, primeAgent, reportPrompt]);
-
-  const handlePersistentQuestionSubmit = useCallback(
-    (question: string) => {
-      if (!locationReady) {
-        setWorkspaceNotice({
-          tone: "warning",
-          message: "Select a location first to ask GeoSight about it.",
-        });
-        return;
-      }
-
-      handleQuestionIntent(question);
-      submitAgentPrompt("geo-analyst", question);
-    },
-    [handleQuestionIntent, locationReady, submitAgentPrompt],
-  );
 
   const handleGlobeApiChange = useCallback((api: {
     getViewSnapshot: () => GlobeViewSnapshot | null;
@@ -2325,19 +2307,35 @@ export function ExploreWorkspace() {
           )}
         </div>
 
-        <PersistentAiBar
-          disabled={!state.locationReady}
-          onSubmit={handlePersistentQuestionSubmit}
-        />
-
-        <div className="flex flex-nowrap shrink-0 items-center gap-3 self-end xl:self-auto">
+        <div className="ml-auto flex flex-nowrap shrink-0 items-center gap-3 self-end xl:self-auto">
           <Button
             type="button"
             variant="secondary"
             size="sm"
             className="hidden shrink-0 rounded-full xl:inline-flex"
-            disabled={data.sites.length < 2}
-            onClick={() => openCard("compare")}
+            onClick={() => {
+              if (data.sites.length >= 2) {
+                openCard("compare");
+                return;
+              }
+              setWorkspaceNotice({
+                tone: "info",
+                message:
+                  data.sites.length === 0
+                    ? "Save this location first, then search a second one to compare."
+                    : "Search and save one more location to start a comparison.",
+              });
+              const searchInput = document.querySelector<HTMLInputElement>(
+                '[data-walkthrough="search-bar"] input',
+              );
+              if (searchInput) {
+                searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+                window.setTimeout(() => {
+                  searchInput.focus();
+                  searchInput.select();
+                }, 250);
+              }
+            }}
             title={
               data.sites.length >= 2
                 ? `Compare ${data.sites.length} saved locations side by side.`
