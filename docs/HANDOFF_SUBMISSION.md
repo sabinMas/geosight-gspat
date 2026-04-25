@@ -1,13 +1,51 @@
 # GeoSight — Submission Handoff
 
-**Last updated:** 2026-04-24  
-**Contest deadline:** HandshakeAI / Codex Creator  
+**Last updated:** 2026-04-25  
+**Contest deadline:** HandshakeAI / Codex Creator (April 30, 2026)  
 **Deployed at:** https://geosight-gspat.vercel.app  
 **Branch:** `main` (auto-deploys to Vercel on push)
 
 ---
 
-## What Was Shipped This Session
+## What Was Shipped — 2026-04-25 Session
+
+All merged to `main`. Five commits:
+
+| Commit | What | Why |
+|---|---|---|
+| `81a06c6` | Switch Cerebras default model to `llama3.1-8b` | `qwen-3-235b-a22b-instruct-2507` was a preview-only model with no uptime guarantee — every chat request was silently timing out and falling back to deterministic mode |
+| `81a06c6` | Add `console.error` logging on Cerebras stream failure + analyze route fallback | Failures were being swallowed — Vercel logs now surface the real error name + status + key prefix |
+| `ad00fe6` | Remove Compare button from `WorkspaceToolRail` | Duplicated the bottom-bar Compare with no guard logic; bottom-bar version has count badge + disabled state |
+| `ad00fe6` | Fix "Why score" button — auto-switch to board mode for workspace-zone cards | `factor-breakdown` is `zone: "workspace"` — `openCard` fell through to `openCardFromTray` which added it to `openCardIds` but right panel never opened in guided/focused mode |
+| `87f7fe8` | Floating "Ask GeoSight" button now opens real Cerebras chat | The `AgentPanel` floating button was routing to `/api/agents/geo-analyst` (intentionally deterministic) — added `registerOpenChat`/`openChat` to `AgentPanelContext` so `ExploreWorkspace` can wire the button to the real ChatPanel |
+| `00c5cd6` | Use `setActivePrimaryCardId` for chat card | `chat` is `zone: "primary"` — `openCard("chat")` was routing through board-mode pathway (`openWorkspaceCard` → `openCardIds`) but primary cards need `setActivePrimaryCardId` to actually display in the right panel |
+
+### Files touched
+
+- `src/lib/groq.ts` — model default + error logging
+- `src/app/api/analyze/route.ts` — stream fallback error logging
+- `src/components/Explore/WorkspaceToolRail.tsx` — Compare button removed, Panels button spans 2 cols
+- `src/components/Explore/ExploreWorkspace.tsx` — `openCard` zone-aware, `registerOpenChat` wired
+- `src/components/agent-panel/AgentPanel.tsx` — floating button calls `openChat()`
+- `src/context/AgentPanelContext.tsx` — added `registerOpenChat` + `openChat` via `useRef`
+
+---
+
+## Architecture Note: `openCard` zone routing
+
+The `openCard` callback in `ExploreWorkspace.tsx` now branches three ways:
+
+1. **Board mode**: any card → add to `openCardIds`, set `viewMode="board"`
+2. **Workspace-zone card in non-board mode**: switch to board mode, add to `openCardIds`
+3. **Primary-zone card in non-board mode**: fall through to `openCardFromTray`
+
+The chat-card path bypasses `openCard` entirely — it uses `setActivePrimaryCardId` directly because primary cards have their own state (`activePrimaryCardId`) that drives the right panel, separate from `openCardIds`.
+
+If you add new primary-zone cards (currently `active-location`, `chat`, `results`), make sure their open flow uses `setActivePrimaryCardId`, not `openCard`.
+
+---
+
+## What Was Shipped — 2026-04-24 Session
 
 All merged to `main`:
 
@@ -59,25 +97,28 @@ Report Generation (Generate Report button)
 
 ### P0 — Must fix before submitting
 
-- [ ] **Verify ChatPanel is actually working** — with agents no longer burning quota, the chat should now respond. Test with `CEREBRAS_API_KEY` set in Vercel. If still failing, check Vercel function logs for error codes.
-- [ ] **NASA_FIRMS_MAP_KEY** — was flagged as "Needs Attention" in Vercel. Re-paste the key.
-- [ ] **Demo end-to-end test** — run all 3 demos (Home Buyer, Data Center, Trail Scout) on the deployed preview. Verify callout positions correctly and "Next" button is always visible.
+- [ ] **NASA_FIRMS_MAP_KEY** — flagged as "Needs Attention" in Vercel dashboard. Re-paste the key. Without it, `WildfireRiskCard` fire proximity scores 0 globally.
+- [ ] **Verify chat works on live site after model swap** — we switched default to `llama3.1-8b` (`81a06c6`) and rewired the floating button (`87f7fe8`, `00c5cd6`). Test on prod: search → click floating "Ask GeoSight" button → confirm Cerebras streams a response (no "deterministic backup" badge). Optionally set `CEREBRAS_MODEL=gpt-oss-120b` in Vercel for higher-quality responses.
+- [ ] **Demo end-to-end test** — run all 3 demos (Home Buyer, Data Center, Trail Scout) on the deployed preview. Verify callout positions and "Next" button is always visible.
+- [x] ~~Verify ChatPanel routes to Cerebras~~ — fixed in this session (was routing to deterministic geo-analyst agent)
 
 ### P1 — High value, tight effort
 
-- [ ] **Append chat to report** — the report builder (`buildGeoScribeFallback`) doesn't yet include the ChatPanel conversation thread. The hook `generateReport` in `useExploreData.ts` sends `agentContext` to geo-scribe; add the `chatMessages` array to `agentContext.dataBundle` and parse it in the report builder to add a "GeoAnalyst Conversation" appendix section.
-- [ ] **Mobile smoke test** — resize browser to 375px, verify search → analysis → card flow doesn't overflow. Known risk: the left sidebar and right panel stack vertically.
-- [ ] **Sentry verification** — hit a 500 error intentionally (remove API key briefly), verify Sentry captures it at sentry.io.
+- [ ] **Remove "Generate report" loading spinner** — report assembles instantly (deterministic), the spinner is misleading.
+- [ ] **Mobile smoke test** — resize browser to 375px, verify search → analysis → card flow doesn't overflow.
 
-### P2 — Nice to have
+### P2 — Pick up on dev branch post-submission
 
-- [ ] **Cerebras model migration** — both `llama3.1-8b` and `qwen-3-235b-a22b-instruct-2507` are deprecated May 27, 2026. Set `CEREBRAS_MODEL=qwen-3-235b-a22b-instruct-2507` in Vercel env (already done per earlier session). After May 27, check Cerebras docs for replacement model name — set the new ID via env var without code change.
-- [ ] **README update** — update the demo GIF / screenshots to reflect current UI (the demo button, the clean workspace without bottom AI bar).
-- [ ] **"Generate report" UX** — currently shows a blank panel while the deterministic report assembles instantly. Remove the loading spinner delay since there's no async wait.
+- [ ] **Append chat to report** — `buildGeoScribeFallback` doesn't include the ChatPanel conversation. Add `chatMessages` to `agentContext.dataBundle` in `useExploreData.ts → generateReport` and parse it as a "GeoAnalyst Conversation" appendix.
+- [ ] **GeoAnalyst context gap** — system prompt in `analyze/route.ts` omits newer fields: `solarResource`, `streamGauges`, `thermalLoad`. Audit and add.
+- [ ] **Sentry verification** — verify error capture works.
+- [ ] **Cerebras model migration** — `llama3.1-8b` and `qwen-3-235b-a22b-instruct-2507` are both deprecated May 27, 2026. After that date, set `CEREBRAS_MODEL` to the replacement model ID — no code change needed.
+- [ ] **README update** — refresh demo screenshots / GIF to reflect current UI.
+- [ ] **Keyboard navigation** — set explicit `tabIndex` and focus-visible ring styles across the workspace.
 
 ---
 
-## Known Working Features (Verified This Session)
+## Known Working Features (Verified Across Sessions)
 
 - ✅ All 3 demo tours (Home Buyer, Data Center, Trail Scout) — anchored callout, scroll-into-view, Next/Back/dots
 - ✅ Solar demo (Arizona) — solar-resource card appears, Energy & Solar lens wired
