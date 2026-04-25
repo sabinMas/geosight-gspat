@@ -320,11 +320,15 @@ export async function buildGroqAnalysisMessages(
     payload.question,
   );
 
+  // RAG is opt-in via env flag — disabled by default to save ~750 input
+  // tokens/request and skip the per-request Gemini embedding call.
   let ragContext = "";
-  try {
-    ragContext = await buildRagContext(payload.question);
-  } catch (error) {
-    console.warn("[RAG] Groq context assembly failed; continuing without RAG context.", error);
+  if (process.env.RAG_ENABLED === "true") {
+    try {
+      ragContext = await buildRagContext(payload.question);
+    } catch (error) {
+      console.warn("[RAG] Groq context assembly failed; continuing without RAG context.", error);
+    }
   }
 
   return [
