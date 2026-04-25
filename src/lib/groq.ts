@@ -10,10 +10,9 @@ import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 const CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/chat/completions";
 
-// qwen-3-235b on Cerebras: same 1M TPD free-tier quota as llama3.1-8b but
-// a much larger context window and substantially better reasoning quality.
-// Overridable via CEREBRAS_MODEL env var without redeploying code.
-const DEFAULT_MODEL = process.env.CEREBRAS_MODEL?.trim() || "qwen-3-235b-a22b-instruct-2507";
+// llama3.1-8b is a confirmed production model on Cerebras free tier.
+// Override with CEREBRAS_MODEL env var (e.g. gpt-oss-120b) for higher quality.
+const DEFAULT_MODEL = process.env.CEREBRAS_MODEL?.trim() || "llama3.1-8b";
 
 // 8K-token context window = ~32K chars total. We target ~22K chars for
 // input messages, leaving ~2.5K tokens headroom for the response.
@@ -182,11 +181,9 @@ export async function runGroqAnalysisStream(
   });
 
   if (!response.ok || !response.body) {
-    // Read body for diagnostics — Cerebras 4xx usually contains a useful reason
-    // (e.g. context length exceeded, model not found, invalid auth).
     const bodyText = await response.text().catch(() => "");
-    console.warn(
-      `[cerebras stream] status=${response.status} model=${model} body=${bodyText.slice(0, 400)}`,
+    console.error(
+      `[cerebras stream] FAILED status=${response.status} model=${model} key_prefix=${apiKey.slice(0, 8)}... body=${bodyText.slice(0, 400)}`,
     );
     throw normalizeProviderError({ status: response.status }, "groq");
   }

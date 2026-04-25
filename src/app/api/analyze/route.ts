@@ -92,7 +92,9 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (streamError) {
-      // Log so we can diagnose why streaming falls back to JSON path
+      const errName = streamError instanceof Error ? streamError.name : "unknown";
+      const errMsg = streamError instanceof Error ? streamError.message : String(streamError);
+      console.error(`[analyze] stream fallback reason=${errName}: ${errMsg}`);
       logAnalysisProviderFailure("analyze:stream", "groq", streamError);
     }
   }
