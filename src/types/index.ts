@@ -417,6 +417,24 @@ export interface GdacsAlertSummary {
   featuredAlerts: GdacsAlertSummaryItem[];
 }
 
+export interface NwsAlertItem {
+  id: string;
+  event: string;
+  severity: string;
+  urgency: string;
+  areaDesc: string;
+  headline: string | null;
+  effective: string | null;
+  expires: string | null;
+  url: string | null;
+}
+
+export interface NwsAlertSummary {
+  totalAlerts: number;
+  extremeOrSevere: number;
+  alerts: NwsAlertItem[];
+}
+
 export type HazardRiskTier = "low" | "moderate" | "elevated" | "critical";
 
 export interface HazardDomainScore {
@@ -702,6 +720,7 @@ export interface GeodataResult {
   airQuality: AirQualityResult | null;
   epaHazards: EPAHazardResult | null;
   hazardAlerts: GdacsAlertSummary | null;
+  weatherAlerts: NwsAlertSummary | null;
   weatherForecast: WeatherForecastDay[];
   schoolContext: SchoolContextSummary | null;
   landClassification: LandCoverBucket[];
@@ -726,6 +745,7 @@ export interface GeodataResult {
     airQuality: DataSourceMeta;
     epaHazards: DataSourceMeta;
     hazardAlerts: DataSourceMeta;
+    weatherAlerts: DataSourceMeta;
   };
   sourceNotes: string[];
 }

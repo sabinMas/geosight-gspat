@@ -19,6 +19,7 @@ import {
   OverpassElement,
 } from "@/lib/overpass";
 import { fetchGdacsAlertSummary } from "@/lib/gdacs";
+import { fetchNwsAlerts } from "@/lib/noaa-nws";
 import { fetchFireHazardSummary, isFireHazardConfigured } from "@/lib/nasa-firms";
 import {
   applyRateLimit,
@@ -286,6 +287,9 @@ export async function GET(request: NextRequest) {
     PROVIDER_TIMEOUTS.gdacsAlerts,
     "gdacs alerts",
   );
+  const nwsAlertPromise = isUsPoint
+    ? withSoftTimeout(fetchNwsAlerts(lat, lng), 6_000, "nws alerts")
+    : Promise.resolve(null);
 
   const [
     elevationResult,
@@ -306,6 +310,7 @@ export async function GET(request: NextRequest) {
     epaHazardResult,
     gdacsAlertResult,
     solarResourceResult,
+    nwsAlertResult,
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
@@ -338,6 +343,7 @@ export async function GET(request: NextRequest) {
       epaHazardPromise,
       gdacsAlertPromise,
       withSoftTimeout(getSolarResource({ lat, lng }), PROVIDER_TIMEOUTS.solar, "solar resource"),
+      nwsAlertPromise,
     ]);
   const responseHeaders = {
     "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
@@ -489,6 +495,7 @@ export async function GET(request: NextRequest) {
       airQuality: airQualityResult.status === "fulfilled" ? airQualityResult.value : null,
       epaHazards: epaHazardResult.status === "fulfilled" ? epaHazardResult.value : null,
       hazardAlerts: gdacsAlertResult.status === "fulfilled" ? gdacsAlertResult.value : null,
+      weatherAlerts: nwsAlertResult.status === "fulfilled" ? nwsAlertResult.value : null,
       schoolContext: (() => {
         const raw =
           schoolResult.status === "fulfilled"
@@ -980,6 +987,28 @@ export async function GET(request: NextRequest) {
             : "GDACS alert feed could not be retrieved for this point right now.",
         note:
           "GDACS provides broad global disaster notifications for earthquakes, floods, volcanoes, drought, tropical cyclones, and related events.",
+      }),
+      weatherAlerts: buildRegistryAwareSourceMeta({
+        id: "weather-alerts",
+        label: "US weather alerts",
+        provider: "NOAA National Weather Service",
+        domain: "weather",
+        context: registryContext,
+        status: isUsPoint
+          ? nwsAlertResult.status === "fulfilled" && nwsAlertResult.value
+            ? "live"
+            : "limited"
+          : "unavailable",
+        lastUpdated: now,
+        freshness: "Live NWS alerts cached 5 minutes",
+        coverage: isUsPoint ? "United States" : "US only — not available for this location",
+        accessType: "api",
+        confidence: isUsPoint
+          ? "Official NOAA NWS active watches, warnings, and advisories for the point's forecast zone."
+          : "NWS weather alerts are only available for US coordinates.",
+        note: isUsPoint
+          ? undefined
+          : "NOAA NWS coverage is limited to US forecast zones.",
       }),
     },
       sourceNotes: [

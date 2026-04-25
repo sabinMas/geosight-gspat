@@ -81,7 +81,7 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     reliability: "High for US operational weather and alerts",
     rateLimit: "Public API, polite usage expected",
     notes: "Strong US fallback when alerting and official US products matter.",
-    integrated: false,
+    integrated: true,
   },
   {
     id: "meteostat",

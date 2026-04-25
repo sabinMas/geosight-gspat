@@ -15,6 +15,7 @@ export function Footer() {
           <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Footer navigation">
             <a href="https://github.com/masonmorales/geosight-gspat" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]">GitHub</a>
             <a href="/explore" className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]">Explore</a>
+            <a href="/sources" className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]">Data Sources</a>
             <a href="/privacy" className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]">Privacy</a>
             <a href="/terms" className="text-xs text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]">Terms</a>
           </nav>
