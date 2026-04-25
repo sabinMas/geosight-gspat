@@ -10,9 +10,10 @@ import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 const CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/chat/completions";
 
-// llama3.1-8b has Cerebras' highest RPM/TPM tier and lowest per-token cost.
+// qwen-3-235b on Cerebras: same 1M TPD free-tier quota as llama3.1-8b but
+// a much larger context window and substantially better reasoning quality.
 // Overridable via CEREBRAS_MODEL env var without redeploying code.
-const DEFAULT_MODEL = process.env.CEREBRAS_MODEL?.trim() || "llama3.1-8b";
+const DEFAULT_MODEL = process.env.CEREBRAS_MODEL?.trim() || "qwen-3-235b-a22b-instruct-2507";
 
 // 8K-token context window = ~32K chars total. We target ~22K chars for
 // input messages, leaving ~2.5K tokens headroom for the response.
