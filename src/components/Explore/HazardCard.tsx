@@ -19,10 +19,14 @@ function HazardMetric({
   detail: string;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-      <div className="eyebrow">{label}</div>
-      <div className="mt-3 text-lg font-semibold text-[var(--foreground)]">{value}</div>
-      <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{detail}</div>
+    <div className="min-w-0 rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+      <div className="eyebrow break-words">{label}</div>
+      <div className="mt-3 break-words text-lg font-semibold leading-tight text-[var(--foreground)]">
+        {value}
+      </div>
+      <div className="mt-2 break-words text-sm leading-6 text-[var(--muted-foreground)]">
+        {detail}
+      </div>
     </div>
   );
 }
@@ -54,7 +58,7 @@ export function HazardCard({ geodata }: HazardCardProps) {
 
   return (
     <WorkspaceCardShell eyebrow="Hazard review" title="Hazard context">
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <HazardMetric
             label="Seismic activity"
             value={
@@ -110,7 +114,7 @@ export function HazardCard({ geodata }: HazardCardProps) {
                 {formatAlertDistance(gdacsAlerts)}
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <HazardMetric
                   label="Active alerts"
                   value={`${gdacsAlerts.totalCurrentAlerts}`}
@@ -142,20 +146,20 @@ export function HazardCard({ geodata }: HazardCardProps) {
                       className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4"
                     >
                       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[var(--foreground)]">
+                        <div className="min-w-0 flex-1">
+                          <div className="break-words text-sm font-semibold leading-snug text-[var(--foreground)]">
                             {alert.alertLevel} {alert.eventLabel}
                           </div>
-                          <div className="mt-1 text-sm text-[var(--muted-foreground)]">
+                          <div className="mt-1 break-words text-sm text-[var(--muted-foreground)]">
                             {alert.country}
                             {alert.distanceKm !== null ? ` - ${formatDistanceKm(alert.distanceKm)}` : ""}
                           </div>
                         </div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                        <div className="shrink-0 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                           GDACS
                         </div>
                       </div>
-                      <div className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                      <div className="mt-2 break-words text-sm leading-6 text-[var(--muted-foreground)]">
                         {alert.description}
                       </div>
                     </div>

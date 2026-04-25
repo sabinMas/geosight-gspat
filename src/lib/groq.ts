@@ -61,6 +61,10 @@ export async function runGroqAnalysis(
   }
 
   if (!response.ok) {
+    const bodyText = await response.text().catch(() => "");
+    console.warn(
+      `[cerebras json] status=${response.status} model=${model} body=${bodyText.slice(0, 400)}`,
+    );
     throw normalizeProviderError({ status: response.status }, "groq");
   }
 
@@ -90,6 +94,14 @@ export async function runGroqAnalysisStream(
   const apiKey = getCerebrasKey();
   const model = resolveModel(profile.id);
   const messages = await buildGroqAnalysisMessages(payload, profile);
+  const totalChars = messages.reduce((n, m) => n + (m.content?.length ?? 0), 0);
+  // Warn early if prompt looks too big for 8K-context Cerebras models.
+  // ~4 chars per token → 8K tokens ≈ 32K chars. Keep some headroom for response.
+  if (totalChars > 24_000) {
+    console.warn(
+      `[cerebras stream] prompt large totalChars=${totalChars} model=${model} — may exceed context window`,
+    );
+  }
 
   const response = await fetch(CEREBRAS_BASE_URL, {
     method: "POST",
@@ -107,6 +119,12 @@ export async function runGroqAnalysisStream(
   });
 
   if (!response.ok || !response.body) {
+    // Read body for diagnostics — Cerebras 4xx usually contains a useful reason
+    // (e.g. context length exceeded, model not found, invalid auth).
+    const bodyText = await response.text().catch(() => "");
+    console.warn(
+      `[cerebras stream] status=${response.status} model=${model} body=${bodyText.slice(0, 400)}`,
+    );
     throw normalizeProviderError({ status: response.status }, "groq");
   }
 

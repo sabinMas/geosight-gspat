@@ -88,8 +88,9 @@ export async function POST(request: NextRequest) {
           "Cache-Control": "no-cache",
         },
       });
-    } catch {
-      // Fall through to standard JSON path below
+    } catch (streamError) {
+      // Log so we can diagnose why streaming falls back to JSON path
+      logAnalysisProviderFailure("analyze:stream", "groq", streamError);
     }
   }
 

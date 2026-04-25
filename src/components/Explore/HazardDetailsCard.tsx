@@ -9,10 +9,16 @@ import { GeodataResult } from "@/types";
 function ParamRow({ label, value, note }: { label: string; value: string | null; note?: string }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-[color:var(--border-soft)] last:border-0">
-      <span className="text-xs text-[var(--muted-foreground)] shrink-0">{label}</span>
-      <div className="text-right">
-        <span className="text-xs font-semibold text-[var(--foreground)]">{value ?? "—"}</span>
-        {note ? <div className="text-xs text-[var(--muted-foreground)]">{note}</div> : null}
+      <span className="shrink-0 max-w-[55%] break-words text-xs text-[var(--muted-foreground)]">
+        {label}
+      </span>
+      <div className="min-w-0 flex-1 text-right">
+        <span className="break-words text-xs font-semibold text-[var(--foreground)]">
+          {value ?? "—"}
+        </span>
+        {note ? (
+          <div className="break-words text-xs text-[var(--muted-foreground)]">{note}</div>
+        ) : null}
       </div>
     </div>
   );

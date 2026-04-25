@@ -82,12 +82,12 @@ export function AnalysisOverviewBanner({
             {overview.summary}
           </span>
         ) : null}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenFactorBreakdown}>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={onOpenFactorBreakdown}>
             Why score
             <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
           </Button>
-          <Button type="button" size="sm" variant="ghost" className="rounded-full" onClick={onOpenSources}>
+          <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={onOpenSources} aria-label="Check trust signals">
             <ShieldCheck className="h-3.5 w-3.5" />
           </Button>
         </div>
