@@ -180,7 +180,7 @@ This is the highest-leverage continuation path from the current state:
 | Card ID | Component | Profile(s) | Data source |
 |---|---|---|---|
 | `active-location` | `ActiveLocationCard` | All | Aggregated |
-| `chat` | `ChatPanel` | All | Groq / Gemini |
+| `chat` | `ChatPanel` | All | Cerebras / Gemini |
 | `results` | `AnalysisTrendsPanel` / `NearbyPlacesList` | All | Open-Meteo, OSM |
 | `score` | `ScoreCard` | All | Deterministic |
 | `factor-breakdown` | `FactorBreakdown` | All | Deterministic |
@@ -491,7 +491,7 @@ src/
       nearby-places/route.ts        # OSM Overpass nearby lookup
       geocode/route.ts              # Place search / coordinate resolution
       score/route.ts                # Deterministic scoring endpoint
-      ai-status/route.ts            # Groq/Gemini liveness check
+      ai-status/route.ts            # Cerebras/Gemini liveness check
 
   components/
     Explore/
@@ -592,26 +592,20 @@ All set in the **Vercel project dashboard** (Settings → Environment Variables)
 | Variable | What breaks without it |
 |---|---|
 | `NEXT_PUBLIC_CESIUM_ION_TOKEN` | Globe does not render |
-| `GROQ_API_KEY` | All AI falls back to deterministic mode |
+| `CEREBRAS_API_KEY` | All AI falls back to deterministic mode |
 
-### AI key pool (add all keys you have)
+### AI provider
 
 | Variable | Notes |
 |---|---|
-| `GROQ_API_KEY` | Required. Primary pool key |
-| `GROQ_API_KEY_2` | Optional rotation pool (separate account = separate rate limit) |
-| `GROQ_API_KEY_3` | Optional rotation pool |
-| `GROQ_ANALYSIS_KEY` | GeoAnalyst dedicated lane (highest token usage — give it your best key) |
-| `GROQ_WRITER_KEY` | GeoScribe dedicated lane |
-| `GROQ_UX_KEY` | GeoGuide + GeoUsability shared lane |
-
-**Recommended with 3 Groq accounts:** `GROQ_ANALYSIS_KEY` → key 1 (highest quota), `GROQ_WRITER_KEY` → key 2, `GROQ_API_KEY` → key 3. Leave pool rotation vars empty.
+| `CEREBRAS_API_KEY` | Required. Primary AI provider for all agents, chat, and analysis |
+| `CEREBRAS_MODEL` | Optional. Override model (default: `llama3.1-8b`) |
 
 ### Optional
 
 | Variable | What it enables |
 |---|---|
-| `GEMINI_API_KEY` | LLM fallback when Groq is down |
+| `GEMINI_API_KEY` | LLM fallback when Cerebras is down |
 | `NASA_FIRMS_MAP_KEY` | WildfireRiskCard fire proximity — without it, fire proximity score = 0 |
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Geodata cache (1hr TTL) + cloud site sync |
 | `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_AUTH_TOKEN` | Error monitoring |
@@ -626,10 +620,10 @@ NASA POWER, Open-Meteo, USGS, OSM Overpass, GDACS, OpenAQ, FEMA NFHL, Eurostat, 
 
 | Issue | Severity | Notes |
 |---|---|---|
-| Groq API keys missing from Vercel | HIGH | AI falls back to deterministic mode on prod — user needs to add keys via Vercel dashboard |
+| Cerebras API key missing from Vercel | HIGH | AI falls back to deterministic mode on prod — add `CEREBRAS_API_KEY` in the Vercel dashboard |
 | FEMA soft timeout 12s | LOW | Raised from 6.5s; still may time out on slow FEMA servers |
 | Overpass rate limits | MEDIUM | Public `overpass-api.de` can throttle; `overpass.kumi.systems` fallback wired |
 | `nextSteps[]` not rendered | LOW | `buildAnalysisOverview` returns `nextSteps[]` but no component renders them — deferred |
 | GeoAnalyst context gap | MEDIUM | System prompt in `analyze/route.ts` omits newer fields: `solarResource`, `streamGauges`, `thermalLoad` — AI answers about these fields are less grounded |
-| Lint warnings (7 items) | LOW | All are warnings, not errors — unused imports (`HorizontalOrigin`, `cn`, `Input`, `formatRadiusLabel`, `buildFactorEvidenceLines`) and missing `useEffect` deps in `ExploreWorkspace` and `CesiumGlobe`; do not suppress without fixing |
+| Lint warnings | LOW | `✔ No ESLint warnings or errors` as of v1.0 — intentional dep omissions are documented with eslint-disable comments |
 | maplibre-gl / lz-string missing from node_modules | LOW | Packages are in `package.json` but `npm install` must be run; tsc will fail in CI if deps are not installed |

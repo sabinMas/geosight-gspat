@@ -285,6 +285,7 @@ function buildGeodata(overrides: GeodataOverrides = {}): GeodataResult {
         ...(overrides.sources?.hazardAlerts ?? {}),
       },
     },
+    coordinates: { lat: 47.6062, lng: -122.3321 },
     sourceNotes: overrides.sourceNotes ?? [],
   };
 }

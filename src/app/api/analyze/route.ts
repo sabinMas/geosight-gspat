@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       provider,
     },
     {
-      headers,
+      headers: { ...headers, "Cache-Control": "no-store" },
     },
   );
 }

@@ -15,7 +15,7 @@ interface MobileBottomSheetProps {
 
 // Heights are in vh; peek is a fixed px height for consistent feel on all phones.
 const SNAP_HEIGHTS: Record<SnapPoint, string> = {
-  peek: "140px",
+  peek: "min(140px, 22vh)",
   half: "48vh",
   full: "88vh",
 };
