@@ -587,7 +587,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 128,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar"],
     emptyState: "Select a location to assess multi-year drought pressure.",
   },
   {
@@ -611,7 +611,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 129,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar"],
     emptyState: "Select a location to check the live global disaster alert feed.",
   },
   {
@@ -635,7 +635,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 130,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar"],
     emptyState: "Select a location to assess structural wildfire risk.",
   },
   {
@@ -659,7 +659,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 131,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar"],
     emptyState: "Select a location to assess thermal load and cooling efficiency.",
   },
   {
@@ -731,7 +731,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 133,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "site-development", "commercial", "residential"],
+    supportedProfiles: ["data-center", "site-development", "commercial", "residential", "energy-solar"],
     emptyState: "Select a location to see solar irradiance and peak sun hours.",
   },
   {
@@ -1103,7 +1103,7 @@ const EXPLORER_ONLY_CARDS: WorkspaceCardDefinition[] = [
     defaultVisibility: true,
     defaultOrder: 42,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "energy-solar"],
     emptyState: "Select a location to run the site readiness screen.",
     revealTier: "supporting",
     revealTriggers: ["location_selected", "ask_reasoning"],
@@ -1135,7 +1135,7 @@ const EXPLORER_ONLY_CARDS: WorkspaceCardDefinition[] = [
     defaultVisibility: true,
     defaultOrder: 43,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "energy-solar"],
     emptyState: "Select a location to see infrastructure proximity data.",
     revealTier: "supporting",
     revealTriggers: ["location_selected", "ask_reasoning"],
@@ -1230,6 +1230,7 @@ const VISIBLE_CARDS_BY_PROFILE: Record<AppMode, Record<string, WorkspaceCardId[]
     "home-buying": ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "local-access"],
     "site-development": ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "local-access"],
     commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "route-planner"],
+    "energy-solar": ["active-location", "chat", "results", "solar-resource", "thermal-load", "climate-history"],
   },
   pro: {
     "data-center": ["active-location", "chat", "results", "site-readiness", "infrastructure-access", "weather-forecast", "hazard-details"],
@@ -1260,6 +1261,17 @@ const VISIBLE_CARDS_BY_PROFILE: Record<AppMode, Record<string, WorkspaceCardId[]
       "demographics-context",
     ],
     commercial: ["active-location", "chat", "results", "demographics-context"],
+    "energy-solar": [
+      "active-location",
+      "chat",
+      "results",
+      "solar-resource",
+      "thermal-load",
+      "infrastructure-access",
+      "site-readiness",
+      "climate-history",
+      "wildfire-risk",
+    ],
   },
 };
 
