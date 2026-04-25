@@ -17,7 +17,9 @@ interface DemoRunnerProps {
 type Placement = "top" | "bottom" | "left" | "right" | "center";
 
 const CALLOUT_WIDTH = 380;
-const CALLOUT_MIN_HEIGHT = 160;
+// Realistic height estimate used only for placement decisions — actual card can be taller.
+// We always add maxHeight to the style so the card never overflows the viewport.
+const CALLOUT_APPROX_HEIGHT = 280;
 const EDGE_PADDING = 16;
 const ANCHOR_GAP = 18;
 
@@ -68,31 +70,35 @@ function computePlacement(
   viewportWidth: number,
   viewportHeight: number,
 ): { placement: Placement; style: React.CSSProperties } {
+  const safeHeight = viewportHeight - 2 * EDGE_PADDING;
+
   if (!rect) {
+    // No anchor — float above the bottom toolbar.
+    const bottomOffset = 88;
     return {
       placement: "center",
       style: {
-        top: "auto",
-        bottom: 88,
+        bottom: bottomOffset,
         left: "50%",
         transform: "translateX(-50%)",
         width: `min(${CALLOUT_WIDTH}px, calc(100vw - 2rem))`,
+        maxHeight: viewportHeight - bottomOffset - EDGE_PADDING,
       },
     };
   }
 
-  const spaceBottom = viewportHeight - rect.bottom;
-  const spaceTop = rect.top;
-  const spaceRight = viewportWidth - rect.right;
-  const spaceLeft = rect.left;
+  const spaceBottom = viewportHeight - rect.bottom - ANCHOR_GAP;
+  const spaceTop = rect.top - ANCHOR_GAP;
+  const spaceRight = viewportWidth - rect.right - ANCHOR_GAP;
+  const spaceLeft = rect.left - ANCHOR_GAP;
 
-  // Pick the side with the most room (≥ min height).
+  // Pick the side with the most room.
   let placement: Placement = "bottom";
-  if (spaceBottom >= CALLOUT_MIN_HEIGHT + ANCHOR_GAP) placement = "bottom";
-  else if (spaceTop >= CALLOUT_MIN_HEIGHT + ANCHOR_GAP) placement = "top";
-  else if (spaceRight >= CALLOUT_WIDTH + ANCHOR_GAP) placement = "right";
-  else if (spaceLeft >= CALLOUT_WIDTH + ANCHOR_GAP) placement = "left";
-  else placement = "bottom";
+  if (spaceBottom >= CALLOUT_APPROX_HEIGHT) placement = "bottom";
+  else if (spaceTop >= CALLOUT_APPROX_HEIGHT) placement = "top";
+  else if (spaceRight >= CALLOUT_WIDTH) placement = "right";
+  else if (spaceLeft >= CALLOUT_WIDTH) placement = "left";
+  else placement = spaceBottom >= spaceTop ? "bottom" : "top";
 
   const style: React.CSSProperties = {
     width: `min(${CALLOUT_WIDTH}px, calc(100vw - 2rem))`,
@@ -107,22 +113,34 @@ function computePlacement(
     );
     style.left = clampedCenterX;
     style.transform = "translateX(-50%)";
+
     if (placement === "bottom") {
-      style.top = Math.min(rect.bottom + ANCHOR_GAP, viewportHeight - CALLOUT_MIN_HEIGHT - EDGE_PADDING);
+      const topVal = Math.min(
+        rect.bottom + ANCHOR_GAP,
+        viewportHeight - CALLOUT_APPROX_HEIGHT - EDGE_PADDING,
+      );
+      style.top = Math.max(EDGE_PADDING, topVal);
+      // maxHeight = remaining space below the top position
+      style.maxHeight = viewportHeight - (style.top as number) - EDGE_PADDING;
     } else {
-      style.top = "auto";
-      style.bottom = Math.max(EDGE_PADDING, viewportHeight - rect.top + ANCHOR_GAP);
+      // Anchor above the element — card grows downward from the bottom of its space.
+      const bottomVal = Math.max(EDGE_PADDING, viewportHeight - rect.top + ANCHOR_GAP);
+      style.bottom = bottomVal;
+      style.maxHeight = viewportHeight - bottomVal - EDGE_PADDING;
     }
   } else {
+    // Left / right placements — centre vertically on the anchor.
     const anchorCenterY = rect.top + rect.height / 2;
-    style.top = Math.max(
+    const topVal = Math.max(
       EDGE_PADDING,
-      Math.min(anchorCenterY - CALLOUT_MIN_HEIGHT / 2, viewportHeight - CALLOUT_MIN_HEIGHT - EDGE_PADDING),
+      Math.min(anchorCenterY - CALLOUT_APPROX_HEIGHT / 2, viewportHeight - CALLOUT_APPROX_HEIGHT - EDGE_PADDING),
     );
+    style.top = topVal;
+    style.maxHeight = safeHeight;
+
     if (placement === "right") {
       style.left = rect.right + ANCHOR_GAP;
     } else {
-      style.left = "auto";
       style.right = Math.max(EDGE_PADDING, viewportWidth - rect.left + ANCHOR_GAP);
     }
   }
@@ -303,7 +321,7 @@ export function DemoRunner({ scenario, dataReady, onOpenCard, onStop }: DemoRunn
         className="fixed z-[89]"
         style={style}
       >
-        <div className="relative overflow-visible rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
+        <div className="relative flex max-h-[inherit] flex-col overflow-hidden rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
           <Arrow placement={placement} />
 
           {/* Header */}
