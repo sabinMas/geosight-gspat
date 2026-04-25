@@ -802,6 +802,11 @@ export function ExploreWorkspace() {
       if (event.key === "Escape") {
         event.preventDefault();
 
+        if (activeDemoScenario) {
+          setActiveDemoScenario(null);
+          return;
+        }
+
         if (commandPaletteOpen) {
           setCommandPaletteOpen(false);
           return;
@@ -937,7 +942,19 @@ export function ExploreWorkspace() {
     state.undoDrawing,
     state.redoDrawing,
     walkthroughOpen,
+    activeDemoScenario,
   ]);
+
+  // Push a history entry when the demo starts so the browser Back button
+  // dismisses the tour instead of navigating away from /explore.
+  useEffect(() => {
+    if (activeDemoScenario) {
+      window.history.pushState({ demoActive: true }, "");
+      const onPopState = () => setActiveDemoScenario(null);
+      window.addEventListener("popstate", onPopState);
+      return () => window.removeEventListener("popstate", onPopState);
+    }
+  }, [activeDemoScenario]);
 
   const visibleUiCardIds = useMemo(
     () =>
