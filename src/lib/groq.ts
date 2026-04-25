@@ -17,6 +17,9 @@ const DEFAULT_MODEL = process.env.CEREBRAS_MODEL?.trim() || "llama3.1-8b";
 // 8K-token context window = ~32K chars total. We target ~22K chars for
 // input messages, leaving ~2.5K tokens headroom for the response.
 const MAX_INPUT_CHARS = 22_000;
+// Cap response length. 600 tokens ≈ 4-5 short paragraphs — plenty for a
+// chat reply, and keeps output costs predictable. Override via env.
+const MAX_RESPONSE_TOKENS = Number(process.env.CEREBRAS_MAX_TOKENS) || 600;
 // Per-message hard ceiling so a single huge message can't dominate.
 const PER_MESSAGE_HARD_CAP = 8_000;
 
@@ -116,6 +119,7 @@ export async function runGroqAnalysis(
       body: JSON.stringify({
         model,
         temperature: 0.2,
+        max_tokens: MAX_RESPONSE_TOKENS,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
       }),
       signal: AbortSignal.timeout(25_000),
@@ -169,6 +173,7 @@ export async function runGroqAnalysisStream(
     body: JSON.stringify({
       model,
       temperature: 0.2,
+      max_tokens: MAX_RESPONSE_TOKENS,
       stream: true,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     }),
