@@ -95,15 +95,7 @@ function AgentPanelDrawer() {
               setPanelOpen(false);
               return;
             }
-
-            // Open the real Cerebras chat card; fall back to agent drawer if
-            // registerOpenChat hasn't been called (e.g. on the landing page).
-            const hasChat = typeof openChat === "function";
-            if (hasChat) {
-              openChat();
-            } else {
-              openDefaultPanel();
-            }
+            openChat();
           }}
           aria-expanded={panelOpen}
           aria-controls="geosight-agent-panel"

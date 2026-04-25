@@ -431,9 +431,13 @@ export function ExploreWorkspace() {
 
   // Register so the floating "Ask GeoSight" button in AgentPanel opens the
   // real Cerebras-backed chat card instead of the deterministic geo-analyst agent.
+  // "chat" is a primary-zone card so it needs setActivePrimaryCardId, not openCard.
   useEffect(() => {
-    registerOpenChat(() => openCard("chat"));
-  }, [registerOpenChat, openCard]);
+    registerOpenChat(() => {
+      data.setActivePrimaryCardId("chat");
+      if (data.shellMode === "minimal") setShellMode("guided");
+    });
+  }, [registerOpenChat, data.setActivePrimaryCardId, data.shellMode, setShellMode]);
 
   const resultsHeader = (
     <div data-demo-id="demo-nearby">
