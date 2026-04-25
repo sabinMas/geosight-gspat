@@ -1,17 +1,16 @@
-import { AnalysisProviderError, AnalysisResult } from "@/lib/analysis-provider";
-import { runGeminiAnalysis } from "@/lib/gemini";
+import { AnalysisProviderError, AnalysisProviderName, AnalysisResult } from "@/lib/analysis-provider";
 import { buildFallbackAssessment } from "@/lib/geosight-assistant";
 import { runGroqAnalysis } from "@/lib/groq";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 type AnalysisRunnerOptions = {
   fallbackAnswer?: string;
-  onProviderFailure?: (provider: "groq" | "gemini", error: unknown) => void;
+  onProviderFailure?: (provider: AnalysisProviderName, error: unknown) => void;
 };
 
 export function logAnalysisProviderFailure(
   context: string,
-  provider: "groq" | "gemini",
+  provider: AnalysisProviderName,
   error: unknown,
 ) {
   if (error instanceof AnalysisProviderError) {
@@ -30,19 +29,13 @@ export async function runAnalysisWithFallback(
 ): Promise<AnalysisResult> {
   const handleFailure =
     options.onProviderFailure ??
-    ((provider: "groq" | "gemini", error: unknown) =>
+    ((provider: AnalysisProviderName, error: unknown) =>
       logAnalysisProviderFailure("analyze", provider, error));
 
   try {
     return await runGroqAnalysis(payload, profile);
   } catch (groqError) {
     handleFailure("groq", groqError);
-  }
-
-  try {
-    return await runGeminiAnalysis(payload, profile);
-  } catch (geminiError) {
-    handleFailure("gemini", geminiError);
   }
 
   return {

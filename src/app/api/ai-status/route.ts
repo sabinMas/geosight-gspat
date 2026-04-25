@@ -19,8 +19,7 @@ export async function GET(request: NextRequest) {
     return createRateLimitResponse(rateLimit);
   }
 
-  const openRouterConfigured = hasConfiguredEnv("CEREBRAS_API_KEY");
-  const geminiConfigured = hasConfiguredEnv("GEMINI_API_KEY");
+  const cerebrasConfigured = hasConfiguredEnv("CEREBRAS_API_KEY");
   const agentStatuses = Object.fromEntries(
     Object.entries(AGENT_CONFIGS).map(([agentId, config]) => [
       agentId,
@@ -31,18 +30,14 @@ export async function GET(request: NextRequest) {
       },
     ]),
   );
-  const liveAnalysisAvailable = openRouterConfigured || geminiConfigured;
 
   return NextResponse.json(
     {
-      status: liveAnalysisAvailable ? "ok" : "degraded",
-      liveAnalysisAvailable,
+      status: cerebrasConfigured ? "ok" : "degraded",
+      liveAnalysisAvailable: cerebrasConfigured,
       analysisProviders: {
         cerebras: {
-          configured: openRouterConfigured,
-        },
-        gemini: {
-          configured: geminiConfigured,
+          configured: cerebrasConfigured,
         },
       },
       agents: agentStatuses,

@@ -105,12 +105,8 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const provider: "groq" | "gemini" | "deterministic" =
-    result.model === "fallback"
-      ? "deterministic"
-      : result.model.toLowerCase().includes("gemini")
-        ? "gemini"
-        : "groq";
+  const provider: "groq" | "deterministic" =
+    result.model === "fallback" ? "deterministic" : "groq";
 
   return NextResponse.json(
     {
