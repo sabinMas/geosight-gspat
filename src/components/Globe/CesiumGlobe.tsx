@@ -511,6 +511,9 @@ export function CesiumGlobe({
         viewer.destroy();
       }
     };
+    // selectedPoint is read once for the initial camera; we deliberately do not
+    // re-init the viewer when it changes — flyTo effects handle later updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewerKey]);
 
   useEffect(() => {

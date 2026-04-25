@@ -108,10 +108,12 @@ export function useRouteDisplay({
       });
     });
 
+    // Capture the viewer locally so the cleanup closure does not depend on the
+    // ref's later value (which the lint rule warns about).
+    const cleanupViewer = viewer;
     return () => {
-      const v = viewerRef.current;
-      if (isViewerUsable(v) && dsRef.current) {
-        v.dataSources.remove(dsRef.current, true);
+      if (isViewerUsable(cleanupViewer) && dsRef.current) {
+        cleanupViewer.dataSources.remove(dsRef.current, true);
         dsRef.current = null;
       }
     };
