@@ -11,7 +11,7 @@ interface MarkdownContentProps {
 
 export function MarkdownContent({ content, className }: MarkdownContentProps) {
   return (
-    <div className={cn("min-w-0", className)}>
+    <div className={cn("min-w-0 max-w-full break-words", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -45,7 +45,9 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
           p: ({ className: markdownClassName, ...props }) => (
             <p
               className={cn(
-                "whitespace-pre-wrap text-sm leading-7 text-[var(--foreground-soft)]",
+                // No whitespace-pre-wrap: it preserves stray \n from streaming
+                // chunks and forces one-word-per-line in narrow columns.
+                "text-sm leading-7 text-[var(--foreground-soft)] break-words",
                 markdownClassName,
               )}
               {...props}

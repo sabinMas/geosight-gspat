@@ -329,3 +329,66 @@ textarea {
     color: black;
   }
 }
+
+/* ── Overflow / text-wrap guards ── */
+
+/*
+ * Cards use flex columns internally. Without min-w-0 on flex children the
+ * browser assumes min-width: auto (= content width) and text never wraps.
+ * These rules are surgical — they only target known overflow contexts and
+ * don't apply min-w-0 globally (which would break SVG sizing).
+ */
+
+/* All direct flex/grid children inside cards get min-w-0 so text wraps */
+[data-card-content] > *,
+[data-card-content] .flex > * {
+  min-width: 0;
+}
+
+/* Pill badges — never wrap, never overflow their container */
+.pill-guard {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14rem;
+  display: inline-block;
+}
+
+/* Signal / trend metric rows — label and value should never force the row wider */
+.metric-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.metric-row .metric-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.metric-row .metric-value {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Prose regions (AI output, descriptions) — prevent runaway word break */
+.prose-region {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Provider name spans inside signal cards */
+.provider-label {
+  display: inline-block;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}

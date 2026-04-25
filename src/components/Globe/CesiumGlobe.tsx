@@ -1318,7 +1318,6 @@ export function CesiumGlobe({
 
     const basePosition = Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 220);
     const selectedColor = Color.fromCssColorString("#00e5ff");
-    const haloColor = Color.WHITE.withAlpha(captureMode ? 0.95 : 0.55);
     const regionOutlinePositions = [
       ...regionHierarchy,
       regionHierarchy[0] ?? Cartesian3.fromDegrees(selectedPoint.lng, selectedPoint.lat, 120),
@@ -1339,33 +1338,16 @@ export function CesiumGlobe({
     });
     pinEntityRef.current = pinEntity;
 
-    ds.entities.add({
-      name: "Selected region",
-      polygon: {
-        hierarchy: new PolygonHierarchy(regionHierarchy),
-        material: selectedColor.withAlpha(captureMode ? 0.08 : 0.15),
-        height: 12,
-        outline: true,
-        outlineColor: captureMode ? haloColor : selectedColor,
-      },
-    });
-
+    // Region outline — single thin dashed line, no fill. The SELECTION AREA
+    // panel already shows the bounding box coordinates; the old filled rectangle
+    // with dual polylines was visually too dominant for normal point searches.
     if (regionHierarchy.length >= 2) {
-      ds.entities.add({
-        name: "Selected region halo",
-        polyline: {
-          positions: regionOutlinePositions,
-          width: captureMode ? 8 : 4,
-          material: haloColor,
-          clampToGround: false,
-        },
-      });
       ds.entities.add({
         name: "Selected region outline",
         polyline: {
           positions: regionOutlinePositions,
-          width: captureMode ? 4 : 2.5,
-          material: selectedColor,
+          width: captureMode ? 2 : 1.5,
+          material: selectedColor.withAlpha(captureMode ? 0.5 : 0.25),
           clampToGround: false,
         },
       });

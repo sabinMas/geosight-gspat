@@ -100,7 +100,7 @@ export function WorkspaceCardShell({
       </CardHeader>
 
       {!collapsed ? (
-        <CardContent className="space-y-4">
+        <CardContent className="min-w-0 space-y-4">
           {loading ? (
             <div className="space-y-3 py-1">
               {loadingTitle || loadingDescription ? (
