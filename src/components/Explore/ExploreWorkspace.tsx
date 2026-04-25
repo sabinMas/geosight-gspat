@@ -404,12 +404,27 @@ export function ExploreWorkspace() {
       return;
     }
 
+    // workspace-zone cards only render inside the board panel — auto-switch so
+    // buttons like "Why score" work regardless of the current shell mode
+    const card = data.cards.find((c) => c.id === cardId);
+    if (card?.zone === "workspace") {
+      setShellMode("board");
+      setViewMode("board");
+      if (!visibility[cardId]) {
+        setCardVisible(cardId, true);
+      }
+      openWorkspaceCard(cardId);
+      return;
+    }
+
     openCardFromTray(cardId);
   }, [
+    data.cards,
     data.shellMode,
     openCardFromTray,
     openWorkspaceCard,
     setCardVisible,
+    setShellMode,
     setViewMode,
     visibility,
   ]);
@@ -1969,7 +1984,6 @@ export function ExploreWorkspace() {
               onOpenFocused={handleOpenGuidedMode}
               onOpenWorkspace={handleOpenBoardMode}
               onOpenLibrary={handleOpenLibraryMode}
-              onOpenCompare={() => openCard("compare")}
               onSelectDrawingTool={state.setDrawingTool}
               onOpenImport={handleOpenImport}
               onToggleSnapGrid={() => state.setSnapToGrid((value) => !value)}

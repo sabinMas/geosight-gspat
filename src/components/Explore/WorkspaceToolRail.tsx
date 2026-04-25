@@ -37,7 +37,6 @@ interface WorkspaceToolRailProps {
   onOpenFocused: () => void;
   onOpenWorkspace: () => void;
   onOpenLibrary: () => void;
-  onOpenCompare: () => void;
   onSelectDrawingTool: (tool: DrawingTool) => void;
   onOpenImport: () => void;
   onToggleSnapGrid: () => void;
@@ -75,7 +74,6 @@ export function WorkspaceToolRail({
   onOpenFocused,
   onOpenWorkspace,
   onOpenLibrary,
-  onOpenCompare,
   onSelectDrawingTool,
   onOpenImport,
   onToggleSnapGrid,
@@ -143,7 +141,7 @@ export function WorkspaceToolRail({
             type="button"
             size="sm"
             variant={shellMode === "board" && viewMode === "library" ? "default" : "secondary"}
-            className="justify-start rounded-2xl"
+            className="col-span-2 justify-start rounded-2xl"
             aria-label="Open panel library"
             aria-pressed={shellMode === "board" && viewMode === "library"}
             data-walkthrough="card-library"
@@ -151,17 +149,6 @@ export function WorkspaceToolRail({
           >
             <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
             Panels
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="justify-start rounded-2xl"
-            aria-label="Open comparison panel"
-            onClick={onOpenCompare}
-          >
-            <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
-            Compare
           </Button>
         </div>
       </div>
