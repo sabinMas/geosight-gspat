@@ -11,6 +11,9 @@ import {
 import { runGroqAnalysisStream } from "@/lib/groq";
 import { AnalyzeRequestBody } from "@/types";
 
+// Cerebras llama3.1-8b has an 8K-token context window. Conversation history
+// alone could easily exceed that with 12 long turns, forcing fallback. Cap
+// hard: last 6 turns, 1200 chars each → ~7.2K chars (~1.8K tokens) max.
 function normalizeConversationMessages(messages: AnalyzeRequestBody["messages"]) {
   if (!Array.isArray(messages)) {
     return undefined;
@@ -19,7 +22,7 @@ function normalizeConversationMessages(messages: AnalyzeRequestBody["messages"])
   const normalized = messages
     .map((message) => ({
       role: message?.role,
-      content: normalizeTextInput(message?.content, 4000),
+      content: normalizeTextInput(message?.content, 1200),
     }))
     .filter(
       (message): message is NonNullable<AnalyzeRequestBody["messages"]>[number] =>
@@ -28,7 +31,7 @@ function normalizeConversationMessages(messages: AnalyzeRequestBody["messages"])
             (message.role === "system" || message.role === "user" || message.role === "assistant"),
         ),
     )
-    .slice(-12);
+    .slice(-6);
 
   return normalized.length ? normalized : undefined;
 }

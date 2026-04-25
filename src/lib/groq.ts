@@ -5,6 +5,7 @@ import {
 } from "@/lib/analysis-provider";
 import { buildGroqAnalysisMessages } from "@/lib/geosight-assistant";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
+import { CoreMessage } from "@/lib/rag/types";
 import { AnalyzeRequestBody, MissionProfile } from "@/types";
 
 const CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/chat/completions";
@@ -12,6 +13,12 @@ const CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1/chat/completions";
 // llama3.1-8b has Cerebras' highest RPM/TPM tier and lowest per-token cost.
 // Overridable via CEREBRAS_MODEL env var without redeploying code.
 const DEFAULT_MODEL = process.env.CEREBRAS_MODEL?.trim() || "llama3.1-8b";
+
+// 8K-token context window = ~32K chars total. We target ~22K chars for
+// input messages, leaving ~2.5K tokens headroom for the response.
+const MAX_INPUT_CHARS = 22_000;
+// Per-message hard ceiling so a single huge message can't dominate.
+const PER_MESSAGE_HARD_CAP = 8_000;
 
 const PROFILE_MODEL_MAP: Record<string, string> = {
   "data-center": DEFAULT_MODEL,
@@ -33,13 +40,70 @@ function resolveModel(profileId: string) {
   return PROFILE_MODEL_MAP[profileId] ?? DEFAULT_MODEL;
 }
 
+function totalChars(messages: CoreMessage[]) {
+  return messages.reduce((n, m) => n + (m.content?.length ?? 0), 0);
+}
+
+/**
+ * Final safety net before sending to Cerebras. Builders already trim
+ * aggressively; this catches edge cases where total still exceeds the
+ * 8K-token window. Strategy:
+ *  1. Hard-cap any single message at PER_MESSAGE_HARD_CAP.
+ *  2. If still over budget, drop conversation history (non-system) from
+ *     the oldest end until we fit.
+ *  3. If still over, truncate the largest non-system message.
+ */
+function compactToBudget(messages: CoreMessage[]): CoreMessage[] {
+  const capped = messages.map((m) =>
+    m.content && m.content.length > PER_MESSAGE_HARD_CAP
+      ? { ...m, content: `${m.content.slice(0, PER_MESSAGE_HARD_CAP - 1)}…` }
+      : m,
+  );
+
+  if (totalChars(capped) <= MAX_INPUT_CHARS) return capped;
+
+  // Drop oldest non-system messages first.
+  const result = [...capped];
+  while (totalChars(result) > MAX_INPUT_CHARS) {
+    const dropIdx = result.findIndex((m) => m.role !== "system");
+    if (dropIdx === -1) break;
+    result.splice(dropIdx, 1);
+  }
+
+  if (totalChars(result) <= MAX_INPUT_CHARS) {
+    if (result.length !== capped.length) {
+      console.warn(
+        `[cerebras] compacted history: dropped ${capped.length - result.length} message(s) to fit context window`,
+      );
+    }
+    return result;
+  }
+
+  // Last resort: truncate the largest message.
+  const largestIdx = result.reduce(
+    (best, m, i) => (m.content.length > result[best].content.length ? i : best),
+    0,
+  );
+  const overflow = totalChars(result) - MAX_INPUT_CHARS;
+  const target = result[largestIdx];
+  result[largestIdx] = {
+    ...target,
+    content: `${target.content.slice(0, Math.max(500, target.content.length - overflow - 16))}\n…[truncated]`,
+  };
+  console.warn(
+    `[cerebras] truncated message ${largestIdx} by ~${overflow} chars to fit context window`,
+  );
+  return result;
+}
+
 export async function runGroqAnalysis(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ): Promise<AnalysisResult> {
   const apiKey = getCerebrasKey();
   const model = resolveModel(profile.id);
-  const messages = await buildGroqAnalysisMessages(payload, profile);
+  const rawMessages = await buildGroqAnalysisMessages(payload, profile);
+  const messages = compactToBudget(rawMessages);
 
   let response: Response;
   try {
@@ -93,15 +157,8 @@ export async function runGroqAnalysisStream(
 ): Promise<ReadableStream<Uint8Array>> {
   const apiKey = getCerebrasKey();
   const model = resolveModel(profile.id);
-  const messages = await buildGroqAnalysisMessages(payload, profile);
-  const totalChars = messages.reduce((n, m) => n + (m.content?.length ?? 0), 0);
-  // Warn early if prompt looks too big for 8K-context Cerebras models.
-  // ~4 chars per token → 8K tokens ≈ 32K chars. Keep some headroom for response.
-  if (totalChars > 24_000) {
-    console.warn(
-      `[cerebras stream] prompt large totalChars=${totalChars} model=${model} — may exceed context window`,
-    );
-  }
+  const rawMessages = await buildGroqAnalysisMessages(payload, profile);
+  const messages = compactToBudget(rawMessages);
 
   const response = await fetch(CEREBRAS_BASE_URL, {
     method: "POST",
