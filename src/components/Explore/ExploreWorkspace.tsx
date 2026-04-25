@@ -171,7 +171,7 @@ function locationsRoughlyMatch(
 
 export function ExploreWorkspace() {
   const init = useExploreInit();
-  const { setGeoContext, setUiContext, primeAgent, setPanelOpen: setAgentPanelOpen } = useAgentPanel();
+  const { setGeoContext, setUiContext, primeAgent, setPanelOpen: setAgentPanelOpen, registerOpenChat } = useAgentPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const inExplorer = isExplorerMode(state.appMode);
@@ -428,6 +428,12 @@ export function ExploreWorkspace() {
     setViewMode,
     visibility,
   ]);
+
+  // Register so the floating "Ask GeoSight" button in AgentPanel opens the
+  // real Cerebras-backed chat card instead of the deterministic geo-analyst agent.
+  useEffect(() => {
+    registerOpenChat(() => openCard("chat"));
+  }, [registerOpenChat, openCard]);
 
   const resultsHeader = (
     <div data-demo-id="demo-nearby">

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   AgentId,
@@ -19,6 +19,8 @@ type AgentPanelContextValue = {
   primeAgent: (agentId: AgentId, draft?: string) => void;
   queuedAutoSubmit: Partial<Record<AgentId, boolean>>;
   queuedDrafts: Partial<Record<AgentId, string>>;
+  registerOpenChat: (fn: () => void) => void;
+  openChat: () => void;
   setGeoContext: (ctx: GeoSightContext) => void;
   setPanelOpen: (open: boolean) => void;
   submitAgentPrompt: (agentId: AgentId, draft: string) => void;
@@ -34,6 +36,7 @@ export function AgentPanelProvider({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const openChatRef = useRef<(() => void) | null>(null);
   const [panelOpen, setPanelOpenState] = useState(false);
   const [activeAgentId, setActiveAgent] = useState<AgentId>("geo-analyst");
   const [geoContext, setGeoContext] = useState<GeoSightContext | null>(null);
@@ -63,6 +66,14 @@ export function AgentPanelProvider({
     setActiveAgent("geo-analyst");
     setPanelOpen(true);
   }, [setPanelOpen]);
+
+  const registerOpenChat = useCallback((fn: () => void) => {
+    openChatRef.current = fn;
+  }, []);
+
+  const openChat = useCallback(() => {
+    openChatRef.current?.();
+  }, []);
 
   useEffect(() => {
     function getViewportClass(width: number): GeoSightViewportClass {
@@ -161,11 +172,13 @@ export function AgentPanelProvider({
       clearQueuedAutoSubmit,
       clearQueuedDraft,
       geoContext,
+      openChat,
       openDefaultPanel,
       panelOpen,
       primeAgent,
       queuedAutoSubmit,
       queuedDrafts,
+      registerOpenChat,
       setGeoContext,
       setPanelOpen,
       submitAgentPrompt,
@@ -177,11 +190,13 @@ export function AgentPanelProvider({
       clearQueuedAutoSubmit,
       clearQueuedDraft,
       geoContext,
+      openChat,
       openDefaultPanel,
       panelOpen,
       primeAgent,
       queuedAutoSubmit,
       queuedDrafts,
+      registerOpenChat,
       setPanelOpen,
       submitAgentPrompt,
       setUiContext,
@@ -209,11 +224,13 @@ export function useAgentPanel() {
       clearQueuedAutoSubmit: () => {},
       clearQueuedDraft: () => {},
       geoContext: null,
+      openChat: () => {},
       openDefaultPanel: () => {},
       panelOpen: false,
       primeAgent: () => {},
       queuedAutoSubmit: {} as Partial<Record<AgentId, boolean>>,
       queuedDrafts: {} as Partial<Record<AgentId, string>>,
+      registerOpenChat: () => {},
       setGeoContext: () => {},
       setPanelOpen: () => {},
       submitAgentPrompt: () => {},

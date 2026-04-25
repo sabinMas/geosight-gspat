@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import AgentChat from "./AgentChat";
 
 function AgentPanelDrawer() {
-  const { openDefaultPanel, panelOpen, setPanelOpen, uiContext } = useAgentPanel();
+  const { openChat, openDefaultPanel, panelOpen, setPanelOpen, uiContext } = useAgentPanel();
   const canShowPanel =
     uiContext?.currentRoute !== "/" && Boolean(uiContext?.locationSelected);
   const showFloatingTrigger = canShowPanel && uiContext?.visiblePrimaryCardId !== "chat";
@@ -96,7 +96,14 @@ function AgentPanelDrawer() {
               return;
             }
 
-            openDefaultPanel();
+            // Open the real Cerebras chat card; fall back to agent drawer if
+            // registerOpenChat hasn't been called (e.g. on the landing page).
+            const hasChat = typeof openChat === "function";
+            if (hasChat) {
+              openChat();
+            } else {
+              openDefaultPanel();
+            }
           }}
           aria-expanded={panelOpen}
           aria-controls="geosight-agent-panel"
