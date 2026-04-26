@@ -587,7 +587,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 128,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar", "agriculture"],
     emptyState: "Select a location to assess multi-year drought pressure.",
   },
   {
@@ -611,7 +611,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 129,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar", "emergency-response", "agriculture"],
     emptyState: "Select a location to check the live global disaster alert feed.",
   },
   {
@@ -635,7 +635,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     defaultVisibility: false,
     defaultOrder: 130,
     requiredData: ["geodata"],
-    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar"],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial", "site-development", "energy-solar", "emergency-response", "agriculture"],
     emptyState: "Select a location to assess structural wildfire risk.",
   },
   {
@@ -925,6 +925,12 @@ function getModeVisibility(cardId: WorkspaceCardId): { explorer: boolean; pro: b
     "air-quality",
     "earthquake-history",
     "fire-history",
+    // Domain-specific cards for explorer lenses (energy, weather, disaster)
+    "solar-resource",
+    "thermal-load",
+    "wildfire-risk",
+    "disaster-alerts",
+    "drought-risk",
   ]);
   if (bothModes.has(cardId)) return { explorer: true, pro: true };
 
@@ -1229,6 +1235,9 @@ const VISIBLE_CARDS_BY_PROFILE: Record<AppMode, Record<string, WorkspaceCardId[]
     "site-development": ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "local-access"],
     commercial: ["active-location", "chat", "results", "outdoor-fit", "trip-summary", "route-planner"],
     "energy-solar": ["active-location", "chat", "results", "solar-resource", "thermal-load", "climate-history"],
+    agriculture: ["active-location", "chat", "results", "hazard-context", "flood-risk", "climate-history"],
+    "emergency-response": ["active-location", "chat", "results", "hazard-context", "wildfire-risk", "disaster-alerts"],
+    "field-research": ["active-location", "chat", "results", "terrain-viewer", "elevation-profile", "air-quality"],
   },
   pro: {
     "data-center": ["active-location", "chat", "results", "site-readiness", "infrastructure-access", "weather-forecast", "hazard-details"],
@@ -1270,6 +1279,34 @@ const VISIBLE_CARDS_BY_PROFILE: Record<AppMode, Record<string, WorkspaceCardId[]
       "climate-history",
       "wildfire-risk",
     ],
+    agriculture: [
+      "active-location",
+      "chat",
+      "results",
+      "hazard-context",
+      "flood-risk",
+      "climate-history",
+      "drought-risk",
+      "wildfire-risk",
+    ],
+    "emergency-response": [
+      "active-location",
+      "chat",
+      "results",
+      "hazard-context",
+      "flood-risk",
+      "wildfire-risk",
+      "disaster-alerts",
+    ],
+    "field-research": [
+      "active-location",
+      "chat",
+      "results",
+      "terrain-viewer",
+      "elevation-profile",
+      "air-quality",
+      "climate-history",
+    ],
   },
 };
 
@@ -1284,10 +1321,35 @@ export function getWorkspaceCardDefaults(profileId: string, mode: AppMode) {
   }, {} as Record<WorkspaceCardId, boolean>);
 }
 
+// Cards that are available for every profile regardless of supportedProfiles.
+// Keeps core navigation (active-location, chat, results) and universal analysis
+// tools working for new profiles (energy-solar, agriculture, etc.) without
+// requiring each card to enumerate every profile ID.
+const UNIVERSAL_CARD_IDS = new Set<WorkspaceCardId>([
+  "active-location",
+  "chat",
+  "results",
+  "score",
+  "factor-breakdown",
+  "compare",
+  "terrain-viewer",
+  "elevation-profile",
+  "terrain-export",
+  "image-upload",
+  "land-classifier",
+  "source-awareness",
+  "hazard-context",
+  "climate-history",
+  "flood-risk",
+  "air-quality",
+  "earthquake-history",
+  "fire-history",
+]);
+
 export function getWorkspaceCardsForProfile(profileId: string) {
-  return WORKSPACE_CARD_REGISTRY.filter((card) => card.supportedProfiles.includes(profileId)).sort(
-    (a, b) => a.defaultOrder - b.defaultOrder,
-  );
+  return WORKSPACE_CARD_REGISTRY.filter(
+    (card) => UNIVERSAL_CARD_IDS.has(card.id) || card.supportedProfiles.includes(profileId),
+  ).sort((a, b) => a.defaultOrder - b.defaultOrder);
 }
 
 export function mergeWorkspacePreferences(

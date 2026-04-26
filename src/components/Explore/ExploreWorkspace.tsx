@@ -438,7 +438,7 @@ export function ExploreWorkspace() {
   useEffect(() => {
     registerOpenChat(() => {
       data.setActivePrimaryCardId("chat");
-      if (data.shellMode === "minimal") setShellMode("guided");
+      if (data.shellMode !== "guided") setShellMode("guided");
     });
   }, [registerOpenChat, data.setActivePrimaryCardId, data.shellMode, setShellMode]);
 
