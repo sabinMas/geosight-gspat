@@ -15,6 +15,7 @@ interface MapCalloutProps {
   pendingCoords?: Coordinates | null;
   onOpenAnalysis: () => void;
   onDismiss: () => void;
+  lensLabel?: string;
 }
 
 function formatCoord(lat: number, lng: number): string {
@@ -32,7 +33,9 @@ export function MapCallout({
   pendingCoords,
   onOpenAnalysis,
   onDismiss,
+  lensLabel,
 }: MapCalloutProps) {
+  const displayLabel = lensLabel ?? profile.name;
   const overview = buildAnalysisOverview({
     geodata,
     score,
@@ -66,7 +69,7 @@ export function MapCallout({
               {formatCoord(pendingCoords.lat, pendingCoords.lng)}
             </div>
           ) : (
-            <div className="text-xs text-[var(--muted-foreground)]">{profile.name}</div>
+            <div className="text-xs text-[var(--muted-foreground)]">{displayLabel}</div>
           )}
         </div>
         <button

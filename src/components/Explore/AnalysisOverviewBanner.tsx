@@ -17,6 +17,7 @@ interface AnalysisOverviewBannerProps {
   onOpenFactorBreakdown: () => void;
   onOpenSources: () => void;
   compact?: boolean;
+  lensLabel?: string;
 }
 
 export function AnalysisOverviewBanner({
@@ -29,7 +30,9 @@ export function AnalysisOverviewBanner({
   onOpenFactorBreakdown,
   onOpenSources,
   compact,
+  lensLabel,
 }: AnalysisOverviewBannerProps) {
+  const displayLabel = lensLabel ?? profile.name;
   const overview = buildAnalysisOverview({
     geodata,
     score,
@@ -54,7 +57,7 @@ export function AnalysisOverviewBanner({
       >
         {scoreValue !== null ? (
           <span className="shrink-0 whitespace-nowrap rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--foreground)] cursor-default pointer-events-none select-none">
-            {scoreValue}/100 · {profile.name}
+            {scoreValue}/100 · {displayLabel}
           </span>
         ) : (
           <StateBadge tone={overview.tone} className="shrink-0 whitespace-nowrap" />
@@ -105,9 +108,9 @@ export function AnalysisOverviewBanner({
               <StateBadge tone={overview.tone} />
               <span
                 className="max-w-[14rem] truncate whitespace-nowrap rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1 text-xs text-[var(--foreground-soft)] cursor-default pointer-events-none select-none"
-                title={profile.name}
+                title={displayLabel}
               >
-                {profile.name}
+                {displayLabel}
               </span>
               <span
                 className="max-w-[14rem] truncate whitespace-nowrap text-xs italic text-[var(--muted-foreground)] cursor-default pointer-events-none select-none"

@@ -71,7 +71,7 @@ import { SearchBar } from "@/components/Shell/SearchBar";
 import { Sidebar } from "@/components/Shell/Sidebar";
 import { isExplorerMode } from "@/lib/app-mode";
 import { WALKTHROUGH_STEPS } from "@/lib/demos/walkthrough";
-import { getExplorerLensById } from "@/lib/explorer-lenses";
+import { EXPLORER_LENSES, getExplorerLensById } from "@/lib/explorer-lenses";
 import { toLensParam } from "@/lib/lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { GlobeErrorBoundary } from "@/components/Globe/GlobeErrorBoundary";
@@ -98,7 +98,7 @@ import {
   serializeProject,
   type GeoSightProject,
 } from "@/lib/project";
-import { PROFILES } from "@/lib/profiles";
+import { getProfileById, PROFILES } from "@/lib/profiles";
 import { cn } from "@/lib/utils";
 import {
   CaptureFigureOptions,
@@ -1067,6 +1067,7 @@ export function ExploreWorkspace() {
       JSON.stringify(drawnShapesGeoJson, null, 2),
       "application/geo+json",
     );
+    setWorkspaceNotice({ tone: "info", message: "Drawing shapes exported as GeoJSON." });
   }, [drawnShapesGeoJson, state.selectedLocationName]);
 
   const handleExportCsv = useCallback(async () => {
@@ -1399,7 +1400,16 @@ export function ExploreWorkspace() {
       keywords: `${card.id} ${card.questionAnswered} ${card.category} ${card.summary}`,
     }));
 
-    return [...actionItems, ...quickRegionItems, ...cardItems];
+    const lensItems: WorkspaceCommandItem[] = EXPLORER_LENSES.map((lens) => ({
+      id: `lens-${lens.id}`,
+      label: lens.label,
+      description: lens.tagline,
+      section: "Lenses",
+      Icon: Layers3,
+      keywords: `lens ${lens.id} ${lens.factors?.join(" ") ?? ""} ${lens.whyItMatters}`,
+    }));
+
+    return [...actionItems, ...quickRegionItems, ...cardItems, ...lensItems];
   }, [
     data.cards,
     data.geodata,
@@ -1423,6 +1433,17 @@ export function ExploreWorkspace() {
 
         if (region) {
           handleSelectRegion(region);
+        }
+        return;
+      }
+
+      if (item.id.startsWith("lens-")) {
+        const lensId = item.id.replace("lens-", "");
+        const lens = getExplorerLensById(lensId);
+        if (lens) {
+          state.setActiveLensId(lensId);
+          const profile = getProfileById(lens.profileId);
+          if (profile) state.setActiveProfile(profile);
         }
         return;
       }
@@ -2264,6 +2285,7 @@ export function ExploreWorkspace() {
               locationName={state.selectedLocationName}
               loading={data.loading}
               pendingCoords={state.selectedPoint}
+              lensLabel={state.activeLensId ? getExplorerLensById(state.activeLensId)?.label : undefined}
               onOpenAnalysis={() => {
                 const firstCard = data.primaryCards[0];
                 if (firstCard) data.setActivePrimaryCardId(firstCard.id);
@@ -2323,6 +2345,7 @@ export function ExploreWorkspace() {
               error={data.error}
               onOpenFactorBreakdown={() => openCard("factor-breakdown")}
               onOpenSources={() => openCard("source-awareness")}
+              lensLabel={state.activeLensId ? getExplorerLensById(state.activeLensId)?.label : undefined}
             />
           ) : (
             <span className="text-sm text-[var(--muted-foreground)]">

@@ -262,8 +262,10 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
       }
 
       selectPointUrlSyncTimeoutRef.current = window.setTimeout(() => {
-        // Keep URL in sync so the page is bookmarkable / shareable
-        const params = new URLSearchParams(searchParams.toString());
+        // Keep URL in sync so the page is bookmarkable / shareable.
+        // Use window.location.search instead of the React searchParams closure
+        // to avoid stale captures when consecutive searches fire rapidly.
+        const params = new URLSearchParams(window.location.search);
         params.set("lat", coords.lat.toFixed(6));
         params.set("lng", coords.lng.toFixed(6));
         params.set("mode", appModeRef.current);
@@ -285,7 +287,7 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
         selectPointUrlSyncTimeoutRef.current = null;
       }, SHAPES_URL_SYNC_DEBOUNCE_MS);
     },
-    [selectGlobePoint, router, pathname, searchParams],
+    [selectGlobePoint, router, pathname],
   );
 
   const [layers, setLayers] = useState<LayerState>(activeProfile.defaultLayers);

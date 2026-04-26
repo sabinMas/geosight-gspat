@@ -832,12 +832,32 @@ function formatTrendLine(trend: DataTrend) {
   return `${trend.label} is ${trend.value} — ${trend.detail}`;
 }
 
+const GEO_KEYWORDS = [
+  "flood", "seismic", "earthquake", "terrain", "elevation", "slope", "soil",
+  "risk", "hazard", "climate", "air", "quality", "aqi", "score", "location",
+  "site", "land", "water", "fire", "wildfire", "drought", "storm", "wind",
+  "nearby", "distance", "access", "road", "building", "infrastructure",
+  "school", "neighborhood", "housing", "home", "hike", "trail", "outdoor",
+  "temperature", "precipitation", "rainfall", "snow", "fog", "humidity",
+  "source", "trust", "coverage", "data", "signal", "map", "region", "area",
+  "coordinate", "lat", "lng", "place", "city", "county", "state", "country",
+  "altitude", "topograph", "geograph", "geology", "hydro",
+];
+
 export function buildFallbackAssessment(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ) {
   const responseMode = inferResponseMode(payload.question, payload.resultsMode);
   const questionType = classifyFallbackQuestion(payload, profile);
+
+  // Decline gracefully for clearly off-topic questions (no geo keywords and no geodata context)
+  const normalizedQ = payload.question?.toLowerCase() ?? "";
+  const hasGeoKeyword = GEO_KEYWORDS.some((kw) => normalizedQ.includes(kw));
+  const hasLocationContext = !!(payload.geodata || payload.locationName || payload.location);
+  if (!hasGeoKeyword && !hasLocationContext && normalizedQ.length > 0) {
+    return "I'm a location intelligence assistant — I can only answer questions about a specific site (terrain, climate, hazards, access, scores, and nearby places). Try asking something about this location.";
+  }
   const locationLabel = formatLocationLabel(payload);
   const supportedFacts = buildSupportedFacts(payload);
 

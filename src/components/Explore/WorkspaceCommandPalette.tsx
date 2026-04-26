@@ -9,7 +9,7 @@ export interface WorkspaceCommandItem {
   id: string;
   label: string;
   description: string;
-  section: "Actions" | "Quick regions" | "Panels";
+  section: "Actions" | "Quick regions" | "Panels" | "Lenses";
   Icon: LucideIcon;
   keywords?: string;
 }
@@ -25,6 +25,7 @@ const SECTION_ORDER: WorkspaceCommandItem["section"][] = [
   "Actions",
   "Quick regions",
   "Panels",
+  "Lenses",
 ];
 
 export function WorkspaceCommandPalette({

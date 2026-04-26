@@ -63,7 +63,7 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
     label: "Road Trip",
     icon: "Map",
     tagline: "Discover what's scenic, surprising, and worth stopping for.",
-    profileId: "commercial",
+    profileId: "hiking",
     defaultCards: [
       "active-location",
       "chat",
@@ -107,7 +107,7 @@ export const EXPLORER_LENSES: ExplorerLens[] = [
     label: "General Explore",
     icon: "Compass",
     tagline: "Just look around and see what stands out.",
-    profileId: "residential",
+    profileId: "home-buying",
     defaultCards: [
       "active-location",
       "chat",

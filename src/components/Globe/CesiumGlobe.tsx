@@ -454,26 +454,43 @@ export function CesiumGlobe({
     setViewerReady(false);
     setGlobeReady(false);
 
-    const viewer = new CesiumViewer(host, {
-      terrainProvider: new EllipsoidTerrainProvider(),
-      animation: false,
-      baseLayerPicker: false,
-      contextOptions: {
-        webgl: {
-          preserveDrawingBuffer: true,
+    let viewer: CesiumViewer;
+    try {
+      viewer = new CesiumViewer(host, {
+        terrainProvider: new EllipsoidTerrainProvider(),
+        animation: false,
+        baseLayerPicker: false,
+        contextOptions: {
+          webgl: {
+            preserveDrawingBuffer: true,
+          },
         },
-      },
-      geocoder: false,
-      homeButton: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      timeline: false,
-      navigationHelpButton: false,
-      infoBox: false,
-      shouldAnimate: true,
-    });
+        geocoder: false,
+        homeButton: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        timeline: false,
+        navigationHelpButton: false,
+        infoBox: false,
+        shouldAnimate: true,
+      });
+    } catch (initError) {
+      // WebGL context may not be ready on the first paint — schedule an automatic
+      // retry via requestViewerReset so the user doesn't have to click "Retry view".
+      console.warn("[cesium-globe] viewer init failed, auto-retrying", initError);
+      requestViewerReset("init failure");
+      return;
+    }
 
     viewerRef.current = viewer;
+
+    // Force Cesium to measure the actual container size before the first render.
+    // Without this, a zero-size canvas on cold loads produces a black frame.
+    try {
+      viewer.resize();
+    } catch {
+      // noop — non-fatal
+    }
 
     // Set initial camera synchronously before first paint to avoid a default
     // globe-home flash over the wrong continent on cold loads.
