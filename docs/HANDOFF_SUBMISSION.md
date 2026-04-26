@@ -1,6 +1,6 @@
 # GeoSight — Submission Handoff
 
-**Last updated:** 2026-04-25  
+**Last updated:** 2026-04-26  
 **Contest deadline:** HandshakeAI / Codex Creator (April 30, 2026)  
 **Deployed at:** https://geosight-gspat.vercel.app  
 **Branch:** `main` (auto-deploys to Vercel on push)
@@ -64,7 +64,8 @@ All merged to `main`:
 
 ```
 ChatPanel (/api/analyze)
-  → Cerebras qwen-3-235b-a22b-instruct-2507
+  → Cerebras llama3.1-8b (override via CEREBRAS_MODEL env var)
+  → 3-key pool (CEREBRAS_API_KEY / _2 / _3) with 429-retry
   → 600 max_tokens, 6-turn history cap, compactToBudget safety net
   → Falls back to deterministic assessment if quota exceeded
 
@@ -81,14 +82,15 @@ Report Generation (Generate Report button)
 
 **Key env vars required:**
 - `NEXT_PUBLIC_CESIUM_ION_TOKEN` — globe rendering
-- `CEREBRAS_API_KEY` — ChatPanel only (free tier: ~60 RPM, 1M TPD per account)
+- `CEREBRAS_API_KEY` / `_2` / `_3` — ChatPanel (pool of up to 3 keys; free tier: ~60 RPM, 1M TPD per key)
 - `GEMINI_API_KEY` — optional, only needed if `RAG_ENABLED=true`
 - `NASA_FIRMS_MAP_KEY` — fire data (optional, fallback works without it)
 - `NPS_API_KEY` — national parks data
 - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` — shared rate limiting
 
 **Cerebras rate limits (from docs):**
-- qwen-3-235b: 30 RPM, 60K TPM, 1M TPD (free tier)
+- llama3.1-8b: 30 RPM, 60K TPM, 1M TPD (free tier, per key)
+- With 3-key pool: ~90 RPM effective, 3M TPD — handles concurrent users comfortably
 - Rate limiting at `/api/analyze`: 15 req/min per IP, 200 req/day per IP
 
 ---
@@ -99,7 +101,7 @@ Report Generation (Generate Report button)
 
 - [ ] **NASA_FIRMS_MAP_KEY** — flagged as "Needs Attention" in Vercel dashboard. Re-paste the key. Without it, `WildfireRiskCard` fire proximity scores 0 globally.
 - [ ] **Verify chat works on live site after model swap** — we switched default to `llama3.1-8b` (`81a06c6`) and rewired the floating button (`87f7fe8`, `00c5cd6`). Test on prod: search → click floating "Ask GeoSight" button → confirm Cerebras streams a response (no "deterministic backup" badge). Optionally set `CEREBRAS_MODEL=gpt-oss-120b` in Vercel for higher-quality responses.
-- [ ] **Demo end-to-end test** — run all 3 demos (Home Buyer, Data Center, Trail Scout) on the deployed preview. Verify callout positions and "Next" button is always visible.
+- [ ] **Demo end-to-end test** — run all 4 demos (Home Buyer, Data Center, Trail Scout, Solar Site) on the deployed preview. Verify callout positions and "Next" button is always visible.
 - [x] ~~Verify ChatPanel routes to Cerebras~~ — fixed in this session (was routing to deterministic geo-analyst agent)
 
 ### P1 — High value, tight effort
@@ -112,7 +114,7 @@ Report Generation (Generate Report button)
 - [ ] **Append chat to report** — `buildGeoScribeFallback` doesn't include the ChatPanel conversation. Add `chatMessages` to `agentContext.dataBundle` in `useExploreData.ts → generateReport` and parse it as a "GeoAnalyst Conversation" appendix.
 - [ ] **GeoAnalyst context gap** — system prompt in `analyze/route.ts` omits newer fields: `solarResource`, `streamGauges`, `thermalLoad`. Audit and add.
 - [ ] **Sentry verification** — verify error capture works.
-- [ ] **Cerebras model migration** — `llama3.1-8b` and `qwen-3-235b-a22b-instruct-2507` are both deprecated May 27, 2026. After that date, set `CEREBRAS_MODEL` to the replacement model ID — no code change needed.
+- [ ] **Cerebras model migration** — `llama3.1-8b` is deprecated May 27, 2026. After that date, set `CEREBRAS_MODEL` to the replacement model ID in Vercel — no code change needed.
 - [ ] **README update** — refresh demo screenshots / GIF to reflect current UI.
 - [ ] **Keyboard navigation** — set explicit `tabIndex` and focus-visible ring styles across the workspace.
 
@@ -120,7 +122,7 @@ Report Generation (Generate Report button)
 
 ## Known Working Features (Verified Across Sessions)
 
-- ✅ All 3 demo tours (Home Buyer, Data Center, Trail Scout) — anchored callout, scroll-into-view, Next/Back/dots
+- ✅ All 4 demo tours (Home Buyer, Data Center, Trail Scout, Solar Site) — anchored callout, scroll-into-view, Next/Back/dots
 - ✅ Solar demo (Arizona) — solar-resource card appears, Energy & Solar lens wired
 - ✅ Globe region rectangle gone — subtle outline only
 - ✅ One-word-per-line streaming bug fixed — `whitespace-pre-wrap` removed
@@ -154,7 +156,7 @@ Score engine:          src/lib/scoring.ts
 2. Pick any lens, search a real US city (e.g., "Austin, TX")
 3. Wait for data to load (globe flies to location, score appears)
 4. Click "Ask GeoSight" tab → type a question
-5. Response should stream in within 2-4 seconds with `qwen-3-235b`
+5. Response should stream in within 2-4 seconds with `llama3.1-8b`
 
 If it shows "Deterministic backup" badge → Cerebras key missing or quota exceeded.
 Check Vercel dashboard → Functions → `/api/analyze` logs for the error.

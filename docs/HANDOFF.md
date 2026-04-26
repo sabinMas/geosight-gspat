@@ -546,7 +546,7 @@ src/
     workspace-intent.ts             # Question → card intent detection (regex patterns)
     source-registry.ts              # Source metadata + regional fallback guidance
     analysis-summary.ts             # buildAnalysisOverview — strengths/watchouts/dataGaps
-    explorer-lenses.ts              # 5 Explorer mode lenses
+    explorer-lenses.ts              # 9 Explorer mode lenses
     lenses.ts                       # Lens ID ↔ profile ID mapping
     landing.ts                      # Use cases, buildExploreHref
     demo-scenarios.ts               # DEMO_SCENARIOS array — 4 guided tours with typed DemoStep[]
