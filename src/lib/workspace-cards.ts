@@ -937,7 +937,6 @@ function getAudience(cardId: WorkspaceCardId): CardAudience {
     "score",
     "image-upload",
     "land-classifier",
-    "source-awareness",
     "school-context",
     "broadband-context",
     "cooling-water",
@@ -958,7 +957,6 @@ function getComplexity(cardId: WorkspaceCardId): CardComplexity {
   const advanced = new Set<WorkspaceCardId>([
     "score",
     "factor-breakdown",
-    "source-awareness",
     "school-context",
     "broadband-context",
     "cooling-water",

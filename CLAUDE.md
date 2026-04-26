@@ -350,7 +350,7 @@ See `docs/BACKLOG.md` for full detail. Short version:
 - Richer multi-hazard resilience stack (seismic probabilistic, flood depth)
 
 **P1 — competition polish (2026-04-20)**
-- ~~Automated demo system~~ — shipped: `DemoRunner.tsx` + `demo-scenarios.ts`; 3 guided tours (Home Buyer / Data Center / Trail Scout) triggered from landing page picker modal; spotlight ring, progress bar, step-by-step narration; `demoScenarioId` URL param wires into `ExploreInitState`
+- ~~Automated demo system~~ — shipped: `DemoRunner.tsx` + `demo-scenarios.ts`; 4 guided tours (Home Buyer / Data Center / Trail Scout / Solar Site) triggered from landing page picker modal; spotlight ring, progress bar, step-by-step narration; `demoScenarioId` URL param wires into `ExploreInitState`
 - ~~Design audit fixes~~ — shipped: `SchoolContextCard` name truncation, `ImageUpload` land-cover token colors, `ChatPanel` rounded-full submit button, button wrapping (`whitespace-nowrap shrink-0`) on Save site / Save as new / Update active
 
 **P2 — spatial tools**

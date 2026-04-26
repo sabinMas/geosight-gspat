@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 import {
+  Bookmark,
   BookOpen,
   ChevronLeft,
   Columns2,
@@ -170,6 +172,7 @@ function locationsRoughlyMatch(
 }
 
 export function ExploreWorkspace() {
+  const router = useRouter();
   const init = useExploreInit();
   const { setGeoContext, setUiContext, primeAgent, setPanelOpen: setAgentPanelOpen, registerOpenChat } = useAgentPanel();
   const state = useExploreState(init);
@@ -1281,6 +1284,14 @@ export function ExploreWorkspace() {
         keywords: "save site shortlist compare",
       },
       {
+        id: "action-view-saved",
+        label: `View saved sites${data.sites.length > 0 ? ` (${data.sites.length})` : ""}`,
+        description: "Browse and manage all locations you have saved.",
+        section: "Actions",
+        Icon: Bookmark,
+        keywords: "saved sites library bookmark manage delete",
+      },
+      {
         id: "action-toggle-rotate",
         label: state.globeRotateMode ? "Disable globe rotation" : "Enable globe rotation",
         description: "Switch between fixed and freely rotatable 3D globe exploration.",
@@ -1497,6 +1508,9 @@ export function ExploreWorkspace() {
         case "action-save-site":
           handleSaveCurrentSite();
           return;
+        case "action-view-saved":
+          router.push("/saved");
+          return;
         case "action-toggle-rotate":
           state.setGlobeRotateMode((current) => !current);
           return;
@@ -1554,6 +1568,7 @@ export function ExploreWorkspace() {
       handleSaveCurrentSite,
       handleSelectRegion,
       openCard,
+      router,
       state,
     ],
   );
@@ -2355,6 +2370,18 @@ export function ExploreWorkspace() {
         </div>
 
         <div className="ml-auto flex flex-nowrap shrink-0 items-center gap-3 self-end xl:self-auto">
+          {data.sites.length > 0 && (
+            <Link
+              href="/saved"
+              className="hidden shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition-colors hover:text-[var(--foreground)] xl:inline-flex"
+            >
+              <Bookmark className="h-3 w-3" />
+              Saved
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent-soft)] px-1 text-[10px] font-semibold tabular-nums text-[var(--accent)]">
+                {data.sites.length}
+              </span>
+            </Link>
+          )}
           <Button
             type="button"
             variant="secondary"

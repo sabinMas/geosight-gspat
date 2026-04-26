@@ -14,7 +14,7 @@ The app is fully deployed and functional at `https://geosight-gspat.vercel.app`.
 
 This is the current place to pick up work. The latest production-facing commits are:
 
-- (pending push) `feat(demo): automated demo system + competition polish` — DemoRunner, 3 scenarios, compare button UX, design audit fixes, button wrapping, token colors
+- (pending push) `feat(demo): automated demo system + competition polish` — DemoRunner, 4 scenarios, compare button UX, design audit fixes, button wrapping, token colors
 - `797604a` - `fix: source details column layout + legend button overlap`
 - `586c24e` - `fix: 6 usability bugs from pre-submission test report`
 - `aa17a84` - `docs: strengthen README for competition submission`
@@ -549,7 +549,7 @@ src/
     explorer-lenses.ts              # 5 Explorer mode lenses
     lenses.ts                       # Lens ID ↔ profile ID mapping
     landing.ts                      # Use cases, buildExploreHref
-    demo-scenarios.ts               # DEMO_SCENARIOS array — 3 guided tours with typed DemoStep[]
+    demo-scenarios.ts               # DEMO_SCENARIOS array — 4 guided tours with typed DemoStep[]
     solar-resource.ts               # NASA POWER GHI fetch (global, no key needed)
     stream-gauges.ts                # USGS NWIS gauge helpers
     overpass.ts                     # OSM Overpass with fallback mirror (overpass.kumi.systems)
