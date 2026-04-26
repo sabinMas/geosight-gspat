@@ -1,6 +1,12 @@
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
 import type { Coordinates } from "@/types";
 
+export interface SeismicHazardCurvePoint {
+  pga: number;
+  annualProb: number;
+  returnPeriodYr: number;
+}
+
 export interface SeismicDesignParams {
   ss: number | null;
   s1: number | null;
@@ -8,6 +14,8 @@ export interface SeismicDesignParams {
   riskCategory: string | null;
   pga: number | null;
   dataSource: string;
+  /** Probabilistic hazard curve from USGS (US only) — PGA vs annual exceedance probability */
+  hazardCurve?: SeismicHazardCurvePoint[] | null;
   /** Non-US only: qualitative seismic exposure tier derived from USGS Catalog */
   exposureTier?: string | null;
   /** Non-US only: M3+ event count in 400 km radius over 5 years */

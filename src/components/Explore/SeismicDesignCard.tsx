@@ -4,8 +4,20 @@ import { WorkspaceCardShell } from "@/components/Explore/WorkspaceCardShell";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { summarizeSourceTrust } from "@/lib/source-trust";
+import type { SeismicDesignParams } from "@/lib/seismic-design";
 import { GeodataResult } from "@/types";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from "recharts";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Cell,
+  Tooltip,
+  ReferenceLine,
+} from "recharts";
 
 interface SeismicDesignCardProps {
   geodata: GeodataResult | null;
@@ -70,6 +82,182 @@ function catalogSeismicBadge(hazards: GeodataResult["hazards"]) {
   return { label: "Low activity", tone: "border-[color:var(--success-border)] bg-[var(--success-soft)] text-[var(--foreground)]" };
 }
 
+// ---------------------------------------------------------------------------
+// Hazard chart — full probabilistic curve when available, bar fallback
+// ---------------------------------------------------------------------------
+
+type CurveChartPoint = { returnPeriodYr: number; pga: number };
+
+function HazardChartSection({ seismic }: { seismic: SeismicDesignParams }) {
+  const curveData: CurveChartPoint[] = (seismic.hazardCurve ?? [])
+    .filter((p) => p.returnPeriodYr >= 50 && p.returnPeriodYr <= 15_000)
+    .sort((a, b) => a.returnPeriodYr - b.returnPeriodYr);
+
+  if (curveData.length >= 3) {
+    return (
+      <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+        <div className="eyebrow">Probabilistic hazard curve</div>
+        <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+          Peak ground acceleration (g) vs. return period — USGS PSHA, Site Class D
+        </div>
+        <div className="mt-4 h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={curveData} margin={{ top: 4, right: 12, bottom: 24, left: -8 }}>
+              <XAxis
+                dataKey="returnPeriodYr"
+                type="number"
+                scale="log"
+                domain={[50, 15000]}
+                ticks={[100, 250, 475, 975, 2475, 5000, 10000]}
+                tickFormatter={(v: number) =>
+                  v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+                }
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                axisLine={false}
+                tickLine={false}
+                label={{
+                  value: "Return period (yr)",
+                  position: "insideBottom",
+                  offset: -16,
+                  fontSize: 10,
+                  fill: "var(--muted-foreground)",
+                }}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: number) => `${v.toFixed(2)}g`}
+              />
+              <Tooltip
+                cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.[0]) return null;
+                  const d = payload[0].payload as CurveChartPoint;
+                  const prob50yr = (1 - Math.exp(-50 / d.returnPeriodYr)) * 100;
+                  return (
+                    <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-2 text-xs shadow-lg">
+                      <div className="font-semibold text-[var(--foreground)]">
+                        {d.returnPeriodYr >= 1000
+                          ? `${(d.returnPeriodYr / 1000).toFixed(1)}k yr return`
+                          : `${d.returnPeriodYr} yr return`}
+                      </div>
+                      <div className="mt-1 text-[var(--foreground)]">{d.pga.toFixed(3)} g PGA</div>
+                      <div className="mt-0.5 text-[var(--muted-foreground)]">
+                        {prob50yr.toFixed(0)}% chance in 50 yr
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+              <ReferenceLine
+                x={475}
+                stroke="var(--warning-border)"
+                strokeDasharray="4 2"
+                label={{
+                  value: "Design",
+                  position: "top",
+                  fontSize: 9,
+                  fill: "var(--warning-foreground)",
+                }}
+              />
+              <ReferenceLine
+                x={2475}
+                stroke="var(--danger-border)"
+                strokeDasharray="4 2"
+                label={{
+                  value: "MCEᵣ",
+                  position: "top",
+                  fontSize: 9,
+                  fill: "var(--danger-foreground)",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="pga"
+                stroke="var(--accent)"
+                dot={false}
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-2 flex items-center gap-4 text-xs text-[var(--muted-foreground)]">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-[color:var(--warning-border)]" />
+            Design (475 yr · 10% / 50 yr)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-[color:var(--danger-border)]" />
+            MCE<sub>R</sub> (2,475 yr · 2% / 50 yr)
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: 2-bar chart from design values only
+  if (seismic.pga === null) return null;
+  return (
+    <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
+      <div className="eyebrow">Probabilistic hazard levels</div>
+      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+        Peak ground acceleration (g) by return period
+      </div>
+      <div className="mt-4 h-36">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={[
+              { name: "MCEᵣ (2,475 yr)", pga: seismic.pga, returnPeriod: "2% / 50 yr" },
+              {
+                name: "Design (475 yr)",
+                pga: parseFloat((seismic.pga * (2 / 3)).toFixed(3)),
+                returnPeriod: "10% / 50 yr",
+              },
+            ]}
+            margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
+          >
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v: number) => `${v.toFixed(2)}g`}
+            />
+            <Tooltip
+              cursor={{ fill: "var(--surface-raised)" }}
+              content={({ active, payload }) => {
+                if (!active || !payload?.[0]) return null;
+                const d = payload[0].payload as { name: string; pga: number; returnPeriod: string };
+                return (
+                  <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-2 text-xs shadow-lg">
+                    <div className="font-semibold text-[var(--foreground)]">{d.name}</div>
+                    <div className="mt-1 text-[var(--muted-foreground)]">{d.returnPeriod}</div>
+                    <div className="mt-1 text-[var(--foreground)]">{d.pga.toFixed(3)} g PGA</div>
+                  </div>
+                );
+              }}
+            />
+            <Bar dataKey="pga" radius={[6, 6, 0, 0]} maxBarSize={64}>
+              <Cell fill="var(--danger-soft)" stroke="var(--danger-border)" strokeWidth={1} />
+              <Cell fill="var(--warning-soft)" stroke="var(--warning-border)" strokeWidth={1} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
+        MCE<sub>R</sub> = Maximum Considered Earthquake (risk-targeted). Design level ≈ ²⁄₃ ×
+        MCE<sub>R</sub> per ASCE 7-22.
+      </div>
+    </div>
+  );
+}
+
 export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
   if (!geodata) {
     return (
@@ -115,57 +303,7 @@ export function SeismicDesignCard({ geodata }: SeismicDesignCardProps) {
             </div>
           </div>
 
-          {seismic.pga !== null ? (
-            <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4">
-              <div className="eyebrow">Probabilistic hazard levels</div>
-              <div className="mt-1 text-xs text-[var(--muted-foreground)]">Peak ground acceleration (g) by return period</div>
-              <div className="mt-4 h-36">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { name: "MCE\u1D63 (2,475 yr)", pga: seismic.pga, returnPeriod: "2% / 50 yr" },
-                      { name: "Design (475 yr)", pga: parseFloat((seismic.pga * (2 / 3)).toFixed(3)), returnPeriod: "10% / 50 yr" },
-                    ]}
-                    margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
-                  >
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v: number) => `${v.toFixed(2)}g`}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "var(--surface-raised)" }}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        const d = payload[0].payload as { name: string; pga: number; returnPeriod: string };
-                        return (
-                          <div className="rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-2 text-xs shadow-lg">
-                            <div className="font-semibold text-[var(--foreground)]">{d.name}</div>
-                            <div className="mt-1 text-[var(--muted-foreground)]">{d.returnPeriod}</div>
-                            <div className="mt-1 text-[var(--foreground)]">{d.pga.toFixed(3)} g PGA</div>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="pga" radius={[6, 6, 0, 0]} maxBarSize={64}>
-                      <Cell fill="var(--danger-soft)" stroke="var(--danger-border)" strokeWidth={1} />
-                      <Cell fill="var(--warning-soft)" stroke="var(--warning-border)" strokeWidth={1} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
-                MCE<sub>R</sub> = Maximum Considered Earthquake (risk-targeted). Design level ≈ ²⁄₃ × MCE<sub>R</sub> per ASCE 7-22.
-              </div>
-            </div>
-          ) : null}
+          <HazardChartSection seismic={seismic} />
 
           <details className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] p-4">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">

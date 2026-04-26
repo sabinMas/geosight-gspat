@@ -2385,7 +2385,7 @@ export function ExploreWorkspace() {
           >
           <FileText className="mr-1.5 h-3.5 w-3.5" />
           <span className="hidden sm:inline">
-            {data.reportLoading ? "Generating…" : "Generate report"}
+            {data.reportLoading ? "Building…" : "Generate report"}
           </span>
           <span className="sm:hidden">Report</span>
           </Button>

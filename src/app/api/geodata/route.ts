@@ -29,6 +29,7 @@ import {
 } from "@/lib/request-guards";
 import { fetchSchoolContext, summarizeSchoolContext } from "@/lib/schools";
 import { getGlobalSeismicHazard, getSeismicDesignParams } from "@/lib/seismic-design";
+import { getSeismicHazardCurves } from "@/lib/seismic-hazard-curves";
 import { getSoilProfile } from "@/lib/soil-profile";
 import { resolveSourceRegistryContext } from "@/lib/source-registry";
 import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
@@ -268,6 +269,9 @@ export async function GET(request: NextRequest) {
     PROVIDER_TIMEOUTS.seismic,
     "seismic design",
   );
+  const seismicCurvesPromise = isUsPoint
+    ? withSoftTimeout(getSeismicHazardCurves(lat, lng), 8_000, "seismic curves")
+    : Promise.resolve(null);
   const isEuropeanPoint = !isUsPoint && isLikelyEuropeanCoordinate(lat, lng);
   const epaHazardPromise = isUsPoint
     ? withSoftTimeout(
@@ -305,6 +309,7 @@ export async function GET(request: NextRequest) {
     groundwaterResult,
     soilProfileResult,
     seismicDesignResult,
+    seismicCurvesResult,
     climateHistoryResult,
     airQualityResult,
     epaHazardResult,
@@ -334,6 +339,7 @@ export async function GET(request: NextRequest) {
       groundwaterPromise,
       soilProfilePromise,
       seismicDesignPromise,
+      seismicCurvesPromise,
       withSoftTimeout(
         getClimateHistory({ lat, lng }),
         PROVIDER_TIMEOUTS.climateHistory,
@@ -376,6 +382,9 @@ export async function GET(request: NextRequest) {
       soilProfileResult.status === "fulfilled" ? soilProfileResult.value : null;
     const seismicDesign =
       seismicDesignResult.status === "fulfilled" ? seismicDesignResult.value : null;
+    if (seismicDesign && seismicCurvesResult.status === "fulfilled" && seismicCurvesResult.value) {
+      seismicDesign.hazardCurve = seismicCurvesResult.value;
+    }
     const effectiveDemographics =
       demographicsResult.status === "fulfilled"
         ? demographicsResult.value

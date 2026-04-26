@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Download, FileJson, FileText, Loader2, X } from "lucide-react";
+import { Copy, Download, FileJson, FileText, X } from "lucide-react";
 import { TrustSummaryPanel } from "@/components/Source/TrustSummaryPanel";
 import { StatePanel } from "@/components/Status/StatePanel";
 import { MarkdownContent } from "@/components/ui/markdown-content";
@@ -184,12 +184,7 @@ export function GeoScribeReportPanel({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {loading && !markdown ? (
             <div className="flex h-full min-h-[240px] items-center justify-center">
-              <div className="rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--surface-raised)] px-5 py-4 text-sm text-[var(--foreground-soft)]">
-                <div className="flex items-center gap-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
-                  <span>Generating a structured report from the live GeoSight context...</span>
-                </div>
-              </div>
+              <span className="text-sm text-[var(--muted-foreground)]">Assembling report…</span>
             </div>
           ) : error ? (
             <StatePanel
