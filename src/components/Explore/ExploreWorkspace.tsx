@@ -508,9 +508,8 @@ export function ExploreWorkspace() {
       return;
     }
 
-    primeAgent("geo-scribe", reportPrompt);
     void generateReport();
-  }, [generateReport, geodata, loading, primeAgent, reportPrompt]);
+  }, [generateReport, geodata, loading, reportPrompt]);
 
   const handleGlobeApiChange = useCallback((api: {
     getViewSnapshot: () => GlobeViewSnapshot | null;

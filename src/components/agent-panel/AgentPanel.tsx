@@ -91,10 +91,7 @@ function AgentPanelDrawer() {
             panelOpen ? "opacity-100" : "opacity-100",
           )}
           onClick={() => {
-            if (panelOpen) {
-              setPanelOpen(false);
-              return;
-            }
+            if (panelOpen) setPanelOpen(false);
             openChat();
           }}
           aria-expanded={panelOpen}
