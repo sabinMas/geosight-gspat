@@ -31,12 +31,24 @@ const PROFILE_MODEL_MAP: Record<string, string> = {
   commercial: DEFAULT_MODEL,
 };
 
-function getCerebrasKey() {
-  const key = process.env.CEREBRAS_API_KEY?.trim();
-  if (!key) {
-    throw new AnalysisProviderError("groq", "missing_config");
-  }
-  return key;
+// Key pool — add CEREBRAS_API_KEY_2 / _3 in Vercel for higher throughput.
+// Each key has its own rate-limit bucket, so pooling multiplies TPM capacity.
+const CEREBRAS_KEY_VARS = ["CEREBRAS_API_KEY", "CEREBRAS_API_KEY_2", "CEREBRAS_API_KEY_3"] as const;
+
+function getAvailableCerebrasKeys(): string[] {
+  return CEREBRAS_KEY_VARS
+    .map((v) => process.env[v]?.trim())
+    .filter((k): k is string => Boolean(k));
+}
+
+// Random selection distributes load across keys; safe for serverless (no shared state).
+// Pass `exclude` on retry to avoid reusing the same key that just returned 429.
+function pickCerebrasKey(exclude?: string): string {
+  const all = getAvailableCerebrasKeys();
+  const pool = exclude ? all.filter((k) => k !== exclude) : all;
+  const candidates = pool.length > 0 ? pool : all;
+  if (candidates.length === 0) throw new AnalysisProviderError("groq", "missing_config");
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 function resolveModel(profileId: string) {
@@ -103,29 +115,43 @@ export async function runGroqAnalysis(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ): Promise<AnalysisResult> {
-  const apiKey = getCerebrasKey();
+  let apiKey = pickCerebrasKey();
   const model = resolveModel(profile.id);
   const rawMessages = await buildGroqAnalysisMessages(payload, profile);
   const messages = compactToBudget(rawMessages);
+
+  const requestBody = JSON.stringify({
+    model,
+    temperature: 0.2,
+    max_tokens: MAX_RESPONSE_TOKENS,
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+  });
 
   let response: Response;
   try {
     response = await fetch(CEREBRAS_BASE_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        max_tokens: MAX_RESPONSE_TOKENS,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: requestBody,
       signal: AbortSignal.timeout(25_000),
     });
   } catch (error) {
     throw normalizeProviderError(error, "groq");
+  }
+
+  // Retry once on rate-limit with a different key from the pool.
+  if (response.status === 429) {
+    apiKey = pickCerebrasKey(apiKey);
+    try {
+      response = await fetch(CEREBRAS_BASE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: requestBody,
+        signal: AbortSignal.timeout(25_000),
+      });
+    } catch (error) {
+      throw normalizeProviderError(error, "groq");
+    }
   }
 
   if (!response.ok) {
@@ -159,26 +185,36 @@ export async function runGroqAnalysisStream(
   payload: AnalyzeRequestBody,
   profile: MissionProfile = DEFAULT_PROFILE,
 ): Promise<ReadableStream<Uint8Array>> {
-  const apiKey = getCerebrasKey();
+  let apiKey = pickCerebrasKey();
   const model = resolveModel(profile.id);
   const rawMessages = await buildGroqAnalysisMessages(payload, profile);
   const messages = compactToBudget(rawMessages);
 
-  const response = await fetch(CEREBRAS_BASE_URL, {
+  const requestBody = JSON.stringify({
+    model,
+    temperature: 0.2,
+    max_tokens: MAX_RESPONSE_TOKENS,
+    stream: true,
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+  });
+
+  let response = await fetch(CEREBRAS_BASE_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      max_tokens: MAX_RESPONSE_TOKENS,
-      stream: true,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    }),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: requestBody,
     signal: AbortSignal.timeout(25_000),
   });
+
+  // Retry once on rate-limit with a different key from the pool.
+  if (response.status === 429) {
+    apiKey = pickCerebrasKey(apiKey);
+    response = await fetch(CEREBRAS_BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: requestBody,
+      signal: AbortSignal.timeout(25_000),
+    });
+  }
 
   if (!response.ok || !response.body) {
     const bodyText = await response.text().catch(() => "");

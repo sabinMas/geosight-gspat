@@ -10,6 +10,12 @@ function hasConfiguredEnv(envName: string) {
   return Boolean(process.env[envName]?.trim());
 }
 
+const CEREBRAS_KEY_VARS = ["CEREBRAS_API_KEY", "CEREBRAS_API_KEY_2", "CEREBRAS_API_KEY_3"] as const;
+
+function getCerebrasKeyCount() {
+  return CEREBRAS_KEY_VARS.filter((v) => Boolean(process.env[v]?.trim())).length;
+}
+
 export async function GET(request: NextRequest) {
   const rateLimit = await applyRateLimit(request, "ai-status", {
     windowMs: 60_000,
@@ -19,7 +25,8 @@ export async function GET(request: NextRequest) {
     return createRateLimitResponse(rateLimit);
   }
 
-  const cerebrasConfigured = hasConfiguredEnv("CEREBRAS_API_KEY");
+  const cerebrasKeyCount = getCerebrasKeyCount();
+  const cerebrasConfigured = cerebrasKeyCount > 0;
   const agentStatuses = Object.fromEntries(
     Object.entries(AGENT_CONFIGS).map(([agentId, config]) => [
       agentId,
@@ -38,6 +45,7 @@ export async function GET(request: NextRequest) {
       analysisProviders: {
         cerebras: {
           configured: cerebrasConfigured,
+          keyCount: cerebrasKeyCount,
         },
       },
       agents: agentStatuses,
