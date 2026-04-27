@@ -77,7 +77,7 @@ export default function DemosPage() {
                       {scenario.label}
                     </h2>
                     <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                      {scenario.location}
+                      {scenario.locationName}
                     </p>
                   </div>
 
