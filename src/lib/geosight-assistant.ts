@@ -623,7 +623,7 @@ function buildSupportedFacts(payload: AnalyzeRequestBody) {
       : "Area demographics are currently unavailable.",
     payload.geodata?.amenities?.schoolCount !== null &&
     payload.geodata?.amenities?.schoolCount !== undefined
-      ? `Mapped amenities (OpenStreetMap, derived live): ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, and ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues in the active analysis area.`
+      ? `Mapped amenities (OpenStreetMap, derived live): ${payload.geodata.amenities.schoolCount} schools, ${payload.geodata.amenities.healthcareCount ?? "unknown"} healthcare sites, ${payload.geodata.amenities.transitStopCount ?? "unknown"} transit stops, ${payload.geodata.amenities.commercialCount ?? "unknown"} commercial venues, and ${payload.geodata.amenities.trailheadCount ?? "unknown"} mapped trailheads in the active analysis area. Note: trailhead counts are available but detailed names, coordinates, and trail descriptions are not in the live dataset.`
       : "Mapped amenity counts are currently unavailable.",
     payload.geodata?.schoolContext
       ? payload.geodata.schoolContext.score === null
