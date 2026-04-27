@@ -496,15 +496,14 @@ export function LandingPage() {
           {/* Right column: Video */}
           <div className="hidden lg:flex flex-col justify-center">
             <div className="relative w-full aspect-square rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border-soft)" }}>
-              <iframe
-                src="https://app.arcade.software/share/videos/aYjw4tiKUTfOL5ZtZHDQ"
+              <video
+                src="/videos/geosight-intro.mp4"
                 title="GeoSight Introduction"
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                allow="autoplay; fullscreen"
-                className="absolute inset-0 w-full h-full"
-                style={{ border: "none" }}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
           </div>
