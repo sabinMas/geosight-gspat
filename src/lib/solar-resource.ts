@@ -85,7 +85,7 @@ export async function getSolarResource(coords: Coordinates): Promise<SolarResour
     if (uvVal !== null) monthlyUvIndex.push(uvVal);
   }
 
-  let annualUvIndex = annualUv;
+  const annualUvIndex = annualUv;
   let bestMonth: string | null = null;
   let worstMonth: string | null = null;
   let bestMonthGhi: number | null = null;
