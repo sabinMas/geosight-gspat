@@ -120,26 +120,38 @@ await page.goto(`${BASE_URL}${demo.url}`, {
   timeout: 30_000,
 });
 
-// ── Dismiss session restore banner if present ─────────────────────────────────
+// ── Dismiss any intro/tutorial overlays ───────────────────────────────────────
 
+// Dismiss "Restore previous session?" banner
 try {
   await page.getByRole("button", { name: /dismiss/i }).waitFor({ timeout: 4_000 });
   await page.getByRole("button", { name: /dismiss/i }).click();
   console.log("   (dismissed session restore banner)");
-} catch { /* not present on fresh context */ }
+} catch { /* not present */ }
+
+// Dismiss any "skip tutorial" or "close" buttons on intro modals
+try {
+  const skipBtn = page.getByRole("button", { name: /skip|close|got it/i }).first();
+  await skipBtn.waitFor({ timeout: 3_000 });
+  await skipBtn.click();
+  console.log("   (dismissed tutorial overlay)");
+} catch { /* not present */ }
+
+// Give the page a moment to settle after dismissals
+await page.waitForTimeout(500);
 
 // ── Wait for DemoRunner dialog to appear ──────────────────────────────────────
 // The dialog mounts immediately but shows a spinner until geodata is ready.
 
 console.log("→ Waiting for demo dialog…");
-await page.waitForSelector('[role="dialog"]', { timeout: 30_000 });
+await page.waitForSelector('[role="dialog"][aria-label*="demo"]', { timeout: 30_000 });
 
 // ── Wait for data to finish loading ──────────────────────────────────────────
 // The footer (containing the Next button) only renders once waitingForData=false.
 // This is the most reliable signal that the demo is actually running.
 
 console.log("→ Waiting for geodata to load (up to 60s)…");
-await page.waitForSelector('[role="dialog"] button', { timeout: DATA_WAIT_MS });
+await page.waitForSelector('[role="dialog"][aria-label*="demo"] button', { timeout: DATA_WAIT_MS });
 console.log("   data ready — demo is running");
 
 // ── Let the demo auto-advance through all steps ───────────────────────────────
@@ -150,7 +162,7 @@ console.log(`→ Letting demo run for ${(totalWait / 1000).toFixed(0)}s…`);
 let lastTitle = "";
 const ticker = setInterval(async () => {
   try {
-    const el = page.locator('[role="dialog"] p').first();
+    const el = page.locator('[role="dialog"][aria-label*="demo"] p').first();
     const title = await el.innerText({ timeout: 500 });
     if (title && title !== lastTitle) {
       lastTitle = title;
