@@ -21,6 +21,8 @@ import {
   Sparkles,
   Target,
   Trees,
+  Volume2,
+  VolumeX,
   Zap,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
@@ -267,6 +269,8 @@ export function LandingPage() {
   const [suggestions, setSuggestions] = useState<LocationSearchResult[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [videoAudioEnabled, setVideoAudioEnabled] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -497,14 +501,37 @@ export function LandingPage() {
           <div className="hidden lg:flex flex-col justify-start pt-8">
             <div className="relative w-full aspect-square rounded-3xl overflow-hidden border shadow-lg" style={{ borderColor: "var(--border-soft)" }}>
               <video
+                ref={videoRef}
                 src="/videos/geosight-intro.mp4"
                 title="GeoSight Introduction"
                 autoPlay
-                muted
+                muted={!videoAudioEnabled}
                 loop
                 playsInline
                 className="absolute inset-0 w-full h-full object-cover"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setVideoAudioEnabled(!videoAudioEnabled);
+                  if (videoRef.current) {
+                    videoRef.current.muted = videoAudioEnabled;
+                  }
+                }}
+                aria-label={videoAudioEnabled ? "Mute video" : "Unmute video"}
+                className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border transition hover:bg-[color:var(--surface-soft)]"
+                style={{
+                  background: "rgba(0,0,0,0.5)",
+                  borderColor: "rgba(255,255,255,0.3)",
+                  color: "white",
+                }}
+              >
+                {videoAudioEnabled ? (
+                  <Volume2 className="h-5 w-5" />
+                ) : (
+                  <VolumeX className="h-5 w-5" />
+                )}
+              </button>
             </div>
           </div>
         </section>
