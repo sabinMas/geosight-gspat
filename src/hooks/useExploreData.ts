@@ -660,6 +660,30 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
   ]);
 
   const suggestedCards = useMemo(() => {
+    // For Explorer mode with an active lens, suggest lens-specific cards not yet opened.
+    // getSuggestedCardsForShell only proposes score/source-awareness/hazard-context, which are
+    // mostly Pro-only in explorer mode — so the tray would always be empty for new lenses.
+    const activeLensId = state.activeLensId;
+    if (appMode === "explorer" && activeLensId) {
+      const lens = getExplorerLensById(activeLensId);
+      if (lens) {
+        const lensWorkspaceCardIds = new Set(
+          lens.defaultCards.filter((id) => {
+            const def = allWorkspaceCardsModeFiltered.find((c) => c.id === id);
+            return def?.zone === "workspace";
+          }),
+        );
+        const pool = allWorkspaceCardsModeFiltered.filter(
+          (card) => lensWorkspaceCardIds.has(card.id) && !visibility[card.id],
+        );
+        const sorted = [
+          ...pool.filter((card) => pinnedCardIds.includes(card.id)),
+          ...pool.filter((card) => !pinnedCardIds.includes(card.id)),
+        ];
+        return sorted.slice(0, 4);
+      }
+    }
+
     const suggestions = getSuggestedCardsForShell({
       cards: allWorkspaceCardsModeFiltered,
       intent: lastIntent,
@@ -672,7 +696,7 @@ export function useExploreData({ state, setGeoContext }: UseExploreDataArgs) {
       ...suggestions.filter((card) => pinnedCardIds.includes(card.id)),
       ...suggestions.filter((card) => !pinnedCardIds.includes(card.id)),
     ];
-  }, [allWorkspaceCardsModeFiltered, geodata, lastIntent, pinnedCardIds, previewUrl, sites.length, visibility]);
+  }, [allWorkspaceCardsModeFiltered, appMode, geodata, lastIntent, pinnedCardIds, previewUrl, sites.length, state.activeLensId, visibility]);
 
   const groundingFallbackSources = useMemo(() => [], []);
 
