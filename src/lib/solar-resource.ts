@@ -32,7 +32,7 @@ type NasaPowerClimatologyResponse = {
       ALLSKY_SFC_SW_DWN?: Record<string, number>;
       CLRSKY_SFC_SW_DWN?: Record<string, number>;
       ALLSKY_KT?: Record<string, number>;
-      UV_INDEX?: Record<string, number>;
+      ALLSKY_SFC_UV_INDEX?: Record<string, number>;
     };
   };
 };
@@ -49,7 +49,7 @@ function parseParam(record: Record<string, number> | undefined, key: string): nu
 export async function getSolarResource(coords: Coordinates): Promise<SolarResourceResult> {
   const { lat, lng } = coords;
   const params = new URLSearchParams({
-    parameters: "ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,ALLSKY_KT",
+    parameters: "ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,ALLSKY_KT,ALLSKY_SFC_UV_INDEX",
     community: "RE",
     longitude: lng.toFixed(4),
     latitude: lat.toFixed(4),
@@ -67,11 +67,13 @@ export async function getSolarResource(coords: Coordinates): Promise<SolarResour
   const allsky = json.properties?.parameter?.ALLSKY_SFC_SW_DWN;
   const clearsky = json.properties?.parameter?.CLRSKY_SFC_SW_DWN;
   const kt = json.properties?.parameter?.ALLSKY_KT;
+  const uv = json.properties?.parameter?.ALLSKY_SFC_UV_INDEX;
 
   // ANN key = annual average; 01–12 = monthly averages
   const annualGhi = parseParam(allsky, "ANN");
   const annualClearSky = parseParam(clearsky, "ANN");
   const annualKt = parseParam(kt, "ANN");
+  const annualUv = parseParam(uv, "ANN");
 
   const monthlyGhi: number[] = [];
   const monthlyUvIndex: number[] = [];
@@ -79,8 +81,11 @@ export async function getSolarResource(coords: Coordinates): Promise<SolarResour
     const key = String(m).padStart(2, "0");
     const ghiVal = parseParam(allsky, key);
     if (ghiVal !== null) monthlyGhi.push(ghiVal);
+    const uvVal = parseParam(uv, key);
+    if (uvVal !== null) monthlyUvIndex.push(uvVal);
   }
 
+  let annualUvIndex = annualUv;
   let bestMonth: string | null = null;
   let worstMonth: string | null = null;
   let bestMonthGhi: number | null = null;
@@ -105,7 +110,7 @@ export async function getSolarResource(coords: Coordinates): Promise<SolarResour
     worstMonth,
     bestMonthGhi,
     worstMonthGhi,
-    annualUvIndex: null,
+    annualUvIndex,
     monthlyUvIndex,
   };
 }
