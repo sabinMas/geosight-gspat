@@ -120,13 +120,25 @@ await page.goto(`${BASE_URL}${demo.url}`, {
   timeout: 30_000,
 });
 
-// ── Dismiss session restore banner if present ─────────────────────────────────
+// ── Dismiss any intro/tutorial overlays ───────────────────────────────────────
 
+// Dismiss "Restore previous session?" banner
 try {
   await page.getByRole("button", { name: /dismiss/i }).waitFor({ timeout: 4_000 });
   await page.getByRole("button", { name: /dismiss/i }).click();
   console.log("   (dismissed session restore banner)");
 } catch { /* not present on fresh context */ }
+
+// Dismiss any "skip tutorial" or "close" buttons on intro modals
+try {
+  const skipBtn = page.getByRole("button", { name: /skip|close|got it/i }).first();
+  await skipBtn.waitFor({ timeout: 3_000 });
+  await skipBtn.click();
+  console.log("   (dismissed tutorial overlay)");
+} catch { /* not present */ }
+
+// Give the page a moment to settle after dismissals
+await page.waitForTimeout(500);
 
 // ── Wait for DemoRunner dialog to appear ──────────────────────────────────────
 // The dialog mounts immediately but shows a spinner until geodata is ready.

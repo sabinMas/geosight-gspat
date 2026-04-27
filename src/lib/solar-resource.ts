@@ -32,7 +32,7 @@ type NasaPowerClimatologyResponse = {
       ALLSKY_SFC_SW_DWN?: Record<string, number>;
       CLRSKY_SFC_SW_DWN?: Record<string, number>;
       ALLSKY_KT?: Record<string, number>;
-      UV_INDEX?: Record<string, number>;
+      ALLSKY_SFC_UV_INDEX?: Record<string, number>;
     };
   };
 };
@@ -49,7 +49,7 @@ function parseParam(record: Record<string, number> | undefined, key: string): nu
 export async function getSolarResource(coords: Coordinates): Promise<SolarResourceResult> {
   const { lat, lng } = coords;
   const params = new URLSearchParams({
-    parameters: "ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,ALLSKY_KT,UV_INDEX",
+    parameters: "ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,ALLSKY_KT,ALLSKY_SFC_UV_INDEX",
     community: "RE",
     longitude: lng.toFixed(4),
     latitude: lat.toFixed(4),
@@ -67,7 +67,7 @@ export async function getSolarResource(coords: Coordinates): Promise<SolarResour
   const allsky = json.properties?.parameter?.ALLSKY_SFC_SW_DWN;
   const clearsky = json.properties?.parameter?.CLRSKY_SFC_SW_DWN;
   const kt = json.properties?.parameter?.ALLSKY_KT;
-  const uv = json.properties?.parameter?.UV_INDEX;
+  const uv = json.properties?.parameter?.ALLSKY_SFC_UV_INDEX;
 
   // ANN key = annual average; 01–12 = monthly averages
   const annualGhi = parseParam(allsky, "ANN");
@@ -85,6 +85,7 @@ export async function getSolarResource(coords: Coordinates): Promise<SolarResour
     if (uvVal !== null) monthlyUvIndex.push(uvVal);
   }
 
+  const annualUvIndex = annualUv;
   let bestMonth: string | null = null;
   let worstMonth: string | null = null;
   let bestMonthGhi: number | null = null;
@@ -109,7 +110,7 @@ export async function getSolarResource(coords: Coordinates): Promise<SolarResour
     worstMonth,
     bestMonthGhi,
     worstMonthGhi,
-    annualUvIndex: annualUv,
+    annualUvIndex,
     monthlyUvIndex,
   };
 }

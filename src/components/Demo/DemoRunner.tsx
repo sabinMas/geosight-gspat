@@ -321,7 +321,7 @@ export function DemoRunner({ scenario, dataReady, onOpenCard, onStop }: DemoRunn
         className="fixed z-[89]"
         style={style}
       >
-        <div className="relative flex max-h-[inherit] flex-col overflow-hidden rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
+        <div className="relative flex h-full max-h-[inherit] flex-col overflow-hidden rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
           <Arrow placement={placement} />
 
           {/* Header */}
@@ -346,7 +346,7 @@ export function DemoRunner({ scenario, dataReady, onOpenCard, onStop }: DemoRunn
           </div>
 
           {/* Body */}
-          <div className="px-4 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             {waitingForData ? (
               <div className="flex items-center gap-2.5 text-sm text-[var(--muted-foreground)]">
                 <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[color:var(--accent)] border-t-transparent" />

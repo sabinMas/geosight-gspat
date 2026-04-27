@@ -208,11 +208,11 @@ export function FactorBreakdown({ score, title = "Factor breakdown", initialExpa
                       </div>
                     </div>
                     {methodNote ? (
-                      <div>
+                      <div className="w-full">
                         <div className="mb-1 text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
                           How this is scored
                         </div>
-                        <p className="text-xs leading-5 text-[var(--foreground-soft)]">{methodNote}</p>
+                        <p className="w-full break-words text-xs leading-6 text-[var(--foreground-soft)]">{methodNote}</p>
                       </div>
                     ) : null}
                     {(factor.sourceIds && factor.sourceIds.length > 0) || factor.sourceLastUpdated ? (

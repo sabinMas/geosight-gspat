@@ -15,4 +15,5 @@ CLAUDE.md
 .vercel
 tsconfig.tsbuildinfo
 src/lib/rag/embeddings-cache.json
+recordings/
 

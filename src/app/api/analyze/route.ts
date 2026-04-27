@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AnalysisProviderError } from "@/lib/analysis-provider";
 import { logAnalysisProviderFailure, runAnalysisWithFallback } from "@/lib/analysis-runner";
 import { buildFallbackAssessment } from "@/lib/geosight-assistant";
 import { getProfileById } from "@/lib/profiles";
@@ -10,6 +11,18 @@ import {
 } from "@/lib/request-guards";
 import { runGroqAnalysisStream } from "@/lib/groq";
 import { AnalyzeRequestBody } from "@/types";
+
+function formatProviderError(error: unknown): string {
+  if (error instanceof AnalysisProviderError) {
+    return error.status != null
+      ? `${error.category} (HTTP ${error.status})`
+      : error.category;
+  }
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message.slice(0, 200)}`;
+  }
+  return String(error).slice(0, 200);
+}
 
 // Cerebras llama3.1-8b has an 8K-token context window. Conversation history
 // alone could easily exceed that with 12 long turns, forcing fallback. Cap
@@ -79,6 +92,8 @@ export async function POST(request: NextRequest) {
   };
   const headers = rateLimitHeaders(rateLimit);
 
+  let providerErrorReason: string | undefined;
+
   // Streaming path — only for Groq, gracefully falls back to JSON on failure
   if (body.stream) {
     try {
@@ -92,9 +107,8 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (streamError) {
-      const errName = streamError instanceof Error ? streamError.name : "unknown";
-      const errMsg = streamError instanceof Error ? streamError.message : String(streamError);
-      console.error(`[analyze] stream fallback reason=${errName}: ${errMsg}`);
+      providerErrorReason = formatProviderError(streamError);
+      console.error(`[analyze] stream fallback reason=${providerErrorReason}`);
       logAnalysisProviderFailure("analyze:stream", "groq", streamError);
     }
   }
@@ -103,19 +117,22 @@ export async function POST(request: NextRequest) {
   const result = await runAnalysisWithFallback(payload, profile, {
     fallbackAnswer: buildFallbackAssessment(payload, profile),
     onProviderFailure(provider, error) {
+      if (!providerErrorReason) providerErrorReason = formatProviderError(error);
       logAnalysisProviderFailure("analyze", provider, error);
     },
   });
 
   const provider: "groq" | "deterministic" =
     result.model === "fallback" ? "deterministic" : "groq";
+  const fellBack = result.model === "fallback";
 
   return NextResponse.json(
     {
       answer: result.response,
       model: result.model,
-      fallbackMode: result.model === "fallback",
+      fallbackMode: fellBack,
       provider,
+      ...(fellBack && providerErrorReason ? { fallbackReason: providerErrorReason } : {}),
     },
     {
       headers: { ...headers, "Cache-Control": "no-store" },

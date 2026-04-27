@@ -55,6 +55,7 @@ interface ChatUiMessage {
   content: string;
   mode?: ChatReplyMode;
   provider?: "groq" | "deterministic";
+  fallbackReason?: string;
 }
 
 function isAbortError(error: unknown) {
@@ -88,6 +89,9 @@ export function ChatPanel({
   const [loading, setLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState<{
     liveAnalysisAvailable: boolean;
+    reachable?: boolean;
+    authValid?: boolean;
+    lastError?: string;
   } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showGrounding, setShowGrounding] = useState(false);
@@ -161,11 +165,17 @@ export function ChatPanel({
 
         const payload = (await response.json()) as {
           liveAnalysisAvailable?: boolean;
+          analysisProviders?: {
+            cerebras?: { reachable?: boolean; authValid?: boolean; lastError?: string };
+          };
         };
 
         if (!cancelled) {
           setAiStatus({
             liveAnalysisAvailable: Boolean(payload.liveAnalysisAvailable),
+            reachable: payload.analysisProviders?.cerebras?.reachable,
+            authValid: payload.analysisProviders?.cerebras?.authValid,
+            lastError: payload.analysisProviders?.cerebras?.lastError,
           });
         }
       } catch {
@@ -302,6 +312,7 @@ export function ChatPanel({
           error?: string;
           fallbackMode?: boolean;
           provider?: "groq" | "deterministic";
+          fallbackReason?: string;
         };
         if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) return;
         if (!data.answer) throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
@@ -314,6 +325,7 @@ export function ChatPanel({
             content: data.answer,
             mode: assistantMode,
             provider: data.provider,
+            fallbackReason: data.fallbackReason,
           },
         ]);
       }
@@ -377,7 +389,11 @@ export function ChatPanel({
         <CardTitle>{locationName}</CardTitle>
         {aiStatus?.liveAnalysisAvailable === false ? (
           <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
-            Fallback mode
+            {aiStatus.reachable === false
+              ? "Fallback mode — API unreachable"
+              : aiStatus.authValid === false
+                ? "Fallback mode — API key invalid"
+                : "Fallback mode"}
           </div>
         ) : null}
       </CardHeader>
@@ -491,6 +507,11 @@ export function ChatPanel({
                         <span className="inline-flex items-center rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--warning-foreground)]">
                           Deterministic backup
                         </span>
+                        {message.fallbackReason ? (
+                          <span className="text-[10px] text-[var(--muted-foreground)]">
+                            ({message.fallbackReason})
+                          </span>
+                        ) : null}
                       </div>
                     ) : null}
                     <MarkdownContent content={message.content} />

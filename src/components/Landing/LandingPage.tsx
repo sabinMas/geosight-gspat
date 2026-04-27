@@ -183,9 +183,21 @@ function LensGrid({
               <Icon size={18} />
             </span>
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold leading-tight" style={{ color: "var(--foreground)" }}>
-                {lens.label}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-semibold leading-tight" style={{ color: "var(--foreground)" }}>
+                  {lens.label}
+                </span>
+                <span
+                  className="shrink-0 rounded-full border px-1.5 py-px text-[10px] font-medium uppercase tracking-[0.12em]"
+                  style={{
+                    color: "var(--accent)",
+                    background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
+                  }}
+                >
+                  Beta
+                </span>
+              </div>
               <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                 {lens.tagline}
               </span>

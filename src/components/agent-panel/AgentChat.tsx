@@ -178,6 +178,9 @@ export default function AgentChat() {
   const [responseModeByAgent, setResponseModeByAgent] = useState<Record<AgentId, AgentResponseMode>>(
     () => createAgentRecord(() => null),
   );
+  const [fallbackReasonByAgent, setFallbackReasonByAgent] = useState<Record<AgentId, string | null>>(
+    () => createAgentRecord(() => null),
+  );
   const [ellipsisStep, setEllipsisStep] = useState(0);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -192,6 +195,7 @@ export default function AgentChat() {
   const activeError = errors[activeAgentId];
   const isLoading = loadingByAgent[activeAgentId];
   const activeResponseMode = responseModeByAgent[activeAgentId];
+  const activeFallbackReason = fallbackReasonByAgent[activeAgentId];
   const loadingEllipsis = [".", "..", "..."][ellipsisStep] ?? "...";
 
   useEffect(() => {
@@ -299,6 +303,13 @@ export default function AgentChat() {
     }));
   }, []);
 
+  const setFallbackReason = useCallback((agentId: AgentId, value: string | null) => {
+    setFallbackReasonByAgent((current) => ({
+      ...current,
+      [agentId]: value,
+    }));
+  }, []);
+
   const sendMessage = useCallback(async (
     prompt: string,
     options?: {
@@ -323,6 +334,7 @@ export default function AgentChat() {
 
     setAgentError(agentId, null);
     setResponseMode(agentId, null);
+    setFallbackReason(agentId, null);
     if (appendUserMessage) {
       setDraftForAgent(agentId, "");
     }
@@ -388,6 +400,10 @@ export default function AgentChat() {
       setResponseMode(
         agentId,
         (response.headers.get("X-GeoSight-Mode") as AgentResponseMode) ?? null,
+      );
+      setFallbackReason(
+        agentId,
+        response.headers.get("X-GeoSight-Fallback-Reason"),
       );
 
       if (!response.ok || !response.body) {
@@ -477,6 +493,7 @@ export default function AgentChat() {
     geoContext,
     setAgentError,
     setDraftForAgent,
+    setFallbackReason,
     setLoadingState,
     setResponseMode,
     uiContext,
@@ -526,7 +543,14 @@ export default function AgentChat() {
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {activeResponseMode === "fallback" ? (
         <div className="rounded-xl border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-foreground)]">
-          Fallback mode is active. This reply used GeoSight&apos;s built-in deterministic backup instead of a live model.
+          <div>
+            Fallback mode is active. This reply used GeoSight&apos;s built-in deterministic backup instead of a live model.
+          </div>
+          {activeFallbackReason ? (
+            <div className="mt-1 text-xs text-[var(--muted-foreground)] font-mono">
+              Reason: {activeFallbackReason}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

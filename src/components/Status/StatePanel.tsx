@@ -124,16 +124,16 @@ export function StatePanel({
       )}
       {...(tone === "loading" ? { role: "status", "aria-live": "polite" as const } : {})}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="w-full">
           {eyebrow ? (
             <div className="text-xs font-medium uppercase tracking-[0.18em] opacity-80">
               {eyebrow}
             </div>
           ) : null}
-          <div className="mt-2 flex min-w-0 items-start gap-3">
+          <div className="mt-2 flex w-full items-start gap-3">
             <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", config.iconClassName)} />
-            <div className="min-w-0">
+            <div className="w-full">
               <div className="text-sm font-semibold">{title}</div>
               <div className="mt-1 text-sm leading-6 opacity-90">{description}</div>
             </div>
