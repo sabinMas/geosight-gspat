@@ -54,7 +54,7 @@ const PROVIDER_TIMEOUTS = {
   airQuality: 7_000,
   epaHazards: 7_000,
   gdacsAlerts: 8_500,
-  solar: 10_000,
+  solar: 20_000,
 } as const;
 
 function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
