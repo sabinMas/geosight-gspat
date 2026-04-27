@@ -120,8 +120,8 @@ function computePlacement(
         viewportHeight - CALLOUT_APPROX_HEIGHT - EDGE_PADDING,
       );
       style.top = Math.max(EDGE_PADDING, topVal);
-      // maxHeight = remaining space below the top position
-      style.maxHeight = viewportHeight - (style.top as number) - EDGE_PADDING;
+      // maxHeight = remaining space below the top position, ensure at least some content is visible
+      style.maxHeight = Math.max(120, viewportHeight - (style.top as number) - EDGE_PADDING);
     } else {
       // Anchor above the element — card grows downward from the bottom of its space.
       const bottomVal = Math.max(EDGE_PADDING, viewportHeight - rect.top + ANCHOR_GAP);
@@ -318,7 +318,7 @@ export function DemoRunner({ scenario, dataReady, onOpenCard, onStop }: DemoRunn
         role="dialog"
         aria-live="polite"
         aria-label={`${scenario.label} demo step ${stepIndex + 1}`}
-        className="fixed z-[89]"
+        className="fixed z-[89] max-h-screen overflow-visible"
         style={style}
       >
         <div className="relative flex h-full max-h-[inherit] flex-col overflow-hidden rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
