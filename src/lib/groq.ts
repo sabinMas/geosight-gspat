@@ -3,6 +3,7 @@ import {
   AnalysisResult,
   normalizeProviderError,
 } from "@/lib/analysis-provider";
+import { AgentConfig, GeoSightContext } from "@/lib/agents/agent-config";
 import { buildGroqAnalysisMessages } from "@/lib/geosight-assistant";
 import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { CoreMessage } from "@/lib/rag/types";
@@ -35,7 +36,7 @@ const PROFILE_MODEL_MAP: Record<string, string> = {
 // Each key has its own rate-limit bucket, so pooling multiplies TPM capacity.
 const CEREBRAS_KEY_VARS = ["CEREBRAS_API_KEY", "CEREBRAS_API_KEY_2", "CEREBRAS_API_KEY_3"] as const;
 
-function getAvailableCerebrasKeys(): string[] {
+export function getAvailableCerebrasKeys(): string[] {
   return CEREBRAS_KEY_VARS
     .map((v) => process.env[v]?.trim())
     .filter((k): k is string => Boolean(k));
@@ -262,4 +263,89 @@ export async function runGroqAnalysisStream(
       }
     },
   });
+}
+
+export async function runAgentAnalysis(
+  config: AgentConfig,
+  userMessage: string,
+  context: GeoSightContext,
+): Promise<AnalysisResult> {
+  let apiKey = pickCerebrasKey();
+
+  const contextLines: string[] = [];
+  if (context.lat != null && context.lng != null) {
+    contextLines.push(`Location: ${context.lat.toFixed(4)}, ${context.lng.toFixed(4)}`);
+  }
+  if (context.profile) contextLines.push(`Mission profile: ${context.profile}`);
+  if (typeof context.score === "number") {
+    contextLines.push(`Site score: ${Math.round(context.score)}/100`);
+  }
+  if (context.dataBundle) {
+    contextLines.push(`Data bundle:\n${JSON.stringify(context.dataBundle)}`);
+  }
+  const contextBlock = contextLines.length ? `${contextLines.join("\n")}\n---\n` : "";
+
+  const rawMessages: CoreMessage[] = [
+    { role: "system", content: config.systemPrompt },
+    { role: "user", content: `${contextBlock}${userMessage}` },
+  ];
+  const messages = compactToBudget(rawMessages);
+
+  const requestBody = JSON.stringify({
+    model: config.model,
+    temperature: config.temperature,
+    max_tokens: config.maxTokens,
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+  });
+
+  let response: Response;
+  try {
+    response = await fetch(CEREBRAS_BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: requestBody,
+      signal: AbortSignal.timeout(25_000),
+    });
+  } catch (error) {
+    throw normalizeProviderError(error, "groq");
+  }
+
+  if (response.status === 429) {
+    apiKey = pickCerebrasKey(apiKey);
+    try {
+      response = await fetch(CEREBRAS_BASE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: requestBody,
+        signal: AbortSignal.timeout(25_000),
+      });
+    } catch (error) {
+      throw normalizeProviderError(error, "groq");
+    }
+  }
+
+  if (!response.ok) {
+    const bodyText = await response.text().catch(() => "");
+    console.warn(
+      `[cerebras agent:${config.id}] status=${response.status} body=${bodyText.slice(0, 400)}`,
+    );
+    throw normalizeProviderError({ status: response.status }, "groq");
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (error) {
+    throw normalizeProviderError(error, "groq");
+  }
+
+  const content =
+    (json as { choices?: { message?: { content?: string } }[] })
+      .choices?.[0]?.message?.content?.trim();
+  if (!content) throw new AnalysisProviderError("groq", "empty_response");
+
+  return {
+    response: content,
+    model: (json as { model?: string }).model ?? config.model,
+  };
 }

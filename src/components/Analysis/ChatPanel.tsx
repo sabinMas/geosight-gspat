@@ -88,6 +88,9 @@ export function ChatPanel({
   const [loading, setLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState<{
     liveAnalysisAvailable: boolean;
+    reachable?: boolean;
+    authValid?: boolean;
+    lastError?: string;
   } | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showGrounding, setShowGrounding] = useState(false);
@@ -161,11 +164,17 @@ export function ChatPanel({
 
         const payload = (await response.json()) as {
           liveAnalysisAvailable?: boolean;
+          analysisProviders?: {
+            cerebras?: { reachable?: boolean; authValid?: boolean; lastError?: string };
+          };
         };
 
         if (!cancelled) {
           setAiStatus({
             liveAnalysisAvailable: Boolean(payload.liveAnalysisAvailable),
+            reachable: payload.analysisProviders?.cerebras?.reachable,
+            authValid: payload.analysisProviders?.cerebras?.authValid,
+            lastError: payload.analysisProviders?.cerebras?.lastError,
           });
         }
       } catch {
@@ -377,7 +386,11 @@ export function ChatPanel({
         <CardTitle>{locationName}</CardTitle>
         {aiStatus?.liveAnalysisAvailable === false ? (
           <div className="inline-flex w-fit rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-[var(--warning-foreground)]">
-            Fallback mode
+            {aiStatus.reachable === false
+              ? "Fallback mode — API unreachable"
+              : aiStatus.authValid === false
+                ? "Fallback mode — API key invalid"
+                : "Fallback mode"}
           </div>
         ) : null}
       </CardHeader>

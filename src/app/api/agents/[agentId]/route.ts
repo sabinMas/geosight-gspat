@@ -9,6 +9,7 @@ import {
   getAgentConfig,
   isAgentId,
 } from "@/lib/agents/agent-config";
+import { runAgentAnalysis } from "@/lib/groq";
 import { buildFallbackAssessment, formatLocationLabel } from "@/lib/geosight-assistant";
 import { getProfileById } from "@/lib/profiles";
 import { formatUiAuditResult, runDeterministicUiAudit } from "@/lib/ux-audit";
@@ -440,11 +441,8 @@ export async function POST(
   const _messages = parseConversationMessages(rawBody.messages);
 
   const requestContext = parseGeoSightContext(rawBody.context);
-  // agentConfig used for metadata (name, tagline) — not for AI calls
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _agentConfig = getAgentConfig(rawAgentId);
 
-  // geo-usability: already fully deterministic UI audit
+  // geo-usability: fully deterministic UI audit — no AI call needed
   if (rawAgentId === "geo-usability") {
     const audit = runDeterministicUiAudit(requestContext?.uiContext);
     const deterministicAudit = formatUiAuditResult(audit);
@@ -457,15 +455,31 @@ export async function POST(
     });
   }
 
-  // All other agents (geo-analyst, geo-guide, geo-scribe) are deterministic.
-  // The Cerebras quota is reserved exclusively for the ChatPanel (/api/analyze).
-  // Reports and agent panel responses are built from the live data bundle with
-  // zero AI tokens — full geodata is already present in the context.
-  return new Response(buildAgentFallback(rawAgentId, message, requestContext), {
+  // geo-analyst, geo-guide, geo-scribe: attempt live Cerebras call; fall back on any error.
+  const agentConfig = getAgentConfig(rawAgentId);
+
+  let responseText: string;
+  let mode: "live" | "fallback";
+
+  try {
+    const result = await runAgentAnalysis(agentConfig, message, requestContext ?? {});
+    responseText = result.response;
+    mode = "live";
+  } catch (err) {
+    const errName = err instanceof Error ? err.name : "unknown";
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn(
+      `[agents:${rawAgentId}] cerebras failed, using fallback. reason=${errName}: ${errMsg}`,
+    );
+    responseText = buildAgentFallback(rawAgentId, message, requestContext);
+    mode = "fallback";
+  }
+
+  return new Response(responseText, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-store",
-      "X-GeoSight-Mode": "deterministic",
+      "X-GeoSight-Mode": mode,
     },
   });
 }
