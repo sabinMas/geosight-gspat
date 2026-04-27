@@ -40,7 +40,7 @@ export default function DemosPage() {
               lat: scenario.lat,
               lng: scenario.lng,
               appMode: scenario.appMode,
-              entrySource: "demos",
+              entrySource: "landing",
               demoScenarioId: scenario.id,
             });
 
