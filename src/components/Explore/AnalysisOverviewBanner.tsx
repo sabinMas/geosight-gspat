@@ -62,7 +62,7 @@ export function AnalysisOverviewBanner({
         ) : (
           <StateBadge tone={overview.tone} className="shrink-0 whitespace-nowrap" />
         )}
-        <span className="min-w-0 truncate text-sm font-semibold text-[var(--foreground)]">
+        <span className="text-sm font-semibold text-[var(--foreground)]">
           {loading ? "Analyzing…" : locationName || "Select a location"}
         </span>
         {scoreValue !== null ? (
