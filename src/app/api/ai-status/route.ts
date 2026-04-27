@@ -32,8 +32,8 @@ async function probeCerebrasConnectivity(): Promise<{
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${keys[0]}` },
       body: JSON.stringify({
         model: "llama3.1-8b",
-        max_tokens: 1,
-        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 16,
+        messages: [{ role: "user", content: "Reply with one word: ready" }],
       }),
       signal: AbortSignal.timeout(8_000),
     });

@@ -140,8 +140,9 @@ export async function runGroqAnalysis(
     throw normalizeProviderError(error, "groq");
   }
 
-  // Retry once on rate-limit with a different key from the pool.
-  if (response.status === 429) {
+  // Retry once on rate-limit or quota exhaustion with a different key from the pool.
+  // 429 = rate limited; 402 = quota/billing limit — both may clear on a different key.
+  if (response.status === 429 || response.status === 402) {
     apiKey = pickCerebrasKey(apiKey);
     try {
       response = await fetch(CEREBRAS_BASE_URL, {
@@ -206,8 +207,8 @@ export async function runGroqAnalysisStream(
     signal: AbortSignal.timeout(25_000),
   });
 
-  // Retry once on rate-limit with a different key from the pool.
-  if (response.status === 429) {
+  // Retry once on rate-limit or quota exhaustion with a different key from the pool.
+  if (response.status === 429 || response.status === 402) {
     apiKey = pickCerebrasKey(apiKey);
     response = await fetch(CEREBRAS_BASE_URL, {
       method: "POST",
@@ -310,7 +311,7 @@ export async function runAgentAnalysis(
     throw normalizeProviderError(error, "groq");
   }
 
-  if (response.status === 429) {
+  if (response.status === 429 || response.status === 402) {
     apiKey = pickCerebrasKey(apiKey);
     try {
       response = await fetch(CEREBRAS_BASE_URL, {
