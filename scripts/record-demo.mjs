@@ -154,6 +154,43 @@ console.log("→ Waiting for geodata to load (up to 60s)…");
 await page.waitForSelector('[role="dialog"][aria-label*="demo"] button', { timeout: DATA_WAIT_MS });
 console.log("   data ready — demo is running");
 
+// ── Pan and rotate globe while demo spinner shows ──────────────────────────────
+// Add visual interest during the loading phase with globe movement.
+
+console.log("→ Animating globe…");
+try {
+  // Find the Cesium canvas (globe rendering area) on the left side
+  const canvas = page.locator('canvas').first();
+  const box = await canvas.boundingBox();
+
+  if (box) {
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+
+    // Move mouse to globe and simulate panning by dragging
+    await page.mouse.move(centerX, centerY);
+    await page.waitForTimeout(500);
+
+    // Drag right (pan east)
+    await page.mouse.drag(centerX, centerY, centerX + 150, centerY, { steps: 15 });
+    await page.waitForTimeout(800);
+
+    // Drag down (pan south)
+    await page.mouse.drag(centerX + 150, centerY, centerX + 100, centerY + 120, { steps: 15 });
+    await page.waitForTimeout(800);
+
+    // Drag left (pan west)
+    await page.mouse.drag(centerX + 100, centerY + 120, centerX - 100, centerY + 50, { steps: 15 });
+    await page.waitForTimeout(800);
+
+    // Drag up (pan north)
+    await page.mouse.drag(centerX - 100, centerY + 50, centerX, centerY, { steps: 15 });
+    await page.waitForTimeout(500);
+  }
+} catch (err) {
+  console.log("   (globe interaction skipped)");
+}
+
 // ── Let the demo auto-advance through all steps ───────────────────────────────
 
 const totalWait = DEMO_TOTAL_MS + STEP_BUFFER_MS;
@@ -174,10 +211,51 @@ const ticker = setInterval(async () => {
 await page.waitForTimeout(totalWait);
 clearInterval(ticker);
 
-// ── Outro pause ───────────────────────────────────────────────────────────────
+// ── Outro: Interact with chat to show AI capabilities ────────────────────────
 
-console.log("→ Outro pause…");
-await page.waitForTimeout(2_000);
+console.log("→ Outro: Asking chat a question…");
+
+try {
+  // Scroll the right Results/Analysis panel to reveal suggestion questions
+  const resultsPanelBody = page.locator('[class*="overflow-y-auto"]').last();
+  await resultsPanelBody.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+  await page.waitForTimeout(2_000);
+
+  // Look for suggestion question buttons (text content that looks like a question)
+  const suggestionButtons = page.locator('button').filter({
+    has: page.locator('text=/^[A-Z].*\\?$/'),
+  });
+  const count = await suggestionButtons.count();
+
+  if (count > 0) {
+    // Click the first suggestion question
+    await suggestionButtons.first().click();
+    console.log("   (clicked suggestion question)");
+    await page.waitForTimeout(3_000);
+
+    // Wait a moment for chat response to start appearing
+    await page.waitForTimeout(2_000);
+  } else {
+    // Fallback: try clicking any button in the chat area that looks interactive
+    const chatButtons = page
+      .locator('[class*="ChatPanel"], [class*="Analysis"]')
+      .locator('button')
+      .filter({ hasText: /^[A-Z]/ })
+      .first();
+    await chatButtons.click().catch(() => {
+      console.log("   (no interactive chat elements found)");
+    });
+    await page.waitForTimeout(3_000);
+  }
+} catch (err) {
+  console.log("   (chat interaction skipped)");
+}
+
+// Final outro pause
+console.log("→ Final outro pause…");
+await page.waitForTimeout(3_000);
 
 // ── Save video ────────────────────────────────────────────────────────────────
 
