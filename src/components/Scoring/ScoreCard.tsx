@@ -127,57 +127,60 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
             </div>
           </div>
         </div>
-          <div className="flex flex-wrap gap-2">
-            {evidenceCounts.direct_live ? (
-              <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.direct_live}`}>
-                {evidenceCounts.direct_live} direct live
-              </span>
-            ) : null}
-            {evidenceCounts.derived_live ? (
-              <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.derived_live}`}>
-                {evidenceCounts.derived_live} derived live
-              </span>
-            ) : null}
-            {evidenceCounts.proxy ? (
-              <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.proxy}`}>
-                {evidenceCounts.proxy} proxy heuristics
-              </span>
-            ) : null}
-          </div>
-          {score.broadband ? (
-            <div className="rounded-[1.5rem] border border-[color:var(--evidence-derived-border)] bg-[var(--evidence-derived-bg)] p-4">
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
-                Broadband summary
-              </div>
-              <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
-                {score.broadband.kind === "regional_household_baseline"
-                  ? `${score.broadband.regionLabel} baseline: ${
-                      score.broadband.fixedBroadbandCoveragePercent === null
-                        ? "fixed broadband share unavailable"
-                        : `${score.broadband.fixedBroadbandCoveragePercent.toFixed(1)}% fixed-broadband households`
-                    } and ${
-                      score.broadband.mobileBroadbandCoveragePercent === null
-                        ? "mobile broadband share unavailable"
-                        : `${score.broadband.mobileBroadbandCoveragePercent.toFixed(1)}% mobile-broadband households`
-                    } (${score.broadband.referenceYear ?? "latest available year"}).`
-                  : `${score.broadband.providerCount} providers, up to ${
-                      score.broadband.maxDownloadSpeed <= 0
-                        ? "unknown download"
-                        : `${score.broadband.maxDownloadSpeed.toLocaleString()} Mbps down`
-                    } / ${
-                      score.broadband.maxUploadSpeed <= 0
-                        ? "unknown upload"
-                        : `${score.broadband.maxUploadSpeed.toLocaleString()} Mbps up`
-                    }.`}
-              </div>
-              {score.broadband.score !== null ? (
-                <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
-                  Broadband factor score: {score.broadband.score} / 100
-                </div>
-              ) : null}
-            </div>
+
+        {/* Evidence badges */}
+        <div className="flex flex-wrap gap-2">
+          {evidenceCounts.direct_live ? (
+            <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.direct_live}`}>
+              {evidenceCounts.direct_live} direct live
+            </span>
+          ) : null}
+          {evidenceCounts.derived_live ? (
+            <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.derived_live}`}>
+              {evidenceCounts.derived_live} derived live
+            </span>
+          ) : null}
+          {evidenceCounts.proxy ? (
+            <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.proxy}`}>
+              {evidenceCounts.proxy} proxy heuristics
+            </span>
           ) : null}
         </div>
+
+        {/* Broadband summary */}
+        {score.broadband ? (
+          <div className="rounded-[1.5rem] border border-[color:var(--evidence-derived-border)] bg-[var(--evidence-derived-bg)] p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--foreground)]">
+              Broadband summary
+            </div>
+            <div className="mt-2 text-sm leading-6 text-[var(--foreground)]">
+              {score.broadband.kind === "regional_household_baseline"
+                ? `${score.broadband.regionLabel} baseline: ${
+                    score.broadband.fixedBroadbandCoveragePercent === null
+                      ? "fixed broadband share unavailable"
+                      : `${score.broadband.fixedBroadbandCoveragePercent.toFixed(1)}% fixed-broadband households`
+                  } and ${
+                    score.broadband.mobileBroadbandCoveragePercent === null
+                      ? "mobile broadband share unavailable"
+                      : `${score.broadband.mobileBroadbandCoveragePercent.toFixed(1)}% mobile-broadband households`
+                  } (${score.broadband.referenceYear ?? "latest available year"}).`
+                : `${score.broadband.providerCount} providers, up to ${
+                    score.broadband.maxDownloadSpeed <= 0
+                      ? "unknown download"
+                      : `${score.broadband.maxDownloadSpeed.toLocaleString()} Mbps down`
+                  } / ${
+                    score.broadband.maxUploadSpeed <= 0
+                      ? "unknown upload"
+                      : `${score.broadband.maxUploadSpeed.toLocaleString()} Mbps up`
+                  }.`}
+            </div>
+            {score.broadband.score !== null ? (
+              <div className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
+                Broadband factor score: {score.broadband.score} / 100
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
