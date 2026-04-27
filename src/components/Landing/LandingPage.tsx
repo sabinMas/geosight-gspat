@@ -456,25 +456,25 @@ export function LandingPage() {
       {/* Main content */}
       <main
         id="main-content"
-        className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-12 pt-10 sm:px-8 sm:pt-16"
+        className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-4 pb-12 pt-6 sm:px-8 sm:pt-8"
       >
         {/* Hero */}
-        <section className="grid h-screen gap-8 lg:grid-cols-2 lg:gap-12 -mx-4 px-4 -mt-10 pt-10 sm:-mx-8 sm:px-8">
+        <section className="grid items-center gap-6 lg:grid-cols-2 lg:gap-10 -mx-4 px-4 sm:-mx-8 sm:px-8">
           {/* Left column: Content */}
-          <div className="flex flex-col justify-center max-w-2xl">
-            <div className="mb-4 flex items-center gap-2">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-foreground)]">
                 Early Access · New releases weekly
               </span>
             </div>
-            <h1 className="mb-5 text-4xl sm:text-5xl font-medium leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
+            <h1 className="text-5xl sm:text-6xl font-semibold leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
               The new GIS tool for{" "}
               <span style={{ color: "var(--muted-foreground)" }}>real-world decisions.</span>
             </h1>
             <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
               Search any place — get terrain, climate, hazard, and solar intelligence from 40+ live government sources in seconds. Built with OpenAI Codex. Actively developed, with new lenses, cards, and data sources shipping weekly.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 onClick={() => setDemoPickerOpen(true)}
                 size="lg"
@@ -494,8 +494,8 @@ export function LandingPage() {
           </div>
 
           {/* Right column: Video */}
-          <div className="hidden lg:flex flex-col justify-center">
-            <div className="relative w-full aspect-square rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="hidden lg:flex flex-col justify-start pt-8">
+            <div className="relative w-full aspect-square rounded-3xl overflow-hidden border shadow-lg" style={{ borderColor: "var(--border-soft)" }}>
               <video
                 src="/videos/geosight-intro.mp4"
                 title="GeoSight Introduction"
