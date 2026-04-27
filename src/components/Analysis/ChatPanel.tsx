@@ -55,6 +55,7 @@ interface ChatUiMessage {
   content: string;
   mode?: ChatReplyMode;
   provider?: "groq" | "deterministic";
+  fallbackReason?: string;
 }
 
 function isAbortError(error: unknown) {
@@ -311,6 +312,7 @@ export function ChatPanel({
           error?: string;
           fallbackMode?: boolean;
           provider?: "groq" | "deterministic";
+          fallbackReason?: string;
         };
         if (requestId !== analyzeRequestIdRef.current || controller.signal.aborted) return;
         if (!data.answer) throw new Error(data.error ?? "GeoSight couldn't analyze this request right now.");
@@ -323,6 +325,7 @@ export function ChatPanel({
             content: data.answer,
             mode: assistantMode,
             provider: data.provider,
+            fallbackReason: data.fallbackReason,
           },
         ]);
       }
@@ -504,6 +507,11 @@ export function ChatPanel({
                         <span className="inline-flex items-center rounded-full border border-[color:var(--warning-border)] bg-[var(--warning-soft)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--warning-foreground)]">
                           Deterministic backup
                         </span>
+                        {message.fallbackReason ? (
+                          <span className="text-[10px] text-[var(--muted-foreground)]">
+                            ({message.fallbackReason})
+                          </span>
+                        ) : null}
                       </div>
                     ) : null}
                     <MarkdownContent content={message.content} />

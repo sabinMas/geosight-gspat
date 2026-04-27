@@ -460,6 +460,7 @@ export async function POST(
 
   let responseText: string;
   let mode: "live" | "fallback";
+  let fallbackReason: string | undefined;
 
   try {
     const result = await runAgentAnalysis(agentConfig, message, requestContext ?? {});
@@ -468,18 +469,22 @@ export async function POST(
   } catch (err) {
     const errName = err instanceof Error ? err.name : "unknown";
     const errMsg = err instanceof Error ? err.message : String(err);
+    fallbackReason = `${errName}: ${errMsg.slice(0, 200)}`;
     console.warn(
-      `[agents:${rawAgentId}] cerebras failed, using fallback. reason=${errName}: ${errMsg}`,
+      `[agents:${rawAgentId}] cerebras failed, using fallback. reason=${fallbackReason}`,
     );
     responseText = buildAgentFallback(rawAgentId, message, requestContext);
     mode = "fallback";
   }
 
-  return new Response(responseText, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-GeoSight-Mode": mode,
-    },
-  });
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-GeoSight-Mode": mode,
+  };
+  if (fallbackReason) {
+    responseHeaders["X-GeoSight-Fallback-Reason"] = fallbackReason;
+  }
+
+  return new Response(responseText, { headers: responseHeaders });
 }
