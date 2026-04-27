@@ -67,62 +67,66 @@ export function ScoreCard({ score, title = "Site score", profile, onOpenDetails 
           </Button>
         ) : null}
       </CardHeader>
-      <CardContent className="grid gap-4 lg:grid-cols-[180px_1fr]">
-        <div className="h-44">
-          {mounted ? (
-            <SafeResponsiveContainer className="h-full">
-              <RadialBarChart
-                innerRadius="70%"
-                outerRadius="100%"
-                data={[{ value: score.total, fill: barColor }]}
-                startAngle={90}
-                endAngle={-270}
-              >
-                <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-                <RadialBar dataKey="value" background cornerRadius={18} />
-              </RadialBarChart>
-            </SafeResponsiveContainer>
-          ) : null}
-          <div className={`${mounted ? "-mt-26" : "mt-10"} text-center`}>
-            <div className="text-5xl font-semibold text-[var(--foreground)]">{score.total}</div>
-            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">out of 100</div>
+      <CardContent className="flex flex-col gap-4">
+        {/* Score row: circle + recommendation side by side */}
+        <div className="flex items-start gap-4">
+          <div className="relative shrink-0" style={{ width: 120, height: 120 }}>
+            {mounted ? (
+              <SafeResponsiveContainer className="h-full w-full">
+                <RadialBarChart
+                  width={120}
+                  height={120}
+                  innerRadius="70%"
+                  outerRadius="100%"
+                  data={[{ value: score.total, fill: barColor }]}
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+                  <RadialBar dataKey="value" background cornerRadius={18} />
+                </RadialBarChart>
+              </SafeResponsiveContainer>
+            ) : null}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="text-3xl font-semibold text-[var(--foreground)]">{score.total}</div>
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">/ 100</div>
+            </div>
+          </div>
+          <div className="min-w-0 flex-1 space-y-1.5 pt-1">
+            <p className="text-sm leading-6 text-[var(--muted-foreground)]">{score.recommendation}</p>
+            {bandLabel ? (
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+                {bandLabel}
+              </div>
+            ) : null}
           </div>
         </div>
-        <div className="space-y-3">
-          <p className="text-sm leading-6 text-[var(--muted-foreground)]">{score.recommendation}</p>
-          {bandLabel ? (
-            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-              {bandLabel}
-            </div>
-          ) : null}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
-            <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-4">
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                Biggest lifts
-              </div>
-              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
-                {strongestFactors.map((factor) => (
-                  <div key={factor.key} className="min-w-0 break-words">
-                    <span className="block">{factor.label}</span>
-                    <span className="text-xs text-[var(--muted-foreground)]">{factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-4">
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-                Biggest drags
-              </div>
-              <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--foreground)]">
-                {mainConstraints.map((factor) => (
-                  <div key={factor.key} className="min-w-0 break-words">
-                    <span className="block">{factor.label}</span>
-                    <span className="text-xs text-[var(--muted-foreground)]">{factor.gap.toFixed(1)} pts uncaptured</span>
-                  </div>
-                ))}
-              </div>
+
+        {/* Lifts + drags stacked vertically */}
+        <div className="flex flex-col gap-2">
+          <div className="rounded-[1.25rem] border border-[color:var(--success-border)] bg-[var(--success-soft)] p-3">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Biggest lifts</div>
+            <div className="mt-2 space-y-2">
+              {strongestFactors.map((factor) => (
+                <div key={factor.key} className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-[var(--foreground)]">{factor.label}</span>
+                  <span className="shrink-0 text-xs text-[var(--muted-foreground)]">{factor.impact.toFixed(1)} / {factor.maxImpact.toFixed(1)} pts</span>
+                </div>
+              ))}
             </div>
           </div>
+          <div className="rounded-[1.25rem] border border-[color:var(--warning-border)] bg-[var(--warning-soft)] p-3">
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Biggest drags</div>
+            <div className="mt-2 space-y-2">
+              {mainConstraints.map((factor) => (
+                <div key={factor.key} className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-[var(--foreground)]">{factor.label}</span>
+                  <span className="shrink-0 text-xs text-[var(--muted-foreground)]">{factor.gap.toFixed(1)} pts uncaptured</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
           <div className="flex flex-wrap gap-2">
             {evidenceCounts.direct_live ? (
               <span className={`rounded-full border px-3 py-1 text-xs ${EVIDENCE_TONE.direct_live}`}>
