@@ -459,37 +459,56 @@ export function LandingPage() {
         className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-12 pt-10 sm:px-8 sm:pt-16"
       >
         {/* Hero */}
-        <div className="max-w-2xl">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-foreground)]">
-              Early Access · New releases weekly
-            </span>
+        <section className="grid h-screen gap-8 lg:grid-cols-2 lg:gap-12 -mx-4 px-4 -mt-10 pt-10 sm:-mx-8 sm:px-8">
+          {/* Left column: Content */}
+          <div className="flex flex-col justify-center max-w-2xl">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-foreground)]">
+                Early Access · New releases weekly
+              </span>
+            </div>
+            <h1 className="mb-5 text-4xl sm:text-5xl font-medium leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
+              The new GIS tool for{" "}
+              <span style={{ color: "var(--muted-foreground)" }}>real-world decisions.</span>
+            </h1>
+            <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+              Search any place — get terrain, climate, hazard, and solar intelligence from 40+ live government sources in seconds. Built with OpenAI Codex. Actively developed, with new lenses, cards, and data sources shipping weekly.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => setDemoPickerOpen(true)}
+                size="lg"
+                className="rounded-full gap-2"
+              >
+                <Sparkles className="h-4 w-4" /> Watch a demo
+              </Button>
+              <button
+                type="button"
+                onClick={() => document.getElementById("lens-stepper")?.scrollIntoView({ behavior: "smooth" })}
+                className="text-sm transition hover:underline"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Or configure your own →
+              </button>
+            </div>
           </div>
-          <h1 className="mb-5 text-5xl font-medium leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
-            The new GIS tool for{" "}
-            <span style={{ color: "var(--muted-foreground)" }}>real-world decisions.</span>
-          </h1>
-          <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-            Search any place — get terrain, climate, hazard, and solar intelligence from 40+ live government sources in seconds. Built with OpenAI Codex. Actively developed, with new lenses, cards, and data sources shipping weekly.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => setDemoPickerOpen(true)}
-              size="lg"
-              className="rounded-full gap-2"
-            >
-              <Sparkles className="h-4 w-4" /> Watch a demo
-            </Button>
-            <button
-              type="button"
-              onClick={() => document.getElementById("lens-stepper")?.scrollIntoView({ behavior: "smooth" })}
-              className="text-sm transition hover:underline"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              Or configure your own →
-            </button>
+
+          {/* Right column: Video */}
+          <div className="hidden lg:flex flex-col justify-center">
+            <div className="relative w-full aspect-square rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border-soft)" }}>
+              <iframe
+                src="https://app.arcade.software/share/videos/aYjw4tiKUTfOL5ZtZHDQ"
+                title="GeoSight Introduction"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                allow="autoplay; fullscreen"
+                className="absolute inset-0 w-full h-full"
+                style={{ border: "none" }}
+              />
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* How it works */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
