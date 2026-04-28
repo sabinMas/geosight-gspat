@@ -129,7 +129,7 @@ body {
   min-height: 100vh;
   background: transparent;
   color: var(--foreground);
-  font-family: var(--font-dm-sans), sans-serif;
+  font-family: var(--font-geist), sans-serif;
   transition:
     background 300ms ease,
     color 300ms ease,
