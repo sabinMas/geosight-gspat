@@ -2,7 +2,7 @@
 
 > **Place intelligence for real-world decisions — no GIS software required.**
 
-**Live App:** [geosight-gspat.vercel.app](https://geosight-gspat.vercel.app/) &nbsp;|&nbsp; **GitHub:** [sabinMas/geosight-gspat](https://github.com/sabinMas/geosight-gspat) &nbsp;|&nbsp; **Built with Codex**
+**Live App:** [geosight-gspat.vercel.app](https://geosight-gspat.vercel.app/) &nbsp;|&nbsp; **GitHub:** [sabinMas/geosight-gspat](https://github.com/sabinMas/geosight-gspat) &nbsp;|&nbsp; **Built with OpenAI Codex**
 
 ---
 
@@ -20,25 +20,30 @@ Good first-run locations: `Olympic National Park, WA` (Trail Scout) · `Austin, 
 
 ---
 
-## What Is GeoSight?
+## The Problem I Wanted to Solve
 
-GeoSight is a **geospatial intelligence platform** that turns any address or coordinate into a multi-signal briefing in under a minute — without needing GIS software or a data analyst.
+Here's something I kept running into: geospatial data is everywhere, but actually *using* it is a nightmare. Want to know if a location has wildfire risk, broadband access, flood exposure, and decent schools all at once? Without GIS expertise you're bouncing between a dozen government portals, copy-pasting coordinates, and manually trying to reconcile datasets that were never designed to talk to each other.
 
-You pick a **mission lens** (home buying, trail scouting, infrastructure site selection, emergency response, etc.), enter a location, and instantly receive scored, sourced, and explainable intelligence pulled from **40+ live government datasets** — USGS, NOAA, NASA FIRMS, FEMA, EPA, Sentinel-2, and OpenStreetMap.
+I'm a software dev student in Washington, and I kept thinking — this shouldn't be this hard. So I built GeoSight to compress that whole mess into a single search.
+
+GeoSight is a **geospatial intelligence platform** that turns any address or coordinate into a multi-signal briefing in under a minute. You pick a **mission lens** (home buying, trail scouting, infrastructure site selection, emergency response, etc.), enter a location, and instantly get scored, sourced, and explainable intelligence pulled from **40+ live government datasets** — USGS, NOAA, NASA FIRMS, FEMA, EPA, and OpenStreetMap.
 
 **GeoSight is not a map viewer or a chatbot.** It scores and ranks geospatial signals by relevance to your specific decision type, labels every source by freshness and coverage, and grounds every AI response in the live data bundle for your current location.
 
 ---
 
-## The Problem It Solves
+## What I Built and How Codex Made It Real
 
-Accessing and interpreting geospatial data currently requires:
-- GIS software expertise (ArcGIS, QGIS)
-- Knowledge of dozens of government data APIs
-- Manual cross-referencing of signals across sources
-- Analyst time to produce a structured deliverable
+I orchestrated this entire project as a solo developer and used **OpenAI Codex** as my primary engineering partner throughout. Codex handled a massive amount of the heavy lifting — API route scaffolding, deterministic scoring logic, the trust metadata system, component architecture, and more. I also pulled in **Claude Code**, **Perplexity Pro**, and **Kimi K2.6** as a multi-agent team for specialized tasks, but Codex was the backbone.
 
-GeoSight compresses that workflow into a single search. A first-time user with no GIS background can go from "I'm considering this location" to a sourced, scored, explainable briefing in under 60 seconds.
+What I personally designed, directed, and implemented:
+- The **mission lens system** — the idea that the same location means completely different things depending on why you're evaluating it
+- The **trust model** — every signal is labeled `live`, `derived`, `limited`, `unavailable`, or `cached`, and GeoSight shows gaps instead of guessing
+- The **scoring architecture** — deterministic, traceable scores from real data, not AI-generated numbers
+- The full **UX flow** — guided first-run tours, a command palette, a comparison table for saved sites, and exportable reports
+- The **multi-agent prompt strategy** that kept Codex producing consistent, high-quality output across 40+ API integrations
+
+This project genuinely wouldn't exist at this scale without Codex. As a student developer, I would have spent months on boilerplate alone. Instead I was able to focus my energy on the hard design decisions — the stuff that actually makes GeoSight useful — and let Codex handle the implementation velocity.
 
 ---
 
@@ -59,7 +64,7 @@ GeoSight compresses that workflow into a single search. A first-time user with n
 
 **9 Mission Lenses** — Hunt Planner, Trail Scout, Road Trip, Land Quick-Check, General Explore, Energy & Solar, Agriculture & Land, Emergency Response, Field Research. Each lens re-weights what matters for that decision type. The same place can score well for one lens and poorly for another.
 
-**Deterministic Scoring** — every factor score is calculated from real source data, not generated. Judges can inspect each score component, see what drove it, and trace it to the originating dataset.
+**Deterministic Scoring** — every factor score is calculated from real source data, not generated. You can inspect each score component, see what drove it, and trace it back to the originating dataset.
 
 **Strict Trust Model** — signals are labeled `live`, `derived`, `limited`, `unavailable`, or `cached`. When a source is unsupported or missing, GeoSight shows the gap instead of guessing. No fabricated data in normal flows.
 
@@ -94,11 +99,20 @@ GeoSight compresses that workflow into a single search. A first-time user with n
 
 ---
 
-## How It Was Built
+## AI Tools Used
 
-GeoSight was built with **OpenAI Codex** as the main engineer, **Perplexity Pro**,**Claude Code**, and **Kimi K2.6** all working as a multi-agentic team, while I (Mason Sabin) orchestrated the entire project from start to finish, for accelerated development across the full stack — from API route scaffolding and scoring logic to component architecture and the trust metadata system.
+| Tool | Role in the Project |
+|---|---|
+| **OpenAI Codex** | Primary engineering partner — API scaffolding, scoring engine, component architecture, trust metadata system |
+| **Claude Code** | Code review, edge case reasoning, architecture discussion |
+| **Perplexity Pro** | Research on government API behavior, data schemas, and coverage gaps |
+| **Kimi K2.6** | Supplementary code generation for specific integrations |
+| **Cerebras (llama-3.3-70b)** | Live AI reasoning layer (GeoAnalyst) in the deployed app |
+| **Google Gemini** | Report generation (GeoScribe) in the deployed app |
 
-**Tech Stack:**
+---
+
+## Tech Stack
 
 - **Frontend:** Next.js 14 App Router · React 19 · TypeScript · Tailwind CSS v4
 - **3D Globe:** Cesium + Resium
@@ -131,6 +145,16 @@ flowchart LR
   APIs --> EPA["EPA Envirofacts"]
   APIs --> AI["Cerebras + Gemini"]
 ```
+
+---
+
+## Impact & Outcome
+
+A first-time user with zero GIS background can go from "I'm considering this location" to a sourced, scored, explainable briefing in under 60 seconds. That's the whole point.
+
+GeoSight currently supports 9 decision profiles and pulls from 40+ live datasets with global coverage for core signals. The trust system means users always know exactly what they're looking at and when data is missing — which I think matters a lot more than pretending everything is covered.
+
+The project also pushed me significantly as a developer. Coordinating a multi-agent workflow with Codex at the center forced me to think carefully about prompt architecture, API reliability, and what "good enough to ship" actually means when you're responsible for the full stack yourself.
 
 ---
 
