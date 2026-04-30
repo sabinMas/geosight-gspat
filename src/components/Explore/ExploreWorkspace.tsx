@@ -1651,13 +1651,13 @@ export function ExploreWorkspace() {
 
   // Card content rendered in right panel (desktop) or inline below globe (mobile)
   const rightPanelContent = (
-    <div ref={rightPanelContentRef} className="space-y-4 p-4">
-      <div className="rounded-[1.4rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-3 shadow-[var(--shadow-soft)]">
-        <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-          Evidence tray
+    <div ref={rightPanelContentRef} className="space-y-3 p-3">
+      <div className="rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2.5 shadow-[var(--shadow-soft)]">
+        <div className="text-xs uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
+          Evidence
         </div>
-        <div className="mt-1 text-sm font-semibold text-[var(--foreground)]">
-          Analysis panels support the active area of interest
+        <div className="mt-0.5 text-xs font-semibold text-[var(--foreground)]">
+          Analysis cards for the active location
         </div>
       </div>
 
@@ -2055,7 +2055,7 @@ export function ExploreWorkspace() {
 
           {/* Main content — hidden when collapsed */}
           <div className={cn(
-            "min-h-0 flex-1 overflow-y-auto p-3 space-y-3",
+            "min-h-0 flex-1 overflow-y-auto p-2.5 space-y-2.5",
             !desktopSidebarOpen && "xl:hidden"
           )} data-demo-id="demo-drawing">
             <WorkspaceToolRail
