@@ -1,5 +1,5 @@
 import { EXTERNAL_TIMEOUTS, fetchWithTimeout } from "@/lib/network";
-import { Coordinates } from "@/types";
+import { Coordinates, SoilProfileExtended } from "@/types";
 
 export interface SoilProfile {
   mapUnitName: string | null;
@@ -174,7 +174,7 @@ function classifyHydrologicGroup(clay: number): string {
 async function getSoilGridsProfile(coords: Coordinates): Promise<SoilProfile> {
   const { lat, lng } = coords;
   const propsUrl = `${SOILGRIDS_BASE}/properties/query?lon=${lng.toFixed(4)}&lat=${lat.toFixed(4)}&property=clay,silt,sand&depth=0-5cm,5-15cm,15-30cm&value=mean`;
-  const classUrl = `${SOILGRIDS_BASE}/classification/query?lon=${lng.toFixed(4)}&lat=${lat.toFixed(4)}`;
+  const classUrl = `${SOILGRIDS_BASE}/classification/query?lon=${lng.toFixed(4)}&lat=${lat.toFixed(4)}`; // WRB classification
 
   const [propsRes, classRes] = await Promise.allSettled([
     fetchWithTimeout(propsUrl, { next: { revalidate: 60 * 60 * 24 * 7 } }, EXTERNAL_TIMEOUTS.standard),
@@ -209,6 +209,59 @@ async function getSoilGridsProfile(coords: Coordinates): Promise<SoilProfile> {
     kFactor: null,
     availableWaterStorageCm: null,
   };
+}
+
+const NULL_SOIL_PROFILE_EXTENDED: SoilProfileExtended = {
+  organicCarbonGPerKg: null,
+  nitrogenGPerKg: null,
+  phH2O: null,
+  cationExchangeCapacity: null,
+  bulkDensityKgPerM3: null,
+  coarseFragmentsPercent: null,
+};
+
+async function getSoilGridsProfileExtended(coords: Coordinates): Promise<SoilProfileExtended> {
+  const { lat, lng } = coords;
+  // Fetch all extended properties in one query: ocd, nitrogen, phh2o, cec, bdod, cfvo
+  const propsUrl = `${SOILGRIDS_BASE}/properties/query?lon=${lng.toFixed(4)}&lat=${lat.toFixed(4)}&property=ocd,nitrogen,phh2o,cec,bdod,cfvo&depth=0-5cm,5-15cm,15-30cm&value=mean`;
+
+  try {
+    const propsRes = await fetchWithTimeout(
+      propsUrl,
+      { next: { revalidate: 60 * 60 * 24 * 7 } },
+      EXTERNAL_TIMEOUTS.standard,
+    );
+
+    if (!propsRes.ok) return NULL_SOIL_PROFILE_EXTENDED;
+
+    const propsJson = (await propsRes.json()) as SoilGridsResponse;
+    const layers = propsJson.properties?.layers ?? [];
+
+    // Extract and convert values with appropriate d_factors
+    // ocd (organic carbon density): g/kg, d_factor 10
+    const organicCarbon = soilGridsMean(layers, "ocd", 10);
+    // nitrogen: g/kg, d_factor 1
+    const nitrogen = soilGridsMean(layers, "nitrogen", 1);
+    // phh2o (pH in H2O): pH units, d_factor 1
+    const phH2O = soilGridsMean(layers, "phh2o", 1);
+    // cec (cation exchange capacity): mmol(c)/kg, d_factor 10
+    const cec = soilGridsMean(layers, "cec", 10);
+    // bdod (bulk density of fine earth): kg/m³, d_factor 100
+    const bulkDensity = soilGridsMean(layers, "bdod", 100);
+    // cfvo (coarse fragments volume): %, d_factor 100
+    const coarseFragments = soilGridsMean(layers, "cfvo", 100);
+
+    return {
+      organicCarbonGPerKg: organicCarbon,
+      nitrogenGPerKg: nitrogen,
+      phH2O: phH2O,
+      cationExchangeCapacity: cec,
+      bulkDensityKgPerM3: bulkDensity,
+      coarseFragmentsPercent: coarseFragments,
+    };
+  } catch {
+    return NULL_SOIL_PROFILE_EXTENDED;
+  }
 }
 
 export async function getSoilProfile(coords: Coordinates): Promise<SoilProfile> {
@@ -258,4 +311,9 @@ export async function getSoilProfile(coords: Coordinates): Promise<SoilProfile> 
   } catch {
     return NULL_SOIL_PROFILE;
   }
+}
+
+export async function getSoilProfileExtended(coords: Coordinates): Promise<SoilProfileExtended> {
+  // All coordinates use SoilGrids extended properties
+  return getSoilGridsProfileExtended(coords);
 }

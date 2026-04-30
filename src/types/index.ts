@@ -767,6 +767,7 @@ export interface GeodataResult {
     weatherAlerts: DataSourceMeta;
     populationDensity?: DataSourceMeta;
     landCoverGlobal?: DataSourceMeta;
+    soilProfileExtended?: DataSourceMeta;
     terrainDerivatives?: DataSourceMeta;
   };
   sourceNotes: string[];

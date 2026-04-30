@@ -30,7 +30,7 @@ import {
 import { fetchSchoolContext, summarizeSchoolContext } from "@/lib/schools";
 import { getGlobalSeismicHazard, getSeismicDesignParams } from "@/lib/seismic-design";
 import { getSeismicHazardCurves } from "@/lib/seismic-hazard-curves";
-import { getSoilProfile } from "@/lib/soil-profile";
+import { getSoilProfile, getSoilProfileExtended } from "@/lib/soil-profile";
 import { resolveSourceRegistryContext } from "@/lib/source-registry";
 import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
 import { sanitizeStreamGauges } from "@/lib/stream-gauges";
@@ -326,6 +326,11 @@ export async function GET(request: NextRequest) {
     PROVIDER_TIMEOUTS.soil,
     "soil profile",
   );
+  const soilProfileExtendedPromise = withSoftTimeout(
+    getSoilProfileExtended({ lat, lng }),
+    PROVIDER_TIMEOUTS.soil,
+    "soil profile extended",
+  );
   const seismicDesignPromise = withSoftTimeout(
     isUsPoint
       ? getSeismicDesignParams({ lat, lng })
@@ -372,6 +377,7 @@ export async function GET(request: NextRequest) {
     waterGaugeResult,
     groundwaterResult,
     soilProfileResult,
+    soilProfileExtendedResult,
     seismicDesignResult,
     seismicCurvesResult,
     climateHistoryResult,
@@ -403,6 +409,7 @@ export async function GET(request: NextRequest) {
       waterGaugePromise,
       groundwaterPromise,
       soilProfilePromise,
+      soilProfileExtendedPromise,
       seismicDesignPromise,
       seismicCurvesPromise,
       withSoftTimeout(
@@ -589,7 +596,8 @@ export async function GET(request: NextRequest) {
       landClassification: buildLandCoverBuckets(infrastructure),
       populationDensity: null,
       landCoverGlobal: null,
-      soilProfileExtended: null,
+      soilProfileExtended:
+        soilProfileExtendedResult.status === "fulfilled" ? soilProfileExtendedResult.value : null,
       terrainDerivatives:
         terrainDerivativesResult.status === "fulfilled" ? terrainDerivativesResult.value : null,
     } satisfies Omit<GeodataResult, "sources" | "sourceNotes">;
@@ -942,6 +950,28 @@ export async function GET(request: NextRequest) {
           : isUsPoint
             ? "No mapped SSURGO soil profile was returned for this point."
             : "SoilGrids returned no data for this coordinate.",
+      }),
+      soilProfileExtended: buildRegistryAwareSourceMeta({
+        id: "soil-profile-extended",
+        label: "Extended soil properties",
+        provider: "SoilGrids (ISRIC)",
+        domain: "soil",
+        context: registryContext,
+        status:
+          soilProfileExtendedResult.status === "fulfilled" && soilProfileExtendedResult.value
+            ? Object.values(soilProfileExtendedResult.value).some((v) => v !== null)
+              ? "live"
+              : "limited"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Global 250m rasters — cached 7 days",
+        coverage: "Global (250 m resolution)",
+        confidence:
+          soilProfileExtendedResult.status === "fulfilled" && soilProfileExtendedResult.value
+            ? Object.values(soilProfileExtendedResult.value).some((v) => v !== null)
+              ? "SoilGrids extended properties: organic carbon, nitrogen, pH, CEC, bulk density, coarse fragments at 0-30 cm mean depth."
+              : "SoilGrids did not return extended properties for this coordinate."
+            : "Extended soil properties could not be retrieved for this point.",
       }),
       seismicDesign: buildRegistryAwareSourceMeta({
         id: "seismic-design",
