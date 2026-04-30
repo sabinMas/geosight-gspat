@@ -38,6 +38,7 @@ import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { getNearbyStreamGauges } from "@/lib/water";
 import { getSolarResource } from "@/lib/solar-resource";
+import { getTerrainDerivatives } from "@/lib/terrain-derivatives";
 import { DatasetAttemptSummary, GeodataResult, SourceDomain } from "@/types";
 
 // Simple tracker for recording provider call attempts and outcomes
@@ -115,6 +116,7 @@ const PROVIDER_TIMEOUTS = {
   epaHazards: 7_000,
   gdacsAlerts: 8_500,
   solar: 20_000,
+  terrainDerivatives: 15_000,
 } as const;
 
 function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -378,6 +380,7 @@ export async function GET(request: NextRequest) {
     gdacsAlertResult,
     solarResourceResult,
     nwsAlertResult,
+    terrainDerivativesResult,
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
@@ -412,6 +415,11 @@ export async function GET(request: NextRequest) {
       gdacsAlertPromise,
       withSoftTimeout(getSolarResource({ lat, lng }), PROVIDER_TIMEOUTS.solar, "solar resource"),
       nwsAlertPromise,
+      withSoftTimeout(
+        getTerrainDerivatives({ lat, lng }),
+        PROVIDER_TIMEOUTS.terrainDerivatives,
+        "terrain derivatives",
+      ),
     ]);
   const responseHeaders = {
     "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
@@ -582,7 +590,8 @@ export async function GET(request: NextRequest) {
       populationDensity: null,
       landCoverGlobal: null,
       soilProfileExtended: null,
-      terrainDerivatives: null,
+      terrainDerivatives:
+        terrainDerivativesResult.status === "fulfilled" ? terrainDerivativesResult.value : null,
     } satisfies Omit<GeodataResult, "sources" | "sourceNotes">;
 
     Object.assign(partial, assembledData);
@@ -1115,11 +1124,17 @@ export async function GET(request: NextRequest) {
         provider: "DEM-derived (slope, aspect, TRI)",
         domain: "terrain",
         context: registryContext,
-        status: "unavailable",
+        status:
+          terrainDerivativesResult.status === "fulfilled" && terrainDerivativesResult.value
+            ? "derived"
+            : "limited",
         lastUpdated: now,
-        freshness: "Computed from base elevation",
-        coverage: "Global",
-        confidence: "Not yet integrated; future slope, aspect, terrain ruggedness index computed from DEM.",
+        freshness: "Computed on-demand from base elevation (USGS/OpenTopoData)",
+        coverage: "Global (where elevation is available)",
+        confidence:
+          terrainDerivativesResult.status === "fulfilled" && terrainDerivativesResult.value
+            ? "Computed from 3x3 DEM grid using Horn's method for slope & aspect, mean-absolute-difference for TRI."
+            : "Terrain derivatives could not be computed for this location.",
       }),
     },
       sourceNotes: [
