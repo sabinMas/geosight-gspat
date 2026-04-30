@@ -227,6 +227,7 @@ export function ExploreWorkspace() {
     toggleCustomLayer,
   } = state;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -1819,6 +1820,19 @@ export function ExploreWorkspace() {
           <Menu className="h-4 w-4" />
         </Button>
 
+        {/* Toggle left sidebar (desktop) */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 shrink-0 rounded-full hidden xl:flex"
+          onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+          aria-label="Toggle workspace navigation"
+          aria-pressed={desktopSidebarOpen}
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+
         {/* Back to landing */}
         <Link
           href="/"
@@ -1992,11 +2006,16 @@ export function ExploreWorkspace() {
       ) : null}
 
       {/* ── Body ── */}
-      <div className="flex min-h-0 flex-1 flex-col xl:flex-row xl:overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden relative">
 
-        {/* Left panel — desktop only */}
+        {/* Left panel — floating on desktop, docked on mobile */}
         <aside
-          className="hidden w-80 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)] xl:flex"
+          className={cn(
+            "hidden w-80 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)]",
+            "xl:absolute xl:left-0 xl:top-0 xl:bottom-0 xl:z-30",
+            "xl:border-r xl:border-l-0 xl:bg-[var(--background)] xl:shadow-lg",
+            desktopSidebarOpen ? "xl:flex" : "xl:hidden"
+          )}
           role="region"
           aria-label="Workspace navigation and quick regions"
         >
@@ -2268,7 +2287,7 @@ export function ExploreWorkspace() {
             />
           ) : null}
 
-          <div className="absolute bottom-14 left-4 right-4 z-20 hidden xl:hidden lg:block">
+          <div className="absolute bottom-14 left-4 right-4 z-20 hidden lg:block">
             <div className="rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-panel)] backdrop-blur-md">
               <DrawingToolbar
                 drawingTool={state.drawingTool}
@@ -2328,7 +2347,8 @@ export function ExploreWorkspace() {
             tabIndex={-1}
             className={cn(
               "hidden flex-col border-t border-[color:var(--border-soft)] lg:flex",
-              "xl:w-[380px] xl:shrink-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
+              "xl:absolute xl:right-0 xl:top-0 xl:bottom-0 xl:w-[380px] xl:border-t-0 xl:border-l xl:overflow-y-auto",
+              "xl:bg-[var(--background)] xl:shadow-lg xl:z-20"
             )}
             role="region"
             aria-label="Analysis cards and workspace panels"
