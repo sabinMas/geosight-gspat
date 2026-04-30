@@ -22,7 +22,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getSystemTheme(): Exclude<ThemeMode, "system"> {
   if (typeof window === "undefined") {
-    return "dark";
+    return "light";
   }
 
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
@@ -30,7 +30,7 @@ function getSystemTheme(): Exclude<ThemeMode, "system"> {
 
 function readStoredThemeMode(): ThemeMode {
   if (typeof window === "undefined") {
-    return "dark";
+    return "light";
   }
 
   const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -38,12 +38,12 @@ function readStoredThemeMode(): ThemeMode {
     return stored;
   }
 
-  return "dark";
+  return "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>("dark");
-  const [resolvedTheme, setResolvedTheme] = useState<Exclude<ThemeMode, "system">>("dark");
+  const [mode, setModeState] = useState<ThemeMode>("light");
+  const [resolvedTheme, setResolvedTheme] = useState<Exclude<ThemeMode, "system">>("light");
 
   useEffect(() => {
     const nextMode = readStoredThemeMode();

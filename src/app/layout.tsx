@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Geist, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import { WebVitalsReporter } from "@/components/App/WebVitalsReporter";
 import AgentPanel from "@/components/agent-panel/AgentPanel";
@@ -9,9 +9,10 @@ import { validateAgentEnv } from "@/lib/agents/agent-config";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-geist",
+  weight: ["300", "400", "500"],
 });
 
 const jetBrainsMono = JetBrains_Mono({
@@ -64,7 +65,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${jetBrainsMono.variable}`}>
+      <body className={`${geist.variable} ${jetBrainsMono.variable}`}>
         <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
         {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a href="#main-content" className="skip-link">

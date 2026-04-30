@@ -21,6 +21,8 @@ import {
   Sparkles,
   Target,
   Trees,
+  Volume2,
+  VolumeX,
   Zap,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
@@ -267,6 +269,8 @@ export function LandingPage() {
   const [suggestions, setSuggestions] = useState<LocationSearchResult[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [videoAudioEnabled, setVideoAudioEnabled] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -456,40 +460,81 @@ export function LandingPage() {
       {/* Main content */}
       <main
         id="main-content"
-        className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-12 pt-10 sm:px-8 sm:pt-16"
+        className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-4 pb-12 pt-6 sm:px-8 sm:pt-8"
       >
         {/* Hero */}
-        <div className="max-w-2xl">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-foreground)]">
-              Early Access · New releases weekly
-            </span>
+        <section className="grid items-center gap-6 lg:grid-cols-2 lg:gap-10 -mx-4 px-4 sm:-mx-8 sm:px-8">
+          {/* Left column: Content */}
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-[color:var(--accent-strong)] bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-foreground)]">
+                Early Access · New releases weekly
+              </span>
+            </div>
+            <h1 className="text-5xl sm:text-6xl font-semibold leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
+              The new GIS tool for{" "}
+              <span style={{ color: "var(--muted-foreground)" }}>real-world decisions.</span>
+            </h1>
+            <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+              Search any place — get terrain, climate, hazard, and solar intelligence from 40+ live government sources in seconds. Built with OpenAI Codex. Actively developed, with new lenses, cards, and data sources shipping weekly.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => setDemoPickerOpen(true)}
+                size="lg"
+                className="rounded-full gap-2"
+              >
+                <Sparkles className="h-4 w-4" /> Watch a demo
+              </Button>
+              <button
+                type="button"
+                onClick={() => document.getElementById("lens-stepper")?.scrollIntoView({ behavior: "smooth" })}
+                className="text-sm transition hover:underline"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Or configure your own →
+              </button>
+            </div>
           </div>
-          <h1 className="mb-5 text-5xl font-medium leading-tight tracking-tight" style={{ color: "var(--foreground)" }}>
-            The new GIS tool for{" "}
-            <span style={{ color: "var(--muted-foreground)" }}>real-world decisions.</span>
-          </h1>
-          <p className="max-w-xl text-base leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-            Search any place — get terrain, climate, hazard, and solar intelligence from 40+ live government sources in seconds. Built with OpenAI Codex. Actively developed, with new lenses, cards, and data sources shipping weekly.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => setDemoPickerOpen(true)}
-              size="lg"
-              className="rounded-full gap-2"
-            >
-              <Sparkles className="h-4 w-4" /> Watch a demo
-            </Button>
-            <button
-              type="button"
-              onClick={() => document.getElementById("lens-stepper")?.scrollIntoView({ behavior: "smooth" })}
-              className="text-sm transition hover:underline"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              Or configure your own →
-            </button>
+
+          {/* Right column: Video */}
+          <div className="hidden lg:flex flex-col justify-start pt-8">
+            <div className="relative w-full aspect-square rounded-3xl overflow-hidden border shadow-lg" style={{ borderColor: "var(--border-soft)" }}>
+              <video
+                ref={videoRef}
+                src="/videos/geosight-intro.mp4"
+                title="GeoSight Introduction"
+                autoPlay
+                muted={!videoAudioEnabled}
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setVideoAudioEnabled(!videoAudioEnabled);
+                  if (videoRef.current) {
+                    videoRef.current.muted = videoAudioEnabled;
+                  }
+                }}
+                aria-label={videoAudioEnabled ? "Mute video" : "Unmute video"}
+                className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border transition hover:bg-[color:var(--surface-soft)]"
+                style={{
+                  background: "rgba(0,0,0,0.5)",
+                  borderColor: "rgba(255,255,255,0.3)",
+                  color: "white",
+                }}
+              >
+                {videoAudioEnabled ? (
+                  <Volume2 className="h-5 w-5" />
+                ) : (
+                  <VolumeX className="h-5 w-5" />
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* How it works */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

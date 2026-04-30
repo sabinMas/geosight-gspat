@@ -319,9 +319,9 @@ export function DemoRunner({ scenario, dataReady, onOpenCard, onStop }: DemoRunn
         aria-live="polite"
         aria-label={`${scenario.label} demo step ${stepIndex + 1}`}
         className="fixed z-[89]"
-        style={style}
+        style={{ ...style, maxHeight: "auto", overflow: "visible" }}
       >
-        <div className="relative flex h-full max-h-[inherit] flex-col overflow-hidden rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
+        <div className="relative flex flex-col overflow-hidden rounded-[1.5rem] border border-[color:var(--border-soft)] bg-[var(--background-elevated)] shadow-[var(--shadow-panel)]">
           <Arrow placement={placement} />
 
           {/* Header */}
