@@ -3,6 +3,7 @@
 import { Circle, Download, Grid2x2, MapPin, PenTool, Redo2, Ruler, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DrawnShape, DrawingTool } from "@/types";
 
 interface DrawingToolbarProps {
@@ -144,7 +145,12 @@ export function DrawingToolbar({
             type="button"
             variant={isActive ? "default" : "secondary"}
             size="sm"
-            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            className={cn(
+              "rounded-full border transition",
+              isActive
+                ? "border-[color:var(--accent-strong)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-soft)]"
+                : "border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--foreground)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)]"
+            )}
             aria-pressed={isActive}
             aria-label={`${isActive ? "Stop" : "Start"} ${label.toLowerCase()} tool`}
             onClick={() => onSelectTool(isActive ? "none" : id)}
@@ -160,7 +166,7 @@ export function DrawingToolbar({
           type="button"
           variant="secondary"
           size="sm"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)] transition"
           onClick={onOpenImport}
           aria-label="Import a geospatial file"
         >
@@ -174,7 +180,12 @@ export function DrawingToolbar({
           type="button"
           variant={snapToGrid ? "default" : "secondary"}
           size="sm"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          className={cn(
+            "rounded-full border transition",
+            snapToGrid
+              ? "border-[color:var(--accent-strong)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-soft)]"
+              : "border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--foreground)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)]"
+          )}
           aria-pressed={snapToGrid}
           aria-label={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
           onClick={onToggleSnapToGrid}
@@ -191,7 +202,7 @@ export function DrawingToolbar({
             type="button"
             variant="secondary"
             size="sm"
-            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)] transition disabled:opacity-50"
             onClick={onUndo}
             disabled={!canUndo}
             title="Undo last shape"
@@ -203,7 +214,7 @@ export function DrawingToolbar({
             type="button"
             variant="secondary"
             size="sm"
-            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)] transition disabled:opacity-50"
             onClick={onRedo}
             disabled={!canRedo}
             title="Redo"
@@ -215,7 +226,7 @@ export function DrawingToolbar({
             type="button"
             variant="secondary"
             size="sm"
-            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)] transition"
             onClick={onExportGeoJSON}
             title="Export shapes as GeoJSON"
             aria-label="Export drawn shapes as GeoJSON"
@@ -227,7 +238,7 @@ export function DrawingToolbar({
             type="button"
             variant="secondary"
             size="sm"
-            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)] transition"
             onClick={onClearAll}
             title="Clear all drawn shapes"
             aria-label="Clear all drawn shapes"
@@ -254,7 +265,7 @@ export function DrawingToolbar({
             type="button"
             variant="secondary"
             size="sm"
-            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+            className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] hover:bg-[var(--surface-raised)] transition disabled:opacity-50"
             onClick={onRedo}
             disabled={!canRedo}
             title="Redo"
