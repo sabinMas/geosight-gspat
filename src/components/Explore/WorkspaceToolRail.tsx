@@ -3,20 +3,15 @@
 import type { ReactNode } from "react";
 import {
   Camera,
-  Circle,
   Download,
   FileArchive,
   FileSpreadsheet,
   FolderOpen,
   Grid2x2,
   Layers3,
-  MapPinned,
-  PenTool,
   Printer,
-  Ruler,
   Save,
   Sparkles,
-  Upload,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -89,13 +84,6 @@ export function WorkspaceToolRail({
   onSaveProject,
   onLoadProject,
 }: WorkspaceToolRailProps) {
-  const toolButtons = [
-    { id: "polygon" as const, label: "Area", Icon: PenTool },
-    { id: "marker" as const, label: "Pin", Icon: MapPinned },
-    { id: "measure" as const, label: "Measure", Icon: Ruler },
-    { id: "circle" as const, label: "Radius", Icon: Circle },
-  ];
-
   return (
     <section
       className="space-y-4 rounded-[1.6rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]"
@@ -153,63 +141,7 @@ export function WorkspaceToolRail({
         </div>
       </div>
 
-      <div className="space-y-2" data-walkthrough="drawing-tools">
-        <SectionTitle>Spatial tools</SectionTitle>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="w-full justify-start rounded-2xl"
-          aria-label="Import a geospatial file"
-          onClick={onOpenImport}
-        >
-          <Upload className="mr-1.5 h-3.5 w-3.5" />
-          Import layer
-        </Button>
-        <div className="grid grid-cols-2 gap-2">
-          {toolButtons.map(({ id, label, Icon }) => (
-            <Button
-              key={id}
-              type="button"
-              size="sm"
-              variant={drawingTool === id ? "default" : "secondary"}
-              className="justify-start rounded-2xl"
-              aria-label={`${drawingTool === id ? "Stop" : "Start"} ${label.toLowerCase()} drawing tool`}
-              aria-pressed={drawingTool === id}
-              onClick={() => onSelectDrawingTool(drawingTool === id ? "none" : id)}
-            >
-              <Icon className="mr-1.5 h-3.5 w-3.5" />
-              {label}
-            </Button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={snapToGrid ? "default" : "secondary"}
-            className="justify-start rounded-2xl"
-            aria-label={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
-            aria-pressed={snapToGrid}
-            onClick={onToggleSnapGrid}
-          >
-            <Grid2x2 className="mr-1.5 h-3.5 w-3.5" />
-            Snap grid
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="justify-start rounded-2xl"
-            aria-label="Clear all drawn shapes"
-            onClick={onClearDrawings}
-            disabled={drawCount === 0}
-          >
-            <X className="mr-1.5 h-3.5 w-3.5" />
-            Clear {drawCount > 0 ? `(${drawCount})` : ""}
-          </Button>
-        </div>
-      </div>
+      {/* Spatial tools moved to floating toolbar */}
 
       <div className="space-y-2">
         <SectionTitle>Capture & export</SectionTitle>
