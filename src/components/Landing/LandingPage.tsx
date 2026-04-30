@@ -402,57 +402,36 @@ export function LandingPage() {
         background: `radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%), var(--background)`,
       }}
     >
-      {/* Sticky topbar */}
+      {/* Sticky topbar — minimal header */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b px-4 py-3 backdrop-blur-md sm:px-8 sm:py-4"
+        className="sticky top-0 z-30 flex flex-col items-center justify-center gap-2 border-b px-4 py-3 backdrop-blur-md sm:py-4"
         style={{
           borderColor: "var(--border-soft)",
           background: "color-mix(in srgb, var(--background) 90%, transparent)",
         }}
       >
-        <div className="flex items-center gap-2.5">
-          <span
-            className="flex h-7 w-7 items-center justify-center rounded-lg border"
-            style={{ borderColor: "var(--border-soft)", background: "var(--surface-panel)", color: "var(--accent)" }}
-            aria-hidden="true"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-              <path
-                d="M3 12h18M12 3c2.5 3 3.8 6 3.8 9s-1.3 6-3.8 9c-2.5-3-3.8-6-3.8-9s1.3-6 3.8-9z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <circle cx="12" cy="12" r="2.5" fill="currentColor" />
-            </svg>
-          </span>
-          <span className="text-base font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>
-            GeoSight
-          </span>
-          <span className="hidden text-sm sm:inline" style={{ color: "var(--muted-foreground)" }}>
-            spatial intelligence
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setWalkthroughOpen(true)}
-            aria-label="Open guided tour"
-            className="inline-flex items-center gap-1 text-xs transition"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-            Tour
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/explore?mode=pro")}
-            className="hidden items-center gap-1 text-xs transition sm:inline-flex"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            For professionals
-            <ArrowRight className="h-3 w-3" />
-          </button>
+        {/* Logo + theme toggle row */}
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className="flex h-7 w-7 items-center justify-center rounded-lg border"
+              style={{ borderColor: "var(--border-soft)", background: "var(--surface-panel)", color: "var(--accent)" }}
+              aria-hidden="true"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+                <path
+                  d="M3 12h18M12 3c2.5 3 3.8 6 3.8 9s-1.3 6-3.8 9c-2.5-3-3.8-6-3.8-9s1.3-6 3.8-9z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+                <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+              </svg>
+            </span>
+            <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>
+              GeoSight
+            </span>
+          </div>
           <ThemeToggle compact />
         </div>
       </header>
