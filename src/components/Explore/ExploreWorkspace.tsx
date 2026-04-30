@@ -34,7 +34,6 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { AddViewTray } from "@/components/Explore/AddViewTray";
 import { DemoRunner } from "@/components/Demo/DemoRunner";
 import { MobileChrome } from "@/components/Mobile/MobileChrome";
 import { DEMO_SCENARIOS } from "@/lib/demo-scenarios";
@@ -2101,18 +2100,7 @@ export function ExploreWorkspace() {
             <div className="min-h-0" data-walkthrough="lens-selector">{sidebarElement}</div>
           </div>
 
-          {/* AddViewTray — guided mode, hidden when sidebar collapsed */}
-          {data.shellMode !== "board" && desktopSidebarOpen ? (
-            <div className="shrink-0 border-t border-[color:var(--border-soft)] hidden xl:block">
-              <AddViewTray
-                cards={data.suggestedCards}
-                pinnedCardIds={data.pinnedCardIds}
-                onOpenCard={data.openCardFromTray}
-                onTogglePinned={data.togglePinnedCard}
-                onOpenBoard={data.openAdvancedBoard}
-              />
-            </div>
-          ) : null}
+          {/* AddViewTray removed — use toolbar workbench button instead */}
 
         </aside>
 
