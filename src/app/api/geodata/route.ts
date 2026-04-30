@@ -38,7 +38,67 @@ import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { getNearbyStreamGauges } from "@/lib/water";
 import { getSolarResource } from "@/lib/solar-resource";
-import { GeodataResult } from "@/types";
+import { DatasetAttemptSummary, GeodataResult, SourceDomain } from "@/types";
+
+// Simple tracker for recording provider call attempts and outcomes
+class DatasetTracker {
+  private attempts: DatasetAttemptSummary[] = [];
+
+  track<T>(
+    providerId: string,
+    domain: SourceDomain,
+    promise: Promise<PromiseSettledResult<T>>,
+  ): Promise<PromiseSettledResult<T>> {
+    const start = Date.now();
+    return promise
+      .then((result) => {
+        const duration = Date.now() - start;
+        if (result.status === "fulfilled") {
+          this.attempts.push({
+            providerId,
+            domain,
+            attempted: true,
+            status: "success",
+            durationMs: duration,
+          });
+        } else {
+          this.attempts.push({
+            providerId,
+            domain,
+            attempted: true,
+            status: "error",
+            durationMs: duration,
+          });
+        }
+        return result;
+      })
+      .catch((error) => {
+        const duration = Date.now() - start;
+        const status = error?.message?.includes("timed out") ? "timeout" : "error";
+        this.attempts.push({
+          providerId,
+          domain,
+          attempted: true,
+          status: status as "timeout" | "error",
+          durationMs: duration,
+        });
+        throw error;
+      });
+  }
+
+  skip(providerId: string, domain: SourceDomain, reason: "skipped_region" | "not_integrated"): void {
+    this.attempts.push({
+      providerId,
+      domain,
+      attempted: false,
+      status: reason,
+    });
+  }
+
+  getAttempts(): DatasetAttemptSummary[] {
+    return this.attempts;
+  }
+}
 
 const PROVIDER_TIMEOUTS = {
   infrastructure: 20_000,
@@ -216,6 +276,8 @@ export async function GET(request: NextRequest) {
   }
 
   const { lat, lng } = coordinates;
+  const includeAttempts = request.nextUrl.searchParams.get("include_attempts") === "true";
+  const tracker = new DatasetTracker();
 
   // Check Redis cache first
   const cached = await getGeodataCache(lat, lng);
@@ -517,6 +579,10 @@ export async function GET(request: NextRequest) {
         return raw;
       })(),
       landClassification: buildLandCoverBuckets(infrastructure),
+      populationDensity: null,
+      landCoverGlobal: null,
+      soilProfileExtended: null,
+      terrainDerivatives: null,
     } satisfies Omit<GeodataResult, "sources" | "sourceNotes">;
 
     Object.assign(partial, assembledData);
@@ -1019,6 +1085,42 @@ export async function GET(request: NextRequest) {
           ? undefined
           : "NOAA NWS coverage is limited to US forecast zones.",
       }),
+      populationDensity: buildRegistryAwareSourceMeta({
+        id: "population-density",
+        label: "Population density",
+        provider: "WorldPop",
+        domain: "population",
+        context: registryContext,
+        status: "unavailable",
+        lastUpdated: now,
+        freshness: "Annual population grids",
+        coverage: "Global",
+        confidence: "Not yet integrated; future global population density at 100 m–1 km resolution.",
+      }),
+      landCoverGlobal: buildRegistryAwareSourceMeta({
+        id: "land-cover-global",
+        label: "Global land cover",
+        provider: "ESA CCI",
+        domain: "land_cover",
+        context: registryContext,
+        status: "unavailable",
+        lastUpdated: now,
+        freshness: "Annual satellite-derived classification",
+        coverage: "Global at 300 m resolution",
+        confidence: "Not yet integrated; future authoritative satellite-derived land cover using UN-LCCS scheme.",
+      }),
+      terrainDerivatives: buildRegistryAwareSourceMeta({
+        id: "terrain-derivatives",
+        label: "Terrain derivatives",
+        provider: "DEM-derived (slope, aspect, TRI)",
+        domain: "terrain",
+        context: registryContext,
+        status: "unavailable",
+        lastUpdated: now,
+        freshness: "Computed from base elevation",
+        coverage: "Global",
+        confidence: "Not yet integrated; future slope, aspect, terrain ruggedness index computed from DEM.",
+      }),
     },
       sourceNotes: [
       "Elevation via USGS EPQS in the US, with OpenTopoData SRTM fallback for global coverage.",
@@ -1056,7 +1158,10 @@ export async function GET(request: NextRequest) {
     // Cache the assembled result (fire-and-forget)
     setGeodataCache(lat, lng, geodata);
 
-    return NextResponse.json(geodata, {
+    // Optionally include dataset attempt tracking in response
+    const response = includeAttempts ? { ...geodata, datasetAttempts: tracker.getAttempts() } : geodata;
+
+    return NextResponse.json(response, {
       headers: responseHeaders,
     });
   } catch {

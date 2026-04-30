@@ -48,7 +48,10 @@ export type SourceDomain =
   | "schools"
   | "broadband"
   | "terrain"
-  | "imagery";
+  | "imagery"
+  | "population"
+  | "land_cover"
+  | "soil";
 export type SourceAccessType =
   | "api"
   | "dataset"
@@ -65,7 +68,14 @@ export type SourceRegionScope =
   | "india"
   | "australia-nz"
   | "latin-america"
-  | "africa";
+  | "africa"
+  | "middle-east"
+  | "south-asia"
+  | "southeast-asia"
+  | "east-asia"
+  | "central-asia"
+  | "caribbean"
+  | "oceania";
 export type ThemeMode = "dark" | "light" | "system";
 export type WorkspaceViewMode = "board" | "library";
 export type WorkspaceShellMode = "minimal" | "guided" | "board";
@@ -497,6 +507,10 @@ export interface SourceProviderDefinition {
   rateLimit: string;
   notes: string;
   integrated: boolean;
+  resolution?: string;
+  updateCadence?: string;
+  requiresApiKey?: boolean;
+  apiKeyEnvVar?: string;
 }
 
 export interface SourceProviderGuidance {
@@ -724,6 +738,11 @@ export interface GeodataResult {
   weatherForecast: WeatherForecastDay[];
   schoolContext: SchoolContextSummary | null;
   landClassification: LandCoverBucket[];
+  populationDensity: PopulationDensityResult | null;
+  landCoverGlobal: GlobalLandCoverResult | null;
+  soilProfileExtended: SoilProfileExtended | null;
+  terrainDerivatives: TerrainDerivatives | null;
+  datasetAttempts?: DatasetAttemptSummary[];
   sources: {
     elevation: DataSourceMeta;
     infrastructure: DataSourceMeta;
@@ -746,8 +765,61 @@ export interface GeodataResult {
     epaHazards: DataSourceMeta;
     hazardAlerts: DataSourceMeta;
     weatherAlerts: DataSourceMeta;
+    populationDensity?: DataSourceMeta;
+    landCoverGlobal?: DataSourceMeta;
+    terrainDerivatives?: DataSourceMeta;
   };
   sourceNotes: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Global baseline dataset result types (Phase 1)
+// ---------------------------------------------------------------------------
+
+export interface PopulationDensityResult {
+  personsPerSqKm: number | null;
+  resolutionLabel: string;
+  referenceYear: number | null;
+  source: "worldpop" | "census";
+}
+
+export interface LandCoverFraction {
+  classCode: number;
+  className: string;
+  fraction: number;
+  color: string;
+}
+
+export interface GlobalLandCoverResult {
+  dominantClass: string;
+  dominantClassCode: number;
+  classFractions: LandCoverFraction[];
+  resolutionM: number;
+  referenceYear: number;
+}
+
+export interface SoilProfileExtended {
+  organicCarbonGPerKg: number | null;
+  nitrogenGPerKg: number | null;
+  phH2O: number | null;
+  cationExchangeCapacity: number | null;
+  bulkDensityKgPerM3: number | null;
+  coarseFragmentsPercent: number | null;
+}
+
+export interface TerrainDerivatives {
+  slopeDegrees: number | null;
+  aspectDegrees: number | null;
+  terrainRuggednessIndex: number | null;
+  relativeReliefM: number | null;
+}
+
+export interface DatasetAttemptSummary {
+  providerId: string;
+  domain: SourceDomain;
+  attempted: boolean;
+  status: "success" | "timeout" | "error" | "skipped_region" | "not_integrated";
+  durationMs?: number;
 }
 
 export interface LocationSearchResult {

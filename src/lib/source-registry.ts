@@ -29,6 +29,34 @@ const AFRICA_CODES = new Set([
 
 const ANZ_CODES = new Set(["AU", "NZ"]);
 
+const MIDDLE_EAST_CODES = new Set([
+  "SA","AE","QA","KW","BH","OM","IQ","IR","JO","LB","SY","YE","PS","IL",
+]);
+
+const SOUTH_ASIA_CODES = new Set([
+  "PK","BD","LK","NP","BT","MV","AF",
+]);
+
+const SOUTHEAST_ASIA_CODES = new Set([
+  "TH","VN","PH","MM","KH","LA","MY","SG","ID","BN","TL",
+]);
+
+const EAST_ASIA_CODES = new Set([
+  "CN","KR","TW","MN",
+]);
+
+const CENTRAL_ASIA_CODES = new Set([
+  "KZ","UZ","TM","KG","TJ",
+]);
+
+const CARIBBEAN_CODES = new Set([
+  "JM","TT","BB","BS","HT","GD","AG","DM","KN","LC","VC","CW","AW","SX",
+]);
+
+const OCEANIA_CODES = new Set([
+  "FJ","PG","WS","TO","VU","SB","FM","PW","MH","KI","TV","NR",
+]);
+
 export const SOURCE_DOMAIN_LABELS: Record<SourceDomain, string> = {
   weather: "Weather",
   nearby_places: "Nearby places",
@@ -41,6 +69,9 @@ export const SOURCE_DOMAIN_LABELS: Record<SourceDomain, string> = {
   broadband: "Broadband",
   terrain: "Terrain",
   imagery: "Imagery",
+  population: "Population density",
+  land_cover: "Land cover",
+  soil: "Soil properties",
 };
 
 export const SOURCE_REGION_LABELS: Record<SourceRegionScope, string> = {
@@ -54,6 +85,13 @@ export const SOURCE_REGION_LABELS: Record<SourceRegionScope, string> = {
   "australia-nz": "Australia / New Zealand",
   "latin-america": "Latin America",
   africa: "Africa",
+  "middle-east": "Middle East",
+  "south-asia": "South Asia",
+  "southeast-asia": "Southeast Asia",
+  "east-asia": "East Asia",
+  "central-asia": "Central Asia",
+  caribbean: "Caribbean",
+  oceania: "Oceania",
 };
 
 export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
@@ -69,6 +107,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Free public usage, cache aggressively",
     notes: "Best free default for global weather and simple air-quality context.",
     integrated: true,
+    resolution: "~11 km",
+    updateCadence: "hourly",
   },
   {
     id: "noaa-nws",
@@ -82,6 +122,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, polite usage expected",
     notes: "Strong US fallback when alerting and official US products matter.",
     integrated: true,
+    resolution: "county / zone",
+    updateCadence: "minutes",
   },
   {
     id: "meteostat",
@@ -95,6 +137,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Free public access with usage limits",
     notes: "Good future complement for historical climate views.",
     integrated: false,
+    resolution: "station-level",
+    updateCadence: "daily",
   },
   {
     id: "osm-overpass",
@@ -108,6 +152,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public endpoint, must cache and throttle",
     notes: "Global POI baseline; school-location fallback for non-US coordinates via amenity=school/kindergarten query.",
     integrated: true,
+    resolution: "feature-level",
+    updateCadence: "minutes",
   },
   {
     id: "wikidata-query",
@@ -121,6 +167,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public service, careful usage required",
     notes: "Good landmark fallback when OSM coverage is sparse.",
     integrated: false,
+    resolution: "entity-level",
+    updateCadence: "daily",
   },
   {
     id: "fcc-census-acs",
@@ -134,6 +182,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public APIs, cache daily",
     notes: "Current GeoSight US demographic baseline.",
     integrated: true,
+    resolution: "county",
+    updateCadence: "annual",
   },
   {
     id: "eurostat",
@@ -147,6 +197,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API with standard fair-use expectations",
     notes: "Current Europe demographic and household-connectivity baseline for GeoSight.",
     integrated: true,
+    resolution: "country / NUTS2",
+    updateCadence: "annual",
   },
   {
     id: "world-bank-open-data",
@@ -160,6 +212,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API",
     notes: "Global fallback when only national indicators are available.",
     integrated: true,
+    resolution: "country",
+    updateCadence: "annual",
   },
   {
     id: "usgs-earthquake-catalog",
@@ -173,6 +227,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache short windows",
     notes: "Current GeoSight hazard baseline for recent seismic activity.",
     integrated: true,
+    resolution: "event-level",
+    updateCadence: "minutes",
   },
   {
     id: "nasa-firms",
@@ -186,6 +242,10 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Open access products",
     notes: "Best free next-step global wildfire layer.",
     integrated: true,
+    resolution: "375 m (VIIRS)",
+    updateCadence: "3 hours",
+    requiresApiKey: true,
+    apiKeyEnvVar: "NASA_FIRMS_MAP_KEY",
   },
   {
     id: "gdacs",
@@ -199,6 +259,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public feeds available",
     notes: "Current global disaster-alert feed for major sudden-onset and ongoing disaster notifications.",
     integrated: true,
+    resolution: "event-level",
+    updateCadence: "hourly",
   },
   {
     id: "fema-nfhl",
@@ -213,6 +275,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public ArcGIS service, cache per point query",
     notes: "Current GeoSight flood-zone source for US parcel and infrastructure risk context.",
     integrated: true,
+    resolution: "parcel",
+    updateCadence: "irregular",
   },
   {
     id: "nces-edge",
@@ -226,6 +290,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public ArcGIS endpoint",
     notes: "Current GeoSight baseline school dataset.",
     integrated: true,
+    resolution: "school-level",
+    updateCadence: "annual",
   },
   {
     id: "wa-ospi",
@@ -239,6 +305,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public Socrata datasets",
     notes: "Current state-level school accountability enhancement.",
     integrated: true,
+    resolution: "school-level",
+    updateCadence: "annual",
   },
   {
     id: "fcc-broadband",
@@ -253,6 +321,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public endpoints with responsible-use expectations",
     notes: "Current GeoSight broadband availability source for US connectivity context.",
     integrated: true,
+    resolution: "address",
+    updateCadence: "semi-annual",
   },
   {
     id: "opencellid",
@@ -266,6 +336,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Free tiers and open downloads vary",
     notes: "Useful global fallback only when a connectivity proxy is acceptable.",
     integrated: false,
+    resolution: "cell tower",
+    updateCadence: "daily",
   },
   {
     id: "usgs-streamgauges",
@@ -280,6 +352,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache per query window",
     notes: "Current GeoSight hydrology source for nearby stream gauges and discharge context.",
     integrated: true,
+    resolution: "gauge-level",
+    updateCadence: "15 minutes",
   },
   {
     id: "usgs-groundwater",
@@ -293,6 +367,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache per query",
     notes: "Groundwater level and well depth context for subsurface hydrology.",
     integrated: true,
+    resolution: "well-level",
+    updateCadence: "hourly",
   },
   {
     id: "openaq",
@@ -307,6 +383,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API with fair-use expectations",
     notes: "Current GeoSight fine-particle air-quality source when a nearby monitoring station is available.",
     integrated: true,
+    resolution: "station-level",
+    updateCadence: "hourly",
   },
   {
     id: "epa-envirofacts",
@@ -321,6 +399,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache per query window",
     notes: "Current GeoSight contamination-screening source for Superfund and TRI proximity.",
     integrated: true,
+    resolution: "facility-level",
+    updateCadence: "quarterly",
   },
   {
     id: "usgs-epqs",
@@ -334,6 +414,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache per query",
     notes: "Current GeoSight terrain source for US coordinates.",
     integrated: true,
+    resolution: "~10 m",
+    updateCadence: "static",
   },
   {
     id: "opentopodata",
@@ -347,11 +429,13 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public instances vary",
     notes: "Best future global fallback for elevation outside the US.",
     integrated: true,
+    resolution: "~90 m (SRTM)",
+    updateCadence: "static",
   },
   {
     id: "nrcs-ssurgo",
     name: "NRCS Soil Data Access (SSURGO)",
-    domains: ["terrain"],
+    domains: ["terrain", "soil"],
     accessType: "api",
     coverage: ["us"],
     priority: 12,
@@ -360,11 +444,13 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache per query",
     notes: "Soil type, drainage class, depth to water table, and depth to bedrock.",
     integrated: true,
+    resolution: "map unit (~1:24,000)",
+    updateCadence: "annual",
   },
   {
     id: "isric-soilgrids",
     name: "ISRIC SoilGrids",
-    domains: ["terrain"],
+    domains: ["terrain", "soil"],
     accessType: "api",
     coverage: ["global"],
     priority: 15,
@@ -373,6 +459,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public REST API, cache aggressively (7-day revalidation)",
     notes: "Global fallback for non-US soil profiles — provides clay/silt/sand texture, WRB soil class, drainage class, and hydrologic group derived from composition.",
     integrated: true,
+    resolution: "250 m",
+    updateCadence: "static",
   },
   {
     id: "glofas-openmeteo",
@@ -386,6 +474,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Free public API, cache 6 hours",
     notes: "Global flood context for non-US coordinates — peak discharge tier (Low / Moderate / Significant / Major) as FEMA fallback.",
     integrated: true,
+    resolution: "~10 km",
+    updateCadence: "daily",
   },
   {
     id: "usgs-seismic-design",
@@ -399,6 +489,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache per coordinate",
     notes: "Site-specific seismic acceleration and design parameters (SS, S1, PGA) for US infrastructure risk.",
     integrated: true,
+    resolution: "site-specific",
+    updateCadence: "static (code cycle)",
   },
   {
     id: "usgs-catalog-global",
@@ -412,6 +504,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Public API, cache 24 hours",
     notes: "For non-US coordinates: M3+ event count and maximum magnitude in 400 km / 5 yr window → qualitative seismic exposure tier (Very Low → Very High).",
     integrated: true,
+    resolution: "event-level",
+    updateCadence: "minutes",
   },
   {
     id: "open-meteo-historical",
@@ -425,6 +519,38 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Free public usage, cache aggressively",
     notes: "10-year historical climate trends for temperature and precipitation.",
     integrated: true,
+    resolution: "~11 km",
+    updateCadence: "daily (archive)",
+  },
+  {
+    id: "nasa-power",
+    name: "NASA POWER Climatology",
+    domains: ["weather", "terrain"],
+    accessType: "api",
+    coverage: ["global"],
+    priority: 25,
+    freshness: "Monthly climatological averages",
+    reliability: "High for solar irradiance and climate normals",
+    rateLimit: "Public API",
+    notes: "Global solar resource and climate normals.",
+    integrated: true,
+    resolution: "~50 km",
+    updateCadence: "monthly",
+  },
+  {
+    id: "eea-eprtr",
+    name: "EEA E-PRTR Industrial Facilities",
+    domains: ["environmental"],
+    accessType: "api",
+    coverage: ["europe"],
+    priority: 20,
+    freshness: "Annual industrial facility reporting",
+    reliability: "High for European industrial emissions and facility proximity",
+    rateLimit: "Public API",
+    notes: "European contamination screening complement to US EPA Envirofacts.",
+    integrated: true,
+    resolution: "facility-level",
+    updateCadence: "annual",
   },
   {
     id: "cesium-ion-imagery",
@@ -438,6 +564,10 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Free-tier token limits apply",
     notes: "Current GeoSight imagery layer for the globe experience.",
     integrated: true,
+    resolution: "varies (sub-meter urban)",
+    updateCadence: "provider-managed",
+    requiresApiKey: true,
+    apiKeyEnvVar: "NEXT_PUBLIC_CESIUM_ION_TOKEN",
   },
   {
     id: "earth-search-sentinel2",
@@ -451,6 +581,8 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Open catalog access",
     notes: "Best future open remote-sensing catalog for imagery cards.",
     integrated: false,
+    resolution: "10 m",
+    updateCadence: "5 days",
   },
   {
     id: "landsatlook",
@@ -464,6 +596,43 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     rateLimit: "Open access",
     notes: "Good open fallback for satellite-backed analysis.",
     integrated: false,
+    resolution: "30 m",
+    updateCadence: "16 days",
+  },
+
+  // -- Phase 1 global baseline datasets --
+
+  {
+    id: "worldpop",
+    name: "WorldPop Global Population",
+    url: "https://www.worldpop.org",
+    domains: ["population"],
+    accessType: "api",
+    coverage: ["global"],
+    priority: 10,
+    freshness: "Annual population distribution grids",
+    reliability: "High for global population density estimation; accuracy varies in remote areas",
+    rateLimit: "Public API, cache 7 days",
+    notes: "Global population density at 100 m–1 km resolution derived from census data and geospatial covariates.",
+    integrated: false,
+    resolution: "100 m – 1 km",
+    updateCadence: "annual",
+  },
+  {
+    id: "esa-cci-landcover",
+    name: "ESA CCI Global Land Cover",
+    url: "https://land.copernicus.eu",
+    domains: ["land_cover"],
+    accessType: "tile_service",
+    coverage: ["global"],
+    priority: 10,
+    freshness: "Annual satellite-derived land cover classification",
+    reliability: "High for categorical land cover; 300 m pixels may miss fine boundaries",
+    rateLimit: "Open data, cache 30 days",
+    notes: "Authoritative satellite-derived global land cover using UN-LCCS class scheme. Complements OSM-derived land use proxy.",
+    integrated: false,
+    resolution: "300 m",
+    updateCadence: "annual",
   },
 ];
 
@@ -522,6 +691,40 @@ export function resolveSourceRegistryContext(input: {
 
   if (countryCode && AFRICA_CODES.has(countryCode)) {
     scopes.push("africa");
+  }
+
+  if (countryCode && MIDDLE_EAST_CODES.has(countryCode)) {
+    scopes.push("middle-east");
+  }
+
+  if (countryCode === "IN") {
+    scopes.push("south-asia");
+  }
+  if (countryCode && SOUTH_ASIA_CODES.has(countryCode)) {
+    scopes.push("south-asia");
+  }
+
+  if (countryCode && SOUTHEAST_ASIA_CODES.has(countryCode)) {
+    scopes.push("southeast-asia");
+  }
+
+  if (countryCode === "JP") {
+    scopes.push("east-asia");
+  }
+  if (countryCode && EAST_ASIA_CODES.has(countryCode)) {
+    scopes.push("east-asia");
+  }
+
+  if (countryCode && CENTRAL_ASIA_CODES.has(countryCode)) {
+    scopes.push("central-asia");
+  }
+
+  if (countryCode && CARIBBEAN_CODES.has(countryCode)) {
+    scopes.push("caribbean");
+  }
+
+  if (countryCode && OCEANIA_CODES.has(countryCode)) {
+    scopes.push("oceania");
   }
 
   scopes.push("global");
@@ -616,6 +819,9 @@ export function buildSourceRegistryPreview(context: SourceRegistryContext) {
     "broadband",
     "terrain",
     "imagery",
+    "population",
+    "land_cover",
+    "soil",
   ];
 
   return domains.map((domain) => getSourceProviderGuidance(domain, context));

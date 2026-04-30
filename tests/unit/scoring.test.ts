@@ -66,6 +66,10 @@ type GeodataOverrides = {
   weatherForecast?: GeodataResult["weatherForecast"];
   schoolContext?: GeodataResult["schoolContext"] | null;
   landClassification?: GeodataResult["landClassification"];
+  populationDensity?: GeodataResult["populationDensity"];
+  landCoverGlobal?: GeodataResult["landCoverGlobal"];
+  soilProfileExtended?: GeodataResult["soilProfileExtended"];
+  terrainDerivatives?: GeodataResult["terrainDerivatives"];
   sources?: Partial<{
     [K in keyof GeodataResult["sources"]]: Partial<GeodataResult["sources"][K]>;
   }>;
@@ -242,6 +246,10 @@ function buildGeodata(overrides: GeodataOverrides = {}): GeodataResult {
         { label: "Vegetation", value: 35, confidence: 0.9, color: "#0a0" },
         { label: "Water", value: 20, confidence: 0.9, color: "#00f" },
       ] satisfies LandCoverBucket[]),
+    populationDensity: overrides.populationDensity ?? null,
+    landCoverGlobal: overrides.landCoverGlobal ?? null,
+    soilProfileExtended: overrides.soilProfileExtended ?? null,
+    terrainDerivatives: overrides.terrainDerivatives ?? null,
     sources: {
       elevation: { ...baseSources.elevation, ...(overrides.sources?.elevation ?? {}) },
       infrastructure: {
@@ -291,6 +299,9 @@ function buildGeodata(overrides: GeodataOverrides = {}): GeodataResult {
         ...baseSources.weatherAlerts,
         ...(overrides.sources?.weatherAlerts ?? {}),
       },
+      populationDensity: buildSource({ id: "population", label: "Population density" }),
+      landCoverGlobal: buildSource({ id: "land-cover", label: "Land cover" }),
+      terrainDerivatives: buildSource({ id: "terrain-derivs", label: "Terrain derivatives" }),
     },
     coordinates: { lat: 47.6062, lng: -122.3321 },
     sourceNotes: overrides.sourceNotes ?? [],

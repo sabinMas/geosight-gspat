@@ -3,6 +3,7 @@ import {
   CloudSun,
   MapPin,
   Users,
+  UserCheck,
   Home,
   AlertTriangle,
   Droplets,
@@ -12,6 +13,8 @@ import {
   Mountain,
   Satellite,
   ArrowLeft,
+  Layers,
+  Map as MapIcon,
 } from "lucide-react";
 import {
   SOURCE_PROVIDER_REGISTRY,
@@ -35,17 +38,21 @@ const DOMAIN_ORDER: SourceDomain[] = [
   "hydrology",
   "environmental",
   "demographics",
+  "population",
   "housing",
   "schools",
   "broadband",
   "nearby_places",
   "imagery",
+  "soil",
+  "land_cover",
 ];
 
 const DOMAIN_ICONS: Record<SourceDomain, React.ReactNode> = {
   weather: <CloudSun className="h-4 w-4" />,
   nearby_places: <MapPin className="h-4 w-4" />,
   demographics: <Users className="h-4 w-4" />,
+  population: <UserCheck className="h-4 w-4" />,
   housing: <Home className="h-4 w-4" />,
   hazards: <AlertTriangle className="h-4 w-4" />,
   hydrology: <Droplets className="h-4 w-4" />,
@@ -54,6 +61,8 @@ const DOMAIN_ICONS: Record<SourceDomain, React.ReactNode> = {
   broadband: <Wifi className="h-4 w-4" />,
   terrain: <Mountain className="h-4 w-4" />,
   imagery: <Satellite className="h-4 w-4" />,
+  soil: <Layers className="h-4 w-4" />,
+  land_cover: <MapIcon className="h-4 w-4" />,
 };
 
 const ACCESS_TYPE_LABELS: Record<SourceAccessType, string> = {
