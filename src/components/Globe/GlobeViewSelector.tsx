@@ -108,7 +108,7 @@ export function GlobeViewSelector({
         {globeViewOpen ? (
           <div
             id="geosight-map-style-menu"
-            className="glass-panel absolute left-0 top-14 z-10 w-[320px] rounded-3xl p-3"
+            className="absolute left-0 top-14 z-10 w-[320px] rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3 shadow-[var(--shadow-panel)] backdrop-blur-sm"
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>

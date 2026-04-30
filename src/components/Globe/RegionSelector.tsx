@@ -18,8 +18,8 @@ export function RegionSelector({
     [...drawnShapes].reverse().find((shape) => shape.type === "polygon") ?? null;
 
   return (
-    <div className="glass-panel absolute bottom-4 left-4 z-10 max-w-[320px] rounded-3xl p-4 text-sm text-[var(--foreground-soft)]">
-      <div className="text-xs uppercase tracking-[0.24em] text-cyan-200">Selection area</div>
+    <div className="absolute bottom-4 left-4 z-10 max-w-[320px] rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3.5 shadow-[var(--shadow-panel)] backdrop-blur-sm text-sm text-[var(--foreground-soft)]">
+      <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">Selection area</div>
       <div
         className="mt-2 text-base font-semibold text-[var(--foreground)]"
         title={locationTooltip}
@@ -54,8 +54,8 @@ export function RegionSelector({
           </div>
         </div>
       ) : null}
-      <Button variant="secondary" className="mt-4 w-full rounded-2xl" onClick={onReset}>
-        Reset to default region
+      <Button variant="secondary" className="mt-3.5 w-full rounded-full text-xs h-8" onClick={onReset}>
+        Reset region
       </Button>
     </div>
   );
