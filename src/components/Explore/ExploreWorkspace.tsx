@@ -228,6 +228,7 @@ export function ExploreWorkspace() {
   } = state;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [desktopRightPanelOpen, setDesktopRightPanelOpen] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [calloutDismissed, setCalloutDismissed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -2011,30 +2012,52 @@ export function ExploreWorkspace() {
         {/* Left panel — floating on desktop, docked on mobile */}
         <aside
           className={cn(
-            "hidden w-80 shrink-0 flex-col overflow-hidden border-r border-[color:var(--border-soft)]",
+            "hidden flex-col overflow-hidden border-r border-[color:var(--border-soft)]",
             "xl:absolute xl:left-0 xl:top-0 xl:bottom-0 xl:z-30",
             "xl:border-r xl:border-l-0 xl:bg-[var(--background)] xl:shadow-lg",
-            desktopSidebarOpen ? "xl:flex" : "xl:hidden"
+            "xl:transition-all xl:duration-300",
+            desktopSidebarOpen
+              ? "xl:flex xl:w-80"
+              : "xl:flex xl:w-16 xl:items-center"
           )}
           role="region"
           aria-label="Workspace navigation and quick regions"
         >
 
+          {/* Collapse toggle button (desktop only) */}
+          <div className="hidden xl:flex shrink-0 justify-center p-2 border-b border-[color:var(--border-soft)]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+              aria-label="Toggle workspace panel"
+              aria-pressed={desktopSidebarOpen}
+            >
+              <ChevronLeft className={cn("h-4 w-4 transition-transform", !desktopSidebarOpen && "rotate-180")} />
+            </Button>
+          </div>
+
           {/* Init status */}
-          {state.initStatus === "resolving" ? (
+          {state.initStatus === "resolving" && desktopSidebarOpen ? (
             <div className="shrink-0 border-b border-[color:var(--border-soft)] px-3 py-2">
               <p className="text-xs text-[var(--muted-foreground)]">
                 Resolving {state.init.locationQuery}…
               </p>
             </div>
           ) : null}
-          {state.initError ? (
-            <div className="shrink-0 border-b border-[color:var(--danger-border)] bg-[var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger-foreground)]">
+          {state.initError && desktopSidebarOpen ? (
+            <div className="shrink-0 border-b border-[color:var(--danger-border)] bg-[color:var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger-foreground)]">
               {state.initError}
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3" data-demo-id="demo-drawing">
+          {/* Main content — hidden when collapsed */}
+          <div className={cn(
+            "min-h-0 flex-1 overflow-y-auto p-3 space-y-3",
+            !desktopSidebarOpen && "xl:hidden"
+          )} data-demo-id="demo-drawing">
             <WorkspaceToolRail
               shellMode={data.shellMode}
               viewMode={data.viewMode}
@@ -2078,9 +2101,9 @@ export function ExploreWorkspace() {
             <div className="min-h-0" data-walkthrough="lens-selector">{sidebarElement}</div>
           </div>
 
-          {/* AddViewTray — guided mode */}
-          {data.shellMode !== "board" ? (
-            <div className="shrink-0 border-t border-[color:var(--border-soft)]">
+          {/* AddViewTray — guided mode, hidden when sidebar collapsed */}
+          {data.shellMode !== "board" && desktopSidebarOpen ? (
+            <div className="shrink-0 border-t border-[color:var(--border-soft)] hidden xl:block">
               <AddViewTray
                 cards={data.suggestedCards}
                 pinnedCardIds={data.pinnedCardIds}
@@ -2347,15 +2370,34 @@ export function ExploreWorkspace() {
             tabIndex={-1}
             className={cn(
               "hidden flex-col border-t border-[color:var(--border-soft)] lg:flex",
-              "xl:absolute xl:right-0 xl:top-0 xl:bottom-0 xl:w-[380px] xl:border-t-0 xl:border-l xl:overflow-y-auto",
-              "xl:bg-[var(--background)] xl:shadow-lg xl:z-20"
+              "xl:absolute xl:right-0 xl:top-0 xl:bottom-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
+              "xl:bg-[var(--background)] xl:shadow-lg xl:z-20",
+              "xl:transition-all xl:duration-300",
+              desktopRightPanelOpen
+                ? "xl:w-[380px]"
+                : "xl:w-16 xl:items-center"
             )}
             role="region"
             aria-label="Analysis cards and workspace panels"
             data-demo-id="demo-panel"
           >
+            {/* Collapse toggle button (desktop only) */}
+            <div className="hidden xl:flex shrink-0 justify-center p-2 border-b border-[color:var(--border-soft)]">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                onClick={() => setDesktopRightPanelOpen(!desktopRightPanelOpen)}
+                aria-label="Toggle evidence panel"
+                aria-pressed={desktopRightPanelOpen}
+              >
+                <ChevronLeft className={cn("h-4 w-4 transition-transform", desktopRightPanelOpen && "rotate-180")} />
+              </Button>
+            </div>
+
             <CardDisplayProvider value={{ defaultCollapsed: true }}>
-              {rightPanelContent}
+              {desktopRightPanelOpen && rightPanelContent}
             </CardDisplayProvider>
           </aside>
         ) : null}
