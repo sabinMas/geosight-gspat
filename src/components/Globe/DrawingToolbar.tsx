@@ -136,7 +136,7 @@ export function DrawingToolbar({
   const nonMarkers = drawnShapes.filter((s) => s.type !== "marker");
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col items-center gap-2">
       {TOOLS.map(({ id, label, Icon }) => {
         const isActive = drawingTool === id;
         return (

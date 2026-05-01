@@ -2244,9 +2244,10 @@ export function ExploreWorkspace() {
 
           <div className={cn(
             "absolute bottom-4 z-20 hidden lg:block transition-all duration-300 ease-out",
-            "left-1/2 -translate-x-1/2",
+            desktopSidebarOpen ? "xl:left-[21rem]" : "xl:left-16",
+            "left-4",
           )}>
-            <div className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-2.5 shadow-[var(--shadow-panel)] backdrop-blur-lg flex items-center gap-2">
+            <div className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-2.5 py-3 shadow-[var(--shadow-panel)] backdrop-blur-lg flex flex-col items-center gap-2">
               <DrawingToolbar
                 drawingTool={state.drawingTool}
                 onSelectTool={state.setDrawingTool}
