@@ -81,7 +81,7 @@ export function GlobeViewSelector({
   }, [globeViewOpen]);
 
   return (
-    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ${sidebarOpen ? "xl:left-[21rem] xl:opacity-0 xl:pointer-events-none" : "left-4 opacity-100 pointer-events-auto"}`}>
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${sidebarOpen ? "xl:left-[21rem]" : "left-4"}`}>
       {globeViewOpen ? (
         <button
           type="button"
@@ -95,7 +95,7 @@ export function GlobeViewSelector({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
           aria-expanded={globeViewOpen}
           aria-controls="geosight-map-style-menu"
           onClick={() => setGlobeViewOpen((current) => !current)}

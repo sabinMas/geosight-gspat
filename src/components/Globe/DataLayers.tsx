@@ -311,7 +311,7 @@ export function DataLayers({
   };
 
   return (
-    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ${rightPanelOpen ? "xl:right-[calc(380px+1rem)] xl:opacity-0 xl:pointer-events-none" : "right-4 opacity-100 pointer-events-auto"}`}>
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "right-4"}`}>
       <div className="relative">
         {open ? (
           <div
@@ -791,7 +791,7 @@ export function DataLayers({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
           aria-expanded={open}
           aria-label={open ? "Close map layers panel" : "Open map layers panel"}
           onClick={() => setOpen((current) => !current)}
