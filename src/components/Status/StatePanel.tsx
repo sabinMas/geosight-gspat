@@ -117,7 +117,7 @@ export function StatePanel({
   return (
     <div
       className={cn(
-        "rounded-[1.5rem] border p-4 shadow-[var(--shadow-soft)]",
+        "rounded-[1.75rem] border p-4 shadow-[var(--shadow-soft)] backdrop-blur-sm animate-in fade-in slide-in-from-top-1 duration-200",
         config.panel,
         compact ? "space-y-2" : "space-y-3",
         className,

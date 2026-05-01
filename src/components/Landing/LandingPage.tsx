@@ -166,7 +166,7 @@ function LensGrid({
             type="button"
             onClick={() => onSelect(lens.id)}
             aria-pressed={selected}
-            className="grid text-left transition duration-150 hover:-translate-y-px"
+            className="grid text-left transition-all duration-200 hover:-translate-y-1 hover:scale-105"
             style={{
               gridTemplateColumns: "36px 1fr",
               gridTemplateRows: "auto auto",
@@ -175,7 +175,10 @@ function LensGrid({
               background: "var(--surface-panel)",
               border: `1px solid ${selected ? color : "var(--border-soft)"}`,
               borderRadius: "12px",
-              boxShadow: selected ? `0 0 0 3px color-mix(in srgb, ${color} 15%, transparent)` : undefined,
+              boxShadow: selected
+                ? `0 0 0 3px color-mix(in srgb, ${color} 15%, transparent)`
+                : "0 4px 12px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.2s ease-out",
             }}
           >
             <span
