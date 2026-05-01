@@ -68,7 +68,7 @@ export function WorkspaceCardShell({
       <CardHeader
         className={cn(
           "space-y-3",
-          collapsible && "cursor-pointer select-none",
+          collapsible && "cursor-pointer select-none transition-colors hover:bg-[color:var(--surface-soft)] hover:bg-opacity-50 rounded-t-[1.75rem]",
         )}
         onClick={collapsible ? () => setCollapsed((v) => !v) : undefined}
       >

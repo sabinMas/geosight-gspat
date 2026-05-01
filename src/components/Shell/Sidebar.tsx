@@ -82,7 +82,7 @@ export function Sidebar({
                     onClick={() => onSelectRegion(region)}
                     aria-pressed={isSelected}
                     aria-label={`Select quick region ${region.name}`}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 hover:bg-[color:var(--surface-soft)] hover:bg-opacity-50"
                     style={{
                       background: isSelected ? "var(--surface-soft)" : "transparent",
                       color: "var(--foreground)",
