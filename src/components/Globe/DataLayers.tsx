@@ -311,7 +311,7 @@ export function DataLayers({
   };
 
   return (
-    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "right-4 xl:opacity-0 xl:pointer-events-none"}`}>
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16"}`}>
       <div className="relative">
         {open ? (
           <div

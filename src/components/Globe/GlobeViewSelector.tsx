@@ -81,7 +81,7 @@ export function GlobeViewSelector({
   }, [globeViewOpen]);
 
   return (
-    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${sidebarOpen ? "xl:left-[21rem]" : "left-4 xl:opacity-0 xl:pointer-events-none"}`}>
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${sidebarOpen ? "xl:left-[21rem]" : "xl:left-16"}`}>
       {globeViewOpen ? (
         <button
           type="button"
