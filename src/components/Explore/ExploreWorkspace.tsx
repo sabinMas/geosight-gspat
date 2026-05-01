@@ -77,6 +77,7 @@ import { toLensParam } from "@/lib/lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { GlobeErrorBoundary } from "@/components/Globe/GlobeErrorBoundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
+import { useRightPanel } from "@/context/RightPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
 import {
@@ -174,6 +175,7 @@ export function ExploreWorkspace() {
   const router = useRouter();
   const init = useExploreInit();
   const { setGeoContext, setUiContext, primeAgent, setPanelOpen: setAgentPanelOpen, registerOpenChat } = useAgentPanel();
+  const { setRightPanelOpen } = useRightPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
   const inExplorer = isExplorerMode(state.appMode);
@@ -268,6 +270,10 @@ export function ExploreWorkspace() {
   } | null>(null);
 
   const captureOverlayVisible = captureMode || captureOverlayArmed;
+
+  useEffect(() => {
+    setRightPanelOpen(desktopRightPanelOpen);
+  }, [desktopRightPanelOpen, setRightPanelOpen]);
 
   useEffect(() => {
     if (!captureOverlayVisible) {

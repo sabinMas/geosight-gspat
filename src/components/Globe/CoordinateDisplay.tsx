@@ -8,6 +8,7 @@ import {
   Viewer as CesiumViewer,
 } from "cesium";
 import { toMgrsString, toUtmCoordinate } from "@/lib/geospatial";
+import { useRightPanel } from "@/context/RightPanelContext";
 import type { Coordinates } from "@/types";
 
 interface CoordinateDisplayProps {
@@ -49,6 +50,7 @@ export function CoordinateDisplay({
   viewerRef,
   viewerReady,
 }: CoordinateDisplayProps) {
+  const { rightPanelOpen } = useRightPanel();
   const [cursorCoordinates, setCursorCoordinates] = useState<Coordinates | null>(null);
   const [cameraAltitude, setCameraAltitude] = useState<number | null>(null);
 
@@ -109,7 +111,7 @@ export function CoordinateDisplay({
   const zoomLevel = getApproxZoomLevel(cameraAltitude);
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)]">
+    <div className={`pointer-events-${rightPanelOpen ? "none" : "auto"} absolute top-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16"} right-4 ${rightPanelOpen ? "opacity-0" : "opacity-100"}`}>
       <div>
         WGS84{" "}
         {cursorCoordinates

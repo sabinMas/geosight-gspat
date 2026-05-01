@@ -4,6 +4,7 @@ import Script from "next/script";
 import { WebVitalsReporter } from "@/components/App/WebVitalsReporter";
 import AgentPanel from "@/components/agent-panel/AgentPanel";
 import { ThemeProvider } from "@/components/Theme/ThemeProvider";
+import { RightPanelProvider } from "@/context/RightPanelContext";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { validateAgentEnv } from "@/lib/agents/agent-config";
 import "cesium/Build/Cesium/Widgets/widgets.css";
@@ -73,8 +74,10 @@ export default function RootLayout({
         </a>
         <ThemeProvider>
           <UserPreferencesProvider>
-            <WebVitalsReporter />
-            <AgentPanel>{children}</AgentPanel>
+            <RightPanelProvider>
+              <WebVitalsReporter />
+              <AgentPanel>{children}</AgentPanel>
+            </RightPanelProvider>
           </UserPreferencesProvider>
         </ThemeProvider>
       </body>

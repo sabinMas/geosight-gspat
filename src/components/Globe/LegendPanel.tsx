@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { ImportedLayer } from "@/lib/file-import";
 import { normalizeWmsEndpoint, type WmsLayerDefinition } from "@/lib/wms-layers";
+import { useRightPanel } from "@/context/RightPanelContext";
 
 type OverlayLegendItem = {
   id: string;
@@ -95,6 +96,7 @@ export function LegendPanel({
   wmsLayers = [],
   overlayItems,
 }: LegendPanelProps) {
+  const { rightPanelOpen } = useRightPanel();
   const [open, setOpen] = useState(false);
   const visibleWmsLayers = wmsLayers.filter((layer) => layer.visible ?? true);
   const visibleImportedLayers = importedLayers.filter((layer) => layer.visible);
@@ -104,7 +106,7 @@ export function LegendPanel({
     overlayItems.some((item) => item.active);
 
   return (
-    <div className="pointer-events-auto absolute bottom-12 left-4 z-20 flex flex-col items-start gap-2">
+    <div className={`pointer-events-${rightPanelOpen ? "none" : "auto"} absolute top-20 z-40 hidden lg:flex flex-col items-end gap-2 transition-all duration-300 ease-out ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16"} right-4 ${rightPanelOpen ? "opacity-0" : "opacity-100"}`}>
       {open ? (
         <section
           className="glass-panel max-h-[300px] w-[320px] overflow-y-auto rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]"
