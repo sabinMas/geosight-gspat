@@ -42,7 +42,6 @@ export function GlobeViewSelector({
   sidebarOpen = false,
   hidden = false,
 }: GlobeViewSelectorProps) {
-  if (hidden) return null;
   const [globeViewOpen, setGlobeViewOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -82,6 +81,8 @@ export function GlobeViewSelector({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [globeViewOpen]);
+
+  if (hidden) return null;
 
   return (
     <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ${sidebarOpen ? "xl:left-[21rem]" : "left-4"}`}>

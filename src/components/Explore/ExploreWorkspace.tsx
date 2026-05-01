@@ -1983,17 +1983,17 @@ export function ExploreWorkspace() {
         >
 
           {/* Collapse toggle button (desktop only) */}
-          <div className="hidden xl:flex shrink-0 justify-center p-2 border-b border-[color:var(--border-soft)]">
+          <div className="hidden xl:flex shrink-0 justify-center px-2 py-2 border-b border-[color:var(--border-soft)]">
             <Button
               type="button"
               variant="ghost"
-              size="icon"
-              className="rounded-full"
+              className={cn("rounded-full gap-1.5 transition-all", desktopSidebarOpen ? "px-3" : "px-2")}
               onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
-              aria-label="Toggle workspace panel"
+              aria-label={desktopSidebarOpen ? "Collapse workspace panel" : "Expand workspace panel"}
               aria-pressed={desktopSidebarOpen}
             >
-              <ChevronLeft className={cn("h-4 w-4 transition-transform", !desktopSidebarOpen && "rotate-180")} />
+              <ChevronLeft className={cn("h-4 w-4 transition-transform shrink-0", !desktopSidebarOpen && "rotate-180")} />
+              {desktopSidebarOpen && <span className="text-xs font-medium">Collapse</span>}
             </Button>
           </div>
 
@@ -2392,17 +2392,17 @@ export function ExploreWorkspace() {
             data-demo-id="demo-panel"
           >
             {/* Collapse toggle button (desktop only) */}
-            <div className="hidden xl:flex shrink-0 justify-center p-2 border-b border-[color:var(--border-soft)]">
+            <div className="hidden xl:flex shrink-0 justify-center px-2 py-2 border-b border-[color:var(--border-soft)]">
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
-                className="rounded-full"
+                className={cn("rounded-full gap-1.5 transition-all", desktopRightPanelOpen ? "px-3" : "px-2")}
                 onClick={() => setDesktopRightPanelOpen(!desktopRightPanelOpen)}
-                aria-label="Toggle evidence panel"
+                aria-label={desktopRightPanelOpen ? "Collapse evidence panel" : "Expand evidence panel"}
                 aria-pressed={desktopRightPanelOpen}
               >
-                <ChevronLeft className={cn("h-4 w-4 transition-transform", desktopRightPanelOpen && "rotate-180")} />
+                <ChevronLeft className={cn("h-4 w-4 transition-transform shrink-0", desktopRightPanelOpen && "rotate-180")} />
+                {desktopRightPanelOpen && <span className="text-xs font-medium">Collapse</span>}
               </Button>
             </div>
 
