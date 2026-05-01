@@ -1974,7 +1974,7 @@ export function ExploreWorkspace() {
             "hidden flex-col overflow-hidden border-r border-[color:var(--border-soft)]",
             "xl:absolute xl:left-0 xl:top-0 xl:bottom-0 xl:z-30",
             "xl:border-r xl:border-l-0 xl:bg-[var(--background)] xl:shadow-lg",
-            "xl:transition-all xl:duration-300",
+            "xl:transition-all xl:duration-300 xl:ease-out",
             desktopSidebarOpen
               ? "xl:flex xl:w-80"
               : "xl:flex xl:w-16 xl:items-center"
@@ -2259,7 +2259,7 @@ export function ExploreWorkspace() {
           ) : null}
 
           <div className={cn(
-            "absolute bottom-[76px] z-20 hidden lg:block transition-all duration-300",
+            "absolute bottom-[76px] z-20 hidden lg:block transition-all duration-300 ease-out",
             // Left inset: account for left sidebar width
             desktopSidebarOpen ? "xl:left-[21rem]" : "xl:left-[5rem]",
             "left-4",
@@ -2323,6 +2323,7 @@ export function ExploreWorkspace() {
               "absolute bottom-4 z-20 hidden lg:flex items-center gap-3",
               "left-1/2 -translate-x-1/2",
               "rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-2.5 shadow-[var(--shadow-panel)] backdrop-blur-lg",
+              "animate-in fade-in slide-in-from-bottom-2 duration-300",
             )}>
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-[var(--foreground)]">
@@ -2395,7 +2396,7 @@ export function ExploreWorkspace() {
               "hidden flex-col border-t border-[color:var(--border-soft)] lg:flex",
               "xl:absolute xl:right-0 xl:top-0 xl:bottom-0 xl:border-t-0 xl:border-l xl:overflow-y-auto",
               "xl:bg-[var(--background)] xl:shadow-lg xl:z-20",
-              "xl:transition-all xl:duration-300",
+              "xl:transition-all xl:duration-300 xl:ease-out",
               desktopRightPanelOpen
                 ? "xl:w-[380px]"
                 : "xl:w-16 xl:items-center"
