@@ -9,6 +9,7 @@ import {
 } from "cesium";
 import { toMgrsString, toUtmCoordinate } from "@/lib/geospatial";
 import { useRightPanel } from "@/context/RightPanelContext";
+import { cn } from "@/lib/utils";
 import type { Coordinates } from "@/types";
 
 interface CoordinateDisplayProps {
@@ -111,7 +112,12 @@ export function CoordinateDisplay({
   const zoomLevel = getApproxZoomLevel(cameraAltitude);
 
   return (
-    <div className={`pointer-events-${rightPanelOpen ? "none" : "auto"} absolute top-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16"} right-4 ${rightPanelOpen ? "opacity-0" : "opacity-100"}`}>
+    <div className={cn(
+      "absolute top-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] right-4",
+      rightPanelOpen
+        ? "xl:right-[calc(380px+1rem)] opacity-0 pointer-events-none"
+        : "xl:right-16 opacity-100 pointer-events-auto"
+    )}>
       <div>
         WGS84{" "}
         {cursorCoordinates
