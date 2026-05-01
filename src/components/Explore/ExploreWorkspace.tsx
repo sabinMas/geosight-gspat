@@ -2243,17 +2243,10 @@ export function ExploreWorkspace() {
           ) : null}
 
           <div className={cn(
-            "absolute bottom-[76px] z-20 hidden lg:block transition-all duration-300 ease-out",
-            // Left inset: account for left sidebar width
-            desktopSidebarOpen ? "xl:left-[21rem]" : "xl:left-[5rem]",
-            "left-4",
-            // Right inset: account for right panel width
-            rightPanelOpen
-              ? desktopRightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-[5rem]"
-              : "xl:right-4",
-            "right-4",
+            "absolute bottom-4 z-20 hidden lg:block transition-all duration-300 ease-out",
+            "left-1/2 -translate-x-1/2",
           )}>
-            <div className="rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] p-3 shadow-[var(--shadow-panel)] backdrop-blur-md">
+            <div className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-2.5 shadow-[var(--shadow-panel)] backdrop-blur-lg flex items-center gap-2">
               <DrawingToolbar
                 drawingTool={state.drawingTool}
                 onSelectTool={state.setDrawingTool}
