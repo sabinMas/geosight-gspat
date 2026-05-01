@@ -2243,7 +2243,7 @@ export function ExploreWorkspace() {
           ) : null}
 
           <div className={cn(
-            "absolute bottom-4 z-20 hidden lg:block transition-all duration-300 ease-out",
+            "absolute top-1/2 -translate-y-1/2 z-20 hidden lg:block transition-all duration-300 ease-out",
             desktopSidebarOpen ? "xl:left-[21rem]" : "xl:left-16",
             "left-4",
           )}>
