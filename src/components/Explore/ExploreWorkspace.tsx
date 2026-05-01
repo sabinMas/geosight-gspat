@@ -63,7 +63,6 @@ import { DrawingToolbar } from "@/components/Globe/DrawingToolbar";
 import { FeatureInspectorPanel } from "@/components/Globe/FeatureInspectorPanel";
 import { GoToCoordinateDialog } from "@/components/Globe/GoToCoordinateDialog";
 import { GlobeViewSelector } from "@/components/Globe/GlobeViewSelector";
-import { RegionSelector } from "@/components/Globe/RegionSelector";
 import { ResultsModeToggle } from "@/components/Results/ResultsModeToggle";
 import { KeyboardShortcuts } from "@/components/Shell/KeyboardShortcuts";
 import { ModeSwitcher } from "@/components/Shell/ModeSwitcher";
@@ -2226,23 +2225,6 @@ export function ExploreWorkspace() {
             onMoveCustomLayer={moveCustomLayer}
           />
           </div>
-          {state.selectedRegion.polygon.length > 0 ? (
-            <div className="hidden lg:contents">
-            <RegionSelector
-              region={state.selectedRegion}
-              locationTooltip={state.selectedLocationName}
-              drawnShapes={state.drawnShapes}
-              onReset={() => {
-                state.selectPoint(
-                  state.selectedPoint,
-                  state.selectedLocationName,
-                  state.selectedLocationDisplayName,
-                );
-                data.handleLocationSelection();
-              }}
-            />
-            </div>
-          ) : null}
           {captureOverlayVisible ? (
             <TopographicCaptureOverlay
               locationName={state.selectedLocationName}
