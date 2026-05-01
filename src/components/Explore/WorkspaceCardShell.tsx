@@ -85,9 +85,9 @@ export function WorkspaceCardShell({
               }}
             >
               {collapsed ? (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 transition-transform duration-200" />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4 transition-transform duration-200" />
               )}
             </button>
           ) : null}
@@ -100,7 +100,7 @@ export function WorkspaceCardShell({
       </CardHeader>
 
       {!collapsed ? (
-        <CardContent className="min-w-0 space-y-4">
+        <CardContent className="min-w-0 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
           {loading ? (
             <div className="space-y-3 py-1">
               {loadingTitle || loadingDescription ? (
