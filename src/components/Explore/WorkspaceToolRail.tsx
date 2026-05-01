@@ -86,7 +86,7 @@ export function WorkspaceToolRail({
 }: WorkspaceToolRailProps) {
   return (
     <section
-      className="space-y-4 rounded-[1.6rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]"
+      className="space-y-4 rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg"
       role="region"
       aria-label="Analyst workbench tools"
     >

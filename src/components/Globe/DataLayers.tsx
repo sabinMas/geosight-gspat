@@ -313,7 +313,7 @@ export function DataLayers({
       <div className="relative">
         {open ? (
           <div
-            className="absolute right-0 top-14 z-10 max-h-[70vh] w-[320px] overflow-y-auto rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-3 shadow-[var(--shadow-panel)] backdrop-blur-lg scrollbar-thin"
+            className="absolute right-0 top-14 z-10 max-h-[70vh] w-[320px] overflow-y-auto rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg scrollbar-thin"
             role="region"
             aria-label="Map layer controls"
           >
