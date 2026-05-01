@@ -2197,7 +2197,6 @@ export function ExploreWorkspace() {
             onChange={state.setGlobeViewMode}
             subsurfaceRenderMode={state.subsurfaceRenderMode}
             sidebarOpen={desktopSidebarOpen}
-            hidden={desktopSidebarOpen}
           />
           <DataLayers
             layers={state.layers}
@@ -2205,7 +2204,6 @@ export function ExploreWorkspace() {
             open={layersPanelOpen}
             onOpenChange={setLayersPanelOpen}
             rightPanelOpen={desktopRightPanelOpen}
-            hidden={desktopRightPanelOpen}
             importedLayers={state.importedLayers}
             activeImportedLayerId={state.activeImportedLayerId}
             onToggleImportedLayerVisibility={state.toggleImportedLayerVisibility}

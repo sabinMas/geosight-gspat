@@ -20,7 +20,6 @@ interface GlobeViewSelectorProps {
   onChange: (mode: GlobeViewMode) => void;
   subsurfaceRenderMode: SubsurfaceRenderMode;
   sidebarOpen?: boolean;
-  hidden?: boolean;
 }
 
 function isTypingContext() {
@@ -40,7 +39,6 @@ export function GlobeViewSelector({
   onChange,
   subsurfaceRenderMode,
   sidebarOpen = false,
-  hidden = false,
 }: GlobeViewSelectorProps) {
   const [globeViewOpen, setGlobeViewOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -82,10 +80,8 @@ export function GlobeViewSelector({
     };
   }, [globeViewOpen]);
 
-  if (hidden) return null;
-
   return (
-    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ${sidebarOpen ? "xl:left-[21rem]" : "left-4"}`}>
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ${sidebarOpen ? "xl:left-[21rem] xl:opacity-0 xl:pointer-events-none" : "left-4 opacity-100 pointer-events-auto"}`}>
       {globeViewOpen ? (
         <button
           type="button"

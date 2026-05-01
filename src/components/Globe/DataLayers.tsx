@@ -149,7 +149,6 @@ interface DataLayersProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   rightPanelOpen?: boolean;
-  hidden?: boolean;
   importedLayers?: ImportedLayer[];
   activeImportedLayerId?: string | null;
   onToggleImportedLayerVisibility?: (id: string) => void;
@@ -179,7 +178,6 @@ export function DataLayers({
   open: controlledOpen,
   onOpenChange,
   rightPanelOpen = false,
-  hidden = false,
   importedLayers = [],
   activeImportedLayerId = null,
   onToggleImportedLayerVisibility,
@@ -312,10 +310,8 @@ export function DataLayers({
     }
   };
 
-  if (hidden) return null;
-
   return (
-    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "right-4"}`}>
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ${rightPanelOpen ? "xl:right-[calc(380px+1rem)] xl:opacity-0 xl:pointer-events-none" : "right-4 opacity-100 pointer-events-auto"}`}>
       <div className="relative">
         {open ? (
           <div
