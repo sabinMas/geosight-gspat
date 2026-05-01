@@ -2295,6 +2295,23 @@ export function ExploreWorkspace() {
             </div>
           ) : null}
 
+          {/* Cursor coordinates — left of location card */}
+          {state.selectedPoint && (
+            <div className="absolute bottom-4 left-4 z-20 hidden lg:flex items-center gap-2 rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-2.5 shadow-[var(--shadow-panel)] backdrop-blur-lg text-xs text-[var(--muted-foreground)] tabular-nums">
+              <span>
+                {Math.abs(state.selectedPoint.lat).toFixed(4)}°{state.selectedPoint.lat >= 0 ? "N" : "S"}
+              </span>
+              <span>
+                {Math.abs(state.selectedPoint.lng).toFixed(4)}°{state.selectedPoint.lng >= 0 ? "E" : "W"}
+              </span>
+              {data.geodata?.elevationMeters != null ? (
+                <span className="ml-2 border-l border-[color:var(--border-soft)] pl-2">
+                  {Math.round(data.geodata.elevationMeters * 3.28084).toLocaleString()} ft
+                </span>
+              ) : null}
+            </div>
+          )}
+
           {/* Floating location footer card */}
           {(state.locationReady || data.loading) ? (
             <div className={cn(
@@ -2307,17 +2324,6 @@ export function ExploreWorkspace() {
                 <div className="truncate text-sm font-semibold text-[var(--foreground)]">
                   {data.loading && !state.selectedLocationName ? "Analyzing…" : (state.selectedLocationDisplayName ?? state.selectedLocationName)}
                 </div>
-                {state.selectedPoint ? (
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-[var(--muted-foreground)] tabular-nums">
-                    <span>
-                      {Math.abs(state.selectedPoint.lat).toFixed(2)}°{state.selectedPoint.lat >= 0 ? "N" : "S"}{" "}
-                      {Math.abs(state.selectedPoint.lng).toFixed(2)}°{state.selectedPoint.lng >= 0 ? "E" : "W"}
-                    </span>
-                    {data.geodata?.elevationMeters != null ? (
-                      <span>Elevation {Math.round(data.geodata.elevationMeters * 3.28084).toLocaleString()} ft</span>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
               <div className="flex shrink-0 items-center gap-2 border-l border-[color:var(--border-soft)] pl-3">
                 <Button

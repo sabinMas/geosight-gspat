@@ -43,7 +43,7 @@ function AgentPanelDrawer() {
       <div
         id="geosight-agent-panel"
         className={cn(
-          "fixed bottom-[9rem] right-4 z-40 w-[420px] max-w-[calc(100vw-2rem)] transform-gpu transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6",
+          "fixed bottom-4 right-4 z-40 w-[420px] max-w-[calc(100vw-2rem)] transform-gpu transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6",
           panelOpen
             ? "translate-y-0 opacity-100"
             : "pointer-events-none translate-y-4 opacity-0",
@@ -87,7 +87,7 @@ function AgentPanelDrawer() {
           type="button"
           variant="secondary"
           className={cn(
-            "fixed bottom-20 right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
+            "fixed bottom-96 right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
             panelOpen ? "opacity-100" : "opacity-100",
           )}
           onClick={() => {
