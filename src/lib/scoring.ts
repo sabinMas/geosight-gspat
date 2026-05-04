@@ -2,6 +2,8 @@ import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { clamp } from "@/lib/utils";
 import {
+  DroughtIndicesResult,
+  FloodHazardResult,
   GdacsAlertSummary,
   GeodataResult,
   GlobalLandCoverResult,
@@ -11,6 +13,7 @@ import {
   LandCoverBucket,
   MissionProfile,
   ScoringFactor,
+  SeismicHazardResult,
   SiteFactorScore,
   SiteScore,
 } from "@/types";
@@ -638,6 +641,113 @@ function scoreGlobalLandCover(landCover: GlobalLandCoverResult | null, context: 
   }
 }
 
+function scoreFloodHazard(result: FloodHazardResult | null, context: string = "general"): number {
+  if (result === null) {
+    return 50;
+  }
+
+  const prob = result.probabilityPercent;
+  if (prob === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "insurance":
+      // Insurance context: higher flood probability → lower score (more risk)
+      if (prob > 50) return 25;
+      if (prob > 25) return 40;
+      if (prob > 10) return 55;
+      return 80;
+
+    case "development":
+      // Development context: balance cost/risk
+      if (prob > 50) return 35;
+      if (prob > 25) return 50;
+      if (prob > 10) return 65;
+      return 85;
+
+    default:
+      // General context: neutral assessment
+      if (prob > 50) return 30;
+      if (prob > 25) return 45;
+      if (prob > 10) return 60;
+      return 75;
+  }
+}
+
+function scoreDroughtIndices(result: DroughtIndicesResult | null, context: string = "general"): number {
+  if (result === null) {
+    return 50;
+  }
+
+  const spi12 = result.spi12Month;
+  if (spi12 === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "agricultural":
+      // Agricultural context: negative SPI (drought) is very bad
+      if (spi12 < -2) return 20;
+      if (spi12 < -1.5) return 35;
+      if (spi12 < -1) return 50;
+      if (spi12 < 0) return 65;
+      if (spi12 > 2) return 40; // Excess moisture can be problematic
+      return 75;
+
+    case "water_security":
+      // Water security context: drought reduces water availability
+      if (spi12 < -2) return 25;
+      if (spi12 < -1.5) return 40;
+      if (spi12 < -1) return 55;
+      if (spi12 < 0) return 70;
+      return 80;
+
+    default:
+      // General context
+      if (spi12 < -2) return 30;
+      if (spi12 < -1.5) return 45;
+      if (spi12 < -1) return 60;
+      if (spi12 < 0) return 70;
+      return 75;
+  }
+}
+
+function scoreSeismicHazard(result: SeismicHazardResult | null, context: string = "general"): number {
+  if (result === null) {
+    return 50;
+  }
+
+  const pga = result.pgaG;
+  if (pga === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "engineering":
+      // Engineering context: higher PGA requires stronger design
+      if (pga > 0.8) return 30;
+      if (pga > 0.5) return 45;
+      if (pga > 0.3) return 60;
+      if (pga > 0.1) return 75;
+      return 85;
+
+    case "insurance":
+      // Insurance context: seismic hazard affects premiums
+      if (pga > 0.6) return 35;
+      if (pga > 0.4) return 50;
+      if (pga > 0.2) return 65;
+      return 80;
+
+    default:
+      // General context
+      if (pga > 0.6) return 40;
+      if (pga > 0.4) return 55;
+      if (pga > 0.2) return 70;
+      return 80;
+  }
+}
+
 function scoreCustomMetric(
   geodata: GeodataResult,
   metric: string,
@@ -740,6 +850,21 @@ function scoreCustomMetric(
     case "landCoverGlobal":
       return scoreGlobalLandCover(
         geodata.landCoverGlobal ?? null,
+        String(params.context ?? "general"),
+      );
+    case "floodHazard":
+      return scoreFloodHazard(
+        geodata.floodHazard ?? null,
+        String(params.context ?? "general"),
+      );
+    case "droughtIndices":
+      return scoreDroughtIndices(
+        geodata.droughtIndices ?? null,
+        String(params.context ?? "general"),
+      );
+    case "seismicHazard":
+      return scoreSeismicHazard(
+        geodata.seismicHazard ?? null,
         String(params.context ?? "general"),
       );
     default:
@@ -908,6 +1033,18 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
         return geodata.landCoverGlobal
           ? `Dominant cover: ${geodata.landCoverGlobal.dominantClass} (class code ${geodata.landCoverGlobal.dominantClassCode}, 300m resolution, 2020 reference year).`
           : "Global land cover unavailable.";
+      case "floodHazard":
+        return geodata.floodHazard && geodata.floodHazard.probabilityPercent !== null
+          ? `Flood probability ${geodata.floodHazard.probabilityPercent.toFixed(1)}% (${geodata.floodHazard.returnPeriodYears ?? "unknown"}-year return period, 1km resolution).`
+          : "Flood hazard data unavailable.";
+      case "droughtIndices":
+        return geodata.droughtIndices
+          ? `SPI-12 ${(geodata.droughtIndices.spi12Month ?? 0).toFixed(2)}, precipitation ${(geodata.droughtIndices.precipitationMm ?? 0).toFixed(0)} mm (5km resolution, 2024 reference).`
+          : "Drought indices unavailable.";
+      case "seismicHazard":
+        return geodata.seismicHazard && geodata.seismicHazard.pgaG !== null
+          ? `PGA ${geodata.seismicHazard.pgaG.toFixed(2)} g (475-year return period, 1km resolution).`
+          : "Seismic hazard data unavailable.";
       default:
         return factor.description;
     }
@@ -1106,6 +1243,33 @@ function buildFactorEvidence(factor: ScoringFactor): FactorEvidenceResult {
             "This factor is scored from ESA CCI satellite-derived global land cover classification at 300m resolution, using the UN-LCCS standard scheme for consistent global land-use classification.",
           sourceIds: ["esa-cci-landcover"],
           sourceLastUpdated: "2020",
+        };
+      case "floodHazard":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from Global Flood Monitoring System (GFMS) probabilistic flood hazard maps at 1km resolution, derived from satellite rainfall and hydrologic modeling.",
+          sourceIds: ["gfms"],
+          sourceLastUpdated: "2023",
+        };
+      case "droughtIndices":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from CHIRPS monthly rainfall data and computed Standard Precipitation Index (SPI) at 5km resolution, providing drought assessment on 3-month and 12-month timescales.",
+          sourceIds: ["chirps-spi"],
+          sourceLastUpdated: "2024",
+        };
+      case "seismicHazard":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from Global Earthquake Model (GEM) OpenQuake probabilistic seismic hazard maps at 1km resolution, using peak ground acceleration (PGA) for a 475-year return period.",
+          sourceIds: ["gem-shakemap"],
+          sourceLastUpdated: "2023",
         };
       default:
         return {

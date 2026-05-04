@@ -634,6 +634,59 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     resolution: "300 m",
     updateCadence: "annual",
   },
+
+  // -- Phase 2 global hazard layers --
+
+  {
+    id: "gfms",
+    name: "Global Flood Monitoring System (GFMS)",
+    url: "https://www.globalflooding.spe.org",
+    domains: ["hazards"],
+    accessType: "api",
+    coverage: ["global"],
+    priority: 11,
+    freshness: "Near real-time flood probability and return period estimates",
+    reliability: "Moderate; flood hazard modeling has inherent uncertainty; best for relative risk comparison",
+    rateLimit: "Public API, cache 30 days",
+    notes: "Global flood probabilistic hazard maps derived from satellite rainfall and hydrologic modeling (1 km resolution).",
+    integrated: false,
+    resolution: "1 km",
+    updateCadence: "continuous",
+  },
+
+  {
+    id: "chirps-spi",
+    name: "CHIRPS Precipitation + SPI Drought Index",
+    url: "https://www.chc.ucsb.edu/research/chirps",
+    domains: ["hazards"],
+    accessType: "dataset",
+    coverage: ["global"],
+    priority: 11,
+    freshness: "Near real-time precipitation and monthly drought indices",
+    reliability: "High for precipitation; SPI interpretation requires agronomic context; good for drought assessment",
+    rateLimit: "Public data, cache 7 days (fresher than flood for timely monitoring)",
+    notes: "CHIRPS rainfall at 5 km resolution combined with Standard Precipitation Index (SPI) for multi-month drought assessment.",
+    integrated: false,
+    resolution: "5 km",
+    updateCadence: "monthly",
+  },
+
+  {
+    id: "gem-shakemap",
+    name: "GEM OpenQuake Seismic Probabilistic Hazard",
+    url: "https://www.globalquakemodel.org",
+    domains: ["hazards"],
+    accessType: "api",
+    coverage: ["global"],
+    priority: 11,
+    freshness: "Periodic updates to global probabilistic seismic hazard models",
+    reliability: "High for seismic hazard assessment; 475-year return period standard; uncertainty bounds available",
+    rateLimit: "Public API, cache 30 days",
+    notes: "Global Earthquake Model (GEM) probabilistic seismic hazard maps at 1 km resolution with PGA (Peak Ground Acceleration) and spectral acceleration.",
+    integrated: false,
+    resolution: "1 km",
+    updateCadence: "biennial",
+  },
 ];
 
 function uniqueScopes(scopes: SourceRegionScope[]) {

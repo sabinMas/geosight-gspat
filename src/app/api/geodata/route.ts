@@ -41,6 +41,9 @@ import { getSolarResource } from "@/lib/solar-resource";
 import { getTerrainDerivatives } from "@/lib/terrain-derivatives";
 import { getPopulationDensity } from "@/lib/population-density";
 import { getGlobalLandCover } from "@/lib/land-cover";
+import { getFloodHazard } from "@/lib/flood-hazard";
+import { getDroughtIndices } from "@/lib/drought-indices";
+import { getSeismicHazard } from "@/lib/seismic-hazard";
 import { DatasetAttemptSummary, GeodataResult, SourceDomain } from "@/types";
 
 // Simple tracker for recording provider call attempts and outcomes
@@ -121,6 +124,9 @@ const PROVIDER_TIMEOUTS = {
   terrainDerivatives: 15_000,
   populationDensity: 15_000,
   landCoverGlobal: 15_000,
+  floodHazard: 15_000,
+  droughtIndices: 15_000,
+  seismicHazard: 15_000,
 } as const;
 
 function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -377,6 +383,21 @@ export async function GET(request: NextRequest) {
     PROVIDER_TIMEOUTS.landCoverGlobal,
     "land cover",
   );
+  const floodHazardPromise = withSoftTimeout(
+    getFloodHazard(lat, lng),
+    PROVIDER_TIMEOUTS.floodHazard,
+    "flood hazard",
+  );
+  const droughtIndicesPromise = withSoftTimeout(
+    getDroughtIndices(lat, lng),
+    PROVIDER_TIMEOUTS.droughtIndices,
+    "drought indices",
+  );
+  const seismicHazardPromise = withSoftTimeout(
+    getSeismicHazard(lat, lng),
+    PROVIDER_TIMEOUTS.seismicHazard,
+    "seismic hazard",
+  );
 
   const [
     elevationResult,
@@ -403,6 +424,9 @@ export async function GET(request: NextRequest) {
     terrainDerivativesResult,
     populationDensityResult,
     landCoverGlobalResult,
+    floodHazardResult,
+    droughtIndicesResult,
+    seismicHazardResult,
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
@@ -445,6 +469,9 @@ export async function GET(request: NextRequest) {
       ),
       populationDensityPromise,
       landCoverGlobalPromise,
+      floodHazardPromise,
+      droughtIndicesPromise,
+      seismicHazardPromise,
     ]);
   const responseHeaders = {
     "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
@@ -616,6 +643,12 @@ export async function GET(request: NextRequest) {
         populationDensityResult.status === "fulfilled" ? populationDensityResult.value : null,
       landCoverGlobal:
         landCoverGlobalResult.status === "fulfilled" ? landCoverGlobalResult.value : null,
+      floodHazard:
+        floodHazardResult.status === "fulfilled" ? floodHazardResult.value : null,
+      droughtIndices:
+        droughtIndicesResult.status === "fulfilled" ? droughtIndicesResult.value : null,
+      seismicHazard:
+        seismicHazardResult.status === "fulfilled" ? seismicHazardResult.value : null,
       soilProfileExtended:
         soilProfileExtendedResult.status === "fulfilled" ? soilProfileExtendedResult.value : null,
       terrainDerivatives:
@@ -1179,6 +1212,60 @@ export async function GET(request: NextRequest) {
           landCoverGlobalResult.status === "fulfilled" && landCoverGlobalResult.value
             ? "ESA CCI authoritative satellite-derived land cover classification using UN-LCCS scheme."
             : "Land cover data could not be retrieved for this location.",
+      }),
+      floodHazard: buildRegistryAwareSourceMeta({
+        id: "gfms",
+        label: "Global flood hazard",
+        provider: "Global Flood Monitoring System (1km resolution)",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          floodHazardResult.status === "fulfilled" && floodHazardResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Near real-time flood probability from satellite rainfall and hydrologic modeling",
+        coverage: "Global 1km resolution probabilistic flood hazard maps",
+        confidence:
+          floodHazardResult.status === "fulfilled" && floodHazardResult.value
+            ? "Flood probability and return period from GFMS satellite-derived rainfall and global hydrologic model."
+            : "Flood hazard data could not be retrieved for this location.",
+      }),
+      droughtIndices: buildRegistryAwareSourceMeta({
+        id: "chirps-spi",
+        label: "Drought indices",
+        provider: "CHIRPS Precipitation + SPI (5km resolution)",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          droughtIndicesResult.status === "fulfilled" && droughtIndicesResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Monthly CHIRPS rainfall and computed Standard Precipitation Index (2024 reference)",
+        coverage: "Global 5km resolution rainfall and drought indices",
+        confidence:
+          droughtIndicesResult.status === "fulfilled" && droughtIndicesResult.value
+            ? "CHIRPS rainfall with 3-month and 12-month SPI for drought assessment; interpretation requires agronomic context."
+            : "Drought indices could not be retrieved for this location.",
+      }),
+      seismicHazard: buildRegistryAwareSourceMeta({
+        id: "gem-shakemap",
+        label: "Seismic probabilistic hazard",
+        provider: "GEM OpenQuake (1km resolution, 475-year return period)",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          seismicHazardResult.status === "fulfilled" && seismicHazardResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Global Earthquake Model probabilistic seismic hazard maps (2023 reference year)",
+        coverage: "Global 1km resolution PGA and spectral acceleration maps",
+        confidence:
+          seismicHazardResult.status === "fulfilled" && seismicHazardResult.value
+            ? "GEM OpenQuake peak ground acceleration (g) and spectral acceleration from probabilistic seismic hazard model."
+            : "Seismic hazard data could not be retrieved for this location.",
       }),
       terrainDerivatives: buildRegistryAwareSourceMeta({
         id: "terrain-derivatives",

@@ -740,6 +740,9 @@ export interface GeodataResult {
   landClassification: LandCoverBucket[];
   populationDensity: PopulationDensityResult | null;
   landCoverGlobal: GlobalLandCoverResult | null;
+  floodHazard: FloodHazardResult | null;
+  droughtIndices: DroughtIndicesResult | null;
+  seismicHazard: SeismicHazardResult | null;
   soilProfileExtended: SoilProfileExtended | null;
   terrainDerivatives: TerrainDerivatives | null;
   datasetAttempts?: DatasetAttemptSummary[];
@@ -767,6 +770,9 @@ export interface GeodataResult {
     weatherAlerts: DataSourceMeta;
     populationDensity?: DataSourceMeta;
     landCoverGlobal?: DataSourceMeta;
+    floodHazard?: DataSourceMeta;
+    droughtIndices?: DataSourceMeta;
+    seismicHazard?: DataSourceMeta;
     soilProfileExtended?: DataSourceMeta;
     terrainDerivatives?: DataSourceMeta;
   };
@@ -797,6 +803,32 @@ export interface GlobalLandCoverResult {
   classFractions: LandCoverFraction[];
   resolutionM: number;
   referenceYear: number;
+}
+
+export interface FloodHazardResult {
+  probabilityPercent: number | null;
+  returnPeriodYears: number | null;
+  resolutionKm: number;
+  sourceYear: number;
+  source: "gfms" | "world-bank";
+}
+
+export interface DroughtIndicesResult {
+  spi3Month: number | null;
+  spi12Month: number | null;
+  precipitationMm: number | null;
+  resolutionKm: number;
+  referenceYear: number;
+  source: "chirps-spi" | "iri";
+}
+
+export interface SeismicHazardResult {
+  pgaG: number | null;
+  saAtPeriodG: number | null;
+  returnPeriodYears: number | null;
+  resolutionKm: number;
+  sourceYear: number;
+  source: "gem-shakemap";
 }
 
 export interface SoilProfileExtended {

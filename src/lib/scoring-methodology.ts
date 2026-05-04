@@ -334,6 +334,30 @@ export const SCORING_METHODOLOGY: Record<string, ScoringMethodologyEntry> = {
     scoreRange: "20-95",
     nullBehavior: "Returns 50 when ESA CCI land cover classification is unavailable; falls back to general assessment when specific context is not provided.",
   },
+  floodHazard: {
+    description:
+      "Flood hazard reflects probabilistic flood risk at each location, derived from Global Flood Monitoring System (GFMS) satellite rainfall and hydrologic modeling at 1km resolution.",
+    calibration:
+      "Insurance contexts penalize high probability (> 50% → 25 score); development contexts use a balanced cost-benefit (> 50% → 35 score); general contexts provide a neutral assessment. Lower probability areas receive higher scores (good) reflecting reduced risk.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when GFMS flood probability data is unavailable for the location.",
+  },
+  droughtIndices: {
+    description:
+      "Drought indices reflect precipitation and drought severity at each location, using CHIRPS rainfall and Standard Precipitation Index (SPI) on 3-month and 12-month timescales at 5km resolution.",
+    calibration:
+      "Agricultural contexts penalize severe drought (SPI-12 < -1.5 → 35 score); water-security contexts prioritize non-drought conditions (SPI-12 < -1 → 55 score); general contexts use a balanced assessment. Positive SPI (wet conditions) may be penalized in agricultural contexts.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when CHIRPS-SPI drought data is unavailable; falls back to general assessment when specific context is not provided.",
+  },
+  seismicHazard: {
+    description:
+      "Seismic hazard reflects peak ground acceleration (PGA) probability from the Global Earthquake Model (GEM) OpenQuake probabilistic seismic hazard model at 1km resolution.",
+    calibration:
+      "Engineering contexts penalize high PGA (> 0.8 g → 30 score); insurance contexts use moderate penalties (> 0.6 g → 35 score); general contexts provide a neutral assessment. Lower PGA areas receive higher scores (good) reflecting reduced seismic risk and design burden.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when GEM OpenQuake seismic hazard data is unavailable for the location.",
+  },
   amenities: {
     description:
       "Amenity density combines mapped food, transit, and park counts with a modest road-access bonus and a lighter urban-land-cover adjustment.",
