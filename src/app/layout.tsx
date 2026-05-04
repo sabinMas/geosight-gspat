@@ -4,6 +4,7 @@ import Script from "next/script";
 import { WebVitalsReporter } from "@/components/App/WebVitalsReporter";
 import AgentPanel from "@/components/agent-panel/AgentPanel";
 import { ThemeProvider } from "@/components/Theme/ThemeProvider";
+import { LeftSidebarProvider } from "@/context/LeftSidebarContext";
 import { RightPanelProvider } from "@/context/RightPanelContext";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { validateAgentEnv } from "@/lib/agents/agent-config";
@@ -74,10 +75,12 @@ export default function RootLayout({
         </a>
         <ThemeProvider>
           <UserPreferencesProvider>
-            <RightPanelProvider>
-              <WebVitalsReporter />
-              <AgentPanel>{children}</AgentPanel>
-            </RightPanelProvider>
+            <LeftSidebarProvider>
+              <RightPanelProvider>
+                <WebVitalsReporter />
+                <AgentPanel>{children}</AgentPanel>
+              </RightPanelProvider>
+            </LeftSidebarProvider>
           </UserPreferencesProvider>
         </ThemeProvider>
       </body>

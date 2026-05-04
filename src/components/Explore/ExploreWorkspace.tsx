@@ -77,6 +77,7 @@ import { toLensParam } from "@/lib/lenses";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import { GlobeErrorBoundary } from "@/components/Globe/GlobeErrorBoundary";
 import { useAgentPanel } from "@/context/AgentPanelContext";
+import { useLeftSidebar } from "@/context/LeftSidebarContext";
 import { useRightPanel } from "@/context/RightPanelContext";
 import { useExploreData } from "@/hooks/useExploreData";
 import { useExploreState } from "@/hooks/useExploreState";
@@ -175,6 +176,7 @@ export function ExploreWorkspace() {
   const router = useRouter();
   const init = useExploreInit();
   const { setGeoContext, setUiContext, primeAgent, setPanelOpen: setAgentPanelOpen, registerOpenChat } = useAgentPanel();
+  const { setDesktopSidebarOpen: setContextDesktopSidebarOpen } = useLeftSidebar();
   const { setRightPanelOpen } = useRightPanel();
   const state = useExploreState(init);
   const data = useExploreData({ state, setGeoContext });
@@ -270,6 +272,10 @@ export function ExploreWorkspace() {
   } | null>(null);
 
   const captureOverlayVisible = captureMode || captureOverlayArmed;
+
+  useEffect(() => {
+    setContextDesktopSidebarOpen(desktopSidebarOpen);
+  }, [desktopSidebarOpen, setContextDesktopSidebarOpen]);
 
   useEffect(() => {
     if (!captureOverlayVisible) {

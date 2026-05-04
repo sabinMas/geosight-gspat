@@ -8,7 +8,7 @@ import {
   Viewer as CesiumViewer,
 } from "cesium";
 import { toMgrsString, toUtmCoordinate } from "@/lib/geospatial";
-import { useRightPanel } from "@/context/RightPanelContext";
+import { useLeftSidebar } from "@/context/LeftSidebarContext";
 import { cn } from "@/lib/utils";
 import type { Coordinates } from "@/types";
 
@@ -51,7 +51,7 @@ export function CoordinateDisplay({
   viewerRef,
   viewerReady,
 }: CoordinateDisplayProps) {
-  const { rightPanelOpen } = useRightPanel();
+  const { desktopSidebarOpen } = useLeftSidebar();
   const [cursorCoordinates, setCursorCoordinates] = useState<Coordinates | null>(null);
   const [cameraAltitude, setCameraAltitude] = useState<number | null>(null);
 
@@ -113,10 +113,10 @@ export function CoordinateDisplay({
 
   return (
     <div className={cn(
-      "absolute top-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] right-4",
-      rightPanelOpen
-        ? "xl:right-[calc(380px+1rem)] opacity-0 pointer-events-none"
-        : "xl:right-16 opacity-100 pointer-events-auto"
+      "absolute bottom-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] left-4",
+      desktopSidebarOpen
+        ? "xl:left-[21rem] opacity-100 pointer-events-auto"
+        : "xl:left-16 opacity-100 pointer-events-auto"
     )}>
       <div>
         WGS84{" "}
