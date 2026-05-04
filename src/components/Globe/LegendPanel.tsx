@@ -116,7 +116,7 @@ export function LegendPanel({
     )}>
       {open ? (
         <section
-          className="glass-panel max-h-[300px] w-[320px] overflow-y-auto rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] p-4 shadow-[var(--shadow-panel)]"
+          className="glass-panel max-h-[300px] w-[320px] overflow-y-auto rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] p-4 shadow-[var(--shadow-panel)]"
           role="region"
           aria-label="Map legend"
         >
@@ -227,7 +227,7 @@ export function LegendPanel({
       <Button
         type="button"
         variant="secondary"
-        className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] shadow-[var(--shadow-panel)]"
+        className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] shadow-[var(--shadow-panel)]"
         aria-expanded={open}
         aria-label={open ? "Hide map legend" : "Show map legend"}
         onClick={() => setOpen((current) => !current)}

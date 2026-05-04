@@ -2259,7 +2259,7 @@ export function ExploreWorkspace() {
             desktopSidebarOpen ? "xl:left-[21rem]" : "xl:left-16",
             "left-4",
           )}>
-            <div className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] px-2.5 py-3 shadow-[var(--shadow-panel)] backdrop-blur-lg flex flex-col items-center gap-2">
+            <div className="rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] px-2.5 py-3 shadow-[var(--shadow-panel)] backdrop-blur-lg flex flex-col items-center gap-2">
               <DrawingToolbar
                 drawingTool={state.drawingTool}
                 onSelectTool={state.setDrawingTool}

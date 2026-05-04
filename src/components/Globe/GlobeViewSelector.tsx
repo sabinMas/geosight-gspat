@@ -95,7 +95,7 @@ export function GlobeViewSelector({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
           aria-expanded={globeViewOpen}
           aria-controls="geosight-map-style-menu"
           onClick={() => setGlobeViewOpen((current) => !current)}
@@ -110,7 +110,7 @@ export function GlobeViewSelector({
         {globeViewOpen ? (
           <div
             id="geosight-map-style-menu"
-            className="absolute left-0 top-14 z-30 w-[320px] rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-200"
+            className="absolute left-0 top-14 z-30 w-[320px] rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-200"
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
