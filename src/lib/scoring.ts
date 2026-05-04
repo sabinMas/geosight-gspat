@@ -4,6 +4,7 @@ import { clamp } from "@/lib/utils";
 import {
   GdacsAlertSummary,
   GeodataResult,
+  GlobalLandCoverResult,
   HazardDomainScore,
   HazardResilienceSummary,
   HazardRiskTier,
@@ -568,6 +569,75 @@ export function scoreSeismicRisk(geodata: GeodataResult) {
   return 30;
 }
 
+function scorePopulationDensity(density: number | null, context: string = "general"): number {
+  if (density === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "urban_preference":
+      if (density > 5000) return 100;
+      if (density > 1000) return 90;
+      if (density > 100) return 75;
+      if (density > 10) return 40;
+      return 20;
+
+    case "rural_preference":
+      if (density < 10) return 95;
+      if (density < 50) return 80;
+      if (density < 100) return 65;
+      if (density < 500) return 40;
+      return 20;
+
+    default:
+      if (density < 1) return 75;
+      if (density < 10) return 85;
+      if (density < 50) return 70;
+      if (density < 100) return 60;
+      if (density < 500) return 50;
+      if (density < 1000) return 45;
+      return 40;
+  }
+}
+
+function scoreGlobalLandCover(landCover: GlobalLandCoverResult | null, context: string = "general"): number {
+  if (landCover === null) {
+    return 50;
+  }
+
+  const dominant = landCover.dominantClass.toLowerCase();
+
+  switch (context) {
+    case "development_potential":
+      if (dominant.includes("urban") || dominant.includes("bare")) return 85;
+      if (dominant.includes("grassland") || dominant.includes("shrub")) return 75;
+      if (dominant.includes("cropland")) return 70;
+      if (dominant.includes("forest")) return 45;
+      if (dominant.includes("water") || dominant.includes("wetland")) return 20;
+      return 50;
+
+    case "forest_coverage":
+      if (dominant.includes("forest") || dominant.includes("tree")) return 90;
+      if (dominant.includes("shrub") || dominant.includes("moss")) return 60;
+      if (dominant.includes("grass")) return 40;
+      return 30;
+
+    case "water_proximity":
+      if (dominant.includes("water") || dominant.includes("wetland")) return 95;
+      if (dominant.includes("grass")) return 70;
+      if (dominant.includes("urban")) return 50;
+      return 60;
+
+    default:
+      if (dominant.includes("urban")) return 65;
+      if (dominant.includes("forest")) return 75;
+      if (dominant.includes("grassland") || dominant.includes("shrub")) return 70;
+      if (dominant.includes("cropland")) return 65;
+      if (dominant.includes("water")) return 55;
+      return 55;
+  }
+}
+
 function scoreCustomMetric(
   geodata: GeodataResult,
   metric: string,
@@ -661,6 +731,16 @@ function scoreCustomMetric(
         scoreFromDistance(roadDistance, 2.5, 16) * 0.45 +
           scoreLandCover(geodata.landClassification, "commercial") * 0.25 +
           scoreFromDistance(powerDistance, 3.5, 20) * 0.3,
+      );
+    case "populationDensity":
+      return scorePopulationDensity(
+        geodata.populationDensity?.personsPerSqKm ?? null,
+        String(params.context ?? "general"),
+      );
+    case "landCoverGlobal":
+      return scoreGlobalLandCover(
+        geodata.landCoverGlobal ?? null,
+        String(params.context ?? "general"),
       );
     default:
       return topLandCover?.label.toLowerCase().includes("water") ? 40 : vegetationScore;
@@ -820,6 +900,14 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           roadDist === null ? "road access unknown" : `nearest road ${roadDist.toFixed(1)} km`;
         return `${trailPart}; ${roadPart}.`;
       }
+      case "populationDensity":
+        return geodata.populationDensity && geodata.populationDensity.personsPerSqKm !== null
+          ? `${geodata.populationDensity.personsPerSqKm.toLocaleString()} persons/km² (100m resolution, 2020 reference year).`
+          : "Population density unavailable.";
+      case "landCoverGlobal":
+        return geodata.landCoverGlobal
+          ? `Dominant cover: ${geodata.landCoverGlobal.dominantClass} (class code ${geodata.landCoverGlobal.dominantClassCode}, 300m resolution, 2020 reference year).`
+          : "Global land cover unavailable.";
       default:
         return factor.description;
     }
@@ -1000,6 +1088,24 @@ function buildFactorEvidence(factor: ScoringFactor): FactorEvidenceResult {
           sourceLastUpdated: "live",
           proxyReason:
             "Score is a weighted blend of OSM amenity counts, distance, and land-cover signals; not a single authoritative measurement.",
+        };
+      case "populationDensity":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from WorldPop global population density grids at 100m resolution, providing direct population density estimates for the location.",
+          sourceIds: ["worldpop"],
+          sourceLastUpdated: "2020",
+        };
+      case "landCoverGlobal":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from ESA CCI satellite-derived global land cover classification at 300m resolution, using the UN-LCCS standard scheme for consistent global land-use classification.",
+          sourceIds: ["esa-cci-landcover"],
+          sourceLastUpdated: "2020",
         };
       default:
         return {

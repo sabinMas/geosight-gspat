@@ -318,6 +318,22 @@ export const SCORING_METHODOLOGY: Record<string, ScoringMethodologyEntry> = {
     scoreRange: "35-90",
     nullBehavior: "Returns 55 when slope or TRI data from SRTM elevation analysis is unavailable.",
   },
+  populationDensity: {
+    description:
+      "Population density reflects human concentration at the point location, derived from WorldPop global gridded population data at 100m resolution.",
+    calibration:
+      "Urban-preference contexts (data centers, commercial) reward moderate-to-high density (100+ persons/km²); rural-preference contexts (hiking, remote work) reward low density (< 10 persons/km²). General contexts favor moderate density as a neighborhood-quality proxy.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when WorldPop population density data is unavailable for the location.",
+  },
+  landCoverGlobal: {
+    description:
+      "Global land cover reflects satellite-derived land use and land cover type at each location, from ESA CCI classification at 300m resolution using the UN-LCCS standard.",
+    calibration:
+      "Development contexts reward bare and previously developed land (80–100 scores); hiking contexts reward natural vegetation and forest (60–100 scores); general contexts use a balanced evaluation of cover type. Water, wetland, and urban contexts receive context-dependent scores.",
+    scoreRange: "20-95",
+    nullBehavior: "Returns 50 when ESA CCI land cover classification is unavailable; falls back to general assessment when specific context is not provided.",
+  },
   amenities: {
     description:
       "Amenity density combines mapped food, transit, and park counts with a modest road-access bonus and a lighter urban-land-cover adjustment.",
