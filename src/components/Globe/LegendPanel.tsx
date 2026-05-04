@@ -12,6 +12,7 @@ import {
 import type { ImportedLayer } from "@/lib/file-import";
 import { normalizeWmsEndpoint, type WmsLayerDefinition } from "@/lib/wms-layers";
 import { useRightPanel } from "@/context/RightPanelContext";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type OverlayLegendItem = {
@@ -223,16 +224,17 @@ export function LegendPanel({
         </section>
       ) : null}
 
-      <button
+      <Button
         type="button"
-        className="glass-panel inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-[var(--shadow-panel)]"
+        variant="secondary"
+        className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] shadow-[var(--shadow-panel)]"
         aria-expanded={open}
         aria-label={open ? "Hide map legend" : "Show map legend"}
         onClick={() => setOpen((current) => !current)}
       >
         <Map className="h-4 w-4" />
         Legend
-      </button>
+      </Button>
     </div>
   );
 }
