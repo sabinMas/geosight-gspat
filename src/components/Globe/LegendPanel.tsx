@@ -108,10 +108,10 @@ export function LegendPanel({
 
   return (
     <div className={cn(
-      "absolute top-20 z-40 hidden lg:flex flex-col items-end gap-2 transition-all duration-300 ease-out right-4",
+      "pointer-events-auto absolute top-20 z-40 hidden lg:flex flex-col items-end gap-2 transition-all duration-300 ease-out right-4",
       rightPanelOpen
-        ? "xl:right-[calc(380px+1rem)] opacity-0 pointer-events-none"
-        : "xl:right-16 opacity-100 pointer-events-auto"
+        ? "xl:right-[calc(380px+1rem)]"
+        : "xl:right-16"
     )}>
       {open ? (
         <section
