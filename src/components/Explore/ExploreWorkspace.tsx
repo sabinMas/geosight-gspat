@@ -1657,8 +1657,8 @@ export function ExploreWorkspace() {
   );
 
   useEffect(() => {
-    setRightPanelOpen(rightPanelOpen);
-  }, [rightPanelOpen, setRightPanelOpen]);
+    setRightPanelOpen(desktopRightPanelOpen);
+  }, [desktopRightPanelOpen, setRightPanelOpen]);
 
   // Card content rendered in right panel (desktop) or inline below globe (mobile)
   const rightPanelContent = (
