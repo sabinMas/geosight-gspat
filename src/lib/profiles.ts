@@ -115,6 +115,14 @@ export const PROFILES: MissionProfile[] = [
         params: { metric: "hazardAlerts" },
         description: "Uses GDACS live global disaster feed to lightly penalize sites in currently elevated-alert regions.",
       },
+      {
+        key: "terrainSlope",
+        label: "Slope and ruggedness",
+        weight: 0.06,
+        scoreFn: "custom",
+        params: { metric: "slopeRuggedness" },
+        description: "Flatter, less rugged terrain reduces grading and foundation costs for construction.",
+      },
     ],
     systemPrompt:
       "You are a geospatial intelligence expert focused on data center cooling and digital infrastructure siting. Prioritize water access, power grid adjacency, terrain buildability, climate suitability, and environmental constraints. Be explicit about what is supported by geodata versus what still needs permitting, engineering, or utility diligence.",
@@ -196,6 +204,14 @@ export const PROFILES: MissionProfile[] = [
         scoreFn: "custom",
         params: { metric: "airQuality" },
         description: "Uses OpenAQ PM2.5 and PM10 station readings, with Open-Meteo AQI as a fallback context signal.",
+      },
+      {
+        key: "terrainSlope",
+        label: "Slope and ruggedness",
+        weight: 0.15,
+        scoreFn: "custom",
+        params: { metric: "slopeRuggedness" },
+        description: "Varied terrain and slope changes increase trail interest and hiking challenge appeal.",
       },
     ],
     systemPrompt:
@@ -294,6 +310,14 @@ export const PROFILES: MissionProfile[] = [
         scoreFn: "custom",
         params: { metric: "contaminationRisk" },
         description: "Uses EPA screening to flag unusually close contamination context where supported.",
+      },
+      {
+        key: "terrainSlope",
+        label: "Slope and ruggedness",
+        weight: 0.08,
+        scoreFn: "custom",
+        params: { metric: "slopeRuggedness" },
+        description: "Flatter terrain reduces drainage and grading costs, improves walkability and land value stability.",
       },
     ],
     systemPrompt:
@@ -424,6 +448,14 @@ export const PROFILES: MissionProfile[] = [
         scoreFn: "custom",
         params: { metric: "hazardAlerts" },
         description: "Uses GDACS live global disaster feed to lightly penalize sites in currently elevated-alert regions.",
+      },
+      {
+        key: "terrainSlope",
+        label: "Slope and ruggedness",
+        weight: 0.10,
+        scoreFn: "custom",
+        params: { metric: "slopeRuggedness" },
+        description: "Flatter terrain reduces grading and infrastructure costs, improving neighborhood development feasibility.",
       },
     ],
     systemPrompt:

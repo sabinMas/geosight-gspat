@@ -506,6 +506,30 @@ function scoreSoilBuildability(geodata: GeodataResult) {
   return 60;
 }
 
+function scoreSlopeRuggedness(slopeDegrees: number | null, tri: number | null): number {
+  if (slopeDegrees === null || tri === null) {
+    return 55;
+  }
+
+  // Excellent buildability: flat & smooth
+  if (slopeDegrees < 5 && tri < 15) {
+    return 90;
+  }
+
+  // Good buildability: moderate slope & ruggedness
+  if (slopeDegrees < 15 && tri < 30) {
+    return 72;
+  }
+
+  // Challenging buildability: steeper terrain
+  if (slopeDegrees < 30 && tri < 50) {
+    return 50;
+  }
+
+  // Very steep & rugged: difficult development
+  return 35;
+}
+
 function scoreHazardAlerts(hazardAlerts: GdacsAlertSummary | null): number {
   if (hazardAlerts === null) {
     return 70;
@@ -586,6 +610,11 @@ function scoreCustomMetric(
       );
     case "soilBuildability":
       return scoreSoilBuildability(geodata);
+    case "slopeRuggedness":
+      return scoreSlopeRuggedness(
+        geodata.terrainDerivatives?.slopeDegrees ?? null,
+        geodata.terrainDerivatives?.terrainRuggednessIndex ?? null,
+      );
     case "seismicRisk":
       return scoreSeismicRisk(geodata);
     case "broadbandConnectivity":
@@ -705,6 +734,10 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
         return geodata.soilProfile
           ? `${geodata.soilProfile.mapUnitName ?? "Mapped soil unit"}; drainage ${geodata.soilProfile.drainageClass ?? "not reported"}, hydrologic group ${geodata.soilProfile.hydrologicGroup ?? "not reported"}, bedrock ${geodata.soilProfile.depthToBedrockCm === null ? "not reported" : `${(geodata.soilProfile.depthToBedrockCm / 30.48).toFixed(1)} ft below surface`}.`
           : "Soil profile unavailable.";
+      case "slopeRuggedness":
+        return geodata.terrainDerivatives
+          ? `Slope ${geodata.terrainDerivatives.slopeDegrees?.toFixed(1) ?? "?"} degrees, terrain ruggedness index ${geodata.terrainDerivatives.terrainRuggednessIndex?.toFixed(1) ?? "?"} m.`
+          : "Terrain derivatives unavailable.";
       case "seismicRisk":
         return geodata.seismicDesign?.pga !== null && geodata.seismicDesign?.pga !== undefined
           ? `USGS design values: PGA ${geodata.seismicDesign.pga.toFixed(2)} g, Ss ${geodata.seismicDesign.ss === null ? "--" : geodata.seismicDesign.ss.toFixed(2)} g, S1 ${geodata.seismicDesign.s1 === null ? "--" : geodata.seismicDesign.s1.toFixed(2)} g.`
@@ -883,6 +916,15 @@ function buildFactorEvidence(factor: ScoringFactor): FactorEvidenceResult {
           sourceLastUpdated: "2023",
           proxyReason:
             "Soil survey data; site-specific conditions may vary from mapped unit",
+        };
+      case "slopeRuggedness":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from SRTM elevation grid analysis: slope via Horn's method (gradient direction and magnitude) and terrain ruggedness via TRI (mean absolute elevation difference from center cell).",
+          sourceIds: ["usgs-epqs"],
+          sourceLastUpdated: "2024",
         };
       case "seismicRisk":
         return {

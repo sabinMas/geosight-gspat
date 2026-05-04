@@ -39,6 +39,8 @@ import { fetchElevation } from "@/lib/usgs";
 import { getNearbyStreamGauges } from "@/lib/water";
 import { getSolarResource } from "@/lib/solar-resource";
 import { getTerrainDerivatives } from "@/lib/terrain-derivatives";
+import { getPopulationDensity } from "@/lib/population-density";
+import { getGlobalLandCover } from "@/lib/land-cover";
 import { DatasetAttemptSummary, GeodataResult, SourceDomain } from "@/types";
 
 // Simple tracker for recording provider call attempts and outcomes
@@ -117,6 +119,8 @@ const PROVIDER_TIMEOUTS = {
   gdacsAlerts: 8_500,
   solar: 20_000,
   terrainDerivatives: 15_000,
+  populationDensity: 15_000,
+  landCoverGlobal: 15_000,
 } as const;
 
 function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -363,6 +367,16 @@ export async function GET(request: NextRequest) {
   const nwsAlertPromise = isUsPoint
     ? withSoftTimeout(fetchNwsAlerts(lat, lng), 6_000, "nws alerts")
     : Promise.resolve(null);
+  const populationDensityPromise = withSoftTimeout(
+    getPopulationDensity(lat, lng),
+    PROVIDER_TIMEOUTS.populationDensity,
+    "population density",
+  );
+  const landCoverGlobalPromise = withSoftTimeout(
+    getGlobalLandCover(lat, lng),
+    PROVIDER_TIMEOUTS.landCoverGlobal,
+    "land cover",
+  );
 
   const [
     elevationResult,
@@ -387,6 +401,8 @@ export async function GET(request: NextRequest) {
     solarResourceResult,
     nwsAlertResult,
     terrainDerivativesResult,
+    populationDensityResult,
+    landCoverGlobalResult,
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
@@ -427,6 +443,8 @@ export async function GET(request: NextRequest) {
         PROVIDER_TIMEOUTS.terrainDerivatives,
         "terrain derivatives",
       ),
+      populationDensityPromise,
+      landCoverGlobalPromise,
     ]);
   const responseHeaders = {
     "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
@@ -594,8 +612,10 @@ export async function GET(request: NextRequest) {
         return raw;
       })(),
       landClassification: buildLandCoverBuckets(infrastructure),
-      populationDensity: null,
-      landCoverGlobal: null,
+      populationDensity:
+        populationDensityResult.status === "fulfilled" ? populationDensityResult.value : null,
+      landCoverGlobal:
+        landCoverGlobalResult.status === "fulfilled" ? landCoverGlobalResult.value : null,
       soilProfileExtended:
         soilProfileExtendedResult.status === "fulfilled" ? soilProfileExtendedResult.value : null,
       terrainDerivatives:
@@ -1125,28 +1145,40 @@ export async function GET(request: NextRequest) {
           : "NOAA NWS coverage is limited to US forecast zones.",
       }),
       populationDensity: buildRegistryAwareSourceMeta({
-        id: "population-density",
+        id: "worldpop",
         label: "Population density",
-        provider: "WorldPop",
+        provider: "WorldPop Global Population (100m resolution)",
         domain: "population",
         context: registryContext,
-        status: "unavailable",
+        status:
+          populationDensityResult.status === "fulfilled" && populationDensityResult.value
+            ? "live"
+            : "unavailable",
         lastUpdated: now,
-        freshness: "Annual population grids",
-        coverage: "Global",
-        confidence: "Not yet integrated; future global population density at 100 m–1 km resolution.",
+        freshness: "Annual WorldPop data grid (2020 reference year)",
+        coverage: "Global 100m resolution population density grids",
+        confidence:
+          populationDensityResult.status === "fulfilled" && populationDensityResult.value
+            ? "Direct population density from WorldPop global gridded estimates."
+            : "Population density data could not be retrieved for this location.",
       }),
       landCoverGlobal: buildRegistryAwareSourceMeta({
-        id: "land-cover-global",
+        id: "esa-cci-landcover",
         label: "Global land cover",
-        provider: "ESA CCI",
+        provider: "ESA CCI Land Cover (300m resolution)",
         domain: "land_cover",
         context: registryContext,
-        status: "unavailable",
+        status:
+          landCoverGlobalResult.status === "fulfilled" && landCoverGlobalResult.value
+            ? "live"
+            : "unavailable",
         lastUpdated: now,
-        freshness: "Annual satellite-derived classification",
-        coverage: "Global at 300 m resolution",
-        confidence: "Not yet integrated; future authoritative satellite-derived land cover using UN-LCCS scheme.",
+        freshness: "Annual ESA CCI satellite-derived classification (2020 reference year)",
+        coverage: "Global 300m resolution land cover grids",
+        confidence:
+          landCoverGlobalResult.status === "fulfilled" && landCoverGlobalResult.value
+            ? "ESA CCI authoritative satellite-derived land cover classification using UN-LCCS scheme."
+            : "Land cover data could not be retrieved for this location.",
       }),
       terrainDerivatives: buildRegistryAwareSourceMeta({
         id: "terrain-derivatives",

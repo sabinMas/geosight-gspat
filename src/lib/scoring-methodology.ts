@@ -310,6 +310,14 @@ export const SCORING_METHODOLOGY: Record<string, ScoringMethodologyEntry> = {
     scoreRange: "30-95",
     nullBehavior: "Returns 60 when USGS seismic design values are unavailable.",
   },
+  slopeRuggedness: {
+    description:
+      "Slope and terrain ruggedness combine Horn's method slope gradient with Terrain Ruggedness Index (TRI) to assess constructability, accessibility, and development cost.",
+    calibration:
+      "Flatter, smoother terrain (slope < 5°, TRI < 15 m) rates highest for development missions; steeper, more rugged terrain (slope > 30°, TRI > 50 m) rates lowest. Hiking missions reward moderate to steep terrain for variety and interest.",
+    scoreRange: "35-90",
+    nullBehavior: "Returns 55 when slope or TRI data from SRTM elevation analysis is unavailable.",
+  },
   amenities: {
     description:
       "Amenity density combines mapped food, transit, and park counts with a modest road-access bonus and a lighter urban-land-cover adjustment.",
