@@ -113,7 +113,7 @@ export function CoordinateDisplay({
 
   return (
     <div className={cn(
-      "absolute bottom-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] left-4",
+      "absolute bottom-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] px-3 py-2 text-xs leading-5 text-[var(--foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] left-4",
       desktopSidebarOpen
         ? "xl:left-[21rem] opacity-100 pointer-events-auto"
         : "xl:left-16 opacity-100 pointer-events-auto"

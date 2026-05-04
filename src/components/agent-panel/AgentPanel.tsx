@@ -54,7 +54,7 @@ function AgentPanelDrawer() {
         )}
         aria-hidden={!panelOpen}
       >
-        <div className="glass-panel h-[480px] max-h-[60vh] rounded-2xl px-4 pb-4 pt-4 md:px-5">
+        <div className="glass-panel h-[480px] max-h-[60vh] rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] px-4 pb-4 pt-4 md:px-5">
           <div className="flex h-full flex-col gap-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -91,7 +91,7 @@ function AgentPanelDrawer() {
           type="button"
           variant="secondary"
           className={cn(
-            "fixed bottom-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-300 ease-out md:px-5 backdrop-blur-lg",
+            "fixed bottom-4 z-50 h-12 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] px-4 shadow-[var(--shadow-panel)] transition-all duration-300 ease-out md:px-5 backdrop-blur-lg",
             rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16",
             "right-4",
           )}

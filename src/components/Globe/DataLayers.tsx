@@ -315,7 +315,7 @@ export function DataLayers({
       <div className="relative">
         {open ? (
           <div
-            className="absolute right-0 top-14 z-30 max-h-[70vh] w-[320px] overflow-y-auto rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg scrollbar-thin animate-in fade-in slide-in-from-top-2 duration-200"
+            className="absolute right-0 top-14 z-30 max-h-[70vh] w-[320px] overflow-y-auto rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg scrollbar-thin animate-in fade-in slide-in-from-top-2 duration-200"
             role="region"
             aria-label="Map layer controls"
           >
@@ -791,7 +791,7 @@ export function DataLayers({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-opaque)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
           aria-expanded={open}
           aria-label={open ? "Close map layers panel" : "Open map layers panel"}
           onClick={() => setOpen((current) => !current)}

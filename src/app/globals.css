@@ -49,6 +49,7 @@
   --surface-soft: rgba(255, 255, 255, 0.88);
   --surface-raised: rgba(250, 252, 255, 0.98);
   --surface-overlay: rgba(245, 250, 255, 0.92);
+  --surface-overlay-opaque: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 251, 255, 0.98));
   --shadow-panel: 0 22px 56px rgba(26, 41, 64, 0.12);
   --shadow-soft: 0 10px 24px rgba(26, 41, 64, 0.08);
   --hero-grid: rgba(83, 221, 255, 0.08);
@@ -96,6 +97,7 @@ html[data-theme="dark"] {
   --surface-soft: rgba(26, 41, 64, 0.72);
   --surface-raised: rgba(20, 32, 48, 0.9);
   --surface-overlay: rgba(10, 18, 28, 0.78);
+  --surface-overlay-opaque: linear-gradient(180deg, rgba(26, 41, 64, 0.98), rgba(18, 30, 45, 0.96));
   --shadow-panel: 0 24px 64px rgba(0, 0, 0, 0.48);
   --shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.24);
   --hero-grid: rgba(83, 221, 255, 0.08);
@@ -193,6 +195,13 @@ textarea {
 
 .glass-panel {
   background: var(--surface-panel);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(22px);
+}
+
+.glass-panel-overlay {
+  background: var(--surface-overlay-opaque);
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-panel);
   backdrop-filter: blur(22px);
