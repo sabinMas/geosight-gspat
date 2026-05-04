@@ -272,10 +272,6 @@ export function ExploreWorkspace() {
   const captureOverlayVisible = captureMode || captureOverlayArmed;
 
   useEffect(() => {
-    setRightPanelOpen(desktopRightPanelOpen);
-  }, [desktopRightPanelOpen, setRightPanelOpen]);
-
-  useEffect(() => {
     if (!captureOverlayVisible) {
       setCaptureViewSnapshot(null);
       return;
@@ -1653,6 +1649,10 @@ export function ExploreWorkspace() {
     attributeTableOpen ||
     data.shellMode === "board"
   );
+
+  useEffect(() => {
+    setRightPanelOpen(rightPanelOpen);
+  }, [rightPanelOpen, setRightPanelOpen]);
 
   // Card content rendered in right panel (desktop) or inline below globe (mobile)
   const rightPanelContent = (
