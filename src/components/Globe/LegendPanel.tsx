@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import type { ImportedLayer } from "@/lib/file-import";
 import { normalizeWmsEndpoint, type WmsLayerDefinition } from "@/lib/wms-layers";
+import { useRightPanel } from "@/context/RightPanelContext";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type OverlayLegendItem = {
   id: string;
@@ -95,6 +98,7 @@ export function LegendPanel({
   wmsLayers = [],
   overlayItems,
 }: LegendPanelProps) {
+  const { rightPanelOpen } = useRightPanel();
   const [open, setOpen] = useState(false);
   const visibleWmsLayers = wmsLayers.filter((layer) => layer.visible ?? true);
   const visibleImportedLayers = importedLayers.filter((layer) => layer.visible);
@@ -104,10 +108,15 @@ export function LegendPanel({
     overlayItems.some((item) => item.active);
 
   return (
-    <div className="pointer-events-auto absolute bottom-12 right-16 z-20 flex flex-col items-end gap-2">
+    <div className={cn(
+      "pointer-events-auto absolute top-20 z-40 hidden lg:flex flex-col items-end gap-2 transition-all duration-300 ease-out right-4",
+      rightPanelOpen
+        ? "xl:right-[calc(380px+1rem)]"
+        : "xl:right-16"
+    )}>
       {open ? (
         <section
-          className="glass-panel max-h-[300px] w-[320px] overflow-y-auto rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-panel)] p-4 shadow-[var(--shadow-panel)]"
+          className="glass-panel max-h-[300px] w-[320px] overflow-y-auto rounded-3xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] p-4 shadow-[var(--shadow-panel)]"
           role="region"
           aria-label="Map legend"
         >
@@ -215,16 +224,17 @@ export function LegendPanel({
         </section>
       ) : null}
 
-      <button
+      <Button
         type="button"
-        className="glass-panel inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-[var(--shadow-panel)]"
+        variant="secondary"
+        className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] shadow-[var(--shadow-panel)]"
         aria-expanded={open}
         aria-label={open ? "Hide map legend" : "Show map legend"}
         onClick={() => setOpen((current) => !current)}
       >
         <Map className="h-4 w-4" />
         Legend
-      </button>
+      </Button>
     </div>
   );
 }

@@ -3,18 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-full border text-sm font-medium transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-full border text-sm font-medium transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "border-[color:var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-soft)] hover:opacity-95",
+          "border-[color:var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-[var(--shadow-soft)] hover:opacity-95 hover:shadow-[var(--shadow-panel)] active:scale-95 transition-all duration-150",
         secondary:
-          "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)] hover:bg-[var(--surface-raised)]",
+          "border-[color:var(--border-soft)] bg-[var(--surface-soft)] text-[var(--foreground)] hover:bg-[var(--surface-raised)] active:scale-95 transition-all duration-150",
         ghost:
-          "border-transparent bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-soft)]",
+          "border-transparent bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-soft)] active:scale-95 transition-all duration-150",
         amber:
-          "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)] hover:bg-[var(--warning-hover)]",
+          "border-[color:var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-foreground)] hover:bg-[var(--warning-hover)] active:scale-95 transition-all duration-150",
       },
       size: {
         default: "h-10 px-4 py-2",

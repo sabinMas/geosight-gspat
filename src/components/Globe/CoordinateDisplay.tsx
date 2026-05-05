@@ -8,6 +8,8 @@ import {
   Viewer as CesiumViewer,
 } from "cesium";
 import { toMgrsString, toUtmCoordinate } from "@/lib/geospatial";
+import { useLeftSidebar } from "@/context/LeftSidebarContext";
+import { cn } from "@/lib/utils";
 import type { Coordinates } from "@/types";
 
 interface CoordinateDisplayProps {
@@ -49,6 +51,7 @@ export function CoordinateDisplay({
   viewerRef,
   viewerReady,
 }: CoordinateDisplayProps) {
+  const { desktopSidebarOpen } = useLeftSidebar();
   const [cursorCoordinates, setCursorCoordinates] = useState<Coordinates | null>(null);
   const [cameraAltitude, setCameraAltitude] = useState<number | null>(null);
 
@@ -109,7 +112,12 @@ export function CoordinateDisplay({
   const zoomLevel = getApproxZoomLevel(cameraAltitude);
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay)] px-3 py-2 text-xs leading-5 text-[var(--muted-foreground)] shadow-[var(--shadow-soft)] backdrop-blur-sm [font-family:var(--font-jetbrains-mono)]">
+    <div className={cn(
+      "absolute bottom-4 z-40 hidden lg:block transition-all duration-300 ease-out rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] px-3 py-2 text-xs leading-5 text-[var(--foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg [font-family:var(--font-jetbrains-mono)] left-4",
+      desktopSidebarOpen
+        ? "xl:left-[21rem] opacity-100 pointer-events-auto"
+        : "xl:left-16 opacity-100 pointer-events-auto"
+    )}>
       <div>
         WGS84{" "}
         {cursorCoordinates

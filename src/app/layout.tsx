@@ -4,6 +4,8 @@ import Script from "next/script";
 import { WebVitalsReporter } from "@/components/App/WebVitalsReporter";
 import AgentPanel from "@/components/agent-panel/AgentPanel";
 import { ThemeProvider } from "@/components/Theme/ThemeProvider";
+import { LeftSidebarProvider } from "@/context/LeftSidebarContext";
+import { RightPanelProvider } from "@/context/RightPanelContext";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import { validateAgentEnv } from "@/lib/agents/agent-config";
 import "cesium/Build/Cesium/Widgets/widgets.css";
@@ -38,7 +40,7 @@ export const metadata: Metadata = {
     icon: "/favicon.svg",
   },
   other: {
-    "theme-color": "#07111d",
+    "theme-color": "#d0e0f0",
   },
   openGraph: {
     type: "website",
@@ -73,8 +75,12 @@ export default function RootLayout({
         </a>
         <ThemeProvider>
           <UserPreferencesProvider>
-            <WebVitalsReporter />
-            <AgentPanel>{children}</AgentPanel>
+            <LeftSidebarProvider>
+              <RightPanelProvider>
+                <WebVitalsReporter />
+                <AgentPanel>{children}</AgentPanel>
+              </RightPanelProvider>
+            </LeftSidebarProvider>
           </UserPreferencesProvider>
         </ThemeProvider>
       </body>

@@ -19,6 +19,7 @@ interface GlobeViewSelectorProps {
   globeViewMode: GlobeViewMode;
   onChange: (mode: GlobeViewMode) => void;
   subsurfaceRenderMode: SubsurfaceRenderMode;
+  sidebarOpen?: boolean;
 }
 
 function isTypingContext() {
@@ -37,6 +38,7 @@ export function GlobeViewSelector({
   globeViewMode,
   onChange,
   subsurfaceRenderMode,
+  sidebarOpen = false,
 }: GlobeViewSelectorProps) {
   const [globeViewOpen, setGlobeViewOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -79,7 +81,7 @@ export function GlobeViewSelector({
   }, [globeViewOpen]);
 
   return (
-    <div ref={rootRef} className="absolute left-4 top-4 z-20">
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${sidebarOpen ? "xl:left-[21rem]" : "xl:left-16"}`}>
       {globeViewOpen ? (
         <button
           type="button"
@@ -93,7 +95,7 @@ export function GlobeViewSelector({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
           aria-expanded={globeViewOpen}
           aria-controls="geosight-map-style-menu"
           onClick={() => setGlobeViewOpen((current) => !current)}
@@ -108,7 +110,7 @@ export function GlobeViewSelector({
         {globeViewOpen ? (
           <div
             id="geosight-map-style-menu"
-            className="glass-panel absolute left-0 top-14 z-10 w-[320px] rounded-3xl p-3"
+            className="absolute left-0 top-14 z-30 w-[320px] rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-200"
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>

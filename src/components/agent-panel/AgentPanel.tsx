@@ -3,12 +3,14 @@
 import { useEffect } from "react";
 import { ChevronDown, ChevronUp, MessageSquareText } from "lucide-react";
 import { AgentPanelProvider, useAgentPanel } from "@/context/AgentPanelContext";
+import { useRightPanel } from "@/context/RightPanelContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AgentChat from "./AgentChat";
 
 function AgentPanelDrawer() {
   const { openChat, openDefaultPanel, panelOpen, setPanelOpen, uiContext } = useAgentPanel();
+  const { rightPanelOpen } = useRightPanel();
   const canShowPanel =
     uiContext?.currentRoute !== "/" && Boolean(uiContext?.locationSelected);
   const showFloatingTrigger = canShowPanel && uiContext?.visiblePrimaryCardId !== "chat";
@@ -43,14 +45,16 @@ function AgentPanelDrawer() {
       <div
         id="geosight-agent-panel"
         className={cn(
-          "fixed bottom-[9rem] right-4 z-40 w-[420px] max-w-[calc(100vw-2rem)] transform-gpu transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6",
+          "fixed bottom-4 z-40 w-[420px] max-w-[calc(100vw-2rem)] transform-gpu transition-all duration-300 ease-out md:right-6",
+          rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16",
+          "right-4",
           panelOpen
             ? "translate-y-0 opacity-100"
             : "pointer-events-none translate-y-4 opacity-0",
         )}
         aria-hidden={!panelOpen}
       >
-        <div className="glass-panel h-[480px] max-h-[60vh] rounded-2xl px-4 pb-4 pt-4 md:px-5">
+        <div className="glass-panel h-[480px] max-h-[60vh] rounded-2xl border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] px-4 pb-4 pt-4 md:px-5">
           <div className="flex h-full flex-col gap-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -87,8 +91,9 @@ function AgentPanelDrawer() {
           type="button"
           variant="secondary"
           className={cn(
-            "fixed bottom-20 right-4 z-50 h-12 rounded-full px-4 shadow-[var(--shadow-panel)] transition-all duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:right-6 md:px-5",
-            panelOpen ? "opacity-100" : "opacity-100",
+            "fixed bottom-4 z-50 h-12 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] px-4 shadow-[var(--shadow-panel)] transition-all duration-300 ease-out md:px-5 backdrop-blur-lg",
+            rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16",
+            "right-4",
           )}
           onClick={() => {
             if (panelOpen) setPanelOpen(false);

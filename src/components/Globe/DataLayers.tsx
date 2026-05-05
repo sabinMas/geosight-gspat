@@ -148,6 +148,7 @@ interface DataLayersProps {
   onChange: (layers: LayerState) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  rightPanelOpen?: boolean;
   importedLayers?: ImportedLayer[];
   activeImportedLayerId?: string | null;
   onToggleImportedLayerVisibility?: (id: string) => void;
@@ -176,6 +177,7 @@ export function DataLayers({
   onChange,
   open: controlledOpen,
   onOpenChange,
+  rightPanelOpen = false,
   importedLayers = [],
   activeImportedLayerId = null,
   onToggleImportedLayerVisibility,
@@ -309,11 +311,11 @@ export function DataLayers({
   };
 
   return (
-    <div ref={rootRef} className="absolute right-4 top-4 z-20">
+    <div ref={rootRef} className={`absolute top-4 z-40 transition-all duration-300 ease-out ${rightPanelOpen ? "xl:right-[calc(380px+1rem)]" : "xl:right-16"}`}>
       <div className="relative">
         {open ? (
           <div
-            className="glass-panel absolute right-0 top-14 z-10 max-h-[70vh] w-[320px] overflow-y-auto rounded-3xl p-3 scrollbar-thin"
+            className="absolute right-0 top-14 z-30 max-h-[70vh] w-[320px] overflow-y-auto rounded-[1.75rem] border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-lg scrollbar-thin animate-in fade-in slide-in-from-top-2 duration-200"
             role="region"
             aria-label="Map layer controls"
           >
@@ -789,7 +791,7 @@ export function DataLayers({
         <Button
           type="button"
           variant="secondary"
-          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] shadow-[var(--shadow-panel)]"
+          className="rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-overlay-light)] shadow-[var(--shadow-panel)] backdrop-blur-lg"
           aria-expanded={open}
           aria-label={open ? "Close map layers panel" : "Open map layers panel"}
           onClick={() => setOpen((current) => !current)}
