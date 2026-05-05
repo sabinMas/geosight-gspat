@@ -113,8 +113,8 @@ function parseChirpsResponse(
   const precip = extractPrecipitation(data);
 
   // If we only have current precipitation, estimate SPI from anomaly
-  let spi3: number | null = null;
-  let spi12: number | null = null;
+  const spi3: number | null = null;
+  const spi12: number | null = null;
 
   if (precip !== null) {
     // Rough SPI estimation from CHIRPS (would need full climatology for accuracy)
