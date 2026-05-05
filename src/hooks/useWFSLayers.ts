@@ -97,7 +97,11 @@ export function useWFSLayers(initialUrl?: string) {
     setState((prev) => ({ ...prev, loading: true }));
 
     try {
-      const features = await queryWFSFeatures(state.url, featureType, bbox);
+      const features = await queryWFSFeatures(state.url, {
+        featureName: featureType,
+        bbox,
+        limit: 500,
+      });
 
       // Cache the result
       FEATURE_QUERY_CACHE[cacheKey] = {

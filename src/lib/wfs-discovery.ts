@@ -30,6 +30,18 @@ export interface BBox {
   maxLat: number;
 }
 
+export interface WFSQuery {
+  featureName: string;
+  bbox?: BBox;
+  limit?: number;
+  resultType?: "results" | "hits";
+  filters?: Array<{
+    propertyName: string;
+    operator: "like" | "=" | ">" | "<" | "!=" | ">=" | "<=";
+    value: string | number;
+  }>;
+}
+
 /**
  * Fetch WFS GetCapabilities document and extract available feature types.
  * Returns a list of queryable feature collections with metadata.
@@ -63,13 +75,12 @@ export async function getWFSCapabilities(
 }
 
 /**
- * Query WFS GetFeature for features within a bounding box.
+ * Query WFS GetFeature with optional bbox, filters, and limits.
  * Returns GeoJSON-like feature objects with properties.
  */
 export async function queryWFSFeatures(
   url: string,
-  featureName: string,
-  bbox: BBox,
+  query: WFSQuery,
   signal?: AbortSignal,
 ): Promise<Feature[]> {
   try {
@@ -77,13 +88,48 @@ export async function queryWFSFeatures(
     featureUrl.searchParams.set("service", "WFS");
     featureUrl.searchParams.set("version", "2.0.0");
     featureUrl.searchParams.set("request", "GetFeature");
-    featureUrl.searchParams.set("typeName", featureName);
+    featureUrl.searchParams.set("typeName", query.featureName);
     featureUrl.searchParams.set("outputFormat", "application/json");
-    featureUrl.searchParams.set(
-      "bbox",
-      `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}`,
-    );
     featureUrl.searchParams.set("srsname", "EPSG:4326");
+
+    // Add bbox filter if provided
+    if (query.bbox) {
+      featureUrl.searchParams.set(
+        "bbox",
+        `${query.bbox.minLng},${query.bbox.minLat},${query.bbox.maxLng},${query.bbox.maxLat}`,
+      );
+    }
+
+    // Add result limit
+    if (query.limit) {
+      featureUrl.searchParams.set("count", String(Math.min(query.limit, 5000)));
+    } else {
+      featureUrl.searchParams.set("count", "500"); // Default limit
+    }
+
+    // Add result type (results or hits for count only)
+    if (query.resultType) {
+      featureUrl.searchParams.set("resultType", query.resultType);
+    }
+
+    // Add attribute filters if provided (simple PropertyName=value syntax)
+    if (query.filters && query.filters.length > 0) {
+      // Note: Complex filter encoding; simplified for MVP
+      // Full OGC Filter encoding would require XML construction
+      for (const filter of query.filters) {
+        if (filter.operator === "like") {
+          featureUrl.searchParams.append(
+            "propertyName",
+            `${filter.propertyName}:${filter.value}*`,
+          );
+        } else {
+          featureUrl.searchParams.append(
+            "propertyName",
+            `${filter.propertyName}${filter.operator}${filter.value}`,
+          );
+        }
+      }
+    }
 
     const response = await fetchWithTimeout(
       featureUrl.toString(),

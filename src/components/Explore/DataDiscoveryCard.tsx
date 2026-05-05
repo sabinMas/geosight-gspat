@@ -29,15 +29,20 @@ export function DataDiscoveryCard() {
   });
 
   const handleEndpointSelected = (endpoint: { url: string; name: string }) => {
-    setQueryState({ features: [], isLoading: false });
+    setQueryState({
+      endpoint,
+      features: [],
+      isLoading: false,
+    });
     setTab("query");
   };
 
   const handleFeaturesLoaded = (features: GeoJSON.Feature[]) => {
     setQueryState((prev) => ({
       ...prev,
-      features,
+      features: features || [],
       isLoading: false,
+      error: undefined,
     }));
     setTab("results");
   };
@@ -105,6 +110,9 @@ export function DataDiscoveryCard() {
               onFeaturesLoaded={handleFeaturesLoaded}
               onError={handleError}
               isLoading={queryState.isLoading}
+              onLoadingChange={(loading) =>
+                setQueryState((prev) => ({ ...prev, isLoading: loading }))
+              }
             />
           )}
 

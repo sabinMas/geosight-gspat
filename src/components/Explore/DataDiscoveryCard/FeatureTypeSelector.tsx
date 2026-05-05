@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader, MapPin, AlertCircle } from "lucide-react";
-import { getWFSCapabilities } from "@/lib/wfs-discovery";
+import { Loader, MapPin, AlertCircle, Layers } from "lucide-react";
+import { getWFSCapabilities, queryWFSFeatures, type WFSQuery } from "@/lib/wfs-discovery";
 
 interface WFSCapability {
   name: string;
@@ -24,6 +24,7 @@ interface FeatureTypeSelectorProps {
   onFeaturesLoaded: (features: GeoJSON.Feature[]) => void;
   onError: (error: string) => void;
   isLoading: boolean;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 export function FeatureTypeSelector({
@@ -31,11 +32,14 @@ export function FeatureTypeSelector({
   onFeaturesLoaded,
   onError,
   isLoading,
+  onLoadingChange,
 }: FeatureTypeSelectorProps) {
   const [capabilities, setCapabilities] = useState<WFSCapability[]>([]);
   const [loadingCapabilities, setLoadingCapabilities] = useState(true);
   const [selectedFeatureType, setSelectedFeatureType] = useState<string | null>(null);
   const [capabilitiesError, setCapabilitiesError] = useState<string | null>(null);
+  const [resultLimit, setResultLimit] = useState(500);
+  const [useCurrentBbox, setUseCurrentBbox] = useState(false);
 
   // Load capabilities on mount
   useEffect(() => {
@@ -62,8 +66,26 @@ export function FeatureTypeSelector({
     if (!selectedFeatureType) return;
 
     onError("");
-    // Query features - implementation in Step 3
-    // For now, just simulate loading
+    onLoadingChange?.(true);
+    try {
+      const query: WFSQuery = {
+        featureName: selectedFeatureType,
+        limit: resultLimit,
+      };
+
+      // TODO: Add bbox support when integrated with map
+      // if (useCurrentBbox && currentBbox) {
+      //   query.bbox = currentBbox;
+      // }
+
+      const features = await queryWFSFeatures(endpoint.url, query);
+      onFeaturesLoaded((features as unknown) as GeoJSON.Feature[]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load features";
+      onError(message);
+    } finally {
+      onLoadingChange?.(false);
+    }
   };
 
   if (loadingCapabilities) {
@@ -141,14 +163,49 @@ export function FeatureTypeSelector({
         )}
       </div>
 
-      {/* Query options - placeholder for Step 3 */}
+      {/* Query options */}
       <div className="flex flex-col gap-3 pt-2 border-t border-[color:var(--border-soft)]">
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-[color:var(--muted-foreground)]">
+              Result limit
+            </label>
+            <span className="text-xs text-[color:var(--foreground)] font-medium">
+              {resultLimit}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="5000"
+            value={resultLimit}
+            onChange={(e) => setResultLimit(Number(e.target.value))}
+            className="w-full mt-2"
+          />
+          <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
+            {resultLimit > 1000 ? "⚠️ Large result sets may be slow to render" : ""}
+          </p>
+        </div>
+
         <div>
           <label className="text-xs font-medium text-[color:var(--muted-foreground)]">
             Spatial filter (optional)
           </label>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="use-bbox"
+              checked={useCurrentBbox}
+              onChange={(e) => setUseCurrentBbox(e.target.checked)}
+              disabled
+              className="opacity-50 cursor-not-allowed"
+            />
+            <label htmlFor="use-bbox" className="text-xs text-[color:var(--muted-foreground)]">
+              Limit to current map view
+            </label>
+          </div>
           <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
-            Coming in next phase: bbox drawing and attribute filtering
+            Coming soon: bbox drawing from map
           </p>
         </div>
 
@@ -163,7 +220,10 @@ export function FeatureTypeSelector({
               Loading features...
             </>
           ) : (
-            <>Load features</>
+            <>
+              <Layers className="h-4 w-4" />
+              Load features
+            </>
           )}
         </button>
       </div>
