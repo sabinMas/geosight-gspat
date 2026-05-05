@@ -10,6 +10,9 @@ export interface WFSEndpoint {
   description: string;
   category: "usgs" | "noaa" | "un-agencies" | "opendata" | "research" | "other";
   region: "global" | "us" | "eu" | "asia";
+  status?: "active" | "untested" | "cors-blocked" | "unreachable" | "archived";
+  lastTestedAt?: number; // Unix timestamp
+  knownIssues?: string[];
 }
 
 export const PUBLIC_WFS_ENDPOINTS: WFSEndpoint[] = [
@@ -152,4 +155,107 @@ export function filterWFSEndpoints(
   }
 
   return result;
+}
+
+/**
+ * Validate a WFS endpoint by attempting to fetch its GetCapabilities document.
+ * Returns the endpoint status without throwing errors.
+ */
+export async function validateWFSEndpoint(
+  url: string,
+  timeout = 15000,
+): Promise<"active" | "cors-blocked" | "unreachable"> {
+  try {
+    const capabilitiesUrl = new URL(url);
+    if (!capabilitiesUrl.searchParams.has("service")) {
+      capabilitiesUrl.searchParams.set("service", "WFS");
+    }
+    if (!capabilitiesUrl.searchParams.has("request")) {
+      capabilitiesUrl.searchParams.set("request", "GetCapabilities");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(capabilitiesUrl.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/xml, text/xml",
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const text = await response.text();
+        // Check if response contains WFS-like content
+        if (text.includes("wfs:") || text.includes("WFS") || text.includes("FeatureType")) {
+          return "active";
+        }
+      }
+
+      // Check for CORS error indications
+      if (response.status === 0) {
+        return "cors-blocked";
+      }
+
+      return "unreachable";
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error) {
+        if (err.name === "AbortError") {
+          return "unreachable"; // Timeout
+        }
+        if (err.message.includes("CORS") || err.message.includes("NetworkError")) {
+          return "cors-blocked";
+        }
+      }
+      return "unreachable";
+    }
+  } catch {
+    return "unreachable";
+  }
+}
+
+/**
+ * Load custom WFS endpoints from localStorage.
+ */
+export function loadCustomWFSEndpoints(): WFSEndpoint[] {
+  try {
+    const stored = localStorage.getItem("custom-wfs-endpoints");
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save custom WFS endpoints to localStorage.
+ */
+export function saveCustomWFSEndpoint(endpoint: WFSEndpoint): void {
+  try {
+    const existing = loadCustomWFSEndpoints();
+    const filtered = existing.filter((ep) => ep.id !== endpoint.id);
+    const updated = [...filtered, endpoint];
+    localStorage.setItem("custom-wfs-endpoints", JSON.stringify(updated));
+  } catch (err) {
+    console.warn("Failed to save custom WFS endpoint", err);
+  }
+}
+
+/**
+ * Remove a custom WFS endpoint from localStorage.
+ */
+export function removeCustomWFSEndpoint(id: string): void {
+  try {
+    const existing = loadCustomWFSEndpoints();
+    const filtered = existing.filter((ep) => ep.id !== id);
+    localStorage.setItem("custom-wfs-endpoints", JSON.stringify(filtered));
+  } catch (err) {
+    console.warn("Failed to remove custom WFS endpoint", err);
+  }
 }
