@@ -52,10 +52,9 @@ export function DataDiscoveryCard() {
 
   return (
     <WorkspaceCardShell
-      id="data-discovery"
+      eyebrow="Data tools"
       title="Custom data discovery"
       subtitle="Import vector data from public WFS endpoints"
-      icon={Database}
     >
       <div className="flex flex-col h-full gap-3">
         {/* Tab buttons */}

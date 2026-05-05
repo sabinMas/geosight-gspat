@@ -376,8 +376,6 @@ export function useGlobeDrawnShapes({
                 pixelSize: 12,
                 outlineColor: Color.fromCssColorString(shape.color),
                 outlineWidth: 3,
-                horizontalOrigin: HorizontalOrigin.CENTER,
-                verticalOrigin: VerticalOrigin.CENTER,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 disableDepthTestDistance: Number.POSITIVE_INFINITY as any,
               },

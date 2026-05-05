@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, CheckCircle2, AlertCircle, Loader } from "lucide-react";
+import { Search } from "lucide-react";
 import { PUBLIC_WFS_ENDPOINTS } from "@/lib/wfs-registry";
 
 interface EndpointBrowserProps {
@@ -28,7 +28,7 @@ export function EndpointBrowser({ onEndpointSelected }: EndpointBrowserProps) {
         filterCategory === "all" || ep.category === filterCategory;
 
       const matchesRegion =
-        filterRegion === "all" || ep.regions.includes(filterRegion);
+        filterRegion === "all" || ep.region === filterRegion;
 
       return matchesSearch && matchesCategory && matchesRegion;
     });
@@ -118,17 +118,9 @@ export function EndpointBrowser({ onEndpointSelected }: EndpointBrowserProps) {
                       {endpoint.description}
                     </p>
                   )}
-                </div>
-                <div className="shrink-0">
-                  {endpoint.status === "active" && (
-                    <CheckCircle2 className="h-4 w-4 text-[color:var(--accent-success)]" />
-                  )}
-                  {endpoint.status === "untested" && (
-                    <AlertCircle className="h-4 w-4 text-[color:var(--accent-warning)]" />
-                  )}
-                  {endpoint.status === "cors-blocked" && (
-                    <AlertCircle className="h-4 w-4 text-[color:var(--accent-error)]" />
-                  )}
+                  <p className="text-xs text-[color:var(--muted-foreground)] mt-1 capitalize">
+                    {endpoint.region}
+                  </p>
                 </div>
               </div>
             </button>
