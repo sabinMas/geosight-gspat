@@ -41,29 +41,29 @@ function TrendSignalCard({
 }) {
   return (
     <div
-      className={`rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-4 shadow-[var(--shadow-soft)] ${muted ? "opacity-80" : ""}`}
+      className={`rounded-xl border border-[color:var(--border-soft)] bg-[var(--surface-soft)] p-3 shadow-[var(--shadow-soft)] ${muted ? "opacity-80" : ""}`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 truncate text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+      <div className="flex items-start justify-between gap-1.5">
+        <div className="line-clamp-2 text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           {trend.label}
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
           <SourceStatusBadge source={trend.source} />
           <SourceInfoButton source={trend.source} title={`${trend.label} source`} />
         </div>
       </div>
-      <div className="mt-3 min-w-0 truncate text-2xl font-semibold leading-none tracking-tight text-[var(--foreground)]">
+      <div className="mt-2 text-lg font-semibold leading-tight tracking-tight text-[var(--foreground)]">
         {trend.value}
       </div>
       <div
-        className="mt-2 line-clamp-1 text-sm text-[var(--muted-foreground)]"
+        className="mt-1 line-clamp-1 text-xs text-[var(--muted-foreground)]"
         title={trend.detail}
       >
         {trend.detail}
       </div>
-      <div className="mt-2 flex min-w-0 items-center gap-2 text-xs">
+      <div className="mt-1.5 flex items-center gap-1.5 text-xs">
         <span
-          className="min-w-0 flex-1 truncate text-[var(--muted-foreground)] opacity-70"
+          className="flex-1 truncate text-[var(--muted-foreground)] opacity-70"
           title={trend.source.provider}
         >
           {trend.source.provider}
@@ -97,7 +97,7 @@ export function AnalysisTrendsPanel({ trends, headerContent }: AnalysisTrendsPan
         {headerContent}
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3">
           {trendsToRender.map((trend) => (
             <TrendSignalCard key={trend.id} trend={trend} />
           ))}

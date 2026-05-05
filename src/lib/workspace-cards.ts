@@ -824,7 +824,7 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     zone: "workspace",
     emphasis: "secondary",
     defaultSize: "standard",
-    defaultVisibility: false,
+    defaultVisibility: true,
     defaultOrder: 137,
     requiredData: [],
     supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
