@@ -10,6 +10,7 @@ import { BroadbandCard } from "@/components/Explore/BroadbandCard";
 import { CardSkeleton } from "@/components/Explore/CardSkeleton";
 import { ClimateHistoryCard } from "@/components/Explore/ClimateHistoryCard";
 import { ContaminationRiskCard } from "@/components/Explore/ContaminationRiskCard";
+import { DataDiscoveryCard } from "@/components/Explore/DataDiscoveryCard";
 import { DemographicsCard } from "@/components/Explore/DemographicsCard";
 import { EarthquakeHistoryCard } from "@/components/Explore/EarthquakeHistoryCard";
 import { FireHistoryCard } from "@/components/Explore/FireHistoryCard";
@@ -470,6 +471,8 @@ export function ExploreWorkspacePanel({
         />
       );
     }
+    case "data-discovery":
+      return <DataDiscoveryCard />;
     default:
       return null;
   }

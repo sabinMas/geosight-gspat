@@ -161,7 +161,8 @@ export type WorkspaceCardId =
   | "attribute-table"
   | "nps-trails"
   | "terrain-export"
-  | "route-planner";
+  | "route-planner"
+  | "data-discovery";
 export type SchoolCoverageStatus =
   | "us_supported"
   | "state_accountability_supported"
