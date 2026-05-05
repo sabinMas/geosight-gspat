@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader, MapPin, AlertCircle, Layers } from "lucide-react";
+import { Loader, MapPin, AlertCircle, Layers, Info } from "lucide-react";
 import { getWFSCapabilities, queryWFSFeatures, type WFSQuery } from "@/lib/wfs-discovery";
+import { checkResultSetSize } from "@/lib/wfs-error-handling";
 
 interface WFSCapability {
   name: string;
@@ -40,6 +41,10 @@ export function FeatureTypeSelector({
   const [capabilitiesError, setCapabilitiesError] = useState<string | null>(null);
   const [resultLimit, setResultLimit] = useState(500);
   const [useCurrentBbox, setUseCurrentBbox] = useState(false);
+  const [resultSetWarning, setResultSetWarning] = useState<{
+    warning: string;
+    suggestion: string;
+  } | null>(null);
 
   // Load capabilities on mount
   useEffect(() => {
@@ -79,10 +84,18 @@ export function FeatureTypeSelector({
       // }
 
       const features = await queryWFSFeatures(endpoint.url, query);
+
+      // Check for large result set warnings
+      const warning = checkResultSetSize(features.length, resultLimit);
+      if (warning) {
+        setResultSetWarning(warning);
+      }
+
       onFeaturesLoaded((features as unknown) as GeoJSON.Feature[]);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load features";
       onError(message);
+      setResultSetWarning(null);
     } finally {
       onLoadingChange?.(false);
     }
@@ -165,6 +178,14 @@ export function FeatureTypeSelector({
 
       {/* Query options */}
       <div className="flex flex-col gap-3 pt-2 border-t border-[color:var(--border-soft)]">
+        {/* Performance info */}
+        <div className="flex gap-2 p-2 rounded-lg bg-[color:var(--surface-soft)] border border-[color:var(--border-soft)]">
+          <Info className="h-4 w-4 shrink-0 mt-0.5 text-[color:var(--foreground-soft)]" />
+          <p className="text-xs text-[color:var(--foreground-soft)]">
+            Queries above 1000 features may render slowly. Use filters to refine results.
+          </p>
+        </div>
+
         <div>
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-[color:var(--muted-foreground)]">
@@ -179,9 +200,22 @@ export function FeatureTypeSelector({
             min="1"
             max="5000"
             value={resultLimit}
-            onChange={(e) => setResultLimit(Number(e.target.value))}
+            onChange={(e) => {
+              setResultLimit(Number(e.target.value));
+              setResultSetWarning(null);
+            }}
             className="w-full mt-2"
           />
+          {resultSetWarning && (
+            <div className="mt-2 p-2 rounded-lg bg-[color:var(--surface-warning)] border border-[color:var(--border-warning)]">
+              <p className="text-xs font-medium text-[color:var(--foreground-warning)]">
+                {resultSetWarning.warning}
+              </p>
+              <p className="text-xs text-[color:var(--foreground-warning)] opacity-75 mt-1">
+                {resultSetWarning.suggestion}
+              </p>
+            </div>
+          )}
           <p className="text-xs text-[color:var(--muted-foreground)] mt-1">
             {resultLimit > 1000 ? "⚠️ Large result sets may be slow to render" : ""}
           </p>

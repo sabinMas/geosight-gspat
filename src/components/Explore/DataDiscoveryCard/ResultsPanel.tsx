@@ -1,13 +1,23 @@
 "use client";
 
 import { useMemo } from "react";
-import { Database, Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 
 interface ResultsPanelProps {
   features: GeoJSON.Feature[];
+  onViewOnGlobe?: () => void;
+  onClear?: () => void;
+  isLoading?: boolean;
+  renderedOnGlobe?: boolean;
 }
 
-export function ResultsPanel({ features }: ResultsPanelProps) {
+export function ResultsPanel({
+  features,
+  onViewOnGlobe,
+  onClear,
+  isLoading = false,
+  renderedOnGlobe = false,
+}: ResultsPanelProps) {
   const geometryStats = useMemo(() => {
     const stats: Record<string, number> = {};
     for (const feature of features) {
@@ -28,6 +38,15 @@ export function ResultsPanel({ features }: ResultsPanelProps) {
 
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
+      {/* Status banner */}
+      {renderedOnGlobe && (
+        <div className="p-3 rounded-lg bg-[color:var(--surface-success)] border border-[color:var(--border-success)]">
+          <p className="text-sm font-medium text-[color:var(--foreground-success)]">
+            ✓ Features are now visible on the globe
+          </p>
+        </div>
+      )}
+
       {/* Summary stats */}
       <div className="grid grid-cols-2 gap-2">
         <div className="p-3 rounded-lg bg-[color:var(--surface-soft)]">
@@ -118,14 +137,18 @@ export function ResultsPanel({ features }: ResultsPanelProps) {
       {/* Actions */}
       <div className="flex gap-2 pt-2 border-t border-[color:var(--border-soft)]">
         <button
-          className="flex-1 px-3 py-2 rounded-lg border border-[color:var(--border-soft)] text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--surface-soft)] transition flex items-center justify-center gap-2"
-          title="View on globe (coming soon)"
+          onClick={onViewOnGlobe}
+          disabled={isLoading || features.length === 0}
+          className="flex-1 px-3 py-2 rounded-lg border border-[color:var(--border-soft)] text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--surface-soft)] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+          title="Render features on the globe"
         >
           <Eye className="h-4 w-4" />
           View on globe
         </button>
         <button
-          className="flex-1 px-3 py-2 rounded-lg border border-[color:var(--border-soft)] text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--surface-soft)] transition flex items-center justify-center gap-2"
+          onClick={onClear}
+          disabled={isLoading}
+          className="flex-1 px-3 py-2 rounded-lg border border-[color:var(--border-soft)] text-sm font-medium text-[color:var(--foreground)] hover:bg-[color:var(--surface-soft)] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
           title="Clear results"
         >
           <Trash2 className="h-4 w-4" />

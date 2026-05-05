@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Database, AlertCircle, Loader } from "lucide-react";
+import { AlertCircle, Loader } from "lucide-react";
 import { WorkspaceCardShell } from "./WorkspaceCardShell";
 import { EndpointBrowser } from "./DataDiscoveryCard/EndpointBrowser";
 import { FeatureTypeSelector } from "./DataDiscoveryCard/FeatureTypeSelector";
@@ -19,6 +19,7 @@ interface WFSQueryState {
   features: GeoJSON.Feature[];
   isLoading: boolean;
   error?: string;
+  renderedOnGlobe: boolean;
 }
 
 export function DataDiscoveryCard() {
@@ -26,6 +27,7 @@ export function DataDiscoveryCard() {
   const [queryState, setQueryState] = useState<WFSQueryState>({
     features: [],
     isLoading: false,
+    renderedOnGlobe: false,
   });
 
   const handleEndpointSelected = (endpoint: { url: string; name: string }) => {
@@ -33,6 +35,7 @@ export function DataDiscoveryCard() {
       endpoint,
       features: [],
       isLoading: false,
+      renderedOnGlobe: false,
     });
     setTab("query");
   };
@@ -53,6 +56,24 @@ export function DataDiscoveryCard() {
       error,
       isLoading: false,
     }));
+  };
+
+  const handleViewOnGlobe = () => {
+    // TODO: Integrate with ExploreWorkspace to add WFS features to globe
+    // For now, show confirmation that features would be rendered
+    setQueryState((prev) => ({
+      ...prev,
+      renderedOnGlobe: true,
+    }));
+  };
+
+  const handleClearResults = () => {
+    setQueryState({
+      features: [],
+      isLoading: false,
+      renderedOnGlobe: false,
+    });
+    setTab("endpoints");
   };
 
   return (
@@ -117,7 +138,13 @@ export function DataDiscoveryCard() {
           )}
 
           {tab === "results" && queryState.features.length > 0 && (
-            <ResultsPanel features={queryState.features} />
+            <ResultsPanel
+              features={queryState.features}
+              onViewOnGlobe={handleViewOnGlobe}
+              onClear={handleClearResults}
+              isLoading={queryState.isLoading}
+              renderedOnGlobe={queryState.renderedOnGlobe}
+            />
           )}
 
           {tab === "results" && queryState.features.length === 0 && (

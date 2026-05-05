@@ -25,6 +25,18 @@ type ProjectImportedLayer = {
   visible: boolean;
 };
 
+type ProjectWFSLayer = {
+  name: string;
+  url: string;
+  featureType: string;
+  features: GeoJSON.FeatureCollection;
+  style: {
+    color: string;
+    opacity: number;
+  };
+  visible: boolean;
+};
+
 type ProjectActiveOverlays = {
   roads: boolean;
   fires: boolean;
@@ -53,6 +65,7 @@ export type GeoSightProject = {
   openCardIds: WorkspaceCardId[];
   wmsLayers: WmsLayerDefinition[];
   importedLayers: ProjectImportedLayer[];
+  wfsLayers?: ProjectWFSLayer[];
   activeOverlays: ProjectActiveOverlays;
   basemap: "satellite" | "road" | "waterColor";
 };
@@ -68,6 +81,15 @@ export interface ProjectSerializationState {
   openCardIds: WorkspaceCardId[];
   wmsLayers: WmsLayerDefinition[];
   importedLayers: ImportedLayer[];
+  wfsLayers?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    featureType: string;
+    features: GeoJSON.Feature[];
+    style: { color: string; opacity: number };
+    visible: boolean;
+  }>;
   layers: LayerState;
   globeViewMode: GlobeViewMode;
 }
@@ -83,6 +105,15 @@ export interface DeserializedProjectStatePatch {
   openCardIds: WorkspaceCardId[];
   wmsLayers: WmsLayerDefinition[];
   importedLayers: ImportedLayer[];
+  wfsLayers?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    featureType: string;
+    features: GeoJSON.Feature[];
+    style: { color: string; opacity: number };
+    visible: boolean;
+  }>;
   layers: LayerState;
   globeViewMode: GlobeViewMode;
 }
@@ -153,6 +184,20 @@ export function serializeProject(state: ProjectSerializationState): GeoSightProj
     drawnShapes: state.drawnShapes,
     openCardIds: state.openCardIds,
     wmsLayers: state.wmsLayers,
+    wfsLayers: state.wfsLayers?.map((layer) => ({
+      name: layer.name,
+      url: layer.url,
+      featureType: layer.featureType,
+      features: {
+        type: "FeatureCollection",
+        features: layer.features,
+      },
+      style: {
+        color: layer.style.color,
+        opacity: layer.style.opacity,
+      },
+      visible: layer.visible,
+    })),
     importedLayers: state.importedLayers.map((layer) => ({
       name: layer.name,
       format: layer.format,
@@ -213,6 +258,27 @@ export function deserializeProject(project: GeoSightProject): DeserializedProjec
     };
   });
 
+  const wfsLayers = Array.isArray(project.wfsLayers)
+    ? project.wfsLayers.map((layer) => {
+        if (!isFeatureCollection(layer.features)) {
+          throw new Error(`WFS layer "${layer.name}" is not a valid FeatureCollection.`);
+        }
+
+        return {
+          id: buildId("wfs-layer"),
+          name: layer.name,
+          url: layer.url,
+          featureType: layer.featureType,
+          features: layer.features.features,
+          style: {
+            color: layer.style.color,
+            opacity: layer.style.opacity,
+          },
+          visible: layer.visible,
+        };
+      })
+    : undefined;
+
   return {
     name: project.name,
     selectedPoint: {
@@ -233,6 +299,7 @@ export function deserializeProject(project: GeoSightProject): DeserializedProjec
         }))
       : [],
     importedLayers,
+    wfsLayers,
     layers: {
       water: project.activeOverlays.water ?? true,
       power: project.activeOverlays.power ?? false,

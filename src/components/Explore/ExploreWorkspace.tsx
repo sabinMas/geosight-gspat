@@ -550,6 +550,7 @@ export function ExploreWorkspace() {
         drawnShapes: state.drawnShapes,
         openCardIds: data.openCardIds,
         wmsLayers: state.wmsLayers,
+        wfsLayers: state.wfsLayers,
         importedLayers: importedLayersOverride ?? state.importedLayers,
         layers: state.layers,
         globeViewMode: state.globeViewMode,
@@ -566,6 +567,7 @@ export function ExploreWorkspace() {
       state.selectedLocationName,
       state.selectedPoint,
       state.wmsLayers,
+      state.wfsLayers,
     ],
   );
 
@@ -608,6 +610,7 @@ export function ExploreWorkspace() {
         drawnShapes: restored.drawnShapes,
         importedLayers: restored.importedLayers,
         wmsLayers: restored.wmsLayers,
+        wfsLayers: restored.wfsLayers,
       });
 
       for (const cardId of data.openCardIds) {
