@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { isProviderTimeoutError } from "@/lib/analysis-provider";
 import { analyzeGeneralExplore } from "@/lib/analysis/generalExplore";
 import { analyzeHuntPlanner } from "@/lib/analysis/huntPlanner";
@@ -43,20 +44,21 @@ function isFeatureCollection(value: unknown): value is DrawnGeometryFeatureColle
 }
 
 export async function POST(request: NextRequest) {
-  const rateLimit = await applyRateLimit(request, "lens-analysis", {
-    windowMs: 60_000,
-    maxRequests: 18,
-  });
-  if (!rateLimit.allowed) {
-    return createRateLimitResponse(rateLimit);
-  }
-
-  let rawBody: unknown;
   try {
-    rawBody = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
-  }
+    const rateLimit = await applyRateLimit(request, "lens-analysis", {
+      windowMs: 60_000,
+      maxRequests: 18,
+    });
+    if (!rateLimit.allowed) {
+      return createRateLimitResponse(rateLimit);
+    }
+
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
 
   const body = rawBody as LensAnalysisRequestBody;
   const lens = typeof body.lensId === "string" ? getExplorerLensById(body.lensId) : null;
@@ -196,7 +198,28 @@ export async function POST(request: NextRequest) {
     },
   };
 
-  return NextResponse.json(result, {
-    headers: { ...rateLimitHeaders(rateLimit), "Cache-Control": "no-store" },
-  });
+    return NextResponse.json(result, {
+      headers: { ...rateLimitHeaders(rateLimit), "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    // Capture unhandled errors to Sentry
+    Sentry.captureException(error, {
+      tags: {
+        route: "lens-analysis",
+      },
+      extra: {
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+    });
+
+    return NextResponse.json(
+      {
+        error: "Lens analysis failed",
+        retryable: true,
+      },
+      {
+        status: 500,
+      },
+    );
+  }
 }

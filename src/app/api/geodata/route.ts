@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { getGeodataCache, setGeodataCache } from "@/lib/user-storage";
 import { getClimateHistory } from "@/lib/climate-history";
 import { getNearbyGroundwaterWells } from "@/lib/groundwater";
@@ -1328,7 +1329,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response, {
       headers: responseHeaders,
     });
-  } catch {
+  } catch (error) {
+    // Capture error to Sentry with regional context
+    Sentry.captureException(error, {
+      tags: {
+        route: "geodata",
+        region: "unknown",
+        hasPartialData: Object.keys(partial || {}).length > 0,
+      },
+      extra: {
+        lat,
+        lng,
+        attempts: tracker.getAttempts().length,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+    });
+
     return NextResponse.json(
       {
         error: "Data assembly failed",
