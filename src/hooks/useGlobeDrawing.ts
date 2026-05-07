@@ -404,7 +404,7 @@ export function useGlobeDrawnShapes({
 
       dragHandler.setInputAction((event: { startPosition: Cartesian2; endPosition: Cartesian2 }) => {
         if (draggingShapeId === null || draggingVertexIndex === null) return;
-        const pos = viewer.camera.pickEllipsoid(event.endPosition, viewer.scene.globe.ellipsoid);
+        const pos = pickPosition(viewer, event.endPosition);
         if (!pos) return;
         const carto = Cartographic.fromCartesian(pos);
         onVertexDrag(draggingShapeId, draggingVertexIndex, {

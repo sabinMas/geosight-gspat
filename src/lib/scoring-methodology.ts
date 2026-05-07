@@ -310,6 +310,54 @@ export const SCORING_METHODOLOGY: Record<string, ScoringMethodologyEntry> = {
     scoreRange: "30-95",
     nullBehavior: "Returns 60 when USGS seismic design values are unavailable.",
   },
+  slopeRuggedness: {
+    description:
+      "Slope and terrain ruggedness combine Horn's method slope gradient with Terrain Ruggedness Index (TRI) to assess constructability, accessibility, and development cost.",
+    calibration:
+      "Flatter, smoother terrain (slope < 5°, TRI < 15 m) rates highest for development missions; steeper, more rugged terrain (slope > 30°, TRI > 50 m) rates lowest. Hiking missions reward moderate to steep terrain for variety and interest.",
+    scoreRange: "35-90",
+    nullBehavior: "Returns 55 when slope or TRI data from SRTM elevation analysis is unavailable.",
+  },
+  populationDensity: {
+    description:
+      "Population density reflects human concentration at the point location, derived from WorldPop global gridded population data at 100m resolution.",
+    calibration:
+      "Urban-preference contexts (data centers, commercial) reward moderate-to-high density (100+ persons/km²); rural-preference contexts (hiking, remote work) reward low density (< 10 persons/km²). General contexts favor moderate density as a neighborhood-quality proxy.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when WorldPop population density data is unavailable for the location.",
+  },
+  landCoverGlobal: {
+    description:
+      "Global land cover reflects satellite-derived land use and land cover type at each location, from ESA CCI classification at 300m resolution using the UN-LCCS standard.",
+    calibration:
+      "Development contexts reward bare and previously developed land (80–100 scores); hiking contexts reward natural vegetation and forest (60–100 scores); general contexts use a balanced evaluation of cover type. Water, wetland, and urban contexts receive context-dependent scores.",
+    scoreRange: "20-95",
+    nullBehavior: "Returns 50 when ESA CCI land cover classification is unavailable; falls back to general assessment when specific context is not provided.",
+  },
+  floodHazard: {
+    description:
+      "Flood hazard reflects probabilistic flood risk at each location, derived from Global Flood Monitoring System (GFMS) satellite rainfall and hydrologic modeling at 1km resolution.",
+    calibration:
+      "Insurance contexts penalize high probability (> 50% → 25 score); development contexts use a balanced cost-benefit (> 50% → 35 score); general contexts provide a neutral assessment. Lower probability areas receive higher scores (good) reflecting reduced risk.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when GFMS flood probability data is unavailable for the location.",
+  },
+  droughtIndices: {
+    description:
+      "Drought indices reflect precipitation and drought severity at each location, using CHIRPS rainfall and Standard Precipitation Index (SPI) on 3-month and 12-month timescales at 5km resolution.",
+    calibration:
+      "Agricultural contexts penalize severe drought (SPI-12 < -1.5 → 35 score); water-security contexts prioritize non-drought conditions (SPI-12 < -1 → 55 score); general contexts use a balanced assessment. Positive SPI (wet conditions) may be penalized in agricultural contexts.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when CHIRPS-SPI drought data is unavailable; falls back to general assessment when specific context is not provided.",
+  },
+  seismicHazard: {
+    description:
+      "Seismic hazard reflects peak ground acceleration (PGA) probability from the Global Earthquake Model (GEM) OpenQuake probabilistic seismic hazard model at 1km resolution.",
+    calibration:
+      "Engineering contexts penalize high PGA (> 0.8 g → 30 score); insurance contexts use moderate penalties (> 0.6 g → 35 score); general contexts provide a neutral assessment. Lower PGA areas receive higher scores (good) reflecting reduced seismic risk and design burden.",
+    scoreRange: "20-100",
+    nullBehavior: "Returns 50 when GEM OpenQuake seismic hazard data is unavailable for the location.",
+  },
   amenities: {
     description:
       "Amenity density combines mapped food, transit, and park counts with a modest road-access bonus and a lighter urban-land-cover adjustment.",

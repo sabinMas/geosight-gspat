@@ -48,6 +48,15 @@ export interface ExploreProjectStatePatch {
   drawnShapes?: DrawnShape[];
   importedLayers?: ImportedLayer[];
   wmsLayers?: WmsLayerDefinition[];
+  wfsLayers?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    featureType: string;
+    features: GeoJSON.Feature[];
+    style: { color: string; opacity: number };
+    visible: boolean;
+  }>;
 }
 
 export interface ExploreState {
@@ -130,6 +139,28 @@ export interface ExploreState {
   toggleWmsLayerVisibility: (id: string) => void;
   setWmsLayerOpacity: (id: string, opacity: number) => void;
   moveWmsLayer: (id: string, direction: LayerMoveDirection) => void;
+  wfsLayers: Array<{
+    id: string;
+    name: string;
+    url: string;
+    featureType: string;
+    features: GeoJSON.Feature[];
+    style: { color: string; opacity: number };
+    visible: boolean;
+  }>;
+  addWfsLayer: (layer: Omit<{
+    id: string;
+    name: string;
+    url: string;
+    featureType: string;
+    features: GeoJSON.Feature[];
+    style: { color: string; opacity: number };
+    visible: boolean;
+  }, "id">) => void;
+  removeWfsLayer: (id: string) => void;
+  toggleWfsLayerVisibility: (id: string) => void;
+  setWfsLayerOpacity: (id: string, opacity: number) => void;
+  moveWfsLayer: (id: string, direction: LayerMoveDirection) => void;
   addDrawnShape: (shape: DrawnShape) => void;
   undoDrawing: () => void;
   redoDrawing: () => void;
@@ -312,6 +343,15 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
   const [activeImportedLayerId, setActiveImportedLayerId] = useState<string | null>(null);
   const [selectedImportedFeatureId, setSelectedImportedFeatureId] = useState<string | null>(null);
   const [wmsLayers, setWmsLayers] = useState<WmsLayerDefinition[]>([]);
+  const [wfsLayers, setWfsLayers] = useState<Array<{
+    id: string;
+    name: string;
+    url: string;
+    featureType: string;
+    features: GeoJSON.Feature[];
+    style: { color: string; opacity: number };
+    visible: boolean;
+  }>>([]);
   const [redoStack, setRedoStack] = useState<DrawnShape[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
   // GIS analyst tools
@@ -368,6 +408,10 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
 
     if (patch.wmsLayers) {
       setWmsLayers(patch.wmsLayers);
+    }
+
+    if (patch.wfsLayers) {
+      setWfsLayers(patch.wfsLayers);
     }
 
     if (patch.selectedPoint) {
@@ -457,6 +501,50 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
 
   const moveWmsLayer = useCallback((id: string, direction: LayerMoveDirection) => {
     setWmsLayers((prev) => moveItemInList(prev, id, direction));
+  }, []);
+
+  const addWfsLayer = useCallback((
+    layer: Omit<{
+      id: string;
+      name: string;
+      url: string;
+      featureType: string;
+      features: GeoJSON.Feature[];
+      style: { color: string; opacity: number };
+      visible: boolean;
+    }, "id">,
+  ) => {
+    setWfsLayers((prev) => [
+      ...prev,
+      {
+        ...layer,
+        id: crypto.randomUUID(),
+      },
+    ]);
+  }, []);
+
+  const removeWfsLayer = useCallback((id: string) => {
+    setWfsLayers((prev) => prev.filter((layer) => layer.id !== id));
+  }, []);
+
+  const toggleWfsLayerVisibility = useCallback((id: string) => {
+    setWfsLayers((prev) =>
+      prev.map((layer) =>
+        layer.id === id ? { ...layer, visible: !layer.visible } : layer,
+      ),
+    );
+  }, []);
+
+  const setWfsLayerOpacity = useCallback((id: string, opacity: number) => {
+    setWfsLayers((prev) =>
+      prev.map((layer) =>
+        layer.id === id ? { ...layer, style: { ...layer.style, opacity } } : layer,
+      ),
+    );
+  }, []);
+
+  const moveWfsLayer = useCallback((id: string, direction: LayerMoveDirection) => {
+    setWfsLayers((prev) => moveItemInList(prev, id, direction));
   }, []);
 
   const addCustomLayer = useCallback((params: Omit<CustomLayer, "id" | "order">) => {
@@ -751,6 +839,12 @@ export function useExploreState(init: ExploreInitParams): ExploreState {
     toggleWmsLayerVisibility,
     setWmsLayerOpacity,
     moveWmsLayer,
+    wfsLayers,
+    addWfsLayer,
+    removeWfsLayer,
+    toggleWfsLayerVisibility,
+    setWfsLayerOpacity,
+    moveWfsLayer,
     addDrawnShape,
     undoDrawing,
     redoDrawing,

@@ -805,6 +805,31 @@ const WORKSPACE_CARD_REGISTRY_BASE = [
     supportedProfiles: ["hiking", "commercial"],
     emptyState: "Enter a start and end location to plot a route on the globe.",
   },
+  {
+    id: "data-discovery",
+    title: "Custom data discovery",
+    summary: "Import vector data from public WFS endpoints.",
+    questionAnswered: "What custom geospatial features are available here?",
+    regionCoverage: "Global - driven by available WFS endpoints and custom sources",
+    failureMode: "Each WFS service degrades independently; CORS issues surface clearly with workaround guidance",
+    freshnessWindow: "Live per query; responses cached 5 minutes per bbox",
+    nextActions: [
+      "Select a WFS endpoint",
+      "Pick a feature type",
+      "Review features on the globe",
+      "Inspect attribute table",
+    ],
+    icon: "Database",
+    category: "analysis",
+    zone: "workspace",
+    emphasis: "secondary",
+    defaultSize: "standard",
+    defaultVisibility: true,
+    defaultOrder: 137,
+    requiredData: [],
+    supportedProfiles: ["data-center", "hiking", "residential", "commercial"],
+    emptyState: "Select a WFS data source to import custom vector features.",
+  },
 ] as const;
 
 function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
@@ -855,6 +880,8 @@ function getRevealTriggers(cardId: WorkspaceCardId): WorkspaceRevealTrigger[] {
       return ["ask_reasoning", "ask_hazard", "location_selected"];
     case "trip-summary":
       return ["ask_reasoning", "location_selected"];
+    case "data-discovery":
+      return ["location_selected"];
     default:
       return ["ask_reasoning"];
   }

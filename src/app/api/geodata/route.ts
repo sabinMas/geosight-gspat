@@ -30,7 +30,7 @@ import {
 import { fetchSchoolContext, summarizeSchoolContext } from "@/lib/schools";
 import { getGlobalSeismicHazard, getSeismicDesignParams } from "@/lib/seismic-design";
 import { getSeismicHazardCurves } from "@/lib/seismic-hazard-curves";
-import { getSoilProfile } from "@/lib/soil-profile";
+import { getSoilProfile, getSoilProfileExtended } from "@/lib/soil-profile";
 import { resolveSourceRegistryContext } from "@/lib/source-registry";
 import { buildRegistryAwareSourceMeta } from "@/lib/source-metadata";
 import { sanitizeStreamGauges } from "@/lib/stream-gauges";
@@ -38,7 +38,73 @@ import { fetchEarthquakeSummary } from "@/lib/usgs-earthquakes";
 import { fetchElevation } from "@/lib/usgs";
 import { getNearbyStreamGauges } from "@/lib/water";
 import { getSolarResource } from "@/lib/solar-resource";
-import { GeodataResult } from "@/types";
+import { getTerrainDerivatives } from "@/lib/terrain-derivatives";
+import { getPopulationDensity } from "@/lib/population-density";
+import { getGlobalLandCover } from "@/lib/land-cover";
+import { getFloodHazard } from "@/lib/flood-hazard";
+import { getDroughtIndices } from "@/lib/drought-indices";
+import { getSeismicHazard } from "@/lib/seismic-hazard";
+import { DatasetAttemptSummary, GeodataResult, SourceDomain } from "@/types";
+
+// Simple tracker for recording provider call attempts and outcomes
+class DatasetTracker {
+  private attempts: DatasetAttemptSummary[] = [];
+
+  track<T>(
+    providerId: string,
+    domain: SourceDomain,
+    promise: Promise<PromiseSettledResult<T>>,
+  ): Promise<PromiseSettledResult<T>> {
+    const start = Date.now();
+    return promise
+      .then((result) => {
+        const duration = Date.now() - start;
+        if (result.status === "fulfilled") {
+          this.attempts.push({
+            providerId,
+            domain,
+            attempted: true,
+            status: "success",
+            durationMs: duration,
+          });
+        } else {
+          this.attempts.push({
+            providerId,
+            domain,
+            attempted: true,
+            status: "error",
+            durationMs: duration,
+          });
+        }
+        return result;
+      })
+      .catch((error) => {
+        const duration = Date.now() - start;
+        const status = error?.message?.includes("timed out") ? "timeout" : "error";
+        this.attempts.push({
+          providerId,
+          domain,
+          attempted: true,
+          status: status as "timeout" | "error",
+          durationMs: duration,
+        });
+        throw error;
+      });
+  }
+
+  skip(providerId: string, domain: SourceDomain, reason: "skipped_region" | "not_integrated"): void {
+    this.attempts.push({
+      providerId,
+      domain,
+      attempted: false,
+      status: reason,
+    });
+  }
+
+  getAttempts(): DatasetAttemptSummary[] {
+    return this.attempts;
+  }
+}
 
 const PROVIDER_TIMEOUTS = {
   infrastructure: 20_000,
@@ -55,6 +121,12 @@ const PROVIDER_TIMEOUTS = {
   epaHazards: 7_000,
   gdacsAlerts: 8_500,
   solar: 20_000,
+  terrainDerivatives: 15_000,
+  populationDensity: 15_000,
+  landCoverGlobal: 15_000,
+  floodHazard: 15_000,
+  droughtIndices: 15_000,
+  seismicHazard: 15_000,
 } as const;
 
 function withSoftTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -216,6 +288,8 @@ export async function GET(request: NextRequest) {
   }
 
   const { lat, lng } = coordinates;
+  const includeAttempts = request.nextUrl.searchParams.get("include_attempts") === "true";
+  const tracker = new DatasetTracker();
 
   // Check Redis cache first
   const cached = await getGeodataCache(lat, lng);
@@ -262,6 +336,11 @@ export async function GET(request: NextRequest) {
     PROVIDER_TIMEOUTS.soil,
     "soil profile",
   );
+  const soilProfileExtendedPromise = withSoftTimeout(
+    getSoilProfileExtended({ lat, lng }),
+    PROVIDER_TIMEOUTS.soil,
+    "soil profile extended",
+  );
   const seismicDesignPromise = withSoftTimeout(
     isUsPoint
       ? getSeismicDesignParams({ lat, lng })
@@ -294,6 +373,31 @@ export async function GET(request: NextRequest) {
   const nwsAlertPromise = isUsPoint
     ? withSoftTimeout(fetchNwsAlerts(lat, lng), 6_000, "nws alerts")
     : Promise.resolve(null);
+  const populationDensityPromise = withSoftTimeout(
+    getPopulationDensity(lat, lng),
+    PROVIDER_TIMEOUTS.populationDensity,
+    "population density",
+  );
+  const landCoverGlobalPromise = withSoftTimeout(
+    getGlobalLandCover(lat, lng),
+    PROVIDER_TIMEOUTS.landCoverGlobal,
+    "land cover",
+  );
+  const floodHazardPromise = withSoftTimeout(
+    getFloodHazard(lat, lng),
+    PROVIDER_TIMEOUTS.floodHazard,
+    "flood hazard",
+  );
+  const droughtIndicesPromise = withSoftTimeout(
+    getDroughtIndices(lat, lng),
+    PROVIDER_TIMEOUTS.droughtIndices,
+    "drought indices",
+  );
+  const seismicHazardPromise = withSoftTimeout(
+    getSeismicHazard(lat, lng),
+    PROVIDER_TIMEOUTS.seismicHazard,
+    "seismic hazard",
+  );
 
   const [
     elevationResult,
@@ -308,6 +412,7 @@ export async function GET(request: NextRequest) {
     waterGaugeResult,
     groundwaterResult,
     soilProfileResult,
+    soilProfileExtendedResult,
     seismicDesignResult,
     seismicCurvesResult,
     climateHistoryResult,
@@ -316,6 +421,12 @@ export async function GET(request: NextRequest) {
     gdacsAlertResult,
     solarResourceResult,
     nwsAlertResult,
+    terrainDerivativesResult,
+    populationDensityResult,
+    landCoverGlobalResult,
+    floodHazardResult,
+    droughtIndicesResult,
+    seismicHazardResult,
   ] =
     await Promise.allSettled([
       fetchElevation({ lat, lng }),
@@ -338,6 +449,7 @@ export async function GET(request: NextRequest) {
       waterGaugePromise,
       groundwaterPromise,
       soilProfilePromise,
+      soilProfileExtendedPromise,
       seismicDesignPromise,
       seismicCurvesPromise,
       withSoftTimeout(
@@ -350,6 +462,16 @@ export async function GET(request: NextRequest) {
       gdacsAlertPromise,
       withSoftTimeout(getSolarResource({ lat, lng }), PROVIDER_TIMEOUTS.solar, "solar resource"),
       nwsAlertPromise,
+      withSoftTimeout(
+        getTerrainDerivatives({ lat, lng }),
+        PROVIDER_TIMEOUTS.terrainDerivatives,
+        "terrain derivatives",
+      ),
+      populationDensityPromise,
+      landCoverGlobalPromise,
+      floodHazardPromise,
+      droughtIndicesPromise,
+      seismicHazardPromise,
     ]);
   const responseHeaders = {
     "Cache-Control": "s-maxage=21600, stale-while-revalidate=43200",
@@ -517,6 +639,20 @@ export async function GET(request: NextRequest) {
         return raw;
       })(),
       landClassification: buildLandCoverBuckets(infrastructure),
+      populationDensity:
+        populationDensityResult.status === "fulfilled" ? populationDensityResult.value : null,
+      landCoverGlobal:
+        landCoverGlobalResult.status === "fulfilled" ? landCoverGlobalResult.value : null,
+      floodHazard:
+        floodHazardResult.status === "fulfilled" ? floodHazardResult.value : null,
+      droughtIndices:
+        droughtIndicesResult.status === "fulfilled" ? droughtIndicesResult.value : null,
+      seismicHazard:
+        seismicHazardResult.status === "fulfilled" ? seismicHazardResult.value : null,
+      soilProfileExtended:
+        soilProfileExtendedResult.status === "fulfilled" ? soilProfileExtendedResult.value : null,
+      terrainDerivatives:
+        terrainDerivativesResult.status === "fulfilled" ? terrainDerivativesResult.value : null,
     } satisfies Omit<GeodataResult, "sources" | "sourceNotes">;
 
     Object.assign(partial, assembledData);
@@ -868,6 +1004,28 @@ export async function GET(request: NextRequest) {
             ? "No mapped SSURGO soil profile was returned for this point."
             : "SoilGrids returned no data for this coordinate.",
       }),
+      soilProfileExtended: buildRegistryAwareSourceMeta({
+        id: "soil-profile-extended",
+        label: "Extended soil properties",
+        provider: "SoilGrids (ISRIC)",
+        domain: "soil",
+        context: registryContext,
+        status:
+          soilProfileExtendedResult.status === "fulfilled" && soilProfileExtendedResult.value
+            ? Object.values(soilProfileExtendedResult.value).some((v) => v !== null)
+              ? "live"
+              : "limited"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Global 250m rasters — cached 7 days",
+        coverage: "Global (250 m resolution)",
+        confidence:
+          soilProfileExtendedResult.status === "fulfilled" && soilProfileExtendedResult.value
+            ? Object.values(soilProfileExtendedResult.value).some((v) => v !== null)
+              ? "SoilGrids extended properties: organic carbon, nitrogen, pH, CEC, bulk density, coarse fragments at 0-30 cm mean depth."
+              : "SoilGrids did not return extended properties for this coordinate."
+            : "Extended soil properties could not be retrieved for this point.",
+      }),
       seismicDesign: buildRegistryAwareSourceMeta({
         id: "seismic-design",
         label: "Seismic design parameters",
@@ -1019,6 +1177,114 @@ export async function GET(request: NextRequest) {
           ? undefined
           : "NOAA NWS coverage is limited to US forecast zones.",
       }),
+      populationDensity: buildRegistryAwareSourceMeta({
+        id: "worldpop",
+        label: "Population density",
+        provider: "WorldPop Global Population (100m resolution)",
+        domain: "population",
+        context: registryContext,
+        status:
+          populationDensityResult.status === "fulfilled" && populationDensityResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Annual WorldPop data grid (2020 reference year)",
+        coverage: "Global 100m resolution population density grids",
+        confidence:
+          populationDensityResult.status === "fulfilled" && populationDensityResult.value
+            ? "Direct population density from WorldPop global gridded estimates."
+            : "Population density data could not be retrieved for this location.",
+      }),
+      landCoverGlobal: buildRegistryAwareSourceMeta({
+        id: "esa-cci-landcover",
+        label: "Global land cover",
+        provider: "ESA CCI Land Cover (300m resolution)",
+        domain: "land_cover",
+        context: registryContext,
+        status:
+          landCoverGlobalResult.status === "fulfilled" && landCoverGlobalResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Annual ESA CCI satellite-derived classification (2020 reference year)",
+        coverage: "Global 300m resolution land cover grids",
+        confidence:
+          landCoverGlobalResult.status === "fulfilled" && landCoverGlobalResult.value
+            ? "ESA CCI authoritative satellite-derived land cover classification using UN-LCCS scheme."
+            : "Land cover data could not be retrieved for this location.",
+      }),
+      floodHazard: buildRegistryAwareSourceMeta({
+        id: "gfms",
+        label: "Global flood hazard",
+        provider: "Global Flood Monitoring System (1km resolution)",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          floodHazardResult.status === "fulfilled" && floodHazardResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Near real-time flood probability from satellite rainfall and hydrologic modeling",
+        coverage: "Global 1km resolution probabilistic flood hazard maps",
+        confidence:
+          floodHazardResult.status === "fulfilled" && floodHazardResult.value
+            ? "Flood probability and return period from GFMS satellite-derived rainfall and global hydrologic model."
+            : "Flood hazard data could not be retrieved for this location.",
+      }),
+      droughtIndices: buildRegistryAwareSourceMeta({
+        id: "chirps-spi",
+        label: "Drought indices",
+        provider: "CHIRPS Precipitation + SPI (5km resolution)",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          droughtIndicesResult.status === "fulfilled" && droughtIndicesResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Monthly CHIRPS rainfall and computed Standard Precipitation Index (2024 reference)",
+        coverage: "Global 5km resolution rainfall and drought indices",
+        confidence:
+          droughtIndicesResult.status === "fulfilled" && droughtIndicesResult.value
+            ? "CHIRPS rainfall with 3-month and 12-month SPI for drought assessment; interpretation requires agronomic context."
+            : "Drought indices could not be retrieved for this location.",
+      }),
+      seismicHazard: buildRegistryAwareSourceMeta({
+        id: "gem-shakemap",
+        label: "Seismic probabilistic hazard",
+        provider: "GEM OpenQuake (1km resolution, 475-year return period)",
+        domain: "hazards",
+        context: registryContext,
+        status:
+          seismicHazardResult.status === "fulfilled" && seismicHazardResult.value
+            ? "live"
+            : "unavailable",
+        lastUpdated: now,
+        freshness: "Global Earthquake Model probabilistic seismic hazard maps (2023 reference year)",
+        coverage: "Global 1km resolution PGA and spectral acceleration maps",
+        confidence:
+          seismicHazardResult.status === "fulfilled" && seismicHazardResult.value
+            ? "GEM OpenQuake peak ground acceleration (g) and spectral acceleration from probabilistic seismic hazard model."
+            : "Seismic hazard data could not be retrieved for this location.",
+      }),
+      terrainDerivatives: buildRegistryAwareSourceMeta({
+        id: "terrain-derivatives",
+        label: "Terrain derivatives",
+        provider: "DEM-derived (slope, aspect, TRI)",
+        domain: "terrain",
+        context: registryContext,
+        status:
+          terrainDerivativesResult.status === "fulfilled" && terrainDerivativesResult.value
+            ? "derived"
+            : "limited",
+        lastUpdated: now,
+        freshness: "Computed on-demand from base elevation (USGS/OpenTopoData)",
+        coverage: "Global (where elevation is available)",
+        confidence:
+          terrainDerivativesResult.status === "fulfilled" && terrainDerivativesResult.value
+            ? "Computed from 3x3 DEM grid using Horn's method for slope & aspect, mean-absolute-difference for TRI."
+            : "Terrain derivatives could not be computed for this location.",
+      }),
     },
       sourceNotes: [
       "Elevation via USGS EPQS in the US, with OpenTopoData SRTM fallback for global coverage.",
@@ -1056,7 +1322,10 @@ export async function GET(request: NextRequest) {
     // Cache the assembled result (fire-and-forget)
     setGeodataCache(lat, lng, geodata);
 
-    return NextResponse.json(geodata, {
+    // Optionally include dataset attempt tracking in response
+    const response = includeAttempts ? { ...geodata, datasetAttempts: tracker.getAttempts() } : geodata;
+
+    return NextResponse.json(response, {
       headers: responseHeaders,
     });
   } catch {

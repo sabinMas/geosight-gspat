@@ -2,14 +2,18 @@ import { DEFAULT_PROFILE } from "@/lib/profiles";
 import { formatDistanceKm, getNearestStreamGauge } from "@/lib/stream-gauges";
 import { clamp } from "@/lib/utils";
 import {
+  DroughtIndicesResult,
+  FloodHazardResult,
   GdacsAlertSummary,
   GeodataResult,
+  GlobalLandCoverResult,
   HazardDomainScore,
   HazardResilienceSummary,
   HazardRiskTier,
   LandCoverBucket,
   MissionProfile,
   ScoringFactor,
+  SeismicHazardResult,
   SiteFactorScore,
   SiteScore,
 } from "@/types";
@@ -506,6 +510,30 @@ function scoreSoilBuildability(geodata: GeodataResult) {
   return 60;
 }
 
+function scoreSlopeRuggedness(slopeDegrees: number | null, tri: number | null): number {
+  if (slopeDegrees === null || tri === null) {
+    return 55;
+  }
+
+  // Excellent buildability: flat & smooth
+  if (slopeDegrees < 5 && tri < 15) {
+    return 90;
+  }
+
+  // Good buildability: moderate slope & ruggedness
+  if (slopeDegrees < 15 && tri < 30) {
+    return 72;
+  }
+
+  // Challenging buildability: steeper terrain
+  if (slopeDegrees < 30 && tri < 50) {
+    return 50;
+  }
+
+  // Very steep & rugged: difficult development
+  return 35;
+}
+
 function scoreHazardAlerts(hazardAlerts: GdacsAlertSummary | null): number {
   if (hazardAlerts === null) {
     return 70;
@@ -542,6 +570,182 @@ export function scoreSeismicRisk(geodata: GeodataResult) {
     return 55;
   }
   return 30;
+}
+
+function scorePopulationDensity(density: number | null, context: string = "general"): number {
+  if (density === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "urban_preference":
+      if (density > 5000) return 100;
+      if (density > 1000) return 90;
+      if (density > 100) return 75;
+      if (density > 10) return 40;
+      return 20;
+
+    case "rural_preference":
+      if (density < 10) return 95;
+      if (density < 50) return 80;
+      if (density < 100) return 65;
+      if (density < 500) return 40;
+      return 20;
+
+    default:
+      if (density < 1) return 75;
+      if (density < 10) return 85;
+      if (density < 50) return 70;
+      if (density < 100) return 60;
+      if (density < 500) return 50;
+      if (density < 1000) return 45;
+      return 40;
+  }
+}
+
+function scoreGlobalLandCover(landCover: GlobalLandCoverResult | null, context: string = "general"): number {
+  if (landCover === null) {
+    return 50;
+  }
+
+  const dominant = landCover.dominantClass.toLowerCase();
+
+  switch (context) {
+    case "development_potential":
+      if (dominant.includes("urban") || dominant.includes("bare")) return 85;
+      if (dominant.includes("grassland") || dominant.includes("shrub")) return 75;
+      if (dominant.includes("cropland")) return 70;
+      if (dominant.includes("forest")) return 45;
+      if (dominant.includes("water") || dominant.includes("wetland")) return 20;
+      return 50;
+
+    case "forest_coverage":
+      if (dominant.includes("forest") || dominant.includes("tree")) return 90;
+      if (dominant.includes("shrub") || dominant.includes("moss")) return 60;
+      if (dominant.includes("grass")) return 40;
+      return 30;
+
+    case "water_proximity":
+      if (dominant.includes("water") || dominant.includes("wetland")) return 95;
+      if (dominant.includes("grass")) return 70;
+      if (dominant.includes("urban")) return 50;
+      return 60;
+
+    default:
+      if (dominant.includes("urban")) return 65;
+      if (dominant.includes("forest")) return 75;
+      if (dominant.includes("grassland") || dominant.includes("shrub")) return 70;
+      if (dominant.includes("cropland")) return 65;
+      if (dominant.includes("water")) return 55;
+      return 55;
+  }
+}
+
+function scoreFloodHazard(result: FloodHazardResult | null, context: string = "general"): number {
+  if (result === null) {
+    return 50;
+  }
+
+  const prob = result.probabilityPercent;
+  if (prob === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "insurance":
+      // Insurance context: higher flood probability → lower score (more risk)
+      if (prob > 50) return 25;
+      if (prob > 25) return 40;
+      if (prob > 10) return 55;
+      return 80;
+
+    case "development":
+      // Development context: balance cost/risk
+      if (prob > 50) return 35;
+      if (prob > 25) return 50;
+      if (prob > 10) return 65;
+      return 85;
+
+    default:
+      // General context: neutral assessment
+      if (prob > 50) return 30;
+      if (prob > 25) return 45;
+      if (prob > 10) return 60;
+      return 75;
+  }
+}
+
+function scoreDroughtIndices(result: DroughtIndicesResult | null, context: string = "general"): number {
+  if (result === null) {
+    return 50;
+  }
+
+  const spi12 = result.spi12Month;
+  if (spi12 === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "agricultural":
+      // Agricultural context: negative SPI (drought) is very bad
+      if (spi12 < -2) return 20;
+      if (spi12 < -1.5) return 35;
+      if (spi12 < -1) return 50;
+      if (spi12 < 0) return 65;
+      if (spi12 > 2) return 40; // Excess moisture can be problematic
+      return 75;
+
+    case "water_security":
+      // Water security context: drought reduces water availability
+      if (spi12 < -2) return 25;
+      if (spi12 < -1.5) return 40;
+      if (spi12 < -1) return 55;
+      if (spi12 < 0) return 70;
+      return 80;
+
+    default:
+      // General context
+      if (spi12 < -2) return 30;
+      if (spi12 < -1.5) return 45;
+      if (spi12 < -1) return 60;
+      if (spi12 < 0) return 70;
+      return 75;
+  }
+}
+
+function scoreSeismicHazard(result: SeismicHazardResult | null, context: string = "general"): number {
+  if (result === null) {
+    return 50;
+  }
+
+  const pga = result.pgaG;
+  if (pga === null) {
+    return 50;
+  }
+
+  switch (context) {
+    case "engineering":
+      // Engineering context: higher PGA requires stronger design
+      if (pga > 0.8) return 30;
+      if (pga > 0.5) return 45;
+      if (pga > 0.3) return 60;
+      if (pga > 0.1) return 75;
+      return 85;
+
+    case "insurance":
+      // Insurance context: seismic hazard affects premiums
+      if (pga > 0.6) return 35;
+      if (pga > 0.4) return 50;
+      if (pga > 0.2) return 65;
+      return 80;
+
+    default:
+      // General context
+      if (pga > 0.6) return 40;
+      if (pga > 0.4) return 55;
+      if (pga > 0.2) return 70;
+      return 80;
+  }
 }
 
 function scoreCustomMetric(
@@ -586,6 +790,11 @@ function scoreCustomMetric(
       );
     case "soilBuildability":
       return scoreSoilBuildability(geodata);
+    case "slopeRuggedness":
+      return scoreSlopeRuggedness(
+        geodata.terrainDerivatives?.slopeDegrees ?? null,
+        geodata.terrainDerivatives?.terrainRuggednessIndex ?? null,
+      );
     case "seismicRisk":
       return scoreSeismicRisk(geodata);
     case "broadbandConnectivity":
@@ -632,6 +841,31 @@ function scoreCustomMetric(
         scoreFromDistance(roadDistance, 2.5, 16) * 0.45 +
           scoreLandCover(geodata.landClassification, "commercial") * 0.25 +
           scoreFromDistance(powerDistance, 3.5, 20) * 0.3,
+      );
+    case "populationDensity":
+      return scorePopulationDensity(
+        geodata.populationDensity?.personsPerSqKm ?? null,
+        String(params.context ?? "general"),
+      );
+    case "landCoverGlobal":
+      return scoreGlobalLandCover(
+        geodata.landCoverGlobal ?? null,
+        String(params.context ?? "general"),
+      );
+    case "floodHazard":
+      return scoreFloodHazard(
+        geodata.floodHazard ?? null,
+        String(params.context ?? "general"),
+      );
+    case "droughtIndices":
+      return scoreDroughtIndices(
+        geodata.droughtIndices ?? null,
+        String(params.context ?? "general"),
+      );
+    case "seismicHazard":
+      return scoreSeismicHazard(
+        geodata.seismicHazard ?? null,
+        String(params.context ?? "general"),
       );
     default:
       return topLandCover?.label.toLowerCase().includes("water") ? 40 : vegetationScore;
@@ -705,6 +939,10 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
         return geodata.soilProfile
           ? `${geodata.soilProfile.mapUnitName ?? "Mapped soil unit"}; drainage ${geodata.soilProfile.drainageClass ?? "not reported"}, hydrologic group ${geodata.soilProfile.hydrologicGroup ?? "not reported"}, bedrock ${geodata.soilProfile.depthToBedrockCm === null ? "not reported" : `${(geodata.soilProfile.depthToBedrockCm / 30.48).toFixed(1)} ft below surface`}.`
           : "Soil profile unavailable.";
+      case "slopeRuggedness":
+        return geodata.terrainDerivatives
+          ? `Slope ${geodata.terrainDerivatives.slopeDegrees?.toFixed(1) ?? "?"} degrees, terrain ruggedness index ${geodata.terrainDerivatives.terrainRuggednessIndex?.toFixed(1) ?? "?"} m.`
+          : "Terrain derivatives unavailable.";
       case "seismicRisk":
         return geodata.seismicDesign?.pga !== null && geodata.seismicDesign?.pga !== undefined
           ? `USGS design values: PGA ${geodata.seismicDesign.pga.toFixed(2)} g, Ss ${geodata.seismicDesign.ss === null ? "--" : geodata.seismicDesign.ss.toFixed(2)} g, S1 ${geodata.seismicDesign.s1 === null ? "--" : geodata.seismicDesign.s1.toFixed(2)} g.`
@@ -787,6 +1025,26 @@ function buildFactorDetail(geodata: GeodataResult, factor: ScoringFactor) {
           roadDist === null ? "road access unknown" : `nearest road ${roadDist.toFixed(1)} km`;
         return `${trailPart}; ${roadPart}.`;
       }
+      case "populationDensity":
+        return geodata.populationDensity && geodata.populationDensity.personsPerSqKm !== null
+          ? `${geodata.populationDensity.personsPerSqKm.toLocaleString()} persons/km² (100m resolution, 2020 reference year).`
+          : "Population density unavailable.";
+      case "landCoverGlobal":
+        return geodata.landCoverGlobal
+          ? `Dominant cover: ${geodata.landCoverGlobal.dominantClass} (class code ${geodata.landCoverGlobal.dominantClassCode}, 300m resolution, 2020 reference year).`
+          : "Global land cover unavailable.";
+      case "floodHazard":
+        return geodata.floodHazard && geodata.floodHazard.probabilityPercent !== null
+          ? `Flood probability ${geodata.floodHazard.probabilityPercent.toFixed(1)}% (${geodata.floodHazard.returnPeriodYears ?? "unknown"}-year return period, 1km resolution).`
+          : "Flood hazard data unavailable.";
+      case "droughtIndices":
+        return geodata.droughtIndices
+          ? `SPI-12 ${(geodata.droughtIndices.spi12Month ?? 0).toFixed(2)}, precipitation ${(geodata.droughtIndices.precipitationMm ?? 0).toFixed(0)} mm (5km resolution, 2024 reference).`
+          : "Drought indices unavailable.";
+      case "seismicHazard":
+        return geodata.seismicHazard && geodata.seismicHazard.pgaG !== null
+          ? `PGA ${geodata.seismicHazard.pgaG.toFixed(2)} g (475-year return period, 1km resolution).`
+          : "Seismic hazard data unavailable.";
       default:
         return factor.description;
     }
@@ -884,6 +1142,15 @@ function buildFactorEvidence(factor: ScoringFactor): FactorEvidenceResult {
           proxyReason:
             "Soil survey data; site-specific conditions may vary from mapped unit",
         };
+      case "slopeRuggedness":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from SRTM elevation grid analysis: slope via Horn's method (gradient direction and magnitude) and terrain ruggedness via TRI (mean absolute elevation difference from center cell).",
+          sourceIds: ["usgs-epqs"],
+          sourceLastUpdated: "2024",
+        };
       case "seismicRisk":
         return {
           evidenceKind: "derived_live",
@@ -958,6 +1225,51 @@ function buildFactorEvidence(factor: ScoringFactor): FactorEvidenceResult {
           sourceLastUpdated: "live",
           proxyReason:
             "Score is a weighted blend of OSM amenity counts, distance, and land-cover signals; not a single authoritative measurement.",
+        };
+      case "populationDensity":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from WorldPop global population density grids at 100m resolution, providing direct population density estimates for the location.",
+          sourceIds: ["worldpop"],
+          sourceLastUpdated: "2020",
+        };
+      case "landCoverGlobal":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from ESA CCI satellite-derived global land cover classification at 300m resolution, using the UN-LCCS standard scheme for consistent global land-use classification.",
+          sourceIds: ["esa-cci-landcover"],
+          sourceLastUpdated: "2020",
+        };
+      case "floodHazard":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from Global Flood Monitoring System (GFMS) probabilistic flood hazard maps at 1km resolution, derived from satellite rainfall and hydrologic modeling.",
+          sourceIds: ["gfms"],
+          sourceLastUpdated: "2023",
+        };
+      case "droughtIndices":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from CHIRPS monthly rainfall data and computed Standard Precipitation Index (SPI) at 5km resolution, providing drought assessment on 3-month and 12-month timescales.",
+          sourceIds: ["chirps-spi"],
+          sourceLastUpdated: "2024",
+        };
+      case "seismicHazard":
+        return {
+          evidenceKind: "direct_live",
+          evidenceLabel: "Direct live signal",
+          evidenceExplanation:
+            "This factor is scored from Global Earthquake Model (GEM) OpenQuake probabilistic seismic hazard maps at 1km resolution, using peak ground acceleration (PGA) for a 475-year return period.",
+          sourceIds: ["gem-shakemap"],
+          sourceLastUpdated: "2023",
         };
       default:
         return {
