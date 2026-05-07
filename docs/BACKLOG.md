@@ -2,6 +2,7 @@
 
 **Last updated:** 2026-05-07
 **Active branch convention:** `phase-N-<short-name>` — one branch per phase, no nested worktrees.
+**Pre-production staging:** `Phase3` branch collects all Phase 3 regional data packs before final merge to main.
 **Live target domain:** [geosight.earth](https://geosight.earth) (deployment in Phase 6)
 
 ---
@@ -25,11 +26,31 @@
 
 **Goal:** Move from "global signals exist but spotty outside US" → "if a country has open geo data, GeoSight knows about it and uses it." Catalog tracked in [`docs/DATASETS_GLOBAL.md`](DATASETS_GLOBAL.md).
 
-### Region packs (one PR per pack)
+**Pre-production staging:** All Phase 3 work (all 8 region packs) merges into **`Phase3` branch** before final merge to `main`. Phase3 is a stable pre-production environment for testing regional data integration end-to-end.
+
+### Branch hierarchy
+
+```
+main (production)
+  ↑
+Phase3 (pre-production staging for Phase 3)
+  ├─ phase-3-eu-pack → Phase3 (CORINE, EFFIS, EEA, OS)
+  ├─ phase-3-japan-pack → Phase3 (GSI, J-SHIS, etc.)
+  ├─ phase-3-india-pack → Phase3 (Bhuvan, IMD, Census)
+  ├─ phase-3-canada-pack → Phase3 (NRCan, Statistics Canada)
+  ├─ phase-3-australia-pack → Phase3 (GA, LINZ)
+  ├─ phase-3-southamerica-pack → Phase3 (MapBiomas, INPE, IBGE)
+  ├─ phase-3-mena-pack → Phase3 (Dubai Pulse, UAE Atlas)
+  └─ phase-3-china-pack → Phase3 (GADM, RESDC)
+```
+
+**Final release:** When all 8 packs are merged and tested on Phase3, single PR Phase3 → main ships all regional data at once.
+
+### Region packs (one PR per pack, target: Phase3)
 
 Priority order, scoped to top-demand markets per AGENTS.md:
 
-1. **EU pack** — Copernicus CLC + Tree Cover Density, EFFIS active fires, GLoFAS flood, expanded Eurostat regional layers
+1. **EU pack** ✅ Complete — Copernicus CLC + Tree Cover Density, EFFIS active fires, EEA floods, EEA air quality, OS open data
 2. **Canada / Greenland / Nordic** — NRCan base data, Statistics Norway/Sweden regional layers, Greenland geomatics
 3. **Japan** — GSI topographic + hazard layers, J-SHIS seismic
 4. **India** — Bhuvan ISRO platform, IMD weather, Census of India
@@ -42,17 +63,17 @@ Priority order, scoped to top-demand markets per AGENTS.md:
 
 - Trust labels degrade gracefully (`live` → `derived` → `limited` → `unavailable`) — never silent gaps.
 - New providers registered in `src/lib/source-registry.ts` with accurate coverage metadata.
-- 10 representative coordinates per region tested end-to-end.
+- 10 representative coordinates per region tested end-to-end (`tests/unit/<region>-regional-coverage.test.ts`).
 - A click on Tokyo, Mumbai, Berlin, São Paulo, Auckland, or Reykjavik produces a scored briefing with **≥ 60% of factors as `live` or `derived`**. Dubai and Lagos minimum 40%.
-- README "Data Sources" table updated.
-- Region detection logic in geodata route picks best-available providers per coordinate.
+- README "Data Sources" table updated per region.
+- Region detection logic in geodata route picks best-available providers per coordinate (conditional on `isLikelyEuropeanCoordinate()`, `isLikelyJapanCoordinate()`, etc.).
 
 ### Implementation method
 
-1. **Dataset Scout pass** for each region — produce ingestion specs in `docs/DATASETS_GLOBAL.md` (URL, license, coverage, resolution, access method, integration notes).
+1. **Dataset Scout pass** for each region — produce ingestion specs in `docs/DATASETS_GLOBAL.md` (URL, license, coverage, resolution, access method, integration notes). ✅ Complete (8 scouts in parallel, 2026-05-07).
 2. **Country-aware geodata routing** in `src/app/api/geodata/route.ts` — detect bounding country/region from coordinates; pick best providers; pass through trust labels.
-3. **Iterative integration** — one PR per region pack. Branch name: `phase-3-<region>-pack` (e.g., `phase-3-eu-pack`).
-4. **Test matrix** — sample coordinates per region committed to `tests/regional-coverage.test.ts`.
+3. **Iterative integration** — one PR per region pack. Branch name: `phase-3-<region>-pack` (e.g., `phase-3-eu-pack`). **Target base: `Phase3` branch** (not main).
+4. **Test matrix** — sample coordinates per region committed to `tests/unit/eu-regional-coverage.test.ts` (pattern: `tests/unit/<region>-regional-coverage.test.ts`).
 
 ---
 
@@ -109,11 +130,12 @@ Priority order, scoped to top-demand markets per AGENTS.md:
 
 ## Working protocol
 
-1. **Branch hygiene** — one phase = one branch named `phase-N-<short-name>`. Merge cleanly. No nested worktrees, no `claude/*` or `worktree-agent-*` proliferation.
-2. **Tests + docs as part of done** — every phase ends with `npm test` green, this BACKLOG.md updated, `AGENTS.md` still accurate.
+1. **Branch hygiene** — one pack/feature = one branch named `phase-N-<short-name>`. Merge cleanly. No nested worktrees, no `claude/*` or `worktree-agent-*` proliferation.
+   - **Phase 3 exception:** All region packs branch from `Phase3` and PR back to `Phase3` (pre-production staging). Final `Phase3 → main` ships all packs at once.
+2. **Tests + docs as part of done** — every pack/phase ends with `npm test` green, BACKLOG.md updated, AGENTS.md still accurate, README data sources updated.
 3. **AI backbone is Cerebras** (GeoAnalyst) + Gemini (GeoScribe). Tune them — don't replace.
 4. **Trust over fluency** — never fabricate data. Trust labels (`live` / `derived` / `limited` / `unavailable` / `cached`) are non-negotiable; gaps are honest UX.
-5. **One PR = one primary agent domain** (per `AGENTS.md`).
+5. **One PR = one primary agent domain** (per `AGENTS.md`). Phase 3 region packs are coarse-grained: one PR per region.
 
 ---
 
