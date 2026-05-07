@@ -29,6 +29,10 @@ const AFRICA_CODES = new Set([
 
 const ANZ_CODES = new Set(["AU", "NZ"]);
 
+const CANADA_CODES = new Set([
+  "CA",
+]);
+
 const MIDDLE_EAST_CODES = new Set([
   "SA","AE","QA","KW","BH","OM","IQ","IR","JO","LB","SY","YE","PS","IL",
 ]);
@@ -78,6 +82,7 @@ export const SOURCE_REGION_LABELS: Record<SourceRegionScope, string> = {
   global: "Global",
   us: "United States",
   "us-wa": "Washington State",
+  canada: "Canada",
   europe: "Europe",
   uk: "United Kingdom",
   japan: "Japan",
@@ -817,6 +822,71 @@ export const SOURCE_PROVIDER_REGISTRY: SourceProviderDefinition[] = [
     resolution: "Station-level (~500 stations in major Indian cities)",
     updateCadence: "continuous",
   },
+  // Phase 3 Canada pack providers
+  {
+    id: "nrcan-hydrology",
+    name: "NRCan Water Survey of Canada (WSC) Hydrology",
+    url: "https://www.wateroffice.ec.gc.ca/",
+    domains: ["hydrology"],
+    accessType: "api",
+    coverage: ["canada"],
+    priority: 10,
+    freshness: "Real-time; 15-30 minute station updates",
+    reliability: "Very high; official Natural Resources Canada monitoring network",
+    rateLimit: "Public API, cache 5 minutes",
+    notes: "Water Survey of Canada real-time discharge and water-level data from 2,100+ monitoring stations across Canada's river network.",
+    integrated: false,
+    resolution: "Station-level (2.1k stations across Canadian watersheds)",
+    updateCadence: "continuous",
+  },
+  {
+    id: "cwfis-wildfires",
+    name: "CWFIS Wildfire Danger & Active Incidents",
+    url: "https://cwfis.cfs.nrcan.gc.ca/",
+    domains: ["hazards"],
+    accessType: "api",
+    coverage: ["canada"],
+    priority: 10,
+    freshness: "Real-time fire danger indices; updated multiple times daily",
+    reliability: "Very high; official Canadian Wildland Fire Information System",
+    rateLimit: "Public API, cache 3 minutes",
+    notes: "Canadian Wildland Fire Information System (CWFIS) with Fire Weather Index (FWI), Build-Up Index (BUI), and active wildfire incidents across Canada.",
+    integrated: false,
+    resolution: "National fire danger grid",
+    updateCadence: "continuous",
+  },
+  {
+    id: "eccc-air-quality",
+    name: "ECCC Air Quality Monitoring Network",
+    url: "https://www.canada.ca/en/environment-climate-change.html",
+    domains: ["environmental"],
+    accessType: "api",
+    coverage: ["canada"],
+    priority: 10,
+    freshness: "Real-time; 15-30 minute updates from active stations",
+    reliability: "High; official Environment and Climate Change Canada monitoring network",
+    rateLimit: "Public API, cache 10 minutes",
+    notes: "Real-time air quality data from ~600 monitoring stations including O3, NO2, PM2.5, PM10, SO2, CO across Canada.",
+    integrated: false,
+    resolution: "Station-level (~600 stations in Canadian cities and regions)",
+    updateCadence: "continuous",
+  },
+  {
+    id: "nrcan-seismic",
+    name: "NRCan Seismic Hazard & Earthquake Data",
+    url: "https://earthquakescanada.nrcan.gc.ca/",
+    domains: ["hazards"],
+    accessType: "api",
+    coverage: ["canada"],
+    priority: 10,
+    freshness: "Real-time earthquake catalog; hazard maps updated seasonally",
+    reliability: "Very high; official Natural Resources Canada seismic network",
+    rateLimit: "Public API, cache 5 minutes",
+    notes: "Real-time earthquake locations and magnitudes plus seismic hazard assessment (475-year return period PGA) for Canada's seismically active regions.",
+    integrated: false,
+    resolution: "National earthquake network and hazard grid",
+    updateCadence: "continuous",
+  },
 ];
 
 function uniqueScopes(scopes: SourceRegionScope[]) {
@@ -862,6 +932,10 @@ export function resolveSourceRegistryContext(input: {
 
   if (countryCode === "IN") {
     scopes.push("india");
+  }
+
+  if (countryCode === "CA") {
+    scopes.push("canada");
   }
 
   if (countryCode && ANZ_CODES.has(countryCode)) {

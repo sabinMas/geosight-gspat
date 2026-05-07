@@ -62,6 +62,7 @@ export type SourceRegionScope =
   | "global"
   | "us"
   | "us-wa"
+  | "canada"
   | "europe"
   | "uk"
   | "japan"
