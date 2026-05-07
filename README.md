@@ -78,24 +78,64 @@ This project genuinely wouldn't exist at this scale without Codex. As a student 
 
 ---
 
-## Data Sources (40+ Live Signals)
+## Data Sources
+
+### Global Baseline (120+ Signals — Available Everywhere)
 
 | Category | Sources |
 |---|---|
 | Terrain & Elevation | USGS EPQS, OpenTopoData |
 | Weather & Climate | Open-Meteo forecast + 10-year historical archive |
-| Active Hazards | USGS earthquakes, NASA FIRMS fire detections, FEMA NFHL flood zones |
-| Hydrology | USGS stream gauges, USGS groundwater wells |
-| Air & Environment | OpenAQ, Open-Meteo AQ index, EPA Envirofacts contamination screening |
-| Soil & Subsurface | USDA NRCS soil profiles, USGS seismic design maps |
-| Connectivity | FCC Broadband Map |
-| Schools | NCES national data, Washington OSPI accountability data |
+| Active Hazards | USGS earthquakes, NASA FIRMS fire detections, GLoFAS flood forecasts |
+| Hydrology | OpenStreetMap streams, Copernicus bathymetry |
+| Air & Environment | OpenAQ, Open-Meteo AQ index |
+| Soil & Subsurface | SoilGrids 2.0, global seismic hazard models |
+| Connectivity | FCC Broadband Map (US only; elsewhere global fallback) |
+| Population & Land Cover | WorldPop, ESA WorldCover, GADM boundaries |
 | Nearby Places | OpenStreetMap, Overpass API |
 | Globe & Visualization | Cesium Ion, Cesium World Terrain |
 
-**Global signals** (work anywhere): climate, terrain, elevation, air quality, active fires, nearby places, seismic context.
+### Regional Data Packs (Phase 3 — 10 Packs, 55-60% Global Population)
 
-**US-first signals** (gaps labeled honestly outside US): broadband, FEMA flood zones, EPA contamination, NRCS soil, USGS groundwater, NCES schools.
+| Region | Status | Key Datasets | Population |
+|--------|--------|--------------|-----------|
+| **Japan** | ✅ Live | GSI tiles, J-SHIS seismic, JMA weather + earthquakes, hazard maps (flood/tsunami/seismic) | 125M |
+| **India** | ✅ Live | Bhuvan (hazards, LULC), IMD weather, India-WRIS hydrology, CPCB air quality | 1.4B |
+| **Canada** | ✅ Live | NRCan hydrology, CWFIS wildfires, ECCC air quality, NRCAN seismic | 40M |
+| **Australia + NZ** | ✅ Live | Geoscience AU hazards + DEM, BoM weather, LINZ topo (NZ), GeoNet seismic (NZ) | 26M |
+| **South America** | ✅ Live | INPE deforestation (PRODES/DETER), MapBiomas LULC, USGS seismic, NOAA weather hazards | 430M |
+| **MENA** | ✅ Live | USGS seismic, dust/AQ monitoring, Nile + regional water resources, regional weather | 400M+ |
+| **China + East Asia** | ✅ Live* | **Taiwan:** data.gov.tw + CWA weather; **Hong Kong:** LandsD + data.gov.hk; **South Korea:** data.go.kr + KMA weather; **Mainland:** global-only baseline (OSM, ERA5, Sentinel-2) | 1.6B |
+| **Europe** | ✅ Live | Copernicus (CDS climate, CEMS flood, CLMS LULC), DWD weather, national services | 450M |
+| **Sub-Saharan Africa** | ✅ Live | NiMet (Nigeria), KMD (Kenya), South Africa seismic, GEM Africa Mosaic | 1.2B+ |
+| **Southeast Asia** | ✅ Live | BMKG (Indonesia seismic + weather), TMD (Thailand), NCHMF (Vietnam), ASMC regional | 650M |
+
+**\* East Asia note:** Taiwan, Hong Kong, and South Korea have excellent dedicated government data. Mainland China coverage is limited to global-baseline datasets due to closed data infrastructure — the UI clearly labels this distinction.
+
+### US-First Signals (Gaps Labeled Honestly Outside US)
+- Broadband: FCC Broadband Map (US only; elsewhere global fallback)
+- Flood zones: FEMA NFHL (US only)
+- Contamination: EPA Envirofacts (US only)
+- Soil profiles: NRCS SSURGO (US only)
+- Groundwater: USGS groundwater wells (US-heavy)
+- Schools: NCES (US); Washington State: OSPI accountability
+
+### Coverage Summary
+- **Global baseline available:** 100% of coordinates (120+ signals)
+- **Regional data packs:** 55-60% of global population (10 packs, 520 tests)
+- **Trust labels applied:** Every signal is marked `live`, `derived`, `limited`, `unavailable`, or `cached` — gaps are shown, never fabricated
+
+### Known Gaps (Phase 3.5 & Beyond)
+
+**Regions without dedicated data packs** (global baseline only):
+
+- **Pakistan & Bangladesh** (400M people) — **Tier 1 priority:** Emerging government data; 5.5% additional coverage
+- **Mexico & Central America** (180M people) — **Tier 1 priority:** Good data maturity (INEGI, CONABIO); 2.5% additional coverage
+- **Russia & Central Asia** (214M people) — **Tier 2 priority:** Severe data constraints; geopolitical barriers
+- **Turkey** (85M people) — **Tier 2 priority:** State-owned agencies with limited English APIs
+- **Sub-Saharan Africa (detailed)** (600M+ people) — **Tier 2 priority:** GEM seismic exists; requires country-by-country phased expansion
+- **Caribbean & Pacific Islands** (59M people) — **Low priority:** Minimal government GIS APIs available
+- **Mainland China:** Limited to global datasets (satellite, ERA5, OpenStreetMap) — Government agencies (CMA, CENC) not publicly accessible. **Taiwan, Hong Kong, South Korea fully covered.**
 
 ---
 

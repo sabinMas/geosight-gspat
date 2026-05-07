@@ -147,6 +147,12 @@ Every entry must be **open or low-cost**, **clearly licensed**, and **machine-ac
 
 ---
 
+### South Asia — Coverage Status Note
+
+**Pakistan (PK) & Bangladesh (BD):** Code-routed via `SOUTH_ASIA_CODES` but **NOT YET** covered by dedicated regional packs. These countries are global-baseline-only in current Phase 3 (520 tests total). Both countries have emerging open-data initiatives (SPARRSO satellite imagery for Bangladesh, Survey of Pakistan for topography) and should be Phase 3.5 expansion candidates (Tier 1 priority: 400M people combined).
+
+---
+
 ### Australia / NZ pack
 
 **Scout summary:** 15 verified datasets (9 AU, 6 NZ). P0 focus: Geoscience Australia 1" SRTM DEM, Digital Earth Australia (DEA) STAC + Landsat/Sentinel, Geofabric hydrology, BOM Weather & Radar, IMOS Marine Data, LINZ Topo + Elevation + LCDB land cover, Stats NZ boundaries, GeoNet earthquakes/volcanoes. Australia has excellent open-data infrastructure; NZ similarly strong.
@@ -184,9 +190,13 @@ Every entry must be **open or low-cost**, **clearly licensed**, and **machine-ac
 
 ---
 
-### China / East Asia pack
+### East Asia Pack (Taiwan, Hong Kong, South Korea + Global Coverage for Mainland China)
 
-**Scout summary:** 16 verified datasets. **Significant coverage limitation:** Mainland China has no usable open-data government portals — RESDC, CMA, CENC, NGCC are all gated or Chinese-internal. All Mainland coverage derives from **international open datasets** (OSM, ESA WorldCover, Hansen, ERA5, USGS, GEBCO). **Taiwan, Hong Kong, and South Korea are excellent**, with English-accessible, CC-BY / permissive-licensed portals. Recommended approach: use Sentinel-2 + global EO for Mainland; leverage Taiwan data.gov.tw, HK data.gov.hk, Korea data.go.kr for city-level detail.
+**Scout summary:** 16 verified datasets. **CRITICAL ROUTING NOTE:** This pack has heterogeneous coverage:
+- **Taiwan, Hong Kong, South Korea** ✅ Excellent — Dedicated government open-data portals with English APIs + CC-BY/permissive licenses
+- **Mainland China** ⚠️ **Global baseline only** — No usable open-data government portals (RESDC, CMA, CENC, NGCC are gated/Chinese-internal). All Mainland coverage derives from international datasets (OSM, ESA WorldCover, Hansen, ERA5, USGS, GEBCO)
+
+**Recommended approach:** For Taiwan/Hong Kong/South Korea, use regional datasets. For Mainland China, default to Sentinel-2, global climate reanalysis, and OSM—do not imply parity with regional coverage.
 
 **P0 datasets:**
 1. **OpenStreetMap China Extract (Geofabrik)** — ODbL 1.0; bulk PBF; daily updates
@@ -208,9 +218,15 @@ Every entry must be **open or low-cost**, **clearly licensed**, and **machine-ac
 
 ---
 
-### South America / Amazon pack
+### Latin America Pack (South America + Mexico & Central America)
 
-**Scout summary:** 24 verified datasets. **Excellent coverage for Brazil and Amazon:** MapBiomas (CC-BY-SA), INPE PRODES/DETER/Queimadas, Global Forest Watch, IBGE/geobr, RAISG, ANA hydrology. **Challenge: CC-BY-SA propagation on MapBiomas + TerraBrasilis requires isolated layering** (not baked into static tile exports). Southern Cone (Chile, Argentina, Uruguay) have lower priority but functional portals (SMN, SENAMHI, IGN-AR). **Language caution:** ~70% Portuguese/Spanish only.
+**Scout summary:** 24 verified datasets. **Heterogeneous regional coverage:**
+- **Brazil & Amazon** ✅ Excellent — MapBiomas, INPE PRODES/DETER/Queimadas, Global Forest Watch, IBGE/geobr, RAISG, ANA hydrology
+- **Southern Cone** (Chile, Argentina, Uruguay) — Moderate — Functional but fragmented portals (SMN, SENAMHI, IGN-AR)
+- **Mexico** — Moderate — INEGI (CC-BY-SA), CONABIO, national weather services; **integration with South America pack unclear**
+- **Central America** — Variable — Costa Rica excellent (SNITCR), Guatemala/Honduras/El Salvador/Nicaragua moderate, Panama/Belize limited
+
+**Challenge:** CC-BY-SA propagation on MapBiomas + TerraBrasilis requires isolated layering (not baked into static tile exports). **Language caution:** ~70% Portuguese/Spanish only. **Mexico/Central America data maturity uncertain for Phase 3** — recommend Phase 3.5 expansion for clarity.
 
 **P0 datasets:**
 1. **MapBiomas Brasil** — CC-BY-SA 4.0; GEE / WMS / bulk download; 30m annual 1985–2024

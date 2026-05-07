@@ -15,7 +15,7 @@ const US_STATE_CODES = new Set([
 
 const EUROPE_CODES = new Set([
   "AT","BE","BG","CH","CY","CZ","DE","DK","EE","ES","FI","FR","GR","HR","HU","IE","IS","IT",
-  "LT","LU","LV","MT","NL","NO","PL","PT","RO","SE","SI","SK",
+  "LT","LU","LV","MT","NL","NO","PL","PT","RO","SE","SI","SK","TR","XK",
 ]);
 
 const LATIN_AMERICA_CODES = new Set([
@@ -46,7 +46,7 @@ const SOUTHEAST_ASIA_CODES = new Set([
 ]);
 
 const EAST_ASIA_CODES = new Set([
-  "CN","KR","TW","MN",
+  "CN","KR","TW","MN","HK","MO",
 ]);
 
 const CENTRAL_ASIA_CODES = new Set([
