@@ -809,6 +809,173 @@ describe("composite scoring", () => {
   });
 });
 
+describe("scoreCountSignal edge cases", () => {
+  test("returns 50 when count is null", () => {
+    expect(scoreCountSignal(null, 4)).toBe(50);
+  });
+
+  test("returns 15 when count is 0", () => {
+    expect(scoreCountSignal(0, 4)).toBe(15);
+  });
+
+  test("returns 100 when count meets or exceeds ideal", () => {
+    expect(scoreCountSignal(4, 4)).toBe(100);
+    expect(scoreCountSignal(8, 4)).toBe(100);
+  });
+
+  test("linearly scales between 15 and 100 when count < ideal", () => {
+    const score1 = scoreCountSignal(1, 4);
+    const score2 = scoreCountSignal(2, 4);
+    expect(score1).toBeLessThan(score2);
+    expect(score1).toBeGreaterThan(15);
+    expect(score2).toBeLessThan(100);
+  });
+});
+
+describe("scoreFromDistance direction modes", () => {
+  test('direction="near": returns 100 at or before ideal distance', () => {
+    expect(scoreFromDistance(1, 2, 10, "near")).toBe(100);
+    expect(scoreFromDistance(2, 2, 10, "near")).toBe(100);
+  });
+
+  test('direction="near": returns 15 at or beyond cutoff distance', () => {
+    expect(scoreFromDistance(10, 2, 10, "near")).toBe(15);
+    expect(scoreFromDistance(15, 2, 10, "near")).toBe(15);
+  });
+
+  test('direction="near": linearly scales between ideal and cutoff', () => {
+    const score5 = scoreFromDistance(5, 2, 10, "near");
+    expect(score5).toBeGreaterThan(15);
+    expect(score5).toBeLessThan(100);
+  });
+
+  test('direction="far": returns 15 when below ideal (at or below cutoff)', () => {
+    expect(scoreFromDistance(0.5, 2, 10, "far")).toBe(15);
+  });
+
+  test('direction="far": returns 100 when at or beyond ideal distance', () => {
+    expect(scoreFromDistance(2, 2, 10, "far")).toBe(100);
+  });
+
+  test('direction="far": returns 100 at or beyond cutoff distance', () => {
+    expect(scoreFromDistance(10, 2, 10, "far")).toBe(100);
+    expect(scoreFromDistance(15, 2, 10, "far")).toBe(100);
+  });
+});
+
+describe("scoreTerrain modes", () => {
+  test("cooling mode: favors lower elevations", () => {
+    const lowElev = scoreTerrain(100, "cooling");
+    const highElev = scoreTerrain(900, "cooling");
+    expect(lowElev).toBeGreaterThan(highElev);
+  });
+
+  test("buildability mode: favors lower elevations", () => {
+    const lowElev = scoreTerrain(100, "buildability");
+    const highElev = scoreTerrain(900, "buildability");
+    expect(lowElev).toBeGreaterThan(highElev);
+  });
+
+  test("terrainVariety mode: favors mid-range elevations", () => {
+    const lowElev = scoreTerrain(50, "terrainVariety");
+    const midElev = scoreTerrain(400, "terrainVariety");
+    const highElev = scoreTerrain(1000, "terrainVariety");
+    expect(midElev).toBeGreaterThan(lowElev);
+    expect(midElev).toBeGreaterThan(highElev);
+  });
+
+  test("returns 55 when elevation is null", () => {
+    expect(scoreTerrain(null, "cooling")).toBe(55);
+  });
+});
+
+describe("scoreClimate modes", () => {
+  test("returns 60 when tempC is null", () => {
+    expect(scoreClimate(null, 50, 50, "cooling")).toBe(60);
+  });
+
+  test("returns 60 when coolingDegreeDays is null", () => {
+    expect(scoreClimate(20, null, 50, "cooling")).toBe(60);
+  });
+
+  test("cooling mode: ideal temperature (12C) scores well", () => {
+    const idealScore = scoreClimate(12, 50, 50, "cooling");
+    expect(idealScore).toBeGreaterThan(60);
+  });
+
+  test("cooling mode: very hot temperature scores poorly", () => {
+    const coolScore = scoreClimate(12, 50, 50, "cooling");
+    const hotScore = scoreClimate(35, 50, 50, "cooling");
+    expect(hotScore).toBeLessThan(coolScore);
+  });
+
+  test("outdoor mode: ideal temperature (15C) scores well", () => {
+    const outdoorScore = scoreClimate(15, 50, 50, "outdoor");
+    expect(outdoorScore).toBeGreaterThan(50);
+  });
+});
+
+describe("scoreBroadbandAvailability modes", () => {
+  test("data_center mode requires higher speeds", () => {
+    const geodata = buildGeodata({
+      broadband: {
+        kind: "address_availability",
+        granularity: "address",
+        regionLabel: null,
+        referenceYear: null,
+        technologies: ["cable"],
+        maxDownloadSpeed: 200,
+        maxUploadSpeed: 20,
+        providerCount: 1,
+        hasFiber: false,
+        fixedBroadbandCoveragePercent: null,
+        mobileBroadbandCoveragePercent: null,
+      },
+    });
+
+    const residentialScore = scoreBroadbandAvailability(geodata, "residential");
+    const dataCenterScore = scoreBroadbandAvailability(geodata, "data_center");
+    expect(residentialScore).toBeGreaterThan(dataCenterScore);
+  });
+
+  test("residential prefers fiber over cable", () => {
+    const fiberGeodata = buildGeodata({
+      broadband: {
+        kind: "address_availability",
+        granularity: "address",
+        regionLabel: null,
+        referenceYear: null,
+        technologies: ["fiber"],
+        maxDownloadSpeed: 500,
+        maxUploadSpeed: 100,
+        providerCount: 1,
+        hasFiber: true,
+        fixedBroadbandCoveragePercent: null,
+        mobileBroadbandCoveragePercent: null,
+      },
+    });
+    const cableGeodata = buildGeodata({
+      broadband: {
+        kind: "address_availability",
+        granularity: "address",
+        regionLabel: null,
+        referenceYear: null,
+        technologies: ["cable"],
+        maxDownloadSpeed: 500,
+        maxUploadSpeed: 100,
+        providerCount: 1,
+        hasFiber: false,
+        fixedBroadbandCoveragePercent: null,
+        mobileBroadbandCoveragePercent: null,
+      },
+    });
+
+    expect(scoreBroadbandAvailability(fiberGeodata, "residential")).toBeGreaterThan(
+      scoreBroadbandAvailability(cableGeodata, "residential"),
+    );
+  });
+});
+
 describe("edge cases", () => {
   test("handles all-null direct scoring inputs", () => {
     expect(scoreTerrain(null, "cooling")).toBe(55);
@@ -886,7 +1053,43 @@ describe("edge cases", () => {
   });
 
   test("keeps weather scoring bounded for extreme wind", () => {
-    expect(scoreWeatherRisk(buildGeodata({ climate: { windSpeedKph: 1000, weatherRiskSummary: null } }))).toBeGreaterThanOrEqual(15);
-    expect(scoreWeatherRisk(buildGeodata({ climate: { windSpeedKph: 1000, weatherRiskSummary: null } }))).toBeLessThanOrEqual(100);
+    const extremeWind = scoreWeatherRisk(buildGeodata({ climate: { windSpeedKph: 1000, weatherRiskSummary: null } }));
+    expect(extremeWind).toBeGreaterThanOrEqual(15);
+    expect(extremeWind).toBeLessThanOrEqual(100);
+  });
+
+  test("all scoring functions return values between 0-100", () => {
+    const testGeodata = buildGeodata({
+      elevationMeters: 500,
+      climate: { coolingDegreeDays: 500, precipitationMm: 100, currentTempC: 20 },
+      nearestWaterBody: { distanceKm: 5 },
+      nearestRoad: { distanceKm: 8 },
+      nearestPower: { distanceKm: 3 },
+      seismicDesign: { pga: 0.2, ss: 0.5, s1: 0.15, siteClass: null, riskCategory: null, dataSource: "Test" },
+      hazards: { activeFireCount7d: 2, nearestFireKm: 10 },
+      airQuality: { stationName: "Test", pm25: 25, pm10: 50, aqiCategory: "Moderate", distanceKm: 8 },
+      epaHazards: { superfundCount: 1, triCount: 1, nearestSuperfundName: "Site", nearestSuperfundDistanceKm: 20 },
+    });
+
+    const scores = [
+      scoreCountSignal(10, 5),
+      scoreFromDistance(5, 2, 10),
+      scoreTerrain(testGeodata.elevationMeters),
+      scoreClimate(20, 500, 100),
+      scoreLandCover([{ label: "Urban", value: 50, confidence: 0.9, color: "#999" }]),
+      scoreBroadbandAvailability(testGeodata, "residential"),
+      scoreFloodRisk(testGeodata),
+      scoreAirQualityContext(testGeodata),
+      scoreContaminationRisk(testGeodata),
+      scoreWaterAccess(testGeodata),
+      scoreSeismicRisk(testGeodata),
+      scoreFireRisk(testGeodata),
+      scoreWeatherRisk(testGeodata),
+    ];
+
+    scores.forEach((score) => {
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(100);
+    });
   });
 });
