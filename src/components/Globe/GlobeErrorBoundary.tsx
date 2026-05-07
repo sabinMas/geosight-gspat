@@ -2,6 +2,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 
 interface GlobeErrorBoundaryProps {
   children: ReactNode;
@@ -29,7 +30,17 @@ export class GlobeErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("[globe-error-boundary]", error, errorInfo);
+    Sentry.captureException(error, {
+      tags: {
+        boundary: "globe-error-boundary",
+        component: "3d-globe",
+      },
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+        },
+      },
+    });
   }
 
   render() {

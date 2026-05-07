@@ -2,6 +2,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 
 interface ClientErrorBoundaryProps {
@@ -27,7 +28,16 @@ export class ClientErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("[client-error-boundary]", error, errorInfo);
+    Sentry.captureException(error, {
+      tags: {
+        boundary: "client-error-boundary",
+      },
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+        },
+      },
+    });
   }
 
   private readonly handleReset = () => {
