@@ -224,5 +224,7 @@ GeoSight is Vercel-ready:
 
 ## Backlog & Roadmap
 
-- [`docs/BACKLOG.md`](docs/BACKLOG.md) — planned features and known gaps
-- [`agents.md`](agents.md) — platform and product standards
+- [`docs/BACKLOG.md`](docs/BACKLOG.md) — phased roadmap (Phase 3 country data packs is current focus)
+- [`docs/DATASETS_GLOBAL.md`](docs/DATASETS_GLOBAL.md) — global dataset catalog (integrated + queued)
+- [`AGENTS.md`](AGENTS.md) — agent personas and ownership boundaries
+- [`SKILLS.md`](SKILLS.md) — skill catalog and operating rules
