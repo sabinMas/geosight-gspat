@@ -22,6 +22,14 @@ import {
   rateLimitHeaders,
 } from "@/lib/request-guards";
 import {
+  getSessionBudget,
+  deductTokens,
+  getCacheKey,
+  getCachedResult,
+  cacheResult,
+  hashQuestion,
+} from "@/lib/cost-guards";
+import {
   DrawnGeometryFeatureCollection,
   LensAnalysisRequestBody,
   LensAnalysisResult,
@@ -51,6 +59,33 @@ export async function POST(request: NextRequest) {
     });
     if (!rateLimit.allowed) {
       return createRateLimitResponse(rateLimit);
+    }
+
+    // Get client IP for session-level cost tracking
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0] ||
+      request.headers.get("cf-connecting-ip") ||
+      "unknown";
+
+    // Check session token budget
+    const budget = getSessionBudget(clientIp);
+    if (budget.remaining < 1000) {
+      // Minimum tokens needed for analysis
+      return NextResponse.json(
+        {
+          error: "Token budget exceeded for this session",
+          retryable: false,
+          budgetRemaining: budget.remaining,
+          budgetTotal: budget.total,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": "3600",
+            "X-Budget-Remaining": String(budget.remaining),
+          },
+        },
+      );
     }
 
     let rawBody: unknown;
@@ -143,42 +178,65 @@ export async function POST(request: NextRequest) {
                 activeLayerLabels: body.activeLayerLabels,
               });
 
-  const narrative = await runAnalysisWithFallback(
-    {
-      profileId: profile.id,
-      question: prompt,
-      location: geometryContext.centroid,
-      locationName,
-      resultsMode: "analysis",
-    },
-    profile,
-    {
-      fallbackAnswer: computation.fallbackNarrative,
-      onProviderFailure(provider, error) {
-        logAnalysisProviderFailure("lens-analysis", provider, error);
-      },
-    },
-  ).catch((error) => {
-    if (isProviderTimeoutError(error)) {
-      return NextResponse.json(
-        {
-          error: "Live lens analysis timed out before a provider returned a usable narrative. Please retry.",
-          retryable: true,
-          provider: error.provider,
-        },
-        {
-          status: 504,
-          headers: {
-            ...rateLimitHeaders(rateLimit),
-            "X-GeoSight-Mode": "timeout",
-            "X-GeoSight-Retryable": "true",
-          },
-        },
-      );
-    }
+  // Check result cache before calling Cerebras
+  const promptHash = hashQuestion(prompt);
+  const cacheKey = getCacheKey(geometryContext.centroid.lat, geometryContext.centroid.lng, lens.id, promptHash);
+  const cachedNarrative = getCachedResult(cacheKey);
 
-    throw error;
-  });
+  let narrative;
+  if (cachedNarrative) {
+    // Cache hit — use cached result without consuming tokens
+    narrative = cachedNarrative as Awaited<ReturnType<typeof runAnalysisWithFallback>>;
+    Sentry.addBreadcrumb({
+      message: "Analysis cache hit",
+      level: "info",
+      data: { lensId: lens.id, budgetRemaining: budget.remaining },
+    });
+  } else {
+    // Cache miss — call Cerebras and cache result
+    narrative = await runAnalysisWithFallback(
+      {
+        profileId: profile.id,
+        question: prompt,
+        location: geometryContext.centroid,
+        locationName,
+        resultsMode: "analysis",
+      },
+      profile,
+      {
+        fallbackAnswer: computation.fallbackNarrative,
+        onProviderFailure(provider, error) {
+          logAnalysisProviderFailure("lens-analysis", provider, error);
+        },
+      },
+    ).catch((error) => {
+      if (isProviderTimeoutError(error)) {
+        return NextResponse.json(
+          {
+            error: "Live lens analysis timed out before a provider returned a usable narrative. Please retry.",
+            retryable: true,
+            provider: error.provider,
+          },
+          {
+            status: 504,
+            headers: {
+              ...rateLimitHeaders(rateLimit),
+              "X-GeoSight-Mode": "timeout",
+              "X-GeoSight-Retryable": "true",
+            },
+          },
+        );
+      }
+
+      throw error;
+    });
+
+    // Cache result and deduct tokens only for successful responses
+    if (!(narrative instanceof NextResponse)) {
+      cacheResult(cacheKey, narrative);
+      deductTokens(clientIp, 1500);
+    }
+  }
 
   if (narrative instanceof NextResponse) {
     return narrative;
