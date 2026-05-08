@@ -2157,6 +2157,7 @@ export function ExploreWorkspace() {
                   wmsLayers={state.wmsLayers}
                   onShapeComplete={handleShapeComplete}
                   onVertexDrag={state.updateDrawnShapeVertex}
+                  onCancelDrawing={() => state.setDrawingTool("none")}
                   snapToGrid={state.snapToGrid}
                   captureMode={captureOverlayVisible}
                   routeCoordinates={state.routeCoordinates}

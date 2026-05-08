@@ -288,6 +288,7 @@ interface CesiumGlobeProps {
   onIdentifyResult?: (result: IdentifyResult) => void;
   onShapeComplete?: (shape: DrawnShape) => void;
   onVertexDrag?: (shapeId: string, vertexIndex: number, coord: { lat: number; lng: number }) => void;
+  onCancelDrawing?: () => void;
   snapToGrid?: boolean;
   captureMode?: boolean;
   routeCoordinates?: { lat: number; lng: number }[] | null;
@@ -325,6 +326,7 @@ export function CesiumGlobe({
   onIdentifyResult,
   onShapeComplete,
   onVertexDrag,
+  onCancelDrawing,
   snapToGrid = false,
   captureMode = false,
   routeCoordinates = null,
@@ -1810,6 +1812,7 @@ export function CesiumGlobe({
     drawingTool,
     drawnShapes,
     onShapeComplete: onShapeComplete ?? (() => undefined),
+    onCancel: onCancelDrawing,
     snapToGrid,
   });
 

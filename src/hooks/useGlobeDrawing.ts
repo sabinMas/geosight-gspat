@@ -470,6 +470,7 @@ export function useGlobeDrawing({
   drawingTool,
   drawnShapes = [],
   onShapeComplete,
+  onCancel,
   snapToGrid = false,
 }: {
   viewerRef: React.MutableRefObject<CesiumViewer | null>;
@@ -477,6 +478,7 @@ export function useGlobeDrawing({
   drawingTool: DrawingTool;
   drawnShapes?: DrawnShape[];
   onShapeComplete: (shape: DrawnShape) => void;
+  onCancel?: () => void;
   snapToGrid?: boolean;
 }) {
   const verticesRef = useRef<Array<{ lat: number; lng: number }>>([]);
@@ -530,6 +532,15 @@ export function useGlobeDrawing({
     void snapIndicator; // referenced via CallbackProperty above
 
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+
+    // Escape key cancels the current drawing
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && drawingTool !== "none") {
+        e.preventDefault();
+        onCancel?.();
+      }
+    };
+    document.addEventListener("keydown", handleEscapeKey);
 
     /**
      * Resolves a screen position to a world Cartesian3, applying snap-to-vertex
@@ -861,6 +872,7 @@ export function useGlobeDrawing({
     }
 
     return () => {
+      document.removeEventListener("keydown", handleEscapeKey);
       if (!handler.isDestroyed()) handler.destroy();
       const existing = viewer.dataSources.getByName("drawing-preview")[0];
       if (existing) viewer.dataSources.remove(existing, true);
@@ -868,5 +880,5 @@ export function useGlobeDrawing({
       previewPosRef.current = null;
       firstPointRef.current = null;
     };
-  }, [drawingTool, viewerRef, viewerReady, onShapeComplete]);
+  }, [drawingTool, viewerRef, viewerReady, onShapeComplete, onCancel]);
 }

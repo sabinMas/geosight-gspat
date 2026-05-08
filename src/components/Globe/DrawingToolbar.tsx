@@ -32,25 +32,25 @@ const TOOLS: Array<{
   {
     id: "polygon",
     label: "Draw area",
-    hint: "Click to place corners — right-click to close",
+    hint: "Click to place corners — right-click to close · Press Escape to cancel",
     Icon: PenTool,
   },
   {
     id: "marker",
     label: "Drop pin",
-    hint: "Click anywhere to place a marker",
+    hint: "Click anywhere to place a marker · Press Escape to cancel",
     Icon: MapPin,
   },
   {
     id: "measure",
     label: "Measure",
-    hint: "Click to add points · Right-click to finish",
+    hint: "Click to add points · Right-click to finish · Press Escape to cancel",
     Icon: Ruler,
   },
   {
     id: "circle",
     label: "Radius",
-    hint: "Click center then edge to draw a radius circle",
+    hint: "Click center then edge to draw a radius circle · Press Escape to cancel",
     Icon: Circle,
   },
 ];
