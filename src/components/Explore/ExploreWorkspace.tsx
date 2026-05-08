@@ -1907,40 +1907,44 @@ export function ExploreWorkspace() {
           <button
             type="button"
             onClick={() => setFeatureInspectMode((v) => !v)}
-            className={`flex h-8 w-8 items-center justify-center rounded-full border transition cursor-pointer ${featureInspectMode ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]" : "border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg hover:text-[var(--foreground)]"}`}
+            className={`flex h-8 px-2 items-center justify-center gap-1.5 rounded-full border transition cursor-pointer text-xs ${featureInspectMode ? "border-[color:var(--accent-strong)] bg-[var(--accent-soft)] text-[var(--accent)]" : "border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg hover:text-[var(--foreground)]"}`}
             aria-label={featureInspectMode ? "Exit identify mode" : "Identify features (I)"}
             title="Identify features (I)"
           >
-            <ScanSearch className="h-3.5 w-3.5" />
+            <ScanSearch className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden md:inline">Identify</span>
           </button>
           <button
             type="button"
             onClick={() => setSettingsPanelOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg transition hover:text-[var(--foreground)]"
+            className="flex h-8 px-2 items-center justify-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg transition hover:text-[var(--foreground)] text-xs"
             aria-label="Open settings"
             title="Settings"
           >
-            <Settings className="h-3.5 w-3.5" />
+            <Settings className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden md:inline">Settings</span>
           </button>
           {state.locationReady ? (
             <button
               type="button"
               onClick={handleCopyLink}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg transition hover:text-[var(--foreground)]"
+              className="flex h-8 px-2 items-center justify-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg transition hover:text-[var(--foreground)] text-xs"
               title="Copy a shareable link"
               aria-label="Copy shareable link"
             >
-              <Link2 className="h-3.5 w-3.5" />
+              <Link2 className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden md:inline">Share</span>
             </button>
           ) : null}
           <button
             type="button"
             onClick={() => setCommandPaletteOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg transition hover:text-[var(--foreground)]"
+            className="flex h-8 px-2 items-center justify-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[var(--surface-panel)] text-[var(--muted-foreground)] shadow-[var(--shadow-panel)] backdrop-blur-lg transition hover:text-[var(--foreground)] text-xs"
             title="Open command palette"
             aria-label="Open command palette"
           >
-            <Command className="h-3.5 w-3.5" />
+            <Command className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden md:inline">Commands</span>
           </button>
         </div>
       </header>

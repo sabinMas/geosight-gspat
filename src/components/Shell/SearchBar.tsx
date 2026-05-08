@@ -313,13 +313,14 @@ export function SearchBar({
               type="button"
               variant="secondary"
               size="sm"
-              className="h-9 w-9 shrink-0 rounded-full p-0"
+              className="h-9 shrink-0 rounded-full px-2.5 text-xs"
               onClick={handleUseCurrentLocation}
               disabled={locating}
               title={locationButtonLabel}
               aria-label={locationButtonLabel}
             >
-              {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
+              {locating ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Crosshair className="mr-1.5 h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{locationButtonLabel}</span>
             </Button>
           </div>
           {error && (

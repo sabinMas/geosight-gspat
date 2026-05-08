@@ -535,7 +535,7 @@ export function useGlobeDrawing({
 
     // Escape key cancels the current drawing
     const handleEscapeKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && drawingTool !== "none") {
+      if (e.key === "Escape") {
         e.preventDefault();
         onCancel?.();
       }
