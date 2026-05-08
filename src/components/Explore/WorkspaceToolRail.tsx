@@ -106,8 +106,9 @@ export function WorkspaceToolRail({
             size="sm"
             variant={shellMode !== "board" ? "default" : "secondary"}
             className="justify-start rounded-2xl"
-            aria-label="Open focused workspace mode"
+            aria-label="Focus mode — AI-guided exploration with core insights"
             aria-pressed={shellMode !== "board"}
+            title="Focus mode — AI-guided exploration"
             onClick={onOpenFocused}
           >
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
@@ -118,8 +119,9 @@ export function WorkspaceToolRail({
             size="sm"
             variant={shellMode === "board" && viewMode === "board" ? "default" : "secondary"}
             className="justify-start rounded-2xl"
-            aria-label="Open evidence workspace mode"
+            aria-label="Evidence board — compare analyses side-by-side"
             aria-pressed={shellMode === "board" && viewMode === "board"}
+            title="Evidence board — compare multiple locations"
             onClick={onOpenWorkspace}
           >
             <Layers3 className="mr-1.5 h-3.5 w-3.5" />
@@ -130,8 +132,9 @@ export function WorkspaceToolRail({
             size="sm"
             variant={shellMode === "board" && viewMode === "library" ? "default" : "secondary"}
             className="col-span-2 justify-start rounded-2xl"
-            aria-label="Open panel library"
+            aria-label="Panels library — browse all available insight cards"
             aria-pressed={shellMode === "board" && viewMode === "library"}
+            title="Panels library — all available cards"
             data-walkthrough="card-library"
             onClick={onOpenLibrary}
           >
